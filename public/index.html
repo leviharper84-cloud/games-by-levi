@@ -501,6 +501,41 @@ textarea.code {
 .online-dots::after { content: ""; animation: dots 1.4s steps(4) infinite; }
 @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
 .saved-pill { font: 700 .6rem var(--f-mono); letter-spacing: .1em; color: #ffd66b; border: 1px solid rgba(255,214,107,.6); border-radius: 999px; padding: 0 6px; }
+/* rewards */
+.wallet { display: inline-flex; align-items: center; gap: 8px; padding: 5px 12px; border-radius: 999px; border: 1px solid rgba(255,214,107,.55); background: rgba(255,214,107,.08); color: #ffd66b; font: 700 .78rem var(--f-mono); cursor: pointer; position: relative; }
+.wallet:hover { box-shadow: 0 0 16px rgba(255,214,107,.4); }
+.wallet.due::after { content: ""; position: absolute; top: -3px; right: -3px; width: 10px; height: 10px; border-radius: 50%; background: #ff4d6d; box-shadow: 0 0 10px #ff4d6d; animation: tourPulse 1.4s infinite; }
+.w-lv { color: #fff; }
+.w-bar { display: inline-block; width: 42px; height: 5px; border-radius: 3px; background: rgba(255,255,255,.12); overflow: hidden; vertical-align: middle; }
+.w-bar i { display: block; height: 100%; background: linear-gradient(90deg, #ffd66b, #ff8a1f); }
+.w-bar.big { width: 100%; height: 9px; display: block; margin: 6px 0 4px; }
+.coin-pop { position: fixed; left: 50%; bottom: 26px; z-index: 210; padding: 10px 18px; border-radius: 999px; background: #120b24; border: 1px solid #ffd66b; color: #ffd66b; font: 700 .9rem var(--f-mono); box-shadow: 0 0 24px rgba(255,214,107,.45); transform: translate(-50%, 160%); transition: transform .45s var(--ease); white-space: nowrap; }
+.coin-pop.big { font-size: 1.05rem; padding: 13px 22px; }
+.coin-pop.show { transform: translate(-50%, 0); }
+.rew-head { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.rew-lv { flex: 1; min-width: 0; }
+.rew-lv b { color: #ffd66b; letter-spacing: .12em; }
+.rew-lv small { color: var(--muted); font-size: .78rem; }
+.rew-coins { font: 800 1.6rem var(--f-mono); color: #ffd66b; text-shadow: 0 0 14px rgba(255,214,107,.6); white-space: nowrap; }
+.rew-tabs { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.rew-list { display: grid; gap: 10px; }
+.mission { display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line-2); background: rgba(7,4,15,.6); }
+.mission.done { border-color: rgba(255,214,107,.6); box-shadow: 0 0 16px rgba(255,214,107,.15); }
+.m-txt { flex: 1; min-width: 0; display: grid; gap: 4px; }
+.m-txt .w-bar { width: 100%; }
+.m-txt small { color: var(--muted); font-size: .76rem; }
+.m-claimed { color: #3dffa8; font: 700 .78rem var(--f-mono); }
+.spin-box { display: grid; gap: 14px; justify-items: center; }
+.wheel-wrap { position: relative; width: 260px; height: 260px; }
+.wheel { width: 260px; height: 260px; border-radius: 50%; position: relative; border: 4px solid #fff; box-shadow: 0 0 30px rgba(var(--a1-rgb), .5); }
+.w-lab { position: absolute; left: 50%; top: 50%; width: 46px; margin: -11px 0 0 -23px; text-align: center; font: 800 1rem var(--f-mono); color: #05030c; }
+.wheel-pin { position: absolute; top: -10px; left: 50%; margin-left: -12px; width: 0; height: 0; border-left: 12px solid transparent; border-right: 12px solid transparent; border-top: 24px solid #fff; filter: drop-shadow(0 0 6px #fff); }
+.shop-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.shop-item { display: grid; gap: 6px; justify-items: start; padding: 12px; border-radius: 14px; border: 1px solid var(--line-2); background: rgba(7,4,15,.6); }
+.shop-item.on { border-color: var(--a1); box-shadow: 0 0 16px rgba(var(--a1-rgb), .3); }
+.shop-item .sw { width: 100%; height: 14px; border-radius: 7px; }
+.shop-item small { color: var(--muted); font-size: .76rem; }
+@media (max-width: 1280px) { .w-bar:not(.big) { display: none; } }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
@@ -763,6 +798,8 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-settings>Settings</button>
       <span aria-hidden="true">·</span>
+      <button class="linkbtn" type="button" data-rewards>⚡ Rewards</button>
+      <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="leaderboards">Leaderboards</button>
       <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="submit">Submit a game</button>
@@ -803,6 +840,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <button class="swatch" data-neon="sunset" aria-label="Sunset orange and magenta" style="--c1:#ff8a1f;background:linear-gradient(135deg,#ff8a1f 50%,#ff2e88 50%)"></button>
       <button class="swatch" data-neon="ice" aria-label="Ice cyan and blue" style="--c1:#6af7ff;background:linear-gradient(135deg,#6af7ff 50%,#6b7dff 50%)"></button>
     </div>
+    <button class="wallet" type="button" data-wallet aria-label="Rewards: coins, missions, spin and shop" title="Rewards"></button>
     <button class="btn sm set-btn" type="button" data-settings aria-label="Settings" title="Settings">⚙</button>
     <div class="acct-slot" id="acct"><button class="btn sm" type="button" disabled>Log in</button></div>
   </div>
@@ -1052,6 +1090,16 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <div class="sp"><button class="btn sm" type="button" id="acct-close">Close</button></div>
     </div>
     <div class="acct-body" id="acct-body"></div>
+  </div>
+</div>
+
+<div class="modal" id="rew-modal" role="dialog" aria-modal="true" aria-labelledby="rew-title" aria-hidden="true">
+  <div class="cabinet acct set-cab">
+    <div class="cab-bar">
+      <div class="cab-title" id="rew-title">⚡ Rewards</div>
+      <div class="sp"><button class="btn sm" type="button" id="rew-close">Close</button></div>
+    </div>
+    <div class="acct-body" id="rew-body"></div>
   </div>
 </div>
 
@@ -1656,7 +1704,8 @@ function snakeGame() {
       x.lineCap = "round"; x.lineJoin = "round";
       for (let i = pts.length - 1; i > 0; i--) {
         if (Math.abs(pts[i][0] - pts[i - 1][0]) + Math.abs(pts[i][1] - pts[i - 1][1]) > Z * 1.6) continue;
-        const a = 1 - i / pts.length; x.strokeStyle = "rgba(255,43,214," + (0.3 + 0.7 * a) + ")"; x.lineWidth = 9 + 9 * a;
+        const a = 1 - i / pts.length, sk = (window.SKIN0 || {}).snake, al = 0.3 + 0.7 * a;
+        x.strokeStyle = sk === "sn-rainbow" ? "hsla(" + (((i * 24 - S.clock * 200) % 360) + 360) % 360 + ",100%,60%," + al + ")" : sk === "sn-fire" ? "hsla(" + (15 + 30 * Math.sin(i * .5 - S.clock * 8)) + ",100%,55%," + al + ")" : sk === "sn-gold" ? "rgba(255,194,61," + al + ")" : sk === "sn-ice" ? "rgba(106,247,255," + al + ")" : sk === "sn-ghost" ? "rgba(255,255,255," + (0.12 + 0.35 * a) + ")" : "rgba(255,43,214," + al + ")"; x.lineWidth = 9 + 9 * a;
         x.beginPath(); x.moveTo(pts[i][0], pts[i][1]); x.lineTo(pts[i - 1][0], pts[i - 1][1]); x.stroke();
       }
       x.strokeStyle = "rgba(255,255,255,.5)"; x.lineWidth = 2; x.beginPath(); pts.forEach((p, i) => (i && Math.abs(p[0] - pts[i - 1][0]) + Math.abs(p[1] - pts[i - 1][1]) <= Z * 1.6 ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]))); x.stroke();
@@ -5704,6 +5753,9 @@ function slitherGame() {
   const W = 520, H = 640, ARENA = 1500, SEG = 7, MAXP = 650, BOTS = 20, CELL = 64;
   const NAMES = ["Viper", "Noodle", "Zigzag", "Sir Hiss", "Mamba", "Wiggles", "Cobra", "Slinky", "Neon Nate", "Python", "Loop", "Fang", "Squiggle", "Rattler", "Byte", "Kaa", "Sly", "Twister", "Pixel", "Medusa"];
   const SKINS = [["#ff2bd6", "#ffd0f6"], ["#22e4ff", "#c8f8ff"], ["#b6ff3b", "#ecffc4"], ["#ffc23d", "#fff0c4"], ["#a35bff", "#e2d0ff"], ["#ff4d6d", "#ffd0d8"], ["#3dffa8", "#c8ffe8"], ["#ff8a1f", "#ffe0c4"]];
+  const SK = (window.SKIN0 || {}).slither || "", SPECIAL = { "sl-fire": "fire", "sl-galaxy": "galaxy", "sl-rainbow": "rainbow" }, BASIC = { "sl-pink": 0, "sl-lime": 2, "sl-gold": 3 };
+  const PUPS = { magnet: ["#22e4ff", "MAGNET"], speed: ["#ffd66b", "SPEED"], double: ["#ff2bd6", "DOUBLE FOOD"] };
+  let pups = [], pupT = 6, streak = [];
   let snakes, me, pellets, pill, pillT, cam, zoom, kills, grid, deadT, bestRank, boostIds, aim, keyTurn;
   const rnd = (a, b) => a + Math.random() * (b - a);
   const rad = (s) => Math.min(24, 6 + Math.sqrt(s.mass) * .42);
@@ -5734,7 +5786,7 @@ function slitherGame() {
     s.alive = false; s.deadAt = S.t;
     const per = Math.max(1, Math.round(s.mass / s.pts.length * 2.2));
     for (let i = 0; i < s.pts.length; i += 2) addPellet(s.pts[i][0] + rnd(-6, 6), s.pts[i][1] + rnd(-6, 6), per >= 8 ? 8 : per >= 3 ? 3 : 2, SKINS[s.skin][0]);
-    if (by) { by.kills++; if (by === me) { kills++; S.score += 50 + Math.floor(s.mass); pop(W / 2, H / 2 - 70, "KILLED " + s.name.toUpperCase() + "!", "#ffd66b"); sfx("score"); } }
+    if (by) { by.kills++; if (by === me) { kills++; streak = streak.filter((t) => S.t - t < 7); streak.push(S.t); if (streak.length >= 2) { banner(["", "", "DOUBLE KILL!", "TRIPLE KILL!", "MEGA KILL!"][streak.length] || "RAMPAGE!", "#ff4d6d"); sfx("level"); shake(6, .3); } S.score += 50 + Math.floor(s.mass); pop(W / 2, H / 2 - 70, "KILLED " + s.name.toUpperCase() + "!", "#ffd66b"); sfx("score"); } }
     const onScreen = Math.hypot(s.x - cam.x, s.y - cam.y) < 500;
     if (onScreen) { const [sx, sy] = toScreen(s.x, s.y); burst(sx, sy, SKINS[s.skin][0], 40, 300, .8); if (s !== me) sfx("boom"); }
   }
@@ -5802,8 +5854,9 @@ function slitherGame() {
     const r = rad(s), turn = Math.max(2.2, 5 - r * .1);
     let da = s.ta - s.a; da = Math.atan2(Math.sin(da), Math.cos(da));
     s.a += Math.max(-turn * dt, Math.min(turn * dt, da));
-    const boosting = s.boost && s.mass > 14, sp = (boosting ? 290 : 155) * (s === me && S.practice ? .9 : 1);
-    if (boosting) { s.mass -= 7 * dt; s.dropT -= dt; if (s.dropT <= 0) { s.dropT = .11; const t = s.pts[s.pts.length - 1]; addPellet(t[0], t[1], 1, SKINS[s.skin][0]); } }
+    s.mag = Math.max(0, (s.mag || 0) - dt); s.fast = Math.max(0, (s.fast || 0) - dt); s.dbl = Math.max(0, (s.dbl || 0) - dt);
+    const boosting = (s.boost && s.mass > 14) || s.fast > 0, sp = (boosting ? 290 : 155) * (s === me && S.practice ? .9 : 1);
+    if (boosting && !s.fast) { s.mass -= 7 * dt; s.dropT -= dt; if (s.dropT <= 0) { s.dropT = .11; const t = s.pts[s.pts.length - 1]; addPellet(t[0], t[1], 1, SKINS[s.skin][0]); } }
     s.x += Math.cos(s.a) * sp * dt; s.y += Math.sin(s.a) * sp * dt;
     s.pts[0] = [s.x, s.y];
     for (let i = 1; i < s.pts.length; i++) {
@@ -5815,12 +5868,16 @@ function slitherGame() {
     while (s.pts.length > want && s.pts.length > 12) s.pts.pop();
     s.inv = Math.max(0, s.inv - dt);
     // eat
-    const reach = r + 14;
+    const reach = r + 14 + (s.mag > 0 ? 90 : 0);
     for (const p of pellets) {
       if (p.dead) continue;
       const dx = s.x - p.x, dy = s.y - p.y, d = Math.hypot(dx, dy);
       if (d < reach + 16 && d > 0) { p.x += dx / d * 220 * dt; p.y += dy / d * 220 * dt; }
-      if (d < r + p.r) { p.dead = true; s.mass += p.v * .6; if (s === me) { S.score += p.v; if (p.v >= 8) sfx("pop"); else if (Math.random() < .3) sfx("tick"); } }
+      if (d < r + p.r) { p.dead = true; const pv = p.v * (s.dbl > 0 ? 2 : 1); s.mass += pv * .6; if (s === me) { S.score += pv; if (p.v >= 8) sfx("pop"); else if (Math.random() < .3) sfx("tick"); } }
+    }
+    for (const u of pups) if (!u.dead && Math.hypot(u.x - s.x, u.y - s.y) < r + 16) {
+      u.dead = true; const t = u.k === "double" ? 12 : 8; if (u.k === "magnet") s.mag = t; else if (u.k === "speed") s.fast = t; else s.dbl = t;
+      if (s === me) { banner(PUPS[u.k][1] + "!", PUPS[u.k][0]); sfx("power"); const [sx, sy] = toScreen(u.x, u.y); burst(sx, sy, PUPS[u.k][0], 24, 220, .5); }
     }
     if (pill && Math.hypot(pill.x - s.x, pill.y - s.y) < r + 14) {
       s.inv = 7; pill = null; pillT = 22;
@@ -5828,12 +5885,12 @@ function slitherGame() {
     }
   }
   function respawnMe() {
-    const [x, y] = freeSpot(400); snakes[BOTS] = me = mk(x, y, Math.random() * 6.283, 1, "YOU", false, 20); me.inv = 2.5;
+    const [x, y] = freeSpot(400); snakes[BOTS] = me = mk(x, y, Math.random() * 6.283, BASIC[SK] != null ? BASIC[SK] : 1, "YOU", false, 20); me.inv = 2.5; me.special = SPECIAL[SK] || null;
     cam = { x, y };
   }
   game({
     title: "Neon Slither", easy: "calmer bots, and if you crash you just respawn", w: W, h: H, color: "#3dffa8", bpm: 132,
-    help: ["Steer with your finger, the mouse, or ← →", "Eat glowing pellets to grow. Big ones are worth more", "Hold BOOST (or Space) to speed up. It costs length", "Crash into a snake's body and you're out. Make them crash into yours!"],
+    help: ["Steer with your finger, the mouse, or ← →", "Eat glowing pellets to grow. Big ones are worth more", "Hold BOOST (or Space) to speed up. It costs length", "Grab power-ups: M = magnet, » = speed, x2 = double food. Crash into a body and you're out!"],
     init() {
       snakes = []; pellets = []; grid = new Map(); kills = 0; deadT = 0; bestRank = 21; pill = null; pillT = 15; boostIds = new Set(); aim = null; keyTurn = 0;
       cam = { x: 0, y: 0 }; zoom = 1;
@@ -5877,6 +5934,7 @@ function slitherGame() {
       for (let i = 0; i < BOTS; i++) if (!snakes[i].alive && S.t - snakes[i].deadAt > 3) spawnBot(i, true);
       while (pellets.length < MAXP) { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (ARENA - 30); addPellet(Math.cos(a) * r, Math.sin(a) * r); }
       if (pellets.length > MAXP * 2) pellets.splice(0, pellets.length - MAXP * 2);
+      pups = pups.filter((u) => !u.dead); pupT -= dt; if (pupT <= 0 && pups.length < 4) { pupT = 7 + Math.random() * 5; const [ux, uy] = freeSpot(120), ks = Object.keys(PUPS); pups.push({ x: ux, y: uy, k: ks[Math.random() * ks.length | 0] }); }
       pillT -= dt; if (!pill && pillT <= 0) { const [x, y] = freeSpot(150); pill = { x, y }; if (me.alive && Math.hypot(x - me.x, y - me.y) < 900) pop(W / 2, 80, "A MAGIC PILL APPEARED!", "#ffd66b"); }
       if (me.alive) { cam.x += (me.x - cam.x) * Math.min(1, dt * 8); cam.y += (me.y - cam.y) * Math.min(1, dt * 8); }
       zoom += (Math.max(.5, Math.min(1, 1.15 - rad(me) * .022)) - zoom) * Math.min(1, dt * 2);
@@ -5896,6 +5954,12 @@ function slitherGame() {
         if (p.v >= 3) { glow(p.c, 12); x.fillStyle = p.c; x.beginPath(); x.arc(p.x, p.y, pr, 0, 6.2832); x.fill(); glow(); }
         else { x.fillStyle = ca(p.c, .35); x.beginPath(); x.arc(p.x, p.y, pr * 1.8, 0, 6.2832); x.fill(); x.fillStyle = p.c; x.beginPath(); x.arc(p.x, p.y, pr, 0, 6.2832); x.fill(); }
       }
+      for (const u of pups) {
+        if (u.x < x0 || u.x > x1 || u.y < y0 || u.y > y1) continue;
+        const [c, lab] = PUPS[u.k], bob = Math.sin(S.clock * 4 + u.x) * 3;
+        glow(c, 20); x.strokeStyle = c; x.lineWidth = 3; x.fillStyle = ca(c, .25); x.beginPath(); x.arc(u.x, u.y + bob, 15, 0, 6.2832); x.fill(); x.stroke(); glow();
+        x.font = "800 13px Orbitron, sans-serif"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillStyle = "#ffffff"; x.fillText(u.k === "magnet" ? "M" : u.k === "speed" ? "»" : "x2", u.x, u.y + bob + 1);
+      }
       if (pill) {
         const hue = (S.clock * 200) % 360, c = "hsl(" + hue + ",100%,60%)";
         glow(c, 26); x.fillStyle = c; x.beginPath(); x.ellipse(pill.x, pill.y, 16, 9, S.clock * 2, 0, 6.2832); x.fill(); glow();
@@ -5909,6 +5973,14 @@ function slitherGame() {
         x.lineCap = "round"; x.lineJoin = "round";
         x.beginPath(); s.pts.forEach((p, i) => (i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])));
         glow(col, s.boost ? 26 : 14); x.strokeStyle = col; x.lineWidth = r * 2; x.stroke(); glow();
+        if (s.special && !inv) {
+          x.lineWidth = r * 2;
+          for (let i = s.pts.length - 1; i > 0; i--) {
+            const h = s.special === "rainbow" ? (i * 14 - S.clock * 220) % 360 : s.special === "galaxy" ? 260 + 55 * Math.sin(i * .3 - S.clock * 3) : 12 + 32 * (.5 + .5 * Math.sin(i * .4 - S.clock * 7));
+            x.strokeStyle = "hsl(" + ((h % 360) + 360) % 360 + ",100%," + (s.special === "fire" ? 55 : 62) + "%)"; x.beginPath(); x.moveTo(s.pts[i][0], s.pts[i][1]); x.lineTo(s.pts[i - 1][0], s.pts[i - 1][1]); x.stroke();
+          }
+        }
+        if (s.mag > 0 || s.fast > 0 || s.dbl > 0) { x.strokeStyle = s.mag > 0 ? "rgba(34,228,255,.5)" : s.fast > 0 ? "rgba(255,214,107,.5)" : "rgba(255,43,214,.5)"; x.lineWidth = 2; x.beginPath(); x.arc(s.x, s.y, r + 10 + Math.sin(S.clock * 8) * 3, 0, 6.2832); x.stroke(); }
         x.strokeStyle = ca(c2, .55); x.lineWidth = r * .7; x.setLineDash([2, r * 1.6]); x.stroke(); x.setLineDash([]);
         const ex = Math.cos(s.a), ey = Math.sin(s.a), nx = -ey, ny = ex;
         for (const sd of [-1, 1]) {
@@ -5933,6 +6005,7 @@ function slitherGame() {
       const on = me.alive && me.boost;
       glow("#3dffa8", on ? 22 : 6); x.fillStyle = on ? "rgba(61,255,168,.35)" : "rgba(61,255,168,.1)"; x.strokeStyle = "#3dffa8"; x.lineWidth = 2.5; x.beginPath(); x.arc(W - 62, H - 62, 46, 0, 6.2832); x.fill(); x.stroke(); glow();
       txt("BOOST", W - 62, H - 62, 13, "#ffffff", "center", "d");
+      if (me.alive) { const act = [["mag", "MAGNET", "#22e4ff"], ["fast", "SPEED", "#ffd66b"], ["dbl", "x2 FOOD", "#ff2bd6"]].filter(([k]) => me[k] > 0); act.forEach(([k, n, c], i) => txt(n + " " + Math.ceil(me[k]) + "s", W / 2, 86 + i * 20, 13, c, "center", "d")); }
       if (me.inv > 0 && me.alive) txt("INVINCIBLE " + Math.ceil(me.inv) + "s", W / 2, 60, 16, "#ffd66b", "center", "d");
     },
   });
@@ -6124,7 +6197,7 @@ function slitherGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + "window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + "window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -6717,9 +6790,12 @@ function slitherGame() {
     for (const src of [a.played || {}, b.played || {}]) for (const [k, v] of Object.entries(src)) out.played[k] = Math.max(out.played[k] || 0, +v || 0);
     for (const src of [a.ach || {}, b.ach || {}]) for (const [k, v] of Object.entries(src)) out.ach[k] = Math.min(out.ach[k] || Infinity, +v || Date.now());
     for (const src of [a.stats || {}, b.stats || {}]) for (const [k, v] of Object.entries(src)) {
-      if (Array.isArray(v)) out.stats[k] = uniq([...(out.stats[k] || []), ...v]).slice(-60);
+      if (typeof v === "string") { if (!out.stats[k] || v > out.stats[k]) out.stats[k] = v; }
+      else if (Array.isArray(v)) out.stats[k] = uniq([...(out.stats[k] || []), ...v]).slice(-60);
       else out.stats[k] = Math.max(out.stats[k] || 0, +v || 0);
     }
+    out.owned = uniq([...(a.owned || []), ...(b.owned || [])]); out.equip = { ...(b.equip || {}), ...(a.equip || {}) };
+    const td = new Date().toISOString().slice(0, 10); out.missions = (a.missions && a.missions.day === td) ? a.missions : (b.missions && b.missions.day === td) ? b.missions : a.missions || b.missions || null;
     for (const src of [b.saves || {}, a.saves || {}]) for (const [k, v] of Object.entries(src)) if (v && typeof v === "object" && (!out.saves[k] || (v.at || 0) > (out.saves[k].at || 0))) out.saves[k] = v;
     return out;
   }
@@ -6783,7 +6859,7 @@ function slitherGame() {
   function checkAch(silent) {
     const c = achCtx(), fresh = [];
     for (const a of ACH) if (!prog.ach[a[0]] && a[4](c)) { prog.ach[a[0]] = Date.now(); fresh.push(a); }
-    if (fresh.length) { saveProg(); renderBadges(); if (!silent) fresh.forEach((a, i) => setTimeout(() => achToast(a), 600 + i * 3800)); }
+    if (fresh.length) { if (!silent && window.gblAchCoins) window.gblAchCoins(fresh.length); saveProg(); renderBadges(); if (!silent) fresh.forEach((a, i) => setTimeout(() => achToast(a), 600 + i * 3800)); }
   }
   function renderBadges() {
     const box = $("#badges-grid"); if (!box) return;
@@ -6891,7 +6967,7 @@ function slitherGame() {
     play(g, null, {
       duo: true, online: seat,
       onMove: async (m) => { try { await api("/rooms/" + code + "/move", { method: "POST", body: { n, move: m } }); } catch (e) { toast(e.message); } },
-      onMatch: (w) => { prog.stats.online = stat("online") + 1; if (w === seat) prog.stats.onlineWins = stat("onlineWins") + 1; saveProg(); checkAch(); },
+      onMatch: (w) => { prog.stats.online = stat("online") + 1; if (w === seat) { prog.stats.onlineWins = stat("onlineWins") + 1; if (window.gblWinCoins) window.gblWinCoins(60, "online win!"); } saveProg(); checkAch(); },
       onClose: () => { alive = false; clearTimeout(timer); api("/rooms/" + code + "/leave", { method: "POST", body: {} }).catch(() => {}); },
     });
     toast("You are Player " + seat + (seat === 1 ? ". You go first!" : ". Your friend goes first."));
@@ -6906,6 +6982,7 @@ function slitherGame() {
     saveProg(); renderStrips(); checkAch();
   };
   window.gblOnScore = (cur, s) => {
+    if (window.gblReward) window.gblReward(cur, s);
     prog.stats.maxScore = Math.max(stat("maxScore"), s);
     if (cur && cur.daily && daily && cur.g.key === daily.game) {
       const day = daily.day; prog.stats.dailyDays = uniq([...(prog.stats.dailyDays || []), day]).slice(-60);
@@ -6916,11 +6993,143 @@ function slitherGame() {
   };
   window.gblOnTourEnd = (t) => {
     const a = t.rounds.filter((r) => r.w === 1).length, b = t.rounds.filter((r) => r.w === 2).length;
-    if (t.bot) { if (a > b) { prog.stats.tourWins = stat("tourWins") + 1; if ((t.lvl || 0) >= 2) prog.stats.tourHard = stat("tourHard") + 1; if (t.lvl === 3) prog.stats.tourHacker = stat("tourHacker") + 1; } }
+    if (t.bot) { if (a > b) { if (window.gblWinCoins) window.gblWinCoins(150 + (t.lvl || 0) * 75, "tournament win!"); prog.stats.tourWins = stat("tourWins") + 1; if ((t.lvl || 0) >= 2) prog.stats.tourHard = stat("tourHard") + 1; if (t.lvl === 3) prog.stats.tourHacker = stat("tourHacker") + 1; } }
     else prog.stats.tourFriend = stat("tourFriend") + 1;
     saveProg(); checkAch();
   };
   function renderExtras() { renderStrips(); renderBadges(); renderOnline(); renderDaily(); }
+
+  /* ---------- Rewards: coins, levels, daily missions, spin wheel, shop ---------- */
+  const SHOP = [
+    ["sl-pink", "slither", "Bubblegum", 80, "#ff2bd6", "Pink snake for Neon Slither"],
+    ["sl-lime", "slither", "Toxic", 100, "#b6ff3b", "Lime snake for Neon Slither"],
+    ["sl-gold", "slither", "Golden", 200, "#ffc23d", "Shiny gold snake for Neon Slither"],
+    ["sl-fire", "slither", "Inferno", 300, "linear-gradient(90deg,#ff2e4d,#ff8a1f,#ffd66b)", "Burning flame colors"],
+    ["sl-galaxy", "slither", "Galaxy", 350, "linear-gradient(90deg,#a35bff,#ff7be6,#22e4ff)", "Swirling space colors"],
+    ["sl-rainbow", "slither", "Rainbow", 500, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Every color, always moving"],
+    ["sn-ice", "snake", "Ice", 120, "#6af7ff", "Frozen blue Neon Snake"],
+    ["sn-gold", "snake", "Golden", 150, "#ffc23d", "Gold Neon Snake"],
+    ["sn-fire", "snake", "Inferno", 220, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Neon Snake on fire"],
+    ["sn-ghost", "snake", "Ghost", 260, "rgba(255,255,255,.5)", "See-through spooky snake"],
+    ["sn-rainbow", "snake", "Rainbow", 400, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow Neon Snake"],
+  ];
+  const WHEEL = [[10, "#22e4ff"], [25, "#ff2bd6"], [50, "#b6ff3b"], [15, "#ffc23d"], [100, "#a35bff"], [30, "#3dffa8"], [200, "#ff4d6d"], [20, "#ff8a1f"]];
+  const coins = () => stat("coins"), xpOf = () => stat("xp");
+  const levelOf = (xp) => Math.floor(Math.sqrt(xp / 40)) + 1, xpFor = (lv) => 40 * (lv - 1) * (lv - 1);
+  const todayKey = () => new Date().toISOString().slice(0, 10);
+  function giveCoins(n, why, silent) {
+    if (!n) return;
+    const before = levelOf(xpOf());
+    prog.stats.coins = coins() + n; if (n > 0) prog.stats.xp = xpOf() + n;
+    const after = levelOf(xpOf());
+    if (!silent) coinPop("+" + n + " ⚡" + (why ? "  " + why : ""));
+    if (after > before) { prog.stats.coins += 50; setTimeout(() => coinPop("LEVEL UP! You're level " + after + "  ·  +50 ⚡", true), 1400); }
+    saveProg(); renderWallet();
+  }
+  function coinPop(t, big) {
+    const n = el("div", { class: "coin-pop" + (big ? " big" : ""), text: t }); document.body.append(n);
+    requestAnimationFrame(() => n.classList.add("show")); setTimeout(() => { n.classList.remove("show"); setTimeout(() => n.remove(), 500); }, big ? 3200 : 2200);
+  }
+  function renderWallet() {
+    document.querySelectorAll("[data-wallet]").forEach((b2) => {
+      const xp = xpOf(), lv = levelOf(xp), k = Math.min(1, (xp - xpFor(lv)) / Math.max(1, xpFor(lv + 1) - xpFor(lv)));
+      b2.replaceChildren(el("span", { class: "w-coins", text: "⚡ " + fmt(coins()) }), el("span", { class: "w-lv", text: "LV " + lv }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(k * 100) + "%" })));
+      const due = (prog.missions && prog.missions.list || []).some((m) => m.done && !m.claimed) || (prog.stats.spinDay !== todayKey());
+      b2.classList.toggle("due", due);
+    });
+  }
+  /* missions */
+  function seeded(seed) { let h = 2166136261; for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0) / 4294967296; }
+  function missions() {
+    const day = todayKey();
+    if (prog.missions && prog.missions.day === day) return prog.missions.list;
+    const r = seeded(day + (typeof me !== "undefined" && me ? me.id : "") + "gbl"), pool = BUILTINS.filter((g) => !["connect4", "reversi", "chess", "guesswho"].includes(g.key));
+    const g1 = pool[Math.floor(r() * pool.length)], g2 = pool.filter((g) => g !== g1)[Math.floor(r() * (pool.length - 1))];
+    const best2 = (typeof myBest === "function" ? myBest(g2.key) : 0) || 0;
+    const list = [
+      { id: "play", text: "Play a round of " + g1.title, game: g1.key, need: 1, have: 0, reward: 40 },
+      best2 > 0 ? { id: "score", text: "Score " + fmt(Math.max(10, Math.round(best2 * .6))) + "+ in " + g2.title, game: g2.key, need: Math.max(10, Math.round(best2 * .6)), have: 0, reward: 70, kind: "score" }
+        : { id: "score", text: "Finish a run of " + g2.title, game: g2.key, need: 1, have: 0, reward: 60 },
+      { id: "variety", text: "Play 3 different games today", need: 3, have: 0, reward: 50, kind: "variety", games: [] },
+    ];
+    prog.missions = { day, list }; saveProg();
+    return list;
+  }
+  function missionProgress(key, s) {
+    const list = missions(); let changed = false;
+    for (const m of list) {
+      if (m.done) continue;
+      if (m.kind === "variety") { if (!m.games.includes(key)) { m.games.push(key); m.have = m.games.length; changed = true; } }
+      else if (m.game === key) { m.have = m.kind === "score" ? Math.max(m.have, s) : m.have + 1; changed = true; }
+      if (m.have >= m.need && !m.done) { m.done = true; coinPop("Mission complete! Claim it in Rewards", true); sfxHub(); }
+    }
+    if (changed) { saveProg(); renderWallet(); if (rm.classList.contains("open")) renderRewards(); }
+  }
+  function sfxHub() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), g = ac.createGain(); g.connect(ac.destination); g.gain.value = .12; [660, 880, 1320].forEach((f, i) => { const o = ac.createOscillator(); o.type = "square"; o.frequency.value = f; o.connect(g); o.start(ac.currentTime + i * .08); o.stop(ac.currentTime + i * .08 + .07); }); setTimeout(() => ac.close(), 600); } catch {} }
+  /* hooks */
+  window.gblReward = (cur, s) => {
+    if (!cur || !cur.g || !BUILTINS.some((b) => b.key === cur.g.key)) return;
+    const n = 5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0);
+    giveCoins(n, cur.daily ? "daily bonus!" : "");
+    missionProgress(cur.g.key, s);
+  };
+  window.gblAchCoins = (n) => giveCoins(100 * n, n > 1 ? "badges!" : "badge!");
+  window.gblWinCoins = (n, why) => giveCoins(n, why);
+  /* rewards modal */
+  const rm = $("#rew-modal"), rbody = $("#rew-body");
+  let rtab = "missions", spinning = false;
+  function renderRewards() {
+    const xp = xpOf(), lv = levelOf(xp), k = Math.min(1, (xp - xpFor(lv)) / Math.max(1, xpFor(lv + 1) - xpFor(lv)));
+    const head = el("div", { class: "rew-head" },
+      el("div", { class: "rew-lv" }, el("b", { text: "LEVEL " + lv }), el("span", { class: "w-bar big" }, el("i", { style: "width:" + Math.round(k * 100) + "%" })), el("small", { text: fmt(xp - xpFor(lv)) + " / " + fmt(xpFor(lv + 1) - xpFor(lv)) + " XP to level " + (lv + 1) })),
+      el("div", { class: "rew-coins", text: "⚡ " + fmt(coins()) }));
+    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["spin", "🎡 Daily spin"], ["shop", "🛒 Shop"]].map(([id, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { rtab = id; renderRewards(); } })));
+    let body;
+    if (rtab === "missions") {
+      body = el("div", { class: "rew-list" }, ...missions().map((m) => el("div", { class: "mission" + (m.done ? " done" : "") },
+        el("div", { class: "m-txt" }, el("b", { text: m.text }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(Math.min(1, m.have / m.need) * 100) + "%" })), el("small", { text: (m.kind === "score" ? "best " + fmt(Math.min(m.have, m.need)) + " / " + fmt(m.need) : Math.min(m.have, m.need) + " / " + m.need) })),
+        m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (m.done ? " hot" : ""), type: "button", disabled: !m.done, text: "Claim " + m.reward + " ⚡", onclick: () => { m.claimed = true; giveCoins(m.reward, "mission!"); renderRewards(); } }))),
+        el("p", { class: "set-note", text: "New missions every day. Coins come from every game you finish, badges, tournaments and online wins." }));
+    } else if (rtab === "spin") {
+      const can = prog.stats.spinDay !== todayKey();
+      const wheel = el("div", { class: "wheel" }, ...WHEEL.map(([v], i) => el("span", { class: "w-lab", style: "transform:rotate(" + (i * 45 + 22.5) + "deg) translateY(-96px) rotate(" + -(i * 45 + 22.5) + "deg)", text: v })));
+      wheel.style.background = "conic-gradient(" + WHEEL.map(([, c], i) => c + " " + i * 45 + "deg " + (i + 1) * 45 + "deg").join(",") + ")";
+      wheel.style.transform = "rotate(" + (prog.stats.spinAngle || 0) + "deg)";
+      const btn = el("button", { class: "btn hot", type: "button", disabled: !can || spinning, text: can ? "SPIN! ▸" : "Come back tomorrow", onclick: () => {
+        if (spinning || prog.stats.spinDay === todayKey()) return;
+        spinning = true; btn.disabled = true;
+        const pick = Math.floor(Math.random() * WHEEL.length), land = 360 * 6 + (360 - (pick * 45 + 22.5)) + (Math.random() * 30 - 15);
+        const base = Math.floor((prog.stats.spinAngle || 0) / 360) * 360;
+        prog.stats.spinAngle = base + land; prog.stats.spinDay = todayKey(); saveProg();
+        wheel.style.transition = "transform 4s cubic-bezier(.12,.8,.2,1)"; wheel.style.transform = "rotate(" + (base + land) + "deg)";
+        setTimeout(() => { spinning = false; giveCoins(WHEEL[pick][0], "from the wheel!"); sfxHub(); renderRewards(); }, 4200);
+      } });
+      body = el("div", { class: "spin-box" }, el("div", { class: "wheel-wrap" }, wheel, el("div", { class: "wheel-pin" })), btn, el("p", { class: "set-note", text: "One free spin every day." }));
+    } else {
+      const owned = new Set(prog.owned || []), eq = prog.equip || {};
+      const groups = [["slither", "Neon Slither skins"], ["snake", "Neon Snake skins"]];
+      body = el("div", { class: "shop" }, ...groups.map(([gk, title]) => el("div", {},
+        el("p", { class: "eyebrow set-h2", text: title }),
+        el("div", { class: "shop-grid" },
+          el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + (gk === "slither" ? "#22e4ff" : "#ff2bd6") }), el("b", { text: "Classic" }), el("small", { text: "Free" }),
+            el("button", { class: "btn sm", type: "button", disabled: !eq[gk], text: !eq[gk] ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: null }; saveProg(); renderRewards(); } })),
+          ...SHOP.filter((it) => it[1] === gk).map(([id, , name, price, col, sub]) => {
+            const has = owned.has(id), on = eq[gk] === id;
+            return el("div", { class: "shop-item" + (on ? " on" : "") }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
+              has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: id }; saveProg(); toast(name + " equipped"); renderRewards(); } })
+                : el("button", { class: "btn sm", type: "button", disabled: coins() < price, text: "Buy " + price + " ⚡", onclick: () => { if (coins() < price) return; prog.stats.coins = coins() - price; prog.owned = [...owned, id]; prog.equip = { ...eq, [gk]: id }; saveProg(); renderWallet(); sfxHub(); toast("Unlocked " + name + "!"); renderRewards(); } }));
+          })))));
+    }
+    rbody.replaceChildren(head, tabs, body);
+  }
+  function openRewards(tab) { if (tab) rtab = tab; renderRewards(); rm.classList.add("open"); rm.setAttribute("aria-hidden", "false"); $("#rew-close").focus(); }
+  function closeRewards() { rm.classList.remove("open"); rm.setAttribute("aria-hidden", "true"); }
+  $("#rew-close").addEventListener("click", closeRewards);
+  rm.addEventListener("click", (e) => { if (e.target === rm) closeRewards(); });
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && rm.classList.contains("open")) closeRewards(); });
+  document.querySelectorAll("[data-wallet]").forEach((b2) => b2.addEventListener("click", () => openRewards()));
+  document.querySelectorAll("[data-rewards]").forEach((b2) => b2.addEventListener("click", () => openRewards()));
+  renderWallet();
 
   const SET_REMOTE = {
     can: () => !!me,
