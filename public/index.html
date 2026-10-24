@@ -818,7 +818,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
 function SHELL() {
   const cv = document.getElementById("c"), x = cv.getContext("2d");
   const hl = document.getElementById("hl"), hc = document.getElementById("hc"), hr = document.getElementById("hr");
-  const sndBtn = document.getElementById("snd"), pzBtn = document.getElementById("pz");
+  const sndBtn = document.getElementById("snd"), pzBtn = document.getElementById("pz"), goBtn = document.getElementById("go");
   const mk = () => { const c = document.createElement("canvas"); return [c, c.getContext("2d")]; };
   const [bl, bx] = mk(), [bl2, bx2] = mk(), [ov, ox] = mk();
   const FD = "Orbitron, 'Segoe UI', system-ui, sans-serif", FM = "'Share Tech Mono', ui-monospace, Menlo, Consolas, monospace";
@@ -1082,12 +1082,23 @@ function SHELL() {
     if (S.paused && S.state === "count") { x.fillStyle = "rgba(3,2,10,.7)"; x.fillRect(0, 0, G.w, G.h); glitchText("PAUSED", G.w / 2, G.h / 2, 36, G.color); }
     x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(ov, 0, 0);
     hud(); music();
+    const showGo = S.paused || ((S.state === "title" || S.state === "over") && performance.now() - S.overAt > 700);
+    if (goBtn.hidden === showGo) goBtn.hidden = !showGo;
+    const label = S.paused ? "▶ RESUME" : S.state === "over" ? "▶ PLAY AGAIN" : "▶ START";
+    if (goBtn.textContent !== label) goBtn.textContent = label;
   }
 
   /* ----- input ----- */
   function local(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * G.w / r.width, (e.clientY - r.top) * G.h / r.height]; }
   const keyOf = (e) => (e.key.length === 1 ? e.key.toLowerCase() : e.key);
   sndBtn.addEventListener("click", (e) => { e.stopPropagation(); cycleSound(); });
+  goBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (S.paused) togglePause(); else if (canStart()) start(); });
+  addEventListener("touchstart", (e) => {
+    if (!G || (e.target.closest && e.target.closest("button"))) return;
+    audio();
+    if (S.paused) { S.fresh = true; togglePause(); return; }
+    if ((S.state === "title" || S.state === "over") && canStart()) { S.fresh = true; start(); }
+  }, { passive: true });
   pzBtn.addEventListener("click", (e) => { e.stopPropagation(); togglePause(); });
   addEventListener("keydown", (e) => {
     const k = keyOf(e);
@@ -1104,7 +1115,8 @@ function SHELL() {
     if (G.key) G.key(k, e.repeat);
   });
   addEventListener("keyup", (e) => { S.keys[keyOf(e)] = false; });
-  addEventListener("blur", () => { S.keys = {}; S.down = false; if (S.state === "play" && !S.paused) togglePause(); });
+  addEventListener("blur", () => { S.keys = {}; S.down = false; });
+  document.addEventListener("visibilitychange", () => { if (document.hidden && S.state === "play" && !S.paused) togglePause(); });
   addEventListener("pointerdown", (e) => {
     if (!G || (e.target.closest && e.target.closest("button"))) return;
     audio();
@@ -2301,12 +2313,14 @@ function targetsGame() {
     "#hud{position:fixed;top:0;left:0;right:0;height:28px;display:flex;align-items:center;gap:10px;padding:0 8px;font-size:12px;letter-spacing:.14em;color:var(--c,#22e4ff);text-shadow:0 0 8px var(--c,#22e4ff);white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.07);background:linear-gradient(#0b0619,#03020a)}" +
     "#hud span{overflow:hidden;text-overflow:ellipsis;min-width:0}#hl{flex:1}#hc{flex:1.6;text-align:center;color:#e9e4ff;text-shadow:none}#hr{flex:1;text-align:right}" +
     "#ctl{display:flex;gap:6px;flex:none}#ctl button{font:inherit;font-size:11px;letter-spacing:.1em;color:#d8d0f5;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.16);border-radius:4px;padding:2px 7px;cursor:pointer}#ctl button:hover{border-color:var(--c,#22e4ff);color:#fff}" +
+    "#go{position:fixed;left:50%;bottom:7%;transform:translateX(-50%);z-index:5;font:800 15px Orbitron,system-ui,sans-serif;letter-spacing:.2em;color:#fff;background:rgba(10,4,24,.85);border:2px solid var(--c,#22e4ff);border-radius:999px;padding:14px 34px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 24px var(--c,#22e4ff),inset 0 0 14px rgba(255,255,255,.08);text-shadow:0 0 10px var(--c,#22e4ff)}" +
+    "#go:active{transform:translateX(-50%) scale(.96)}#go[hidden]{display:none}" +
     "@media(max-width:520px){#hc{display:none}}";
   function buildGame(g) {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><button id="go" type="button" hidden>▶ START</button><script>window.BEST0=' + (myBest(g.key) | 0) + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
