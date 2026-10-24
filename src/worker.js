@@ -206,8 +206,9 @@ async function updateMe(request, env, user) {
 const MUSIC_STYLES = new Set(["synth", "chip", "chill", "hyper", "space", "rock", "off"]);
 function cleanSettings(b) {
   const music = MUSIC_STYLES.has(b && b.music) ? b.music : "synth";
-  const v = Math.round(Number(b && b.mvol));
-  return { music, mvol: Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 80 };
+  const pct = (x, d) => { const n = Math.round(Number(x)); return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : d; };
+  const flag = (x) => x !== false;
+  return { music, mvol: pct(b && b.mvol, 80), svol: pct(b && b.svol, 80), shake: flag(b && b.shake), flash: flag(b && b.flash), crt: flag(b && b.crt) };
 }
 async function getSettings(env, user) {
   if (!user) fail(401, "Log in first.");

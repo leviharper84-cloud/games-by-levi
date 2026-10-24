@@ -2,6 +2,11 @@
 
 The ultimate gaming hub: 34 neon games, player accounts, leaderboards, and a place for people to submit their own games.
 
+- **34 games** across 8 genres, each with practice mode and difficulty that ramps up
+- **2-player modes** on one screen, and **tournaments** of 7 random games against a friend or a bot (Easy, Medium, Hard or Hacker)
+- **Settings** for music style, volume and screen effects, saved to each player's account
+- **Live site:** <https://gbl.leviharper84.workers.dev>. Every push to `main` on GitHub deploys automatically through Cloudflare Workers Builds.
+
 It runs on **Cloudflare Workers** (the website and server) with a **Cloudflare D1** database (accounts, scores, submitted games). Both are free for a site this size.
 
 ## What's in this folder
@@ -13,7 +18,7 @@ It runs on **Cloudflare Workers** (the website and server) with a **Cloudflare D
 | `public/icon.svg`, `icon-*.png`, `apple-touch-icon.png` | Site icon, also used when someone adds the site to their phone's home screen |
 | `public/og.png` | The preview image that appears when the link is shared in chats and on social media |
 | `public/manifest.webmanifest`, `robots.txt` | App settings for phones, and rules for search engines |
-| `src/worker.js` | The server: sign up, log in, scores, submissions, admin review |
+| `src/worker.js` | The server: sign up, log in, settings, scores, submissions, admin review |
 | `schema.sql` | Creates the database tables |
 | `wrangler.toml` | Cloudflare settings (project name, database, admin username) |
 | `package.json` | Shortcut commands |

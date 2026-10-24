@@ -428,6 +428,17 @@ textarea.code {
 .set-vol span { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--a2); font-weight: 700; }
 .set-range { flex: 1; min-width: 160px; accent-color: var(--a1); }
 .set-note { color: var(--muted); font-size: .86rem; margin: 6px 0 0; }
+.set-h2 { margin-top: 18px; }
+.set-togs { display: grid; gap: 8px; }
+.set-tog { display: flex; align-items: center; gap: 12px; padding: 10px 14px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(7,4,15,.6); cursor: pointer; }
+.set-tog input { position: absolute; opacity: 0; pointer-events: none; }
+.set-sw { flex: none; width: 42px; height: 24px; border-radius: 999px; background: rgba(255,255,255,.12); position: relative; transition: background .2s; }
+.set-sw::after { content: ""; position: absolute; top: 3px; left: 3px; width: 18px; height: 18px; border-radius: 50%; background: #fff; transition: transform .2s; }
+.set-tog input:checked + .set-sw { background: var(--a1); box-shadow: 0 0 12px rgba(var(--a1-rgb), .6); }
+.set-tog input:checked + .set-sw::after { transform: translateX(18px); }
+.set-tog input:focus-visible + .set-sw { outline: 2px solid var(--a2); outline-offset: 2px; }
+.set-tl { display: grid; gap: 2px; }
+.set-tl small { color: var(--muted); font-size: .8rem; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
@@ -1103,16 +1114,18 @@ function SHELL() {
   function ring(X, Y, c, r0, r1, life) { S.rings.push({ x: X, y: Y, c, r0: r0 || 4, r1: r1 || 60, l: life || .4, m: life || .4 }); }
   function pop(X, Y, t, c) { S.pops.push({ x: X, y: Y, t, c: c || "#fff", l: .9 }); }
   function banner(t, c) { S.banner = { t, c: c || G.color, l: 1.6 }; }
-  function shake(a, t) { S.shakeA = Math.max(S.shakeA, a); S.shakeT = Math.max(S.shakeT, t || .3); }
-  function flash(c, a) { S.flashC = c; S.flashA = Math.max(S.flashA, a || .4); }
+  const SET0 = window.SET0 || {};
+  function shake(a, t) { if (SET0.shake === false) return; S.shakeA = Math.max(S.shakeA, a); S.shakeT = Math.max(S.shakeT, t || .3); }
+  function flash(c, a) { if (SET0.flash === false) return; S.flashC = c; S.flashA = Math.max(S.flashA, a || .4); }
 
   /* ----- audio: synth sound effects and a small synthwave loop ----- */
-  let ac = null, master = null, nbuf = null, seqT = 0, step = 0;
+  let ac = null, fxBus = null, master = null, nbuf = null, seqT = 0, step = 0;
   function audio() {
     if (ac) { if (ac.state === "suspended") ac.resume(); return; }
     try {
       ac = new (window.AudioContext || window.webkitAudioContext)();
       master = ac.createGain(); master.gain.value = .5;
+      fxBus = ac.createGain(); fxBus.gain.value = SET0.svol == null ? 1 : SET0.svol / 100; fxBus.connect(master);
       const comp = ac.createDynamicsCompressor(); master.connect(comp); comp.connect(ac.destination);
       nbuf = ac.createBuffer(1, ac.sampleRate * .5, ac.sampleRate);
       const d = nbuf.getChannelData(0); for (let i = 0; i < d.length; i++) d[i] = Math.random() * 2 - 1;
@@ -1125,14 +1138,14 @@ function SHELL() {
     if (f2 !== f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
     g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + .006); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
     let n = o; if (lp) { const fl = ac.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = lp; o.connect(fl); n = fl; }
-    n.connect(g); g.connect(master); o.start(t); o.stop(t + dur + .05);
+    n.connect(g); g.connect(fxBus || master); o.start(t); o.stop(t + dur + .05);
   }
   function hiss(dur, vol, freq, t0) {
     if (!ac) return;
     const t = t0 || ac.currentTime, s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
     s.buffer = nbuf; fl.type = "bandpass"; fl.frequency.value = freq || 1000; fl.Q.value = .8;
     g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
-    s.connect(fl); fl.connect(g); g.connect(master); s.start(t); s.stop(t + dur);
+    s.connect(fl); fl.connect(g); g.connect(fxBus || master); s.start(t); s.stop(t + dur);
   }
   const SFX = {
     tick: () => voice(1200, 1200, .03, "square", .05),
@@ -1237,7 +1250,7 @@ function SHELL() {
     glitchText(b.t, G.w / 2 + slide, y, Math.min(30, G.w / (b.t.length * .82)), b.c); x.restore();
   }
   function slice() {
-    if (Math.random() > .05) return;
+    if (SET0.flash === false || Math.random() > .05) return;
     const yy = Math.random() * cv.height, hh = (4 + Math.random() * 16) * dpr, dx = (Math.random() * 24 - 12) * dpr;
     x.save(); x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(cv, 0, yy, cv.width, hh, dx, yy, cv.width, hh); x.restore();
   }
@@ -1316,7 +1329,7 @@ function SHELL() {
     if (S.state !== "play") overlay();
     else if (S.paused) { x.fillStyle = "rgba(3,2,10,.7)"; x.fillRect(0, 0, G.w, G.h); glitchText("PAUSED", G.w / 2, G.h / 2 - 10, Math.min(40, G.w / 9), G.color); txt("P, SPACE OR TAP TO RESUME", G.w / 2, G.h / 2 + 30, 12, "#d8d0f5"); }
     if (S.paused && S.state === "count") { x.fillStyle = "rgba(3,2,10,.7)"; x.fillRect(0, 0, G.w, G.h); glitchText("PAUSED", G.w / 2, G.h / 2, 36, G.color); }
-    x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(ov, 0, 0);
+    x.setTransform(1, 0, 0, 1, 0, 0); if (SET0.crt !== false) x.drawImage(ov, 0, 0);
     hud(); music();
     const menu = (S.state === "title" || (S.state === "over" && !window.TOUR0)) && performance.now() - S.overAt > 700;
     const showGo = S.paused || menu;
@@ -5541,7 +5554,7 @@ function chessGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + "window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + "window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -6119,7 +6132,7 @@ function chessGame() {
     ["rock", "Arcade Rock", "Power chords and a stomping beat."],
     ["off", "No music", "Just the sound effects."],
   ];
-  let settings = { music: "synth", mvol: 80 };
+  let settings = { music: "synth", mvol: 80, svol: 80, shake: true, flash: true, crt: true };
   try { const s0 = JSON.parse(store.get("gbl-settings") || "null"); if (s0 && typeof s0 === "object") settings = { ...settings, ...s0 }; } catch {}
   let setTimer = null;
   async function loadSettings() {
@@ -6162,6 +6175,14 @@ function chessGame() {
       return el("button", { class: "tour-opt set-opt" + (on ? " on" : ""), type: "button", "aria-pressed": String(on), onclick: () => { settings.music = id; saveSettings(); renderSettings(); toast(name + " selected"); } },
         el("b", { text: (on ? "✓ " : "") + name }), el("span", { text: sub }), listen);
     });
+    const slider = (key, label) => {
+      const r = el("input", { type: "range", min: "0", max: "100", step: "5", value: String(settings[key]), class: "set-range", "aria-label": label }), t = el("b", { text: settings[key] + "%" });
+      r.addEventListener("input", () => { settings[key] = +r.value; t.textContent = r.value + "%"; saveSettings(); });
+      return el("div", { class: "set-vol" }, el("span", { text: label }), r, t);
+    };
+    const toggle = (key, label, sub) => el("label", { class: "set-tog" },
+      el("input", { type: "checkbox", checked: settings[key] !== false, onchange: (e) => { settings[key] = e.currentTarget.checked; saveSettings(); } }),
+      el("span", { class: "set-sw", "aria-hidden": "true" }), el("span", { class: "set-tl" }, el("b", { text: label }), el("small", { text: sub })));
     const vol = el("input", { type: "range", min: "0", max: "100", step: "5", value: String(settings.mvol), class: "set-range", "aria-label": "Music volume" });
     const volTxt = el("b", { text: settings.mvol + "%" });
     vol.addEventListener("input", () => { settings.mvol = +vol.value; volTxt.textContent = vol.value + "%"; if (prev) prev.gain.gain.value = .5 * settings.mvol / 100; saveSettings(); });
@@ -6169,6 +6190,12 @@ function chessGame() {
       el("p", { class: "eyebrow", text: "Game music" }),
       el("div", { class: "set-grid" }, ...cards),
       el("div", { class: "set-vol" }, el("span", { text: "Music volume" }), vol, volTxt),
+      slider("svol", "Sound effects"),
+      el("p", { class: "eyebrow set-h2", text: "Screen" }),
+      el("div", { class: "set-togs" },
+        toggle("shake", "Screen shake", "The screen rumbles on big hits"),
+        toggle("flash", "Flashes", "Bright flashes and glitch effects"),
+        toggle("crt", "Retro scanlines", "Old-school TV lines over the games")),
       el("p", { class: "set-note", text: SET_REMOTE.can() ? "✓ Saved to your account, so it follows you to any device." : "Saved on this device. Log in to save it to your account." }),
       el("p", { class: "set-note", text: "Tip: in any game, the ♪ button or the M key switches between all sound, effects only and silent." }));
   }
