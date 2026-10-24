@@ -500,6 +500,7 @@ textarea.code {
 .room-code { font: 800 clamp(2.6rem, 10vw, 4.4rem) var(--f-mono); letter-spacing: .3em; color: var(--a2); text-shadow: 0 0 22px rgba(var(--a2-rgb), .8); padding-left: .3em; }
 .online-dots::after { content: ""; animation: dots 1.4s steps(4) infinite; }
 @keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
+.saved-pill { font: 700 .6rem var(--f-mono); letter-spacing: .1em; color: #ffd66b; border: 1px solid rgba(255,214,107,.6); border-radius: 999px; padding: 0 6px; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
@@ -1293,11 +1294,15 @@ function SHELL() {
     document.documentElement.style.setProperty("--c", G.color);
     fit(); G.init(); requestAnimationFrame(loop);
   }
-  function start(practice, duo) {
+  let SAVED = window.SAVE0 || null;
+  const contBtn = document.getElementById("cont");
+  function saveGame(d) { if (S.practice || S.duo) return; SAVED = d ? { ...d, score: Math.floor(S.score) } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); } catch (e) {} }
+  function start(practice, duo, cont) {
     if (window.TOUR0) { duo = true; practice = false; }
     S.duo = !!(duo && G.duo); S.practice = !!practice && !S.duo; S.bot = S.duo && !!window.BOT0 && !window.ONLINE0; S.online = S.duo ? (window.ONLINE0 || 0) : 0; RQ.length = 0;
     S.score = 0; S.t = 0; S.keys = {}; S.newBest = false; S.parts = []; S.pops = []; S.rings = []; S.banner = null; S.paused = false;
-    G.init(); S.state = "count"; S.cd = 1.2; audio(); sfx("tick");
+    G.init(); if (cont && SAVED && G.load && !S.duo && !S.practice) { G.load(SAVED); S.score = SAVED.score || 0; banner("WELCOME BACK", G.color); }
+    S.state = "count"; S.cd = 1.2; audio(); sfx("tick");
   }
   function over(text) {
     if (S.state !== "play") return;
@@ -1308,6 +1313,7 @@ function SHELL() {
     S.score = Math.floor(S.score); S.shown = 0;
     S.newBest = !S.practice && !S.duo && S.score > S.best && S.score > 0; if (S.newBest) S.best = S.score;
     sfx("over"); if (S.newBest) setTimeout(() => sfx("level"), 700);
+    if (!S.practice && !S.duo && SAVED && G.load) saveGame(null);
     if (!S.practice && !S.duo) { try { parent.postMessage({ type: "gbl:score", score: S.score }, "*"); } catch (e) {} }
   }
   const canStart = () => (S.state === "title" || (S.state === "over" && !window.TOUR0)) && performance.now() - S.overAt > 700;
@@ -1375,6 +1381,7 @@ function SHELL() {
     } else {
       L.push([G.title.toUpperCase(), 34 * u, G.color, "g"], ["GAMES BY LEVI  //  HI-SCORE " + fmt(S.best), 11 * u, "#8f86b5"], ["", 8 * u]);
       (G.help || []).forEach((h, i) => L.push([h, 13 * u, i % 2 ? "#ff7be6" : "#d8d0f5"]));
+      if (SAVED && G.load && !window.TOUR0) L.push(["", 4 * u], ["SAVED GAME: " + (SAVED.label || "IN PROGRESS") + "  ·  PRESS C OR TAP CONTINUE", 13 * u, "#ffd66b", "d"]);
       if (G.easy) L.push(["", 4 * u], ["PRACTICE: " + G.easy, 12 * u, "#3dffa8"]);
       if (G.duo) L.push([window.ONLINE0 ? "ONLINE MATCH: YOU ARE PLAYER " + window.ONLINE0 + (window.ONLINE0 === 1 ? " (YOU GO FIRST)" : "") : window.BOT0 ? "VS " + ["EASY", "MEDIUM", "HARD", "HACKER"][BK()] + " BOT: YOU ARE PLAYER 1, THE BOT IS PLAYER 2" : "2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
       L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && G.duo ? window.ONLINE0 ? "▶ TAP OR PRESS SPACE TO START THE ONLINE MATCH" : (window.BOT0 ? "▶ TAP OR PRESS SPACE TO PLAY THE BOT" : "▶ TAP OR PRESS SPACE TO START 2 PLAYERS") : G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
@@ -1439,6 +1446,7 @@ function SHELL() {
     if (btns.hidden === showGo) btns.hidden = !showGo;
     const showP = menu && !S.paused && !window.TOUR0, showD = showP && !!G.duo, isOver = S.state === "over";
     if (pracBtn.hidden === showP) pracBtn.hidden = !showP;
+    if (contBtn) { const showC = showP && S.state === "title" && !!SAVED && !!G.load; if (contBtn.hidden === showC) contBtn.hidden = !showC; const cl = "▶ CONTINUE" + (SAVED && SAVED.label ? " · " + SAVED.label : ""); if (showC && contBtn.textContent !== cl) contBtn.textContent = cl; }
     if (duoBtn.hidden === showD) duoBtn.hidden = !showD;
     const label = S.paused ? "▶ RESUME" : isOver ? (S.duo ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? (window.ONLINE0 ? "▶ START ONLINE MATCH" : window.BOT0 ? "▶ START VS BOT" : "▶ START 2 PLAYERS") : "▶ START";
     if (goBtn.textContent !== label) goBtn.textContent = label;
@@ -1455,6 +1463,7 @@ function SHELL() {
   const duoDefault = () => !!(window.DUO0 && G && G.duo);
   const again = () => (S.state === "over" ? [S.practice, S.duo] : [false, duoDefault()]);
   goBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (S.paused) togglePause(); else if (canStart()) start(...again()); });
+  if (contBtn) contBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, false, true); });
   pracBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (canStart()) start(!(S.state === "over" && S.practice), false); });
   duoBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, !(S.state === "over" ? S.duo : duoDefault())); });
   addEventListener("touchstart", (e) => {
@@ -1476,7 +1485,7 @@ function SHELL() {
     if (k === "m") { cycleSound(); return; }
     if (k === "p") { togglePause(); return; }
     if (S.paused) { if (k === " " || k === "Enter") togglePause(); return; }
-    if (S.state === "title" || S.state === "over") { if (window.TOUR0) { if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(false, true); return; } if (k === "e" && !e.repeat && canStart()) start(true); else if (k === "2" && G.duo && !e.repeat && canStart()) start(false, true); else if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(...again()); return; }
+    if (S.state === "title" || S.state === "over") { if (window.TOUR0) { if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(false, true); return; } if (k === "c" && SAVED && G.load && S.state === "title" && !e.repeat && canStart()) start(false, false, true); else if (k === "e" && !e.repeat && canStart()) start(true); else if (k === "2" && G.duo && !e.repeat && canStart()) start(false, true); else if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(...again()); return; }
     if (S.state !== "play") return;
     S.keys[k] = true;
     if (DIRS[k] && G.turn && (!e.repeat || G.repeat)) G.turn(DIRS[k], k);
@@ -1510,7 +1519,7 @@ function SHELL() {
   });
   addEventListener("pointercancel", (e) => { PT.delete(e.pointerId); S.down = PT.size > 0; });
   addEventListener("resize", fit);
-  Object.assign(window, { sendMove, BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
+  Object.assign(window, { saveGame, sendMove, BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
 }
 
 /* ---------- 01 Neon Snake ---------- */
@@ -2202,6 +2211,7 @@ function memoryGame() {
     pop(240, 240, "CARDS SWAPPED", "#ff4d6d"); sfx("bad");
   }
   game({
+    load(d) { round = d.round || 1; cleared = d.cleared || 0; deal(); },
     title: "Memory Grid", duo: "take turns. Find a pair and go again. Most pairs wins.", easy: "no timer, no card swaps", w: 480, h: 480, color: "#a35bff", bpm: 96,
     help: ["Click or tap to flip two cards", "Clear the grid before the timer runs out", "Every round is shorter than the last", "From round 3, a miss swaps two hidden cards"],
     init() { moves = 0; streak = 0; round = 1; cleared = 0; pairs = [0, 0]; turnP = 0; switchNext = false; deal(); },
@@ -2227,7 +2237,7 @@ function memoryGame() {
           if (matched === 8) {
             const tb = Math.ceil(rt) * 10 * round; S.score += tb; cleared++;
             pop(240, 200, "TIME BONUS +" + tb, "#ffd66b"); flash("#ffffff", .3); sfx("level");
-            round++; banner("ROUND " + round + " · " + timeFor(round) + " SECONDS", "#a35bff"); deal();
+            round++; banner("ROUND " + round + " · " + timeFor(round) + " SECONDS", "#a35bff"); deal(); saveGame({ round, cleared, label: "ROUND " + round });
           }
         } else { streak = 0; lock = Math.max(.45, .85 - round * .06); A.bad = B.bad = .8; swapNext = round >= 3 && !S.practice && !S.duo; switchNext = S.duo; sfx("bad"); shake(3, .15); }
       }
@@ -2827,6 +2837,7 @@ function golfGame() {
       return over("ROUND COMPLETE");
     }
     loadHole(hi + 1); banner("HOLE " + (hi + 1) + " · COURSE #" + hole.id + " · PAR " + hole.par, "#3dffa8");
+    saveGame({ holes: HOLES.map((h) => h.id - 1), hi, card: card[0].slice(), label: "HOLE " + (hi + 1) + " OF 9" });
   }
   function step(h) {
     b.x += b.vx * h; b.y += b.vy * h;
@@ -2855,6 +2866,7 @@ function golfGame() {
     if (sp > 0) { b.vx *= ns / sp; b.vy *= ns / sp; }
   }
   game({
+    load(d) { if (Array.isArray(d.holes) && d.holes.length === 9 && d.holes.every((i) => ALL[i])) { HOLES = d.holes.map((i) => ({ ...ALL[i], id: i + 1 })); card = [(d.card || []).slice(), []]; loadHole(Math.min(8, d.hi || 0)); } },
     title: "Mini Golf", duo: "take turns on the same 9 random holes. Fewest total strokes wins.", easy: "water costs no strokes, 15 tries per hole, an aiming guide", w: W, h: H, color: "#3dffa8", bpm: 98,
     help: ["Drag back from anywhere and let go to shoot", "Keyboard: arrows aim and set power, Space shoots", "Water costs a stroke. Sand slows you down.", "9 random holes out of 50 courses. Beat par for bonus points"],
     init() { const ids = ALL.map((_, i) => i); for (let i = ids.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [ids[i], ids[j]] = [ids[j], ids[i]]; } HOLES = ids.slice(0, 9).map((i) => ({ ...ALL[i], id: i + 1 })); card = [[], []]; player = 0; bumpFx = []; loadHole(0); },
@@ -3637,6 +3649,7 @@ function mineGame() {
     }
   }
   game({
+    load(d) { level = d.level || 1; newBoard(); },
     title: "Mine Sweep", easy: "no timer, fewer mines, and a mine you hit just gets flagged", w: W, h: H, color: "#22e4ff", bpm: 104,
     help: ["Tap a square to open it. Numbers count nearby mines", "Hold a square (or use the FLAG button) to flag a mine", "Tap a number whose mines are flagged to open around it", "Keys: arrows move, Space opens, F flags. More mines each board"],
     init() { level = 1; cur = [5, 5]; flagMode = false; holdCell = null; newBoard(); },
@@ -3655,7 +3668,7 @@ function mineGame() {
     update(dt) {
       if (holdCell && S.down && !held) { holdT += dt; if (holdT > .38) { held = true; toggleFlag(...holdCell); } }
       if (boomT > 0) { boomT -= dt; if (boomT <= 0) return over("BOOM!"); return; }
-      if (nextT > 0) { nextT -= dt; if (nextT <= 0) { level++; newBoard(); banner("BOARD " + level + "  ·  " + mines + " MINES"); } return; }
+      if (nextT > 0) { nextT -= dt; if (nextT <= 0) { level++; newBoard(); banner("BOARD " + level + "  ·  " + mines + " MINES"); saveGame({ level, label: "BOARD " + level }); } return; }
       if (!S.practice && !first) { timeLeft -= dt; if (timeLeft <= 0) { timeLeft = 0; return over("TIME UP"); } }
     },
     draw() {
@@ -3717,6 +3730,7 @@ function slideGame() {
     burst(BX + BS / 2, BY + BS / 2, "#3dffa8", 50, 320, 1); ring(BX + BS / 2, BY + BS / 2, "#3dffa8", 20, 260, .7);
   }
   game({
+    load(d) { level = d.level || 1; setup(); },
     title: "Slide 15", easy: "no timer, take as long as you like", w: W, h: H, color: "#3dffa8", bpm: 100,
     help: ["Slide the tiles back into order: 1, 2, 3...", "Tap a tile in the gap's row or column, or swipe", "Arrows slide a tile into the gap", "3×3, then 4×4, then 5×5 with less time"],
     init() { level = 1; setup(); },
@@ -3731,7 +3745,7 @@ function slideGame() {
     update(dt) {
       tiles.forEach((v, i) => { const a = ap[v], tx = i % n, ty = (i / n) | 0, k = Math.min(1, dt * 18); a.x += (tx - a.x) * k; a.y += (ty - a.y) * k; });
       glowT = Math.max(0, glowT - dt);
-      if (solvedT > 0) { solvedT -= dt; if (solvedT <= 0) { level++; setup(); banner("PUZZLE " + level + "  ·  " + n + "×" + n); } return; }
+      if (solvedT > 0) { solvedT -= dt; if (solvedT <= 0) { level++; setup(); banner("PUZZLE " + level + "  ·  " + n + "×" + n); saveGame({ level, label: "PUZZLE " + level }); } return; }
       if (!S.practice) { timeLeft -= dt; if (timeLeft <= 0) { timeLeft = 0; over("TIME UP"); } }
     },
     draw() {
@@ -3824,7 +3838,7 @@ function gemGame() {
   function levelUp() {
     level++; const bonus = S.practice ? 0 : Math.floor(timeLeft) * 5; S.score += bonus;
     banner("LEVEL " + level + (bonus ? "  +" + bonus : ""), "#ff2bd6"); sfx("level");
-    kinds = level >= 3 ? 6 : 5; got = 0; target = 800 + level * 500; timeLeft = 75;
+    kinds = level >= 3 ? 6 : 5; got = 0; target = 800 + level * 500; timeLeft = 75; saveGame({ level, label: "LEVEL " + level });
     if (level === 3) { fill(); g.forEach((o, i) => { o.r0 = (i / N) | 0; o.dy = -(N + 2) * Z + (N - o.r0) * 8; }); phase = "fall"; return true; }
     return false;
   }
@@ -3847,6 +3861,7 @@ function gemGame() {
     x.save(); x.globalAlpha = alpha; x.translate(X, Y); x.scale(s, s); x.drawImage(gemSprite(t), -SD / 2, -SD / 2, SD, SD); x.restore();
   }
   game({
+    load(d) { level = d.level || 1; kinds = level >= 3 ? 6 : 5; got = 0; target = 800 + level * 500; timeLeft = 75; fill(); g.forEach((o, i) => { o.r0 = (i / N) | 0; o.dy = -(N + 2) * Z + (N - o.r0) * 8; }); phase = "fall"; },
     title: "Gem Match", easy: "no timer, just match and relax", w: W, h: H, color: "#ff2bd6", bpm: 118,
     help: ["Swipe a gem to swap it with its neighbor", "Or tap one gem, then tap the one next to it", "Line up 3 or more. 4 and 5 in a row score big", "Hit the target before time runs out. Level 3 adds a new gem"],
     init() { level = 1; kinds = 5; combo = 1; sel = null; cur = 27; hint = null; idleT = 0; got = 0; target = 1300; timeLeft = 75; fill(); g.forEach((o, i) => { o.r0 = (i / N) | 0; o.dy = -(N + 2) * Z + (N - o.r0) * 8; }); phase = "fall"; pt = 0; },
@@ -4383,6 +4398,7 @@ function questGame() {
   }
   const btnHit = (px, py) => { for (const k in BTN) { const [bx, by, bw, bh] = BTN[k]; if (px > bx - 10 && px < bx + bw + 10 && py > by - 10 && py < by + bh + 10) return k; } return px < W / 2 ? (px < W / 4 ? "L" : "R") : "J"; };
   game({
+    load(d) { level = d.level || 1; lives = d.lives || 3; genLevel(level); },
     title: "Pixel Quest", easy: "unlimited lives and slower enemies", w: W, h: H, color: "#ffc23d", bpm: 132,
     help: ["← → move, ↑ / W / Space jump", "Touch: the on-screen ◀ ▶ and JUMP buttons", "Stomp enemies, dodge spikes, grab every coin", "Reach the flag. Each world is longer and faster"],
     init() { level = 1; lives = 3; winT = 0; btn = new Map(); genLevel(1); },
@@ -4394,7 +4410,7 @@ function questGame() {
     key(k, rep) { if (!rep && (k === " " || k === "ArrowUp" || k === "w")) pl.jb = .12; },
     update(dt) {
       if (!S.down) btn.clear();
-      if (winT > 0) { winT -= dt; if (winT <= 0) { level++; genLevel(level); banner("WORLD " + level, "#ffc23d"); } return; }
+      if (winT > 0) { winT -= dt; if (winT <= 0) { level++; genLevel(level); banner("WORLD " + level, "#ffc23d"); saveGame({ level, lives, label: "WORLD " + level }); } return; }
       if (deadT > 0) { deadT -= dt; if (deadT <= 0) { if (!S.practice && lives <= 0) return over(); spawn(); } return; }
       let mv = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
       let hold = !!(S.keys[" "] || S.keys.ArrowUp || S.keys.w);
@@ -4786,6 +4802,7 @@ function towerGame() {
     money -= cost; towers.set(k, { t: selType, lvl: 1, cd: 0, c, r, ang: 0, beam: null }); sfx("blip"); burst(c * Z + Z / 2, r * Z + Z / 2, TT[selType].c, 12, 140, .4);
   }
   game({
+    load(d) { wave = d.wave || 0; money = d.money || 160; lives = d.lives || 20; kills = d.kills || 0; towers = new Map((d.towers || []).filter((t) => TT[t[2]]).map(([c, r, t, l]) => [c + "," + r, { t, lvl: l, cd: 0, c, r, ang: 0, beam: null }])); between = 6; },
     title: "Tower Defense", easy: "lots of starting cash and enemies can't hurt you", w: W, h: H, color: "#ff4d6d", bpm: 112,
     help: ["Pick a tower below, then tap an empty square to build", "Tap a tower to upgrade it (up to level 3)", "Laser = fast, Cannon = splash, Frost = slows", "Keys: 1 2 3 pick, arrows + Space build, Enter next wave"],
     init() { towers = new Map(); ens = []; shots = []; money = S.practice ? 500 : 160; lives = 20; wave = 0; spawnQ = []; spawnT = 0; between = 6; selType = "L"; cur = [5, 4]; kills = 0; info = null; },
@@ -4828,6 +4845,7 @@ function towerGame() {
       if (wave > 0 && !spawnQ.length && !ens.length && between < 0) {
         const bonus = 25 + wave * 6; money += bonus; S.score += wave * 50; between = 8;
         banner("WAVE " + wave + " CLEAR  +$" + bonus, "#3dffa8");
+        saveGame({ wave, money, lives, kills, towers: [...towers.values()].map((t) => [t.c, t.r, t.t, t.lvl]), label: "WAVE " + (wave + 1) });
       }
     },
     draw() {
@@ -4936,6 +4954,7 @@ function c4Game() {
   }
   game({
     remote(c) { if (anim || endT || turn === S.online) return false; remoteNow = true; drop(c); remoteNow = false; return true; },
+    load(d) { level = d.level || 1; newGame(); },
     title: "Connect Four", duo: "Pass and play: P1 is pink, P2 is gold. Tap a column to drop.", easy: "a sleepy AI that makes lots of mistakes", w: W, h: H, color: "#ff2bd6", bpm: 108,
     help: ["Tap a column to drop your pink disc", "Get 4 in a row: across, down or diagonal", "Keys: ← → pick a column, Space or ↓ drops", "Beat the AI to level up. It thinks harder every level"],
     init() { level = S.bot ? [1, 3, 5, 7][BK()] : 1; cur = 3; startP = 1; newGame(); },
@@ -4951,7 +4970,7 @@ function c4Game() {
         if (endT <= 0) {
           if (S.duo) return over(endMsg === "DRAW" ? "IT'S A DRAW" : endMsg);
           if (endMsg === "AI WINS") return over("AI WINS");
-          if (endMsg !== "DRAW") { level++; banner("LEVEL " + level, "#ff2bd6"); }
+          if (endMsg !== "DRAW") { level++; banner("LEVEL " + level, "#ff2bd6"); saveGame({ level, label: "LEVEL " + level }); }
           startP = endMsg === "DRAW" ? 3 - startP : 1; newGame();
         }
         return;
@@ -5042,6 +5061,7 @@ function reversiGame() {
   }
   game({
     remote(m) { if (endT || turn === S.online) return false; remoteNow = true; doMove(m[0], m[1]); remoteNow = false; return true; },
+    load(d) { level = d.level || 1; newGame(); },
     title: "Reversi", duo: "Pass and play: P1 is cyan, P2 is pink. Tap a glowing dot to move.", easy: "the AI just picks random moves", w: W, h: H, color: "#22e4ff", bpm: 100,
     help: ["Tap a glowing dot to place a cyan disc", "Trap pink discs in a line to flip them to your color", "Most discs when the board is full wins. Corners are gold", "Keys: arrows move, Space places. The AI gets smarter"],
     init() { level = S.bot ? [1, 2, 3, 4][BK()] : 1; cur = [2, 3]; newGame(); },
@@ -5057,7 +5077,7 @@ function reversiGame() {
         if (endT <= 0) {
           if (S.duo) return over(endMsg);
           if (endMsg.startsWith("AI WINS")) return over("AI WINS");
-          if (endMsg.startsWith("YOU WIN")) { level++; banner("LEVEL " + level, "#22e4ff"); }
+          if (endMsg.startsWith("YOU WIN")) { level++; banner("LEVEL " + level, "#22e4ff"); saveGame({ level, label: "LEVEL " + level }); }
           newGame();
         }
         return;
@@ -5422,6 +5442,7 @@ function chessGame() {
   const sqAt = (px, py) => { const c = Math.floor((px - OX) / Z), r = Math.floor((py - OY) / Z); return on(r, c) ? r * 8 + c : -1; };
   game({
     remote(mv) { if (anim || endT || (white ? 1 : 2) === S.online) return false; const m = legal(white).find((q) => q.f === mv.f && q.t === mv.t); if (m) { remoteNow = true; doMove(m); remoteNow = false; } return true; },
+    load(d) { level = d.level || 1; reset(); },
     title: "Neon Chess", duo: "pass and play. Player 1 is cyan (moves first), Player 2 is pink.", easy: "a beginner AI that makes lots of mistakes", w: W, h: H, color: "#22e4ff", bpm: 92,
     help: ["Tap a piece, then tap a glowing dot to move", "Keys: arrows move the cursor, Space selects and moves", "You are cyan. Checkmate the pink king to win", "Win and the AI levels up. It thinks deeper each time"],
     init() { level = 1; cur = 52; reset(); },
@@ -5440,7 +5461,7 @@ function chessGame() {
         if (endT <= 0) {
           if (S.duo) return over(endMsg[1]);
           if (endMsg[1] === "AI WINS") return over("AI WINS");
-          if (endMsg[1].startsWith("YOU WIN")) { level++; banner("LEVEL " + level + " · AI THINKS DEEPER", WC); }
+          if (endMsg[1].startsWith("YOU WIN")) { level++; banner("LEVEL " + level + " · AI THINKS DEEPER", WC); saveGame({ level, label: "LEVEL " + level }); }
           reset();
         }
         return;
@@ -5589,6 +5610,7 @@ function guessGame() {
     x.restore();
   }
   game({
+    load(d) { level = d.level || 1; deal(); },
     title: "Guess Who", duo: "One secret mystery bot. Take turns asking questions. First to guess it right wins.", easy: "a forgetful bot, and wrong guesses just flip that card", w: W, h: H, color: "#ff7be6", bpm: 100,
     help: ["The bot picked a secret character. Find out who it is!", "Ask yes/no questions. Wrong cards flip down by themselves", "Tap GUESS, then tap a card. A wrong guess loses", "Beat the bot before it guesses yours (shown bottom left)"],
     init() { level = 1; qScroll = 0; deal(); },
@@ -5633,7 +5655,7 @@ function guessGame() {
           const w = endMsg[1];
           if (S.duo) return over(/PLAYER (\d) WINS/.test(w) ? w.match(/PLAYER \d WINS/)[0] : w);
           if (/BOT WINS/.test(w)) return over("BOT WINS");
-          level++; banner("LEVEL " + level + " · SMARTER BOT", "#ff7be6"); deal();
+          level++; banner("LEVEL " + level + " · SMARTER BOT", "#ff7be6"); deal(); saveGame({ level, label: "LEVEL " + level });
         }
       }
     },
@@ -5856,13 +5878,13 @@ function guessGame() {
     "#prac{font:800 13px Orbitron,system-ui,sans-serif;letter-spacing:.18em;color:#3dffa8;background:rgba(10,4,24,.85);border:2px solid rgba(61,255,168,.6);border-radius:999px;padding:14px 26px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 14px rgba(61,255,168,.35)}#prac:active,#duo:active{transform:scale(.96)}" +
     "#duo{font:800 13px Orbitron,system-ui,sans-serif;letter-spacing:.18em;color:#ff7be6;background:rgba(10,4,24,.85);border:2px solid rgba(255,43,214,.6);border-radius:999px;padding:14px 26px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 14px rgba(255,43,214,.35)}" +
     "#go{font:800 15px Orbitron,system-ui,sans-serif;letter-spacing:.2em;color:#fff;background:rgba(10,4,24,.85);border:2px solid var(--c,#22e4ff);border-radius:999px;padding:14px 34px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 24px var(--c,#22e4ff),inset 0 0 14px rgba(255,255,255,.08);text-shadow:0 0 10px var(--c,#22e4ff)}" +
-    "#go:active{transform:scale(.96)}" +
+    "#go:active{transform:scale(.96)}#cont{font:800 14px Orbitron,system-ui,sans-serif;letter-spacing:.14em;color:#ffd66b;background:rgba(10,4,24,.85);border:2px solid #ffd66b;border-radius:999px;padding:14px 26px;cursor:pointer;touch-action:manipulation;box-shadow:0 0 22px rgba(255,214,107,.6);text-shadow:0 0 10px #ffd66b}#cont[hidden]{display:none}" +
     "@media(max-width:520px){#hc{display:none}}";
   function buildGame(g, opts) {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + "window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + "window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -6010,7 +6032,7 @@ function guessGame() {
         g.builtin ? el("button", { class: "fav-btn" + (isFav(g.key) ? " on" : ""), type: "button", "aria-pressed": String(isFav(g.key)), "aria-label": "Favorite " + g.title, text: isFav(g.key) ? "♥" : "♡", onclick: (e) => { e.stopPropagation(); toggleFav(g.key); }, onkeydown: (e) => e.stopPropagation() }) : null,
         el("div", { class: "card-body" },
           el("div", { class: "card-title", text: g.title }),
-          el("div", { class: "card-meta" }, el("span", { class: "genre", text: g.genre }), DUO_KEYS.has(g.key) ? el("span", { class: "p2", text: "2P" }) : null, el("span", { text: "by " + (g.creator || "Anonymous") })),
+          el("div", { class: "card-meta" }, el("span", { class: "genre", text: g.genre }), DUO_KEYS.has(g.key) ? el("span", { class: "p2", text: "2P" }) : null, prog && prog.saves && prog.saves[g.key] ? el("span", { class: "saved-pill", text: "SAVED" }) : null, el("span", { text: "by " + (g.creator || "Anonymous") })),
           top ? el("div", { class: "top", text: "Top score " + fmt(top) }) : null,
           el("div", { class: "play-hint", text: "Insert coin ▸" })));
       if (libReady) card.style.animation = "none"; else card.style.animationDelay = Math.min(i * 30, 400) + "ms";
@@ -6316,6 +6338,7 @@ function guessGame() {
   addEventListener("message", (e) => {
     if (!current || e.source !== current.frame.contentWindow) return;
     const d = e.data;
+    if (d && d.type === "gbl:save") { if (window.gblOnSave) window.gblOnSave(current.g, d.data); return; }
     if (d && d.type === "gbl:move") { if (current.onMove) current.onMove(d.move); return; }
     if (d && d.type === "gbl:match") { if (window.gblOnMatch) window.gblOnMatch(current, d.winner | 0); if (current.onMatch) { const f = current.onMatch; current.onMatch = null; f(d.winner | 0); } return; }
     if (!d || d.type !== "gbl:score") return;
@@ -6443,7 +6466,7 @@ function guessGame() {
     login: () => openAcct("login"),
   };
   /* ---------- Progress: favorites, recently played, achievements ---------- */
-  const EMPTY_PROG = () => ({ favs: [], recent: [], played: {}, ach: {}, stats: {} });
+  const EMPTY_PROG = () => ({ favs: [], recent: [], played: {}, ach: {}, stats: {}, saves: {} });
   var prog = EMPTY_PROG();
   try { const p0 = JSON.parse(store.get("gbl-prog") || "null"); if (p0 && typeof p0 === "object") prog = { ...EMPTY_PROG(), ...p0 }; } catch {}
   const uniq = (a) => [...new Set(a)];
@@ -6457,8 +6480,15 @@ function guessGame() {
       if (Array.isArray(v)) out.stats[k] = uniq([...(out.stats[k] || []), ...v]).slice(-60);
       else out.stats[k] = Math.max(out.stats[k] || 0, +v || 0);
     }
+    for (const src of [b.saves || {}, a.saves || {}]) for (const [k, v] of Object.entries(src)) if (v && typeof v === "object" && (!out.saves[k] || (v.at || 0) > (out.saves[k].at || 0))) out.saves[k] = v;
     return out;
   }
+  window.gblOnSave = (g, data) => {
+    if (!g || !g.key || !BUILTINS.some((b) => b.key === g.key)) return;
+    prog.saves = prog.saves || {};
+    if (data && typeof data === "object") { prog.saves[g.key] = { ...data, at: Date.now() }; toast("Game saved ✓"); } else delete prog.saves[g.key];
+    saveProg(); renderLibrary();
+  };
   let progTimer = null;
   function saveProg() {
     store.set("gbl-prog", JSON.stringify(prog));
