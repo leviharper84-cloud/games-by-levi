@@ -552,6 +552,9 @@ textarea.code {
 .arena-card { grid-column: 1 / -1; display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-color: rgba(61,255,168,.55); box-shadow: 0 0 30px rgba(61,255,168,.15); }
 .arena-card .eyebrow { color: #3dffa8; }
 .arena-txt { flex: 1 1 300px; }
+.event-banner { margin-bottom: 12px; padding: 10px 16px; border-radius: 14px; text-align: center; font: 800 .8rem var(--f-mono); letter-spacing: .1em; color: #ffd8b0; background: linear-gradient(90deg, rgba(255,138,31,.25), rgba(163,91,255,.25)); border: 1px solid #ff8a1f; box-shadow: 0 0 22px rgba(255,138,31,.35); }
+.event-banner[hidden] { display: none; }
+.arena-live { color: #3dffa8; font: 700 .78rem var(--f-mono); }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
@@ -873,6 +876,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
           <p class="lede">Every game gets its own numbered cabinet. Approved submissions light up the next open slot.</p>
         </div>
       </div>
+      <div class="event-banner" id="event-banner" hidden>🎃 HISS-O-WEEN EVENT · pumpkins worth 5 in Neon Slither · limited Pumpkin skin in the ⚡ shop · until Oct 31 🎃</div>
       <div class="weekend" id="weekend" hidden>⚡ DOUBLE COINS WEEKEND · every game pays 2× today ⚡</div>
       <div class="daily" id="daily" hidden></div>
       <div class="strips" id="strips" hidden></div>
@@ -5773,7 +5777,7 @@ function slitherGame() {
   const W = 520, H = 640, ARENA = 1500, SEG = 7, MAXP = 650, BOTS = 20, CELL = 64;
   const NAMES = ["Viper", "Noodle", "Zigzag", "Sir Hiss", "Mamba", "Wiggles", "Cobra", "Slinky", "Neon Nate", "Python", "Loop", "Fang", "Squiggle", "Rattler", "Byte", "Kaa", "Sly", "Twister", "Pixel", "Medusa"];
   const SKINS = [["#ff2bd6", "#ffd0f6"], ["#22e4ff", "#c8f8ff"], ["#b6ff3b", "#ecffc4"], ["#ffc23d", "#fff0c4"], ["#a35bff", "#e2d0ff"], ["#ff4d6d", "#ffd0d8"], ["#3dffa8", "#c8ffe8"], ["#ff8a1f", "#ffe0c4"]];
-  const SK = (window.SKIN0 || {}).slither || "", SPECIAL = { "sl-fire": "fire", "sl-galaxy": "galaxy", "sl-rainbow": "rainbow" }, BASIC = { "sl-pink": 0, "sl-lime": 2, "sl-gold": 3 };
+  const EVENT = !!window.EVENT0, SK = (window.SKIN0 || {}).slither || "", SPECIAL = { "sl-fire": "fire", "sl-galaxy": "galaxy", "sl-rainbow": "rainbow", "sl-pumpkin": "pumpkin" }, BASIC = { "sl-pink": 0, "sl-lime": 2, "sl-gold": 3 };
   const PUPS = { magnet: ["#22e4ff", "MAGNET"], speed: ["#ffd66b", "SPEED"], double: ["#ff2bd6", "DOUBLE FOOD"] };
   let pups = [], pupT = 6, streak = [];
   /* online arena */
@@ -5820,7 +5824,7 @@ function slitherGame() {
     };
     ws.onclose = () => { ws = null; myId = null; netState = "RECONNECTING..."; retryT = 2; for (const id of [...remote.keys()]) dropRemote(id); if (isHost) { for (const i of botIdx) if (snakes[i]) snakes[i].alive = false; botIdx = []; isHost = false; } };
   }
-  function addLocalPellet(q) { if (!Array.isArray(q)) return; const v = q[3] | 0 || 1; pellets.push({ id: q[0], x: q[1], y: q[2], v, r: v >= 8 ? 10 : v >= 3 ? 6.5 : v >= 2 ? 5 : 4, c: q[4] || "#22e4ff", ph: Math.random() * 6 }); }
+  function addLocalPellet(q) { if (!Array.isArray(q)) return; const v = q[3] | 0 || 1; pellets.push({ id: q[0], x: q[1], y: q[2], v, pk: v === 5, r: v === 5 ? 11 : v >= 8 ? 10 : v >= 3 ? 6.5 : v >= 2 ? 5 : 4, c: v === 5 ? "#ff8a1f" : q[4] || "#22e4ff", ph: Math.random() * 6 }); }
   function creditKill(name, mass) {
     kills++; streak = streak.filter((t) => S.t - t < 7); streak.push(S.t);
     if (streak.length >= 2) { banner(["", "", "DOUBLE KILL!", "TRIPLE KILL!", "MEGA KILL!"][streak.length] || "RAMPAGE!", "#ff4d6d"); sfx("level"); shake(6, .3); }
@@ -5844,9 +5848,9 @@ function slitherGame() {
   }
   function addPellet(x, y, v, c) {
     if (Math.hypot(x, y) > ARENA - 10) return;
-    v = v || (Math.random() < .05 ? 8 : Math.random() < .3 ? 3 : 1);
+    v = v || (EVENT && Math.random() < .04 ? 5 : Math.random() < .05 ? 8 : Math.random() < .3 ? 3 : 1);
     if (NET) { if (dropQ.length < 400) dropQ.push([Math.round(x), Math.round(y), v, c || "#22e4ff"]); return; }
-    pellets.push({ x, y, v, r: v >= 8 ? 10 : v >= 3 ? 6.5 : v >= 2 ? 5 : 4, c: c || SKINS[Math.random() * SKINS.length | 0][0], ph: Math.random() * 6 });
+    pellets.push({ x, y, v, pk: v === 5, r: v === 5 ? 11 : v >= 8 ? 10 : v >= 3 ? 6.5 : v >= 2 ? 5 : 4, c: v === 5 ? "#ff8a1f" : c || SKINS[Math.random() * SKINS.length | 0][0], ph: Math.random() * 6 });
   }
   function spawnBot(i, far) {
     const [x, y] = freeSpot(far ? 500 : 200), lvlBoost = Math.min(120, S.t * .6);
@@ -5945,7 +5949,7 @@ function slitherGame() {
       if (p.dead) continue;
       const dx = s.x - p.x, dy = s.y - p.y, d = Math.hypot(dx, dy);
       if (d < reach + 16 && d > 0) { p.x += dx / d * 220 * dt; p.y += dy / d * 220 * dt; }
-      if (d < r + p.r) { p.dead = true; if (NET && p.id) eatQ.push(p.id); const pv = p.v * (s.dbl > 0 ? 2 : 1); s.mass += pv * .6; if (s === me) { S.score += pv; if (p.v >= 8) sfx("pop"); else if (Math.random() < .3) sfx("tick"); } }
+      if (d < r + p.r) { p.dead = true; if (NET && p.id) eatQ.push(p.id); if (p.pk && s === me) { pop(W / 2, H / 2 - 40, "🎃 +5", "#ff8a1f"); sfx("power"); } const pv = p.v * (s.dbl > 0 ? 2 : 1); s.mass += pv * .6; if (s === me) { S.score += pv; if (p.v >= 8) sfx("pop"); else if (Math.random() < .3) sfx("tick"); } }
     }
     for (const u of pups) if (!u.dead && Math.hypot(u.x - s.x, u.y - s.y) < r + 16) {
       u.dead = true; const t = u.k === "double" ? 12 : 8; if (u.k === "magnet") s.mag = t; else if (u.k === "speed") s.fast = t; else s.dbl = t;
@@ -5962,7 +5966,7 @@ function slitherGame() {
   }
   game({
     title: NET ? "Slither Arena" : "Neon Slither", easy: "calmer bots, and if you crash you just respawn", w: W, h: H, color: "#3dffa8", bpm: 132,
-    help: [NET ? "LIVE ONLINE: real players from everywhere, plus bots" : "Steer with your finger, the mouse, or ← →", "Eat glowing pellets to grow. Big ones are worth more", "Hold BOOST (or Space) to speed up. It costs length", "Grab power-ups: M = magnet, » = speed, x2 = double food. Crash into a body and you're out!"],
+    help: [EVENT ? "🎃 HISS-O-WEEN: spooky pumpkins are worth 5!" : NET ? "LIVE ONLINE: real players from everywhere, plus bots" : "Steer with your finger, the mouse, or ← →", "Eat glowing pellets to grow. Big ones are worth more", "Hold BOOST (or Space) to speed up. It costs length", "Grab power-ups: M = magnet, » = speed, x2 = double food. Crash into a body and you're out!"],
     init() {
       snakes = []; pellets = []; grid = new Map(); kills = 0; deadT = 0; bestRank = 21; pill = null; pillT = 15; boostIds = new Set(); aim = null; keyTurn = 0;
       cam = { x: 0, y: 0 }; zoom = 1;
@@ -6037,6 +6041,7 @@ function slitherGame() {
       for (const p of pellets) {
         if (p.x < x0 || p.x > x1 || p.y < y0 || p.y > y1) continue;
         const pr = p.r * (1 + .15 * Math.sin(S.clock * 4 + p.ph));
+        if (p.pk) { glow("#ff8a1f", 16); x.fillStyle = "#ff8a1f"; x.beginPath(); x.ellipse(p.x, p.y, pr * 1.15, pr, 0, 0, 6.2832); x.fill(); glow(); x.strokeStyle = "rgba(120,40,0,.6)"; x.lineWidth = 1.5; x.beginPath(); x.ellipse(p.x, p.y, pr * .45, pr, 0, 0, 6.2832); x.stroke(); x.fillStyle = "#3dffa8"; x.fillRect(p.x - 1.5, p.y - pr - 4, 3, 5); x.fillStyle = "#1a0b24"; x.beginPath(); x.moveTo(p.x - 5, p.y - 2); x.lineTo(p.x - 2, p.y - 5); x.lineTo(p.x - 1, p.y - 1); x.fill(); x.beginPath(); x.moveTo(p.x + 5, p.y - 2); x.lineTo(p.x + 2, p.y - 5); x.lineTo(p.x + 1, p.y - 1); x.fill(); continue; }
         if (p.v >= 3) { glow(p.c, 12); x.fillStyle = p.c; x.beginPath(); x.arc(p.x, p.y, pr, 0, 6.2832); x.fill(); glow(); }
         else { x.fillStyle = ca(p.c, .35); x.beginPath(); x.arc(p.x, p.y, pr * 1.8, 0, 6.2832); x.fill(); x.fillStyle = p.c; x.beginPath(); x.arc(p.x, p.y, pr, 0, 6.2832); x.fill(); }
       }
@@ -6062,8 +6067,8 @@ function slitherGame() {
         if (s.special && !inv) {
           x.lineWidth = r * 2;
           for (let i = s.pts.length - 1; i > 0; i--) {
-            const h = s.special === "rainbow" ? (i * 14 - S.clock * 220) % 360 : s.special === "galaxy" ? 260 + 55 * Math.sin(i * .3 - S.clock * 3) : 12 + 32 * (.5 + .5 * Math.sin(i * .4 - S.clock * 7));
-            x.strokeStyle = "hsl(" + ((h % 360) + 360) % 360 + ",100%," + (s.special === "fire" ? 55 : 62) + "%)"; x.beginPath(); x.moveTo(s.pts[i][0], s.pts[i][1]); x.lineTo(s.pts[i - 1][0], s.pts[i - 1][1]); x.stroke();
+            const h = s.special === "rainbow" ? (i * 14 - S.clock * 220) % 360 : s.special === "galaxy" ? 260 + 55 * Math.sin(i * .3 - S.clock * 3) : s.special === "pumpkin" ? 26 : 12 + 32 * (.5 + .5 * Math.sin(i * .4 - S.clock * 7));
+            x.strokeStyle = s.special === "pumpkin" && Math.floor(i / 3) % 2 ? "#1a0b24" : "hsl(" + ((h % 360) + 360) % 360 + ",100%," + (s.special === "fire" ? 55 : 62) + "%)"; x.beginPath(); x.moveTo(s.pts[i][0], s.pts[i][1]); x.lineTo(s.pts[i - 1][0], s.pts[i - 1][1]); x.stroke();
           }
         }
         if (s.mag > 0 || s.fast > 0 || s.dbl > 0) { x.strokeStyle = s.mag > 0 ? "rgba(34,228,255,.5)" : s.fast > 0 ? "rgba(255,214,107,.5)" : "rgba(255,43,214,.5)"; x.lineWidth = 2; x.beginPath(); x.arc(s.x, s.y, r + 10 + Math.sin(S.clock * 8) * 3, 0, 6.2832); x.stroke(); }
@@ -6286,7 +6291,7 @@ function slitherGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (Date.now() < Date.parse("2026-11-01T00:00:00Z") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -7069,10 +7074,12 @@ function slitherGame() {
     const box = $("#online-box"); if (!box || !XR.online) return;
     const name = (typeof me !== "undefined" && me && me.username) || "Guest" + Math.floor(100 + Math.random() * 900);
     box.prepend(el("div", { class: "panel lit arena-card" },
-      el("div", { class: "arena-txt" }, el("p", { class: "eyebrow", text: "● LIVE NOW" }), el("h3", { class: "tour-h", text: "🐍 Slither Arena" }),
+      el("div", { class: "arena-txt" }, el("p", { class: "eyebrow", text: "● LIVE NOW" }), el("span", { class: "arena-live", id: "arena-live", text: "" }), el("h3", { class: "tour-h", text: "🐍 Slither Arena" }),
         el("p", { class: "duo-how", text: "Jump into a live Neon Slither arena with players from everywhere, plus bots. No code needed. Your shop skin comes with you." })),
       el("button", { class: "btn hot big", type: "button", text: "Play live ▸", onclick: () => { const g = gameOf("slither"); if (g) play(g, null, { slitherOnline: true, name }); } })));
   };
+  async function arenaCount() { const n = $("#arena-live"); if (!n || document.hidden) return; try { const r = await (await fetch("/api/slither/count")).json(); n.textContent = r.players > 0 ? r.players + " playing right now" : "Be the first one in!"; } catch {} }
+  setInterval(arenaCount, 15000); setTimeout(arenaCount, 1500);
   /* ---------- Hooks from games and tournaments ---------- */
   window.gblOnPlay = (g, opts) => {
     if (!g || !g.key || !BUILTINS.some((b) => b.key === g.key)) return;
@@ -7105,6 +7112,7 @@ function slitherGame() {
     ["sl-gold", "slither", "Golden", 200, "#ffc23d", "Shiny gold snake for Neon Slither"],
     ["sl-fire", "slither", "Inferno", 300, "linear-gradient(90deg,#ff2e4d,#ff8a1f,#ffd66b)", "Burning flame colors"],
     ["sl-galaxy", "slither", "Galaxy", 350, "linear-gradient(90deg,#a35bff,#ff7be6,#22e4ff)", "Swirling space colors"],
+    ["sl-pumpkin", "slither", "🎃 Pumpkin (event)", 150, "repeating-linear-gradient(90deg,#ff8a1f 0 12px,#1a0b24 12px 20px)", "Hiss-O-Ween only, until Oct 31"],
     ["sl-rainbow", "slither", "Rainbow", 500, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Every color, always moving"],
     ["sn-ice", "snake", "Ice", 120, "#6af7ff", "Frozen blue Neon Snake"],
     ["sn-gold", "snake", "Golden", 150, "#ffc23d", "Gold Neon Snake"],
@@ -7214,7 +7222,7 @@ function slitherGame() {
         el("div", { class: "shop-grid" },
           el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + (gk === "slither" ? "#22e4ff" : "#ff2bd6") }), el("b", { text: "Classic" }), el("small", { text: "Free" }),
             el("button", { class: "btn sm", type: "button", disabled: !eq[gk], text: !eq[gk] ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: null }; saveProg(); renderRewards(); } })),
-          ...SHOP.filter((it) => it[1] === gk).map(([id, , name, price, col, sub]) => {
+          ...SHOP.filter((it) => it[1] === gk && (it[0] !== "sl-pumpkin" || Date.now() < Date.parse("2026-11-01T00:00:00Z") || (prog.owned || []).includes(it[0]))).map(([id, , name, price, col, sub]) => {
             const has = owned.has(id), on = eq[gk] === id;
             return el("div", { class: "shop-item" + (on ? " on" : "") }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
               has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: id }; saveProg(); toast(name + " equipped"); renderRewards(); } })
@@ -7271,7 +7279,7 @@ function slitherGame() {
       el("div", { class: "pc-grid" }, cell("⚡ " + fmt(coins()), "Coins"), cell(fmt(total), "Games played"), cell(got + "/" + ACH.length, "Badges"),
         cell("🔥 " + stat("streak"), "Day streak"), cell(fmt(stat("maxScore")), "Best score"), cell(String((prog.favs || []).length), "Favorites")));
   }
-  const _rw = renderWallet; renderWallet = function () { _rw(); renderPCard(); const wk = $("#weekend"); if (wk) wk.hidden = !isWeekend(); };
+  const _rw = renderWallet; renderWallet = function () { _rw(); renderPCard(); const wk = $("#weekend"); if (wk) wk.hidden = !isWeekend(); const ev = $("#event-banner"); if (ev) ev.hidden = Date.now() >= Date.parse("2026-11-01T00:00:00Z"); };
   setTimeout(checkStreak, 2500);
   renderWallet();
   const SET_REMOTE = {

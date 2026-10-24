@@ -20,7 +20,7 @@ export default {
   async fetch(request, env) {
     await ensureTables(env);
     const url = new URL(request.url);
-    if (url.pathname === "/api/slither") {
+    if (url.pathname === "/api/slither" || url.pathname === "/api/slither/count") {
       if (!env.ARENA) return json({ error: "The online arena isn't set up." }, 503);
       return env.ARENA.get(env.ARENA.idFromName("main")).fetch(request);
     }
@@ -597,7 +597,7 @@ export class SlitherArena {
   fill() {
     const add = [];
     while (this.pel.size < PELLETS) {
-      const a = Math.random() * 6.2832, r = Math.sqrt(Math.random()) * (ARENA_R - 30), v = Math.random() < .05 ? 8 : Math.random() < .3 ? 3 : 1;
+      const a = Math.random() * 6.2832, r = Math.sqrt(Math.random()) * (ARENA_R - 30), v = Date.now() < Date.parse("2026-11-01T00:00:00Z") && Math.random() < .04 ? 5 : Math.random() < .05 ? 8 : Math.random() < .3 ? 3 : 1;
       add.push(this.addPellet(Math.cos(a) * r, Math.sin(a) * r, v, PCOLS[Math.floor(Math.random() * PCOLS.length)]));
     }
     return add;
@@ -605,6 +605,7 @@ export class SlitherArena {
   send(ws, obj) { try { ws.send(JSON.stringify(obj)); } catch {} }
   bcast(obj, except) { const s = JSON.stringify(obj); for (const [id, ws] of this.conns) if (id !== except) { try { ws.send(s); } catch {} } }
   async fetch(request) {
+    if (new URL(request.url).pathname.endsWith("/count")) return new Response(JSON.stringify({ players: this.conns.size }), { headers: { "content-type": "application/json", "cache-control": "no-store" } });
     if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected a websocket", { status: 426 });
     if (this.conns.size >= MAX_PLAYERS) return new Response("The arena is full", { status: 503 });
     const pair = new WebSocketPair(), client = pair[0], ws = pair[1];
@@ -641,7 +642,7 @@ export class SlitherArena {
       if (rm.length) this.bcast({ t: "pe", rm, add: this.fill() });
     } else if (m.t === "drop" && Array.isArray(m.l)) {
       if (this.pel.size > 1800) return;
-      const add = m.l.slice(0, 160).map((q) => Array.isArray(q) ? this.addPellet(Math.max(-ARENA_R, Math.min(ARENA_R, +q[0] || 0)), Math.max(-ARENA_R, Math.min(ARENA_R, +q[1] || 0)), [1, 2, 3, 8].includes(q[2]) ? q[2] : 1, typeof q[3] === "string" && q[3].length < 12 ? q[3] : "#22e4ff") : null).filter(Boolean);
+      const add = m.l.slice(0, 160).map((q) => Array.isArray(q) ? this.addPellet(Math.max(-ARENA_R, Math.min(ARENA_R, +q[0] || 0)), Math.max(-ARENA_R, Math.min(ARENA_R, +q[1] || 0)), [1, 2, 3, 5, 8].includes(q[2]) ? q[2] : 1, typeof q[3] === "string" && q[3].length < 12 ? q[3] : "#22e4ff") : null).filter(Boolean);
       if (add.length) this.bcast({ t: "pe", rm: [], add });
     } else if (m.t === "die") {
       this.bcast({ t: "kill", v: Number.isInteger(m.bot) ? id + ":" + m.bot : id, by: String(m.by || "").slice(0, 24), vn: String(m.vn || "").slice(0, 16), bn: String(m.bn || "").slice(0, 16) });
