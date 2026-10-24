@@ -1,6 +1,6 @@
 # Games by Levi
 
-The ultimate gaming hub: 33 neon games, player accounts, leaderboards, and a place for people to submit their own games.
+The ultimate gaming hub: 34 neon games, player accounts, leaderboards, and a place for people to submit their own games.
 
 It runs on **Cloudflare Workers** (the website and server) with a **Cloudflare D1** database (accounts, scores, submitted games). Both are free for a site this size.
 

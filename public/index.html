@@ -675,7 +675,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <div class="meter" aria-label="Library progress">
       <div class="meter-top">
         <span class="meter-label">Cabinets lit</span>
-        <span class="meter-num"><b id="lit-count">33</b> / 1000</span>
+        <span class="meter-num"><b id="lit-count">34</b> / 1000</span>
       </div>
       <div class="ticks" id="ticks"></div>
     </div>
@@ -896,7 +896,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#submit">Submit a game</a>
       <a href="#queue">Queue</a>
     </nav>
-    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">33</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
+    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">34</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
   </div>
 </footer>
 </div>
@@ -5018,6 +5018,250 @@ function simonGame() {
   });
 }
 
+/* ---------- 34 Neon Chess ---------- */
+function chessGame() {
+  const W = 480, H = 580, Z = 56, OX = 16, OY = 76;
+  const VAL = { p: 100, n: 320, b: 335, r: 500, q: 920, k: 0 };
+  const GLY = { k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟" }, VS = "︎";
+  const WC = "#22e4ff", BC = "#ff2bd6";
+  const KN = [[-2, -1], [-2, 1], [-1, -2], [-1, 2], [1, -2], [1, 2], [2, -1], [2, 1]], KG = [[-1, -1], [-1, 0], [-1, 1], [0, -1], [0, 1], [1, -1], [1, 0], [1, 1]];
+  const DIAG = [[-1, -1], [-1, 1], [1, -1], [1, 1]], ORTH = [[-1, 0], [1, 0], [0, -1], [0, 1]];
+  const CENTER = Array.from({ length: 64 }, (_, i) => { const r = i >> 3, c = i & 7; return 14 - (Math.abs(3.5 - r) + Math.abs(3.5 - c)) * 4; });
+  let b, white, rights, ep, plies, sel, moves, cur, last, anim, aiT, endT, endMsg, level, history, thinking, killed;
+  const isW = (p) => p && p === p.toUpperCase();
+  const side = (p) => (p ? (isW(p) ? 1 : 2) : 0);
+  const on = (r, c) => r >= 0 && r < 8 && c >= 0 && c < 8;
+  function reset() {
+    const back = "rnbqkbnr";
+    b = new Array(64).fill("");
+    for (let c = 0; c < 8; c++) { b[c] = back[c]; b[8 + c] = "p"; b[48 + c] = "P"; b[56 + c] = back[c].toUpperCase(); }
+    white = true; rights = 15; ep = -1; plies = 0; sel = -1; moves = []; last = null; anim = null; aiT = .5; endT = 0; endMsg = null; history = {}; killed = { w: [], b: [] };
+  }
+  function attacked(sq, byWhite) {
+    const r = sq >> 3, c = sq & 7, own = (p) => p && isW(p) === byWhite;
+    const pr = byWhite ? r + 1 : r - 1;
+    for (const dc of [-1, 1]) if (on(pr, c + dc)) { const p = b[pr * 8 + c + dc]; if (own(p) && p.toLowerCase() === "p") return true; }
+    for (const [dr, dc] of KN) if (on(r + dr, c + dc)) { const p = b[(r + dr) * 8 + c + dc]; if (own(p) && p.toLowerCase() === "n") return true; }
+    for (const [dr, dc] of KG) if (on(r + dr, c + dc)) { const p = b[(r + dr) * 8 + c + dc]; if (own(p) && p.toLowerCase() === "k") return true; }
+    for (const [dirs, kinds] of [[DIAG, "bq"], [ORTH, "rq"]]) for (const [dr, dc] of dirs) {
+      let rr2 = r + dr, cc = c + dc;
+      while (on(rr2, cc)) { const p = b[rr2 * 8 + cc]; if (p) { if (own(p) && kinds.includes(p.toLowerCase())) return true; break; } rr2 += dr; cc += dc; }
+    }
+    return false;
+  }
+  const kingSq = (w) => b.indexOf(w ? "K" : "k");
+  const inCheck = (w) => attacked(kingSq(w), !w);
+  function pseudo(w) {
+    const out = [];
+    for (let i = 0; i < 64; i++) {
+      const p = b[i]; if (!p || isW(p) !== w) continue;
+      const r = i >> 3, c = i & 7, k = p.toLowerCase();
+      const add = (t, extra) => out.push({ f: i, t, ...extra });
+      if (k === "p") {
+        const d = w ? -1 : 1, start = w ? 6 : 1, last8 = w ? 0 : 7;
+        const one = (r + d) * 8 + c;
+        if (on(r + d, c) && !b[one]) { add(one, r + d === last8 ? { pr: true } : {}); if (r === start && !b[(r + 2 * d) * 8 + c]) add((r + 2 * d) * 8 + c, { dbl: true }); }
+        for (const dc of [-1, 1]) if (on(r + d, c + dc)) {
+          const t = (r + d) * 8 + c + dc;
+          if (b[t] && isW(b[t]) !== w) add(t, r + d === last8 ? { pr: true } : {});
+          else if (t === ep) add(t, { ep: true });
+        }
+      } else if (k === "n" || k === "k") {
+        for (const [dr, dc] of k === "n" ? KN : KG) if (on(r + dr, c + dc)) { const t = (r + dr) * 8 + c + dc; if (!b[t] || isW(b[t]) !== w) add(t); }
+        if (k === "k") {
+          const home = w ? 60 : 4, ks = w ? 1 : 4, qs = w ? 2 : 8;
+          if (i === home && (rights & ks) && !b[home + 1] && !b[home + 2] && b[home + 3] === (w ? "R" : "r") && !attacked(home, !w) && !attacked(home + 1, !w) && !attacked(home + 2, !w)) add(home + 2, { cs: true });
+          if (i === home && (rights & qs) && !b[home - 1] && !b[home - 2] && !b[home - 3] && b[home - 4] === (w ? "R" : "r") && !attacked(home, !w) && !attacked(home - 1, !w) && !attacked(home - 2, !w)) add(home - 2, { cs: true });
+        }
+      } else {
+        const dirs = k === "b" ? DIAG : k === "r" ? ORTH : DIAG.concat(ORTH);
+        for (const [dr, dc] of dirs) { let rr2 = r + dr, cc = c + dc; while (on(rr2, cc)) { const t = rr2 * 8 + cc; if (b[t]) { if (isW(b[t]) !== w) add(t); break; } add(t); rr2 += dr; cc += dc; } }
+      }
+    }
+    return out;
+  }
+  function make(m) {
+    const u = { m, cap: b[m.t], rights, ep, piece: b[m.f] };
+    const p = b[m.f], w = isW(p);
+    if (m.ep) { const cs = m.t + (w ? 8 : -8); u.epCap = b[cs]; u.epSq = cs; b[cs] = ""; }
+    b[m.t] = m.pr ? (w ? "Q" : "q") : p; b[m.f] = "";
+    if (m.cs) { if (m.t > m.f) { b[m.t - 1] = b[m.t + 1]; b[m.t + 1] = ""; } else { b[m.t + 1] = b[m.t - 2]; b[m.t - 2] = ""; } }
+    if (p === "K") rights &= ~3; if (p === "k") rights &= ~12;
+    for (const [sq, bit] of [[63, 1], [56, 2], [7, 4], [0, 8]]) if (m.f === sq || m.t === sq) rights &= ~bit;
+    ep = m.dbl ? (m.f + m.t) / 2 : -1;
+    white = !white;
+    return u;
+  }
+  function unmake(u) {
+    const m = u.m; white = !white;
+    b[m.f] = u.piece; b[m.t] = u.cap;
+    if (u.epSq !== undefined) b[u.epSq] = u.epCap;
+    if (m.cs) { if (m.t > m.f) { b[m.t + 1] = b[m.t - 1]; b[m.t - 1] = ""; } else { b[m.t - 2] = b[m.t + 1]; b[m.t + 1] = ""; } }
+    rights = u.rights; ep = u.ep;
+  }
+  function legal(w) { const out = []; for (const m of pseudo(w)) { const u = make(m); if (!inCheck(w)) out.push(m); unmake(u); } return out; }
+  function evalPos() {
+    let s = 0;
+    for (let i = 0; i < 64; i++) {
+      const p = b[i]; if (!p) continue;
+      const k = p.toLowerCase(), w = isW(p), r = i >> 3;
+      let v = VAL[k];
+      if (k === "n" || k === "b") v += CENTER[i];
+      else if (k === "p") v += (w ? 6 - r : r - 1) * 8 + (CENTER[i] >> 1);
+      else if (k === "q") v += CENTER[i] >> 2;
+      else if (k === "k") v += plies < 60 ? ((w ? r === 7 : r === 0) ? 10 : -15) : CENTER[i];
+      s += w ? v : -v;
+    }
+    return white ? s : -s;
+  }
+  let deadline = 0, nodes = 0, abort = false;
+  const order = (ms) => ms.sort((m1, m2) => (b[m2.t] ? VAL[b[m2.t].toLowerCase()] * 10 - VAL[b[m2.f].toLowerCase()] : 0) + (m2.pr ? 800 : 0) - ((b[m1.t] ? VAL[b[m1.t].toLowerCase()] * 10 - VAL[b[m1.f].toLowerCase()] : 0) + (m1.pr ? 800 : 0)));
+  function quiesce(alpha, beta, qd) {
+    const stand = evalPos(); if (stand >= beta) return beta; if (stand > alpha) alpha = stand; if (qd <= 0) return alpha;
+    const caps = order(pseudo(white).filter((m) => b[m.t] || m.pr));
+    for (const m of caps) {
+      const w = white, u = make(m); if (inCheck(w)) { unmake(u); continue; }
+      const v = -quiesce(-beta, -alpha, qd - 1); unmake(u);
+      if (v >= beta) return beta; if (v > alpha) alpha = v;
+    }
+    return alpha;
+  }
+  function search(depth, alpha, beta, ply) {
+    if ((++nodes & 1023) === 0 && performance.now() > deadline) abort = true;
+    if (abort) return 0;
+    if (depth <= 0) return quiesce(alpha, beta, 4);
+    const ms = order(pseudo(white)); let any = false, best = -1e9;
+    for (const m of ms) {
+      const w = white, u = make(m); if (inCheck(w)) { unmake(u); continue; }
+      any = true; const v = -search(depth - 1, -beta, -alpha, ply + 1); unmake(u);
+      if (abort) return 0;
+      if (v > best) best = v; if (v > alpha) alpha = v; if (alpha >= beta) break;
+    }
+    if (!any) return inCheck(white) ? -100000 + ply : 0;
+    return best;
+  }
+  function aiSkill() { const k = S.bot ? BK() : S.practice ? 0 : Math.min(3, level - 1); return [{ d: 1, rnd: .35, ms: 300 }, { d: 2, rnd: .08, ms: 700 }, { d: 3, rnd: 0, ms: 1400 }, { d: 5, rnd: 0, ms: 1800 }][k]; }
+  function aiMove() {
+    const ms = legal(white); if (!ms.length) return null;
+    const sk = aiSkill();
+    if (Math.random() < sk.rnd) return ms[Math.random() * ms.length | 0];
+    deadline = performance.now() + sk.ms; abort = false; nodes = 0;
+    let best = ms[0];
+    for (let d = 1; d <= sk.d; d++) {
+      let bd = null, bv = -1e9;
+      for (const m of order(ms.slice())) {
+        const u = make(m); const v = -search(d - 1, -1e9, 1e9, 1) + Math.random() * 6; unmake(u);
+        if (abort) break; if (v > bv) { bv = v; bd = m; }
+      }
+      if (abort) break; if (bd) best = bd;
+    }
+    return best;
+  }
+  const humanTurn = () => (S.duo && !S.bot) || white;
+  function doMove(m) {
+    const p = b[m.f], cap = m.ep ? (white ? "p" : "P") : b[m.t];
+    anim = { p, f: m.f, t: m.t, k: 0 };
+    make(m); plies++; last = m; sel = -1; moves = [];
+    if (cap) { killed[isW(cap) ? "w" : "b"].push(cap); const X = OX + (m.t & 7) * Z + Z / 2, Y = OY + (m.t >> 3) * Z + Z / 2; burst(X, Y, isW(cap) ? WC : BC, 22, 220, .5); sfx("pop"); shake(3, .15); }
+    else sfx(m.cs ? "power" : "hit", .8);
+    if (m.pr) { banner("PROMOTED TO QUEEN", isW(p) ? WC : BC); sfx("level"); }
+    const key = b.join(",") + white; history[key] = (history[key] || 0) + 1;
+    const replies = legal(white), chk = inCheck(white);
+    const onlyKings = b.filter((q) => q).every((q) => q.toLowerCase() === "k");
+    if (!replies.length) finish(chk ? (white ? 2 : 1) : 0, chk ? "CHECKMATE" : "STALEMATE");
+    else if (onlyKings || history[key] >= 3 || plies >= 300) finish(0, onlyKings ? "ONLY KINGS LEFT" : history[key] >= 3 ? "REPEATED 3 TIMES" : "MOVE LIMIT");
+    else if (chk) { const k = kingSq(white); pop(OX + (k & 7) * Z + Z / 2, OY + (k >> 3) * Z, "CHECK!", "#ff4d6d"); sfx("bad"); }
+    aiT = .35;
+  }
+  function finish(winner, why) {
+    endT = 2.4;
+    if (S.duo) { endMsg = [why, winner ? "PLAYER " + winner + " WINS" : "IT'S A DRAW"]; }
+    else if (winner === 1) { const pts = 500 * level + Math.max(0, 120 - plies) * 5; S.score += pts; endMsg = [why, "YOU WIN  +" + pts]; }
+    else if (winner === 2) endMsg = [why, "AI WINS"];
+    else endMsg = [why, "DRAW · PLAY AGAIN"];
+    banner(why, winner === 1 ? WC : winner === 2 ? BC : "#ffd66b"); sfx(winner === 1 || S.duo ? "level" : "bad");
+    if (winner) flash(winner === 1 ? WC : BC, .25);
+  }
+  function tapSquare(i) {
+    if (anim || endT || !humanTurn() || i < 0) return;
+    const p = b[i];
+    if (sel >= 0) {
+      const m = moves.find((q) => q.t === i);
+      if (m) { doMove(m); return; }
+    }
+    if (p && isW(p) === white) { sel = i; moves = legal(white).filter((q) => q.f === i); sfx("tick"); }
+    else { sel = -1; moves = []; }
+  }
+  const sqAt = (px, py) => { const c = Math.floor((px - OX) / Z), r = Math.floor((py - OY) / Z); return on(r, c) ? r * 8 + c : -1; };
+  game({
+    title: "Neon Chess", duo: "pass and play. Player 1 is cyan (moves first), Player 2 is pink.", easy: "a beginner AI that makes lots of mistakes", w: W, h: H, color: "#22e4ff", bpm: 92,
+    help: ["Tap a piece, then tap a glowing dot to move", "Keys: arrows move the cursor, Space selects and moves", "You are cyan. Checkmate the pink king to win", "Win and the AI levels up. It thinks deeper each time"],
+    init() { level = 1; cur = 52; reset(); },
+    hud() {
+      const t = endT ? "" : (S.duo && !S.bot ? "PLAYER " + (white ? 1 : 2) + "'S MOVE" : white ? "YOUR MOVE" : "AI THINKING...") + (!endT && inCheck(white) ? "  ·  CHECK!" : "");
+      return (S.duo ? "" : "LEVEL " + level + "  ·  ") + t;
+    },
+    summary() { return S.duo ? [] : ["BEAT THE AI " + (level - 1) + " TIME" + (level === 2 ? "" : "S")]; },
+    tap(px, py) { const i = sqAt(px, py); if (i >= 0) cur = i; tapSquare(i); },
+    turn(dir, k) { if (!k) return; const v = { up: -8, down: 8, left: -1, right: 1 }[dir]; const n = cur + v; if (n >= 0 && n < 64 && !((dir === "left" && (cur & 7) === 0) || (dir === "right" && (cur & 7) === 7))) cur = n; sfx("tick"); },
+    key(k, rep) { if (!rep && (k === " " || k === "Enter")) tapSquare(cur); },
+    update(dt) {
+      if (anim) { anim.k += dt / .2; if (anim.k >= 1) anim = null; }
+      if (endT > 0) {
+        endT -= dt;
+        if (endT <= 0) {
+          if (S.duo) return over(endMsg[1]);
+          if (endMsg[1] === "AI WINS") return over("AI WINS");
+          if (endMsg[1].startsWith("YOU WIN")) { level++; banner("LEVEL " + level + " · AI THINKS DEEPER", WC); }
+          reset();
+        }
+        return;
+      }
+      if (!humanTurn() && !anim) { aiT -= dt; if (aiT <= 0) { const m = aiMove(); if (m) doMove(m); } }
+    },
+    draw() {
+      techBg("#22e4ff");
+      glow("#22e4ff", 18); x.strokeStyle = "rgba(34,228,255,.7)"; x.lineWidth = 2; rr(OX - 6, OY - 6, 8 * Z + 12, 8 * Z + 12, 10); x.stroke(); glow();
+      const chk = !endT && inCheck(white) ? kingSq(white) : -1;
+      for (let i = 0; i < 64; i++) {
+        const r = i >> 3, c = i & 7, X = OX + c * Z, Y = OY + r * Z, dark = (r + c) % 2;
+        x.fillStyle = dark ? "rgba(58,30,110,.75)" : "rgba(18,14,40,.85)"; x.fillRect(X, Y, Z, Z);
+        if (last && (i === last.f || i === last.t)) { x.fillStyle = "rgba(255,214,107,.16)"; x.fillRect(X, Y, Z, Z); }
+        if (i === sel) { x.fillStyle = "rgba(34,228,255,.25)"; x.fillRect(X, Y, Z, Z); }
+        if (i === chk) { const g = x.createRadialGradient(X + Z / 2, Y + Z / 2, 4, X + Z / 2, Y + Z / 2, Z * .7); g.addColorStop(0, "rgba(255,77,109,.8)"); g.addColorStop(1, "rgba(255,77,109,0)"); x.fillStyle = g; x.fillRect(X, Y, Z, Z); }
+      }
+      x.font = "13px " + "'Share Tech Mono', monospace"; x.textBaseline = "middle"; x.textAlign = "center"; x.fillStyle = "rgba(216,208,245,.35)";
+      for (let c = 0; c < 8; c++) x.fillText("abcdefgh"[c], OX + c * Z + Z - 7, OY + 8 * Z - 7);
+      for (let r = 0; r < 8; r++) x.fillText(String(8 - r), OX + 7, OY + r * Z + 8);
+      for (const m of moves) {
+        const X = OX + (m.t & 7) * Z + Z / 2, Y = OY + (m.t >> 3) * Z + Z / 2;
+        if (b[m.t] || m.ep) { x.strokeStyle = "rgba(255,214,107,.85)"; x.lineWidth = 3; x.beginPath(); x.arc(X, Y, Z * .42, 0, 7); x.stroke(); }
+        else { glow("#ffd66b", 10); x.fillStyle = "rgba(255,214,107,.8)"; x.beginPath(); x.arc(X, Y, 7, 0, 7); x.fill(); glow(); }
+      }
+      x.font = "44px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'DejaVu Sans', serif";
+      for (let i = 0; i < 64; i++) {
+        let p = b[i]; if (!p) continue;
+        if (anim && i === anim.t) continue;
+        const X = OX + (i & 7) * Z + Z / 2, Y = OY + (i >> 3) * Z + Z / 2 + 2, col = isW(p) ? WC : BC;
+        glow(col, 14); x.fillStyle = col; x.fillText(GLY[p.toLowerCase()] + VS, X, Y); glow();
+      }
+      if (anim) {
+        const e = anim.k * anim.k * (3 - 2 * anim.k), fx = OX + (anim.f & 7) * Z + Z / 2, fy = OY + (anim.f >> 3) * Z + Z / 2, tx = OX + (anim.t & 7) * Z + Z / 2, ty = OY + (anim.t >> 3) * Z + Z / 2;
+        const p = b[anim.t] || anim.p, col = isW(p) ? WC : BC;
+        glow(col, 22); x.fillStyle = col; x.fillText(GLY[p.toLowerCase()] + VS, fx + (tx - fx) * e, fy + (ty - fy) * e + 2 - Math.sin(e * Math.PI) * 8); glow();
+      }
+      if (S.state === "play" && humanTurn()) { x.strokeStyle = "rgba(255,255,255,.55)"; x.lineWidth = 2; x.strokeRect(OX + (cur & 7) * Z + 2, OY + (cur >> 3) * Z + 2, Z - 4, Z - 4); }
+      x.font = "22px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'DejaVu Sans', serif"; x.textAlign = "left";
+      const lost = (arr, y, col) => { x.font = "22px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'DejaVu Sans', serif"; x.textAlign = "left"; x.textBaseline = "middle"; arr.slice().sort((a, c) => VAL[c.toLowerCase()] - VAL[a.toLowerCase()]).forEach((p, k) => { x.fillStyle = ca(col, .75); x.fillText(GLY[p.toLowerCase()] + VS, OX + k * 18, y); }); };
+      const nB = S.duo && !S.bot ? "PLAYER 2" : S.bot ? "BOT" : "AI", nW = S.duo && !S.bot ? "PLAYER 1" : "YOU";
+      txt(nB, W - OX, 30, 13, BC, "right", "d"); lost(killed.w, 32, WC);
+      txt(nW, W - OX, OY + 8 * Z + 34, 13, WC, "right", "d"); x.font = "22px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'DejaVu Sans', serif"; x.textAlign = "left"; lost(killed.b, OY + 8 * Z + 36, BC);
+      if (!white && !humanTurn() && !endT && S.state === "play") { const k = Math.floor(S.clock * 3) % 4; txt("THINKING" + ".".repeat(k), W / 2, 30, 12, BC, "center"); }
+      if (endMsg && endT > 0) { x.fillStyle = "rgba(4,2,10,.72)"; x.fillRect(0, OY + 4 * Z - 44, W, 88); glow("#ffd66b", 20); txt(endMsg[0], W / 2, OY + 4 * Z - 14, 26, "#ffd66b", "center", "d"); glow(); txt(endMsg[1], W / 2, OY + 4 * Z + 22, 15, "#ffffff", "center", "d"); }
+    },
+  });
+}
+
 /* ====================================================================
    The hub
    ==================================================================== */
@@ -5168,6 +5412,7 @@ function simonGame() {
     { key: "reversi", title: "Reversi", genre: "Strategy", fn: reversiGame },
     { key: "beat", title: "Beat Lanes", genre: "Other", fn: beatGame },
     { key: "simon", title: "Simon Glow", genre: "Other", fn: simonGame },
+    { key: "chess", title: "Neon Chess", genre: "Strategy", fn: chessGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -5177,6 +5422,7 @@ function simonGame() {
     { key: "targets", how: "Split screen with the same targets on both sides. Best score in 30 seconds wins.", keys: "Best on a touch screen", touch: "P1 taps the left half, P2 the right" },
     { key: "pingpong", how: "Real table tennis: the ball has to bounce on the other side. First to 11.", keys: "P1 ← → move, ↑ swing  ·  P2 A D move, W swing", touch: "Drag to move and tap to swing, each on your own half" },
     { key: "golf", how: "9 random holes from 50 courses. Take turns. Fewest total strokes wins.", keys: "Drag to aim and shoot, or arrows + Space", touch: "Pass the iPad between turns" },
+    { key: "chess", how: "Full chess with castling, en passant and promotion. Checkmate the other king.", keys: "Arrows move, Space picks and moves", touch: "Tap a piece, tap a dot, then pass the iPad" },
     { key: "connect4", how: "Classic Connect Four. Drop discs and get 4 in a row first.", keys: "← → pick a column, Space drops", touch: "Tap a column, then pass the iPad" },
     { key: "reversi", how: "Flip your rival's discs by trapping them. Most discs at the end wins.", keys: "Arrows move, Space places", touch: "Tap a glowing dot, then pass the iPad" },
     { key: "hoops", how: "Same shooting spots for both players, 5 shots each. Most points wins.", keys: "Arrows aim, Space shoots", touch: "Drag back and let go, then pass the iPad" },
@@ -5428,7 +5674,7 @@ function simonGame() {
     const t = document.getElementById("ticker"); if (!t) return;
     const items = [];
     for (const g of libraryGames()) { const e = entries(g.key)[0]; if (e) items.push([g.title, nameOf(e), fmt(e.s)]); }
-    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["33 games", "ready to play", "Insert coin"]];
+    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["34 games", "ready to play", "Insert coin"]];
     let half = []; while (half.length < 8) half = half.concat(one);
     const make = () => half.map(([g, n, v]) => el("span", { class: "tick-item" }, el("b", { text: g }), el("span", { text: n }), el("em", { text: v })));
     t.replaceChildren(...make(), ...make());
@@ -5763,7 +6009,7 @@ function simonGame() {
   }
 
   /* ---------- Tournament ---------- */
-  const TOUR_BOT = ["pong", "snake", "memory", "targets", "pingpong", "connect4", "reversi", "hoops", "penalty"];
+  const TOUR_BOT = ["pong", "snake", "memory", "targets", "pingpong", "connect4", "reversi", "hoops", "penalty", "chess"];
   const TOUR_KEY = "gbl-tour", ROUNDS = 7;
   let tour = null, tourMode = "bot", tourLvl = 1;
   const BOT_LV = ["Easy", "Medium", "Hard", "Hacker"];
