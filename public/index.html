@@ -771,7 +771,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <div class="meter" aria-label="Library progress">
       <div class="meter-top">
         <span class="meter-label">Cabinets lit</span>
-        <span class="meter-num"><b id="lit-count">35</b> / 1000</span>
+        <span class="meter-num"><b id="lit-count">36</b> / 1000</span>
       </div>
       <div class="ticks" id="ticks"></div>
     </div>
@@ -1023,7 +1023,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#submit">Submit a game</a>
       <a href="#queue">Queue</a>
     </nav>
-    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">35</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
+    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">36</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
   </div>
 </footer>
 </div>
@@ -5699,6 +5699,245 @@ function guessGame() {
   });
 }
 
+/* ---------- 36 Neon Slither ---------- */
+function slitherGame() {
+  const W = 520, H = 640, ARENA = 1500, SEG = 7, MAXP = 650, BOTS = 20, CELL = 64;
+  const NAMES = ["Viper", "Noodle", "Zigzag", "Sir Hiss", "Mamba", "Wiggles", "Cobra", "Slinky", "Neon Nate", "Python", "Loop", "Fang", "Squiggle", "Rattler", "Byte", "Kaa", "Sly", "Twister", "Pixel", "Medusa"];
+  const SKINS = [["#ff2bd6", "#ffd0f6"], ["#22e4ff", "#c8f8ff"], ["#b6ff3b", "#ecffc4"], ["#ffc23d", "#fff0c4"], ["#a35bff", "#e2d0ff"], ["#ff4d6d", "#ffd0d8"], ["#3dffa8", "#c8ffe8"], ["#ff8a1f", "#ffe0c4"]];
+  let snakes, me, pellets, pill, pillT, cam, zoom, kills, grid, deadT, bestRank, boostIds, aim, keyTurn;
+  const rnd = (a, b) => a + Math.random() * (b - a);
+  const rad = (s) => Math.min(24, 6 + Math.sqrt(s.mass) * .42);
+  const segCount = (s) => Math.floor(12 + s.mass * .55);
+  function mk(x, y, a, skin, name, bot, mass) {
+    const s = { x, y, a, ta: a, mass, skin, name, bot, alive: true, boost: false, inv: 0, think: 0, mode: "food", tgt: null, dropT: 0, pts: [], kills: 0, aggro: rnd(.3, 1) };
+    for (let i = 0; i < segCount(s); i++) s.pts.push([x - Math.cos(a) * i * SEG, y - Math.sin(a) * i * SEG]);
+    return s;
+  }
+  function freeSpot(minD) {
+    for (let k = 0; k < 40; k++) {
+      const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (ARENA - 200), x = Math.cos(a) * r, y = Math.sin(a) * r;
+      if (!snakes.some((s) => s.alive && Math.hypot(s.x - x, s.y - y) < minD)) return [x, y];
+    }
+    return [0, 0];
+  }
+  function addPellet(x, y, v, c) {
+    if (Math.hypot(x, y) > ARENA - 10) return;
+    v = v || (Math.random() < .05 ? 8 : Math.random() < .3 ? 3 : 1);
+    pellets.push({ x, y, v, r: v >= 8 ? 10 : v >= 3 ? 6.5 : v >= 2 ? 5 : 4, c: c || SKINS[Math.random() * SKINS.length | 0][0], ph: Math.random() * 6 });
+  }
+  function spawnBot(i, far) {
+    const [x, y] = freeSpot(far ? 500 : 200), lvlBoost = Math.min(120, S.t * .6);
+    snakes[i] = mk(x, y, Math.random() * 6.283, i % SKINS.length, NAMES[i], true, rnd(15, 45) + Math.random() * lvlBoost);
+  }
+  function kill(s, by) {
+    if (!s.alive) return;
+    s.alive = false; s.deadAt = S.t;
+    const per = Math.max(1, Math.round(s.mass / s.pts.length * 2.2));
+    for (let i = 0; i < s.pts.length; i += 2) addPellet(s.pts[i][0] + rnd(-6, 6), s.pts[i][1] + rnd(-6, 6), per >= 8 ? 8 : per >= 3 ? 3 : 2, SKINS[s.skin][0]);
+    if (by) { by.kills++; if (by === me) { kills++; S.score += 50 + Math.floor(s.mass); pop(W / 2, H / 2 - 70, "KILLED " + s.name.toUpperCase() + "!", "#ffd66b"); sfx("score"); } }
+    const onScreen = Math.hypot(s.x - cam.x, s.y - cam.y) < 500;
+    if (onScreen) { const [sx, sy] = toScreen(s.x, s.y); burst(sx, sy, SKINS[s.skin][0], 40, 300, .8); if (s !== me) sfx("boom"); }
+  }
+  const toScreen = (x0, y0) => [W / 2 + (x0 - cam.x) * zoom, H / 2 + (y0 - cam.y) * zoom];
+  function buildGrid() {
+    grid = new Map();
+    snakes.forEach((s, si) => {
+      if (!s.alive) return; const r = rad(s);
+      for (let i = 3; i < s.pts.length; i += 1) { const [x0, y0] = s.pts[i], k = Math.floor(x0 / CELL) + "," + Math.floor(y0 / CELL); let c = grid.get(k); if (!c) grid.set(k, (c = [])); c.push(si, x0, y0, r); }
+    });
+  }
+  function hitAt(x0, y0, rr0, ignore) {
+    const cx = Math.floor(x0 / CELL), cy = Math.floor(y0 / CELL);
+    for (let dx = -1; dx <= 1; dx++) for (let dy = -1; dy <= 1; dy++) {
+      const c = grid.get((cx + dx) + "," + (cy + dy)); if (!c) continue;
+      for (let i = 0; i < c.length; i += 4) { if (c[i] === ignore) continue; const d = Math.hypot(c[i + 1] - x0, c[i + 2] - y0); if (d < rr0 + c[i + 3] * .85) return c[i]; }
+    }
+    return -1;
+  }
+  function danger(s, ang, dist) {
+    const r = rad(s), steps = 4;
+    for (let k = 1; k <= steps; k++) {
+      const d = dist * k / steps, x0 = s.x + Math.cos(ang) * d, y0 = s.y + Math.sin(ang) * d;
+      if (Math.hypot(x0, y0) > ARENA - r - 20) return k;
+      if (hitAt(x0, y0, r + 4, snakes.indexOf(s)) >= 0) return k;
+    }
+    return 0;
+  }
+  function think(s) {
+    const r = rad(s), look = 70 + r * 3, hard = Math.min(1, .25 + S.t / 240) * (S.practice ? .3 : 1);
+    s.boost = false;
+    const d0 = danger(s, s.a, look);
+    if (d0) {
+      const dl = danger(s, s.a - .9, look), dr = danger(s, s.a + .9, look);
+      s.ta = s.a + (dl === 0 && dr !== 0 ? -1.3 : dr === 0 && dl !== 0 ? 1.3 : (dl > dr ? -1.3 : 1.3) * (Math.random() < .5 ? 1 : 1));
+      if (d0 <= 2 && s.mass > 25 && Math.random() < hard) s.boost = true;
+      return;
+    }
+    // run from a big hunter (or an invincible player)
+    for (const o of snakes) {
+      if (o === s || !o.alive) continue;
+      const d = Math.hypot(o.x - s.x, o.y - s.y);
+      if (d < 150 && (o.mass > s.mass * 1.8 || o.inv > 0)) { s.ta = Math.atan2(s.y - o.y, s.x - o.x); s.boost = s.mass > 30 && Math.random() < hard * .6; return; }
+    }
+    // hunt: cut in front of a nearby snake
+    if (Math.random() < s.aggro * hard) {
+      let best = null, bd = 260 + hard * 120;
+      for (const o of snakes) { if (o === s || !o.alive || o.inv > 0) continue; const d = Math.hypot(o.x - s.x, o.y - s.y); if (d < bd && s.mass > o.mass * .5) { bd = d; best = o; } }
+      if (best) {
+        const lead = 70 + rad(best) * 3, tx = best.x + Math.cos(best.a) * lead, ty = best.y + Math.sin(best.a) * lead;
+        s.ta = Math.atan2(ty - s.y, tx - s.x);
+        let da = s.ta - s.a; da = Math.atan2(Math.sin(da), Math.cos(da));
+        if (Math.abs(da) < .5 && bd < 180 && s.mass > 30 && Math.random() < hard) s.boost = true;
+        return;
+      }
+    }
+    // food
+    let fb = null, fv = 0;
+    for (const p of pellets) { const d = Math.hypot(p.x - s.x, p.y - s.y); if (d < 320) { const v = p.v / (d + 30); if (v > fv) { fv = v; fb = p; } } }
+    if (fb) s.ta = Math.atan2(fb.y - s.y, fb.x - s.x);
+    else if (Math.hypot(s.x, s.y) > ARENA * .7) s.ta = Math.atan2(-s.y, -s.x) + rnd(-.5, .5);
+    else if (Math.random() < .2) s.ta = s.a + rnd(-1, 1);
+  }
+  function move(s, dt) {
+    const r = rad(s), turn = Math.max(2.2, 5 - r * .1);
+    let da = s.ta - s.a; da = Math.atan2(Math.sin(da), Math.cos(da));
+    s.a += Math.max(-turn * dt, Math.min(turn * dt, da));
+    const boosting = s.boost && s.mass > 14, sp = (boosting ? 290 : 155) * (s === me && S.practice ? .9 : 1);
+    if (boosting) { s.mass -= 7 * dt; s.dropT -= dt; if (s.dropT <= 0) { s.dropT = .11; const t = s.pts[s.pts.length - 1]; addPellet(t[0], t[1], 1, SKINS[s.skin][0]); } }
+    s.x += Math.cos(s.a) * sp * dt; s.y += Math.sin(s.a) * sp * dt;
+    s.pts[0] = [s.x, s.y];
+    for (let i = 1; i < s.pts.length; i++) {
+      const p = s.pts[i], q = s.pts[i - 1], dx = p[0] - q[0], dy = p[1] - q[1], d = Math.hypot(dx, dy);
+      if (d > SEG) { p[0] = q[0] + dx / d * SEG; p[1] = q[1] + dy / d * SEG; }
+    }
+    const want = segCount(s);
+    while (s.pts.length < want) { const t = s.pts[s.pts.length - 1]; s.pts.push([t[0], t[1]]); }
+    while (s.pts.length > want && s.pts.length > 12) s.pts.pop();
+    s.inv = Math.max(0, s.inv - dt);
+    // eat
+    const reach = r + 14;
+    for (const p of pellets) {
+      if (p.dead) continue;
+      const dx = s.x - p.x, dy = s.y - p.y, d = Math.hypot(dx, dy);
+      if (d < reach + 16 && d > 0) { p.x += dx / d * 220 * dt; p.y += dy / d * 220 * dt; }
+      if (d < r + p.r) { p.dead = true; s.mass += p.v * .6; if (s === me) { S.score += p.v; if (p.v >= 8) sfx("pop"); else if (Math.random() < .3) sfx("tick"); } }
+    }
+    if (pill && Math.hypot(pill.x - s.x, pill.y - s.y) < r + 14) {
+      s.inv = 7; pill = null; pillT = 22;
+      if (s === me) { banner("MAGIC PILL · INVINCIBLE!", "#ffd66b"); sfx("power"); flash("#ffd66b", .25); }
+    }
+  }
+  function respawnMe() {
+    const [x, y] = freeSpot(400); snakes[BOTS] = me = mk(x, y, Math.random() * 6.283, 1, "YOU", false, 20); me.inv = 2.5;
+    cam = { x, y };
+  }
+  game({
+    title: "Neon Slither", easy: "calmer bots, and if you crash you just respawn", w: W, h: H, color: "#3dffa8", bpm: 132,
+    help: ["Steer with your finger, the mouse, or ← →", "Eat glowing pellets to grow. Big ones are worth more", "Hold BOOST (or Space) to speed up. It costs length", "Crash into a snake's body and you're out. Make them crash into yours!"],
+    init() {
+      snakes = []; pellets = []; grid = new Map(); kills = 0; deadT = 0; bestRank = 21; pill = null; pillT = 15; boostIds = new Set(); aim = null; keyTurn = 0;
+      cam = { x: 0, y: 0 }; zoom = 1;
+      for (let i = 0; i < BOTS; i++) spawnBot(i);
+      respawnMe();
+      while (pellets.length < MAXP) { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (ARENA - 30); addPellet(Math.cos(a) * r, Math.sin(a) * r); }
+    },
+    hud() { const rank = 1 + snakes.filter((s) => s.alive && s !== me && s.mass > me.mass).length; return "LENGTH " + Math.floor(me.mass) + "  ·  KILLS " + kills + "  ·  RANK " + rank + "/" + (BOTS + 1); },
+    summary() { return ["LENGTH " + Math.floor(me.mass) + "   KILLS " + kills + "   BEST RANK #" + bestRank]; },
+    down(px, py, pid) { if (px > W - 120 && py > H - 120) boostIds.add(pid); else aim = [px, py]; },
+    move(px, py, pid) { if (boostIds.has(pid)) return; aim = [px, py]; },
+    up(px, py, pid) { boostIds.delete(pid); },
+    update(dt) {
+      if (!S.down) boostIds.clear();
+      if (deadT > 0) { deadT -= dt; if (deadT <= 0) { if (!S.practice) return over("EATEN!"); respawnMe(); } }
+      // player input
+      if (me.alive) {
+        const k = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
+        if (k) { me.ta = me.a + k * 1.2; aim = null; }
+        else if (aim) me.ta = Math.atan2(aim[1] - H / 2, aim[0] - W / 2);
+        me.boost = boostIds.size > 0 || !!(S.keys[" "] || S.keys.Shift || S.keys.ArrowUp || S.keys.w);
+      }
+      buildGrid();
+      for (const s of snakes) if (s.alive && s.bot) { s.think -= dt; if (s.think <= 0) { s.think = .12 + Math.random() * .08; think(s); } }
+      buildGrid();
+      for (const s of snakes) if (s.alive) move(s, dt);
+      pellets = pellets.filter((p) => !p.dead);
+      buildGrid();
+      // collisions
+      for (let i = 0; i < snakes.length; i++) {
+        const s = snakes[i]; if (!s.alive) continue;
+        const r = rad(s);
+        if (Math.hypot(s.x, s.y) > ARENA - r) { if (s.inv > 0) { s.a += Math.PI; s.ta = s.a; } else { kill(s, null); if (s === me) { deadT = 1.4; shake(10, .4); flash("#ff4d6d", .4); sfx("boom"); pop(W / 2, H / 2 - 40, "HIT THE WALL", "#ff4d6d"); } continue; } }
+        if (s.inv > 0) continue;
+        const j = hitAt(s.x, s.y, r * .7, i);
+        if (j >= 0 && snakes[j].alive) {
+          kill(s, snakes[j]);
+          if (s === me) { deadT = 1.4; shake(10, .4); flash("#ff4d6d", .4); sfx("boom"); pop(W / 2, H / 2 - 40, "EATEN BY " + snakes[j].name.toUpperCase(), "#ff4d6d"); }
+        }
+      }
+      for (let i = 0; i < BOTS; i++) if (!snakes[i].alive && S.t - snakes[i].deadAt > 3) spawnBot(i, true);
+      while (pellets.length < MAXP) { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (ARENA - 30); addPellet(Math.cos(a) * r, Math.sin(a) * r); }
+      if (pellets.length > MAXP * 2) pellets.splice(0, pellets.length - MAXP * 2);
+      pillT -= dt; if (!pill && pillT <= 0) { const [x, y] = freeSpot(150); pill = { x, y }; if (me.alive && Math.hypot(x - me.x, y - me.y) < 900) pop(W / 2, 80, "A MAGIC PILL APPEARED!", "#ffd66b"); }
+      if (me.alive) { cam.x += (me.x - cam.x) * Math.min(1, dt * 8); cam.y += (me.y - cam.y) * Math.min(1, dt * 8); }
+      zoom += (Math.max(.5, Math.min(1, 1.15 - rad(me) * .022)) - zoom) * Math.min(1, dt * 2);
+      if (me.alive) { const rank = 1 + snakes.filter((s) => s.alive && s !== me && s.mass > me.mass).length; if (rank < bestRank) { bestRank = rank; if (rank === 1) { banner("#1 · BIGGEST SNAKE!", "#ffd66b"); sfx("level"); } } }
+    },
+    draw() {
+      bg("#04030c");
+      x.save(); x.translate(W / 2, H / 2); x.scale(zoom, zoom); x.translate(-cam.x, -cam.y);
+      const vw = W / zoom / 2 + 40, vh = H / zoom / 2 + 40, x0 = cam.x - vw, x1 = cam.x + vw, y0 = cam.y - vh, y1 = cam.y + vh;
+      x.strokeStyle = "rgba(61,255,168,.07)"; x.lineWidth = 1.5; x.beginPath();
+      const gz = 48; for (let gx = Math.floor(x0 / gz) * gz; gx < x1; gx += gz) { x.moveTo(gx, y0); x.lineTo(gx, y1); } for (let gy = Math.floor(y0 / gz) * gz; gy < y1; gy += gz) { x.moveTo(x0, gy); x.lineTo(x1, gy); } x.stroke();
+      x.fillStyle = "rgba(255,40,80,.08)"; x.beginPath(); x.rect(x0, y0, x1 - x0, y1 - y0); x.arc(0, 0, ARENA, 0, 6.2832, true); x.fill("evenodd");
+      glow("#ff4d6d", 24); x.strokeStyle = "#ff4d6d"; x.lineWidth = 6; x.beginPath(); x.arc(0, 0, ARENA, 0, 6.2832); x.stroke(); glow();
+      for (const p of pellets) {
+        if (p.x < x0 || p.x > x1 || p.y < y0 || p.y > y1) continue;
+        const pr = p.r * (1 + .15 * Math.sin(S.clock * 4 + p.ph));
+        if (p.v >= 3) { glow(p.c, 12); x.fillStyle = p.c; x.beginPath(); x.arc(p.x, p.y, pr, 0, 6.2832); x.fill(); glow(); }
+        else { x.fillStyle = ca(p.c, .35); x.beginPath(); x.arc(p.x, p.y, pr * 1.8, 0, 6.2832); x.fill(); x.fillStyle = p.c; x.beginPath(); x.arc(p.x, p.y, pr, 0, 6.2832); x.fill(); }
+      }
+      if (pill) {
+        const hue = (S.clock * 200) % 360, c = "hsl(" + hue + ",100%,60%)";
+        glow(c, 26); x.fillStyle = c; x.beginPath(); x.ellipse(pill.x, pill.y, 16, 9, S.clock * 2, 0, 6.2832); x.fill(); glow();
+        x.fillStyle = "#ffffff"; x.beginPath(); x.ellipse(pill.x, pill.y, 7, 3, S.clock * 2, 0, 6.2832); x.fill();
+      }
+      const order = snakes.filter((s) => s.alive).sort((a, b) => a.mass - b.mass);
+      for (const s of order) {
+        const r = rad(s), far = Math.hypot(s.x - cam.x, s.y - cam.y) - s.pts.length * SEG;
+        if (far > Math.max(vw, vh) + 60) continue;
+        const [c1, c2] = SKINS[s.skin], inv = s.inv > 0, col = inv ? "hsl(" + ((S.clock * 300) % 360) + ",100%,62%)" : c1;
+        x.lineCap = "round"; x.lineJoin = "round";
+        x.beginPath(); s.pts.forEach((p, i) => (i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1])));
+        glow(col, s.boost ? 26 : 14); x.strokeStyle = col; x.lineWidth = r * 2; x.stroke(); glow();
+        x.strokeStyle = ca(c2, .55); x.lineWidth = r * .7; x.setLineDash([2, r * 1.6]); x.stroke(); x.setLineDash([]);
+        const ex = Math.cos(s.a), ey = Math.sin(s.a), nx = -ey, ny = ex;
+        for (const sd of [-1, 1]) {
+          const ox = s.x + ex * r * .35 + nx * r * .45 * sd, oy = s.y + ey * r * .35 + ny * r * .45 * sd;
+          x.fillStyle = "#ffffff"; x.beginPath(); x.arc(ox, oy, r * .34, 0, 6.2832); x.fill();
+          x.fillStyle = "#05030c"; x.beginPath(); x.arc(ox + ex * r * .12, oy + ey * r * .12, r * .17, 0, 6.2832); x.fill();
+        }
+        if (s.bot || S.practice) { x.font = "700 " + Math.round(12 / zoom) + "px 'Share Tech Mono', monospace"; x.textAlign = "center"; x.fillStyle = "rgba(255,255,255,.75)"; x.fillText(s.name, s.x, s.y - r - 12 / zoom); }
+      }
+      x.restore();
+      // leaderboard
+      const top = snakes.filter((s) => s.alive).sort((a, b) => b.mass - a.mass).slice(0, 5);
+      x.fillStyle = "rgba(4,2,10,.6)"; rr(W - 170, 10, 160, 22 + top.length * 18, 10); x.fill();
+      txt("TOP SNAKES", W - 90, 22, 11, "#3dffa8", "center", "d");
+      top.forEach((s, i) => { const mine = s === me; txt((i + 1) + ". " + s.name, W - 162, 42 + i * 18, 12, mine ? "#ffd66b" : SKINS[s.skin][0], "left"); txt(String(Math.floor(s.mass)), W - 18, 42 + i * 18, 12, mine ? "#ffd66b" : "#d8d0f5", "right"); });
+      // minimap
+      const mx = 62, my = H - 62, mr = 50;
+      x.fillStyle = "rgba(4,2,10,.6)"; x.beginPath(); x.arc(mx, my, mr + 4, 0, 6.2832); x.fill(); x.strokeStyle = "rgba(255,77,109,.6)"; x.lineWidth = 1.5; x.stroke();
+      for (const s of snakes) { if (!s.alive) continue; const k = mr / ARENA; x.fillStyle = s === me ? "#ffffff" : ca(SKINS[s.skin][0], .8); x.beginPath(); x.arc(mx + s.x * k, my + s.y * k, s === me ? 3.5 : 1.6 + Math.min(3, s.mass / 80), 0, 6.2832); x.fill(); }
+      if (pill) { x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(mx + pill.x * mr / ARENA, my + pill.y * mr / ARENA, 2.5, 0, 6.2832); x.fill(); }
+      // boost button
+      const on = me.alive && me.boost;
+      glow("#3dffa8", on ? 22 : 6); x.fillStyle = on ? "rgba(61,255,168,.35)" : "rgba(61,255,168,.1)"; x.strokeStyle = "#3dffa8"; x.lineWidth = 2.5; x.beginPath(); x.arc(W - 62, H - 62, 46, 0, 6.2832); x.fill(); x.stroke(); glow();
+      txt("BOOST", W - 62, H - 62, 13, "#ffffff", "center", "d");
+      if (me.inv > 0 && me.alive) txt("INVINCIBLE " + Math.ceil(me.inv) + "s", W / 2, 60, 16, "#ffd66b", "center", "d");
+    },
+  });
+}
+
 /* ====================================================================
    The hub
    ==================================================================== */
@@ -5851,6 +6090,7 @@ function guessGame() {
     { key: "simon", title: "Simon Glow", genre: "Other", fn: simonGame },
     { key: "chess", title: "Neon Chess", genre: "Strategy", fn: chessGame },
     { key: "guesswho", title: "Guess Who", genre: "Puzzle", fn: guessGame },
+    { key: "slither", title: "Neon Slither", genre: "Arcade", fn: slitherGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -6114,7 +6354,7 @@ function guessGame() {
     const t = document.getElementById("ticker"); if (!t) return;
     const items = [];
     for (const g of libraryGames()) { const e = entries(g.key)[0]; if (e) items.push([g.title, nameOf(e), fmt(e.s)]); }
-    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["35 games", "ready to play", "Insert coin"]];
+    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["36 games", "ready to play", "Insert coin"]];
     let half = []; while (half.length < 8) half = half.concat(one);
     const make = () => half.map(([g, n, v]) => el("span", { class: "tick-item" }, el("b", { text: g }), el("span", { text: n }), el("em", { text: v })));
     t.replaceChildren(...make(), ...make());
