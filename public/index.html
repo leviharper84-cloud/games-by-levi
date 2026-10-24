@@ -1164,6 +1164,17 @@ function SHELL() {
       if (G.duo) L.push([window.BOT0 ? "VS BOT: YOU ARE PLAYER 1, THE BOT IS PLAYER 2" : "2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
       L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && G.duo ? (window.BOT0 ? "▶ TAP OR PRESS SPACE TO PLAY THE BOT" : "▶ TAP OR PRESS SPACE TO START 2 PLAYERS") : G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
     }
+    const maxW = G.w - Math.max(14, G.w * .06) * 2 - 12, WL = [];
+    for (const l of L) {
+      const [s0, size, c, f] = l;
+      if (!s0 || f === "g") { WL.push(l); continue; }
+      x.font = (f === "d" ? "800 " : "400 ") + size + "px " + (f === "d" ? FD : FM);
+      if (x.measureText(s0).width <= maxW) { WL.push(l); continue; }
+      let line = "";
+      for (const w of s0.split(" ")) { const t = line ? line + " " + w : w; if (line && x.measureText(t).width > maxW) { WL.push([line, size, c, f]); line = w; } else line = t; }
+      if (line) WL.push([line, size, c, f]);
+    }
+    L.length = 0; L.push(...WL);
     const total = L.reduce((a, l) => a + l[1] * 1.55, 0);
     let y = G.h / 2 - total / 2;
     const top = y - 14, bot = y + total + 6, mx = Math.max(14, G.w * .06);
@@ -2484,7 +2495,7 @@ function targetsGame() {
 function golfGame() {
   const W = 480, H = 640, BR = 7, MAXV = 940, COLS = ["#22e4ff", "#ff2bd6"];
   const Rc = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
-  const HOLES = [
+  const BASE = [
     { par: 2, start: [240, 540], cup: [240, 130], walls: [Rc(150, 70, 330, 600)] },
     { par: 3, start: [130, 545], cup: [355, 135], walls: [[[60, 600], [200, 600], [200, 220], [420, 220], [420, 70], [60, 70]]] },
     { par: 2, start: [240, 555], cup: [240, 110], walls: [Rc(80, 60, 400, 600)], bump: [[240, 330, 30], [160, 230, 20], [320, 430, 20], [320, 230, 16], [160, 430, 16]] },
@@ -2495,7 +2506,52 @@ function golfGame() {
     { par: 3, start: [240, 560], cup: [240, 110], walls: [Rc(60, 60, 420, 610)], water: [[60, 220, 210, 420], [270, 220, 420, 420]], mill: [240, 320, 40, 2.2] },
     { par: 4, start: [240, 565], cup: [240, 105], walls: [Rc(70, 60, 410, 615), Rc(70, 330, 180, 350), Rc(300, 330, 410, 350)], water: [[180, 440, 300, 500]], bump: [[140, 200, 18], [340, 200, 18], [240, 250, 14]], mill: [240, 340, 56, -2] },
   ];
-  let hi, hole, SEGS, b, aim, power, drag, phase, wait, strokes, last, card, player, millA, bumpFx;
+  /* 41 more courses (all checked to be finishable). Every round plays 9 random ones. */
+  const EXTRA = [
+    { par: 3, start: [274, 550], cup: [282.75, 120], walls: [[[371.5,600],[176.5,600],[176.5,70],[371.5,70]]], water: [[260.5,363,371.5,444]], sand: [[238.5,272,366.5,341]] },
+    { par: 3, start: [127, 550], cup: [375, 148], walls: [[[60,600],[194,600],[194,226],[420,226],[420,70],[60,70]]], sand: [[65,304,189,382]] },
+    { par: 4, start: [323.5, 550], cup: [156.5, 120], walls: [[[420,267],[253,267],[253,70],[60,70],[60,380],[227,380],[227,600],[420,600]]], water: [[227,414,339,492]], bump: [[251,318,22],[365,297,20]] },
+    { par: 5, start: [340, 550], cup: [140, 540], walls: [[[420,600],[60,600],[60,70],[420,70]],[[256,600],[226,600],[226,216],[256,216]]], water: [[60,90,273,167]], mill: [143,348,50,-1.775288601964712] },
+    { par: 4, start: [240, 565], cup: [240, 110], walls: [[[70,60],[410,60],[410,610],[70,610]],[[70,229],[300,229],[300,251],[70,251]],[[180,430],[410,430],[410,452],[180,452]]], bump: [[280,364,19],[253,342,22]] },
+    { par: 2, start: [240, 560], cup: [240, 112], walls: [[[400,180],[420,330],[400,480],[240,610],[80,480],[60,330],[80,180],[240,60]]], sand: [[178,269,313,321]], bump: [[253,432,15]] },
+    { par: 3, start: [240, 560], cup: [240, 115], walls: [[[310.5,70],[169.5,70],[60,600],[420,600]]], bump: [[226,345,21],[255,306,13],[263,374,21]] },
+    { par: 4, start: [240, 565], cup: [240, 115], walls: [[[70,70],[410,70],[410,230],[300,335],[410,440],[410,610],[70,610],[70,440],[180,335],[70,230]]], water: [[90,455,232,535]] },
+    { par: 5, start: [110, 516], cup: [336, 120], walls: [[[60,600],[420,600],[420,70],[252,70],[252,432],[60,432]]], water: [[254,524,420,583]], bump: [[313,351,17],[329,250,22],[379,312,21],[376,287,13]] },
+    { par: 2, start: [235, 550], cup: [244.5, 120], walls: [[[328,600],[142,600],[142,70],[328,70]]], sand: [[177,351,277,431]] },
+    { par: 4, start: [147, 550], cup: [375, 138.5], walls: [[[60,600],[234,600],[234,207],[420,207],[420,70],[60,70]]], bump: [[83,345,13],[176,419,17],[175,418,16]] },
+    { par: 3, start: [147.5, 550], cup: [332.5, 120], walls: [[[60,600],[235,600],[235,386],[420,386],[420,70],[245,70],[245,272],[60,272]]], bump: [[204,452,22],[118,472,17]], mill: [240,329,70,1.9557265859097241] },
+    { par: 4, start: [340, 550], cup: [140, 540], walls: [[[420,600],[60,600],[60,70],[420,70]],[[252,600],[222,600],[222,272],[252,272]]], mill: [240,171,70,1.9660618166439234] },
+    { par: 5, start: [240, 565], cup: [240, 110], walls: [[[410,610],[70,610],[70,60],[410,60]],[[410,256],[181,256],[181,234],[410,234]],[[299,434],[70,434],[70,412],[299,412]]], bump: [[120,300,16],[234,298,14],[200,302,13]] },
+    { par: 2, start: [240, 560], cup: [240, 112], walls: [[[400,180],[420,330],[400,480],[240,610],[80,480],[60,330],[80,180],[240,60]]], bump: [[216,422,22],[262,405,21]] },
+    { par: 3, start: [240, 560], cup: [240, 115], walls: [[[60,600],[420,600],[303.5,70],[176.5,70]]], water: [[150,262,240,315]] },
+    { par: 4, start: [240, 565], cup: [240, 115], walls: [[[70,70],[410,70],[410,230],[300,335],[410,440],[410,610],[70,610],[70,440],[180,335],[70,230]]], sand: [[152,457,287,530]], bump: [[330,176,15],[211,185,22],[345,167,24],[182,145,13]] },
+    { par: 4, start: [370, 522], cup: [138, 120], walls: [[[420,444],[216,444],[216,70],[60,70],[60,600],[420,600]]], water: [[127,220,216,278]] },
+    { par: 2, start: [252, 550], cup: [232, 120], walls: [[[354,600],[150,600],[150,70],[354,70]]], bump: [[201,436,21],[216,279,22]] },
+    { par: 4, start: [350.5, 550], cup: [105, 156], walls: [[[420,70],[60,70],[60,242],[281,242],[281,600],[420,600]]], bump: [[393,335,16],[308,365,18],[362,407,13]] },
+    { par: 4, start: [140.5, 550], cup: [339.5, 120], walls: [[[60,600],[221,600],[221,385],[420,385],[420,70],[259,70],[259,257],[60,257]]], bump: [[101,436,23],[114,467,15],[134,459,20]] },
+    { par: 4, start: [340, 550], cup: [140, 540], walls: [[[420,600],[60,600],[60,70],[420,70]],[[255,600],[225,600],[225,223],[255,223]]], mill: [240,146.5,70,-1.4726589653640985] },
+    { par: 5, start: [240, 565], cup: [240, 110], walls: [[[70,60],[410,60],[410,610],[70,610]],[[70,250],[282,250],[282,272],[70,272]],[[198,432],[410,432],[410,454],[198,454]]], water: [[70,147,225,199]], sand: [[102,313,241,393]] },
+    { par: 3, start: [240, 560], cup: [240, 112], walls: [[[400,180],[420,330],[400,480],[240,610],[80,480],[60,330],[80,180],[240,60]]], water: [[140,269,265,322]] },
+    { par: 2, start: [240, 560], cup: [240, 115], walls: [[[60,600],[420,600],[329.5,70],[150.5,70]]], bump: [[192,326,15],[240,368,22]] },
+    { par: 4, start: [240, 565], cup: [240, 115], walls: [[[70,70],[410,70],[410,230],[300,335],[410,440],[410,610],[70,610],[70,440],[180,335],[70,230]]], bump: [[120,484,19],[240,505,17],[301,490,19],[267,476,14]] },
+    { par: 3, start: [110, 522.5], cup: [342.5, 120], walls: [[[60,600],[420,600],[420,70],[265,70],[265,445],[60,445]]], bump: [[328,228,17],[370,226,17]], mill: [290,522.5,70,-2.2692663433030247] },
+    { par: 2, start: [270, 550], cup: [247.5, 120], walls: [[[407,600],[133,600],[133,70],[407,70]]], sand: [[219,214,325,274]] },
+    { par: 5, start: [137.5, 550], cup: [375, 151.5], walls: [[[60,600],[215,600],[215,233],[420,233],[420,70],[60,70]]], water: [[225,113,331,207]], bump: [[163,332,17],[152,425,17],[173,408,23]] },
+    { par: 4, start: [160, 550], cup: [320, 120], walls: [[[60,600],[260,600],[260,383],[420,383],[420,70],[220,70],[220,273],[60,273]]], bump: [[174,445,15],[220,436,24],[89,460,14]] },
+    { par: 5, start: [340, 550], cup: [140, 540], walls: [[[420,600],[60,600],[60,70],[420,70]],[[255,600],[225,600],[225,255],[255,255]]], bump: [[151,193,24],[134,196,16],[240,117,16],[221,185,23]], mill: [337.5,377.5,50,-1.6377454142551868] },
+    { par: 4, start: [240, 565], cup: [240, 110], walls: [[[410,610],[70,610],[70,60],[410,60]],[[410,259],[177,259],[177,237],[410,237]],[[303,435],[70,435],[70,413],[303,413]]], bump: [[364,127,20]] },
+    { par: 2, start: [240, 560], cup: [240, 112], walls: [[[400,180],[420,330],[400,480],[240,610],[80,480],[60,330],[80,180],[240,60]]], bump: [[203,250,16]] },
+    { par: 3, start: [240, 560], cup: [240, 115], walls: [[[60,600],[420,600],[305,70],[175,70]]], water: [[224,277,330,354]] },
+    { par: 3, start: [240, 565], cup: [240, 115], walls: [[[70,70],[410,70],[410,230],[300,335],[410,440],[410,610],[70,610],[70,440],[180,335],[70,230]]], sand: [[257,128,362,188]] },
+    { par: 3, start: [370, 513], cup: [147, 120], walls: [[[420,426],[234,426],[234,70],[60,70],[60,600],[420,600]]], mill: [190,513,70,-1.694099497143179] },
+    { par: 2, start: [258, 550], cup: [272.5, 120], walls: [[[131,70],[385,70],[385,600],[131,600]]], mill: [258,330,70,1.9442185185384004] },
+    { par: 3, start: [127.5, 550], cup: [375, 150], walls: [[[60,600],[195,600],[195,230],[420,230],[420,70],[60,70]]], sand: [[87,273,175,336]], bump: [[282,96,18],[354,197,15]] },
+    { par: 4, start: [152.5, 550], cup: [327.5, 120], walls: [[[60,600],[245,600],[245,391],[420,391],[420,70],[235,70],[235,263],[60,263]]], water: [[235,173,345,234]] },
+    { par: 4, start: [340, 550], cup: [140, 540], walls: [[[420,600],[60,600],[60,70],[420,70]],[[257,600],[227,600],[227,255],[257,255]]], bump: [[336,434,17],[374,312,19]] },
+    { par: 4, start: [240, 565], cup: [240, 110], walls: [[[70,60],[410,60],[410,610],[70,610]],[[70,250],[303,250],[303,272],[70,272]],[[177,405],[410,405],[410,427],[177,427]]], bump: [[321,197,15],[249,185,17]], mill: [240,338.5,70,1.67129721455276] },
+  ];
+  const ALL = BASE.concat(EXTRA);
+  let HOLES = [], hi, hole, SEGS, b, aim, power, drag, phase, wait, strokes, last, card, player, millA, bumpFx;
   const maxS = () => (S.practice ? 15 : 8);
   const sum = (a) => a.reduce((s, v) => s + (v || 0), 0);
   const parSoFar = () => HOLES.slice(0, card[0].length).reduce((s, h) => s + h.par, 0);
@@ -2548,7 +2604,7 @@ function golfGame() {
       if (S.duo) return over(t0 === t1 ? "IT'S A TIE" : "PLAYER " + (t0 < t1 ? 1 : 2) + " WINS");
       return over("ROUND COMPLETE");
     }
-    loadHole(hi + 1); banner("HOLE " + (hi + 1) + " · PAR " + hole.par, "#3dffa8");
+    loadHole(hi + 1); banner("HOLE " + (hi + 1) + " · COURSE #" + hole.id + " · PAR " + hole.par, "#3dffa8");
   }
   function step(h) {
     b.x += b.vx * h; b.y += b.vy * h;
@@ -2577,9 +2633,9 @@ function golfGame() {
     if (sp > 0) { b.vx *= ns / sp; b.vy *= ns / sp; }
   }
   game({
-    title: "Mini Golf", duo: "take turns on all 9 holes. Fewest total strokes wins.", easy: "water costs no strokes, 15 tries per hole, an aiming guide", w: W, h: H, color: "#3dffa8", bpm: 98,
-    help: ["Drag back from anywhere and let go to shoot", "Keyboard: arrows aim and set power, Space shoots", "Water costs a stroke. Sand slows you down.", "9 holes. Beat par for bonus points"],
-    init() { card = [[], []]; player = 0; bumpFx = []; loadHole(0); },
+    title: "Mini Golf", duo: "take turns on the same 9 random holes. Fewest total strokes wins.", easy: "water costs no strokes, 15 tries per hole, an aiming guide", w: W, h: H, color: "#3dffa8", bpm: 98,
+    help: ["Drag back from anywhere and let go to shoot", "Keyboard: arrows aim and set power, Space shoots", "Water costs a stroke. Sand slows you down.", "9 random holes out of 50 courses. Beat par for bonus points"],
+    init() { const ids = ALL.map((_, i) => i); for (let i = ids.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [ids[i], ids[j]] = [ids[j], ids[i]]; } HOLES = ids.slice(0, 9).map((i) => ({ ...ALL[i], id: i + 1 })); card = [[], []]; player = 0; bumpFx = []; loadHole(0); },
     hud() {
       if (S.duo) return "HOLE " + (hi + 1) + "/9  ·  PLAYER " + (player + 1) + "'S TURN  ·  P1 " + sum(card[0]) + "  ·  P2 " + sum(card[1]);
       const diff = sum(card[0]) - parSoFar();
@@ -2662,7 +2718,7 @@ function golfGame() {
         x.fillStyle = "rgba(255,255,255,.1)"; x.fillRect(16, H - 22, 120, 8); x.fillStyle = col; x.fillRect(16, H - 22, 120 * power, 8);
         txt("POWER", 142, H - 18, 11, "#d8d0f5", "left");
       }
-      txt("HOLE " + (hi + 1) + "  ·  PAR " + hole.par, 16, 30, 14, "#3dffa8", "left", "d");
+      txt("HOLE " + (hi + 1) + "  ·  PAR " + hole.par, 16, 30, 14, "#3dffa8", "left", "d"); txt("COURSE #" + hole.id + " OF " + ALL.length, 16, 50, 11, "#8fe8c8", "left");
       txt(S.duo ? "PLAYER " + (player + 1) : "STROKE " + strokes, W - 16, 30, 14, S.duo ? COLS[player] : "#ffffff", "right", "d");
     },
   });
@@ -2944,6 +3000,18 @@ function muncherGame() {
   const DV = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }, OPP = { up: "down", down: "up", left: "right", right: "left" };
   const GC = ["#ff4d6d", "#ff2bd6", "#22e4ff", "#ff8a1f"], CORNER = [[17, 1], [1, 1], [17, 19], [1, 19]];
   let dots, pac, ghosts, lives, level, fright, chain, startT, deadT, cycle;
+  let maze = null;
+  function mazeArt() {
+    if (maze) return maze;
+    maze = document.createElement("canvas"); maze.width = W * 2; maze.height = H * 2;
+    const g = maze.getContext("2d"); g.scale(2, 2);
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      const ch = MAP[r][c];
+      if (ch === "#") { g.fillStyle = "rgba(61,92,255,.16)"; g.strokeStyle = "rgba(107,140,255,.75)"; g.lineWidth = 1.5; g.beginPath(); if (g.roundRect) g.roundRect(c * T + 3, r * T + 3, T - 6, T - 6, 5); else g.rect(c * T + 3, r * T + 3, T - 6, T - 6); g.fill(); g.stroke(); }
+      else if (ch === "-") { g.fillStyle = "#ff7be6"; g.fillRect(c * T + 2, r * T + T / 2 - 2, T - 4, 4); }
+    }
+    return maze;
+  }
   const passable = (c, r, g) => { if (r < 0 || r >= ROWS || c < 0 || c >= COLS) return false; const ch = MAP[r][c]; if (ch === "#") return false; if (ch === "-" || ch === "G") return !!(g && (g.home || g.eaten)); return true; };
   const posOf = (e) => [e.fc + (e.c - e.fc) * e.p, e.fr + (e.r - e.fr) * e.p];
   function fillDots() { dots = new Map(); MAP.forEach((row, r) => [...row].forEach((ch, c) => { if (ch === "." || ch === "o") dots.set(c + "," + r, ch); })); }
@@ -3026,11 +3094,7 @@ function muncherGame() {
     },
     draw() {
       bg("#03020a");
-      for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
-        const ch = MAP[r][c];
-        if (ch === "#") { x.fillStyle = "rgba(61,92,255,.16)"; x.strokeStyle = "rgba(107,140,255,.75)"; x.lineWidth = 1.5; rr(c * T + 3, r * T + 3, T - 6, T - 6, 5); x.fill(); x.stroke(); }
-        else if (ch === "-") { x.fillStyle = "#ff7be6"; x.fillRect(c * T + 2, r * T + T / 2 - 2, T - 4, 4); }
-      }
+      x.drawImage(mazeArt(), 0, 0, W, H);
       for (const [k, v] of dots) {
         const [c, r] = k.split(",").map(Number);
         if (v === "o") { const s = 5 + Math.sin(S.clock * 6) * 1.5; glow("#ffd66b", 14); x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(c * T + T / 2, r * T + T / 2, s, 0, 7); x.fill(); glow(); }
@@ -3257,7 +3321,8 @@ function sliceGame() {
         it.vy += GRAV * dt; it.x += it.vx * dt; it.y += it.vy * dt; it.rot += it.vr * dt;
         if (it.y > H + 50 && it.vy > 0) {
           it.dead = true;
-          if (!it.bomb && !S.practice) { misses++; pop(it.x, H - 30, "MISS", "#ff4d6d"); sfx("bad"); if (misses >= 3) return over("3 MISSES"); }
+          if (!it.bomb && !S.practice && S.t < 8) { pop(it.x, H - 30, "SWIPE TO SLICE!", "#b6ff3b"); }
+          else if (!it.bomb && !S.practice) { misses++; pop(it.x, H - 30, "MISS", "#ff4d6d"); sfx("bad"); if (misses >= 3) return over("3 MISSES"); }
         }
       }
       items = items.filter((it) => !it.dead);
@@ -3541,19 +3606,23 @@ function gemGame() {
     if (level === 3) { fill(); g.forEach((o, i) => { o.r0 = (i / N) | 0; o.dy = -(N + 2) * Z + (N - o.r0) * 8; }); phase = "fall"; return true; }
     return false;
   }
+  const SPR = [], SD = 64;
+  function gemSprite(t) {
+    if (SPR[t]) return SPR[t];
+    const cv2 = document.createElement("canvas"); cv2.width = cv2.height = SD * 2; const g = cv2.getContext("2d"); g.scale(2, 2); g.translate(SD / 2, SD / 2);
+    const c = COL[t], R = 19; g.shadowColor = c; g.shadowBlur = 14; g.fillStyle = ca(c, .32); g.strokeStyle = c; g.lineWidth = 2.6; g.beginPath();
+    if (t === 0) g.arc(0, 0, R, 0, 7);
+    else if (t === 1) { g.moveTo(0, -R - 2); g.lineTo(R, 0); g.lineTo(0, R + 2); g.lineTo(-R, 0); g.closePath(); }
+    else if (t === 2) { if (g.roundRect) g.roundRect(-R + 2, -R + 2, 2 * R - 4, 2 * R - 4, 6); else g.rect(-R + 2, -R + 2, 2 * R - 4, 2 * R - 4); }
+    else if (t === 3) { for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 1.2566, b = a + .6283; g.lineTo(Math.cos(a) * R, Math.sin(a) * R); g.lineTo(Math.cos(b) * R * .48, Math.sin(b) * R * .48); } g.closePath(); }
+    else if (t === 4) { for (let i = 0; i < 6; i++) { const a = i * 1.0472; g.lineTo(Math.cos(a) * R, Math.sin(a) * R); } g.closePath(); }
+    else { g.moveTo(0, -R); g.lineTo(R, R * .8); g.lineTo(-R, R * .8); g.closePath(); }
+    g.fill(); g.stroke(); g.shadowBlur = 0;
+    g.fillStyle = "rgba(255,255,255,.55)"; g.beginPath(); g.arc(-6, -7, 4, 0, 7); g.fill();
+    return (SPR[t] = cv2);
+  }
   function drawGem(t, X, Y, s, alpha) {
-    const c = COL[t]; x.save(); x.translate(X, Y); x.scale(s, s); x.globalAlpha = alpha;
-    glow(c, 14); x.fillStyle = ca(c, .32); x.strokeStyle = c; x.lineWidth = 2.6; x.beginPath();
-    const R = 19;
-    if (t === 0) x.arc(0, 0, R, 0, 7);
-    else if (t === 1) { x.moveTo(0, -R - 2); x.lineTo(R, 0); x.lineTo(0, R + 2); x.lineTo(-R, 0); x.closePath(); }
-    else if (t === 2) rr(-R + 2, -R + 2, 2 * R - 4, 2 * R - 4, 6);
-    else if (t === 3) { for (let i = 0; i < 5; i++) { const a = -Math.PI / 2 + i * 1.2566, b = a + .6283; x.lineTo(Math.cos(a) * R, Math.sin(a) * R); x.lineTo(Math.cos(b) * R * .48, Math.sin(b) * R * .48); } x.closePath(); }
-    else if (t === 4) { for (let i = 0; i < 6; i++) { const a = i * 1.0472; x.lineTo(Math.cos(a) * R, Math.sin(a) * R); } x.closePath(); }
-    else { x.moveTo(0, -R); x.lineTo(R, R * .8); x.lineTo(-R, R * .8); x.closePath(); }
-    x.fill(); x.stroke(); glow();
-    x.fillStyle = "rgba(255,255,255,.55)"; x.beginPath(); x.arc(-6, -7, 4, 0, 7); x.fill();
-    x.restore();
+    x.save(); x.globalAlpha = alpha; x.translate(X, Y); x.scale(s, s); x.drawImage(gemSprite(t), -SD / 2, -SD / 2, SD, SD); x.restore();
   }
   game({
     title: "Gem Match", easy: "no timer, just match and relax", w: W, h: H, color: "#ff2bd6", bpm: 118,
@@ -4680,8 +4749,10 @@ function c4Game() {
       glow("#3d5cff", 18); x.strokeStyle = "#6b8cff"; x.lineWidth = 3; rr(OX - 10, OY - 6, C * Z + 20, R * Z + 16, 14); x.stroke(); glow();
       if (S.state === "play" && hum() && !anim && !endT) { x.fillStyle = "rgba(255,255,255,.05)"; x.fillRect(OX + cur * Z, OY - 4, Z, R * Z + 8); }
       if (endMsg && endT > 0) { x.fillStyle = "rgba(4,2,10,.6)"; x.fillRect(0, H / 2 - 34, W, 68); glow(endMsg === "AI WINS" ? "#ff4d6d" : "#ffd66b", 20); txt(endMsg, W / 2, H / 2, 30, endMsg === "AI WINS" ? "#ff4d6d" : "#ffd66b", "center", "d"); glow(); }
-      txt(S.duo ? "P1 ●  vs  ● P2" : "YOU ●  vs  ● AI", W / 2, 40, 14, "#d8d0f5", "center", "d");
-      x.fillStyle = PC[1]; x.beginPath(); x.arc(W / 2 - (S.duo ? 40 : 46), 40, 7, 0, 7); x.fill(); x.fillStyle = PC[2]; x.beginPath(); x.arc(W / 2 + (S.duo ? 40 : 38), 40, 7, 0, 7); x.fill();
+      const n1 = S.duo && !S.bot ? "P1" : "YOU", n2 = S.duo && !S.bot ? "P2" : S.bot ? "BOT" : "AI";
+      txt(n1, W / 2 - 46, 40, 14, PC[1], "right", "d"); txt("vs", W / 2, 40, 13, "#d8d0f5", "center");
+      txt(n2, W / 2 + 46, 40, 14, PC[2], "left", "d");
+      glow(PC[1], 10); x.fillStyle = PC[1]; x.beginPath(); x.arc(W / 2 - 30, 40, 7, 0, 7); x.fill(); glow(PC[2], 10); x.fillStyle = PC[2]; x.beginPath(); x.arc(W / 2 + 30, 40, 7, 0, 7); x.fill(); glow();
     },
   });
 }
@@ -5102,7 +5173,7 @@ function simonGame() {
     { key: "memory", how: "Take turns flipping cards. Find a pair and go again. Most pairs wins.", keys: "Click the cards, one player at a time", touch: "Pass the iPad between turns" },
     { key: "targets", how: "Split screen with the same targets on both sides. Best score in 30 seconds wins.", keys: "Best on a touch screen", touch: "P1 taps the left half, P2 the right" },
     { key: "pingpong", how: "Real table tennis: the ball has to bounce on the other side. First to 11.", keys: "P1 ← → move, ↑ swing  ·  P2 A D move, W swing", touch: "Drag to move and tap to swing, each on your own half" },
-    { key: "golf", how: "Take turns on all 9 holes. Fewest total strokes wins.", keys: "Drag to aim and shoot, or arrows + Space", touch: "Pass the iPad between turns" },
+    { key: "golf", how: "9 random holes from 50 courses. Take turns. Fewest total strokes wins.", keys: "Drag to aim and shoot, or arrows + Space", touch: "Pass the iPad between turns" },
     { key: "connect4", how: "Classic Connect Four. Drop discs and get 4 in a row first.", keys: "← → pick a column, Space drops", touch: "Tap a column, then pass the iPad" },
     { key: "reversi", how: "Flip your rival's discs by trapping them. Most discs at the end wins.", keys: "Arrows move, Space places", touch: "Tap a glowing dot, then pass the iPad" },
     { key: "hoops", how: "Same shooting spots for both players, 5 shots each. Most points wins.", keys: "Arrows aim, Space shoots", touch: "Drag back and let go, then pass the iPad" },
