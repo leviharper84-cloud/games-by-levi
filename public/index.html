@@ -642,6 +642,15 @@ textarea.code {
 .frame-box { position: relative; background: #000; aspect-ratio: 16 / 10; max-width: 100%; max-height: calc(100vh - 140px); width: 100%; }
 .frame-box iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
 .frame-box:fullscreen { aspect-ratio: auto; max-height: none; }
+#modal { touch-action: none; overscroll-behavior: contain; }
+html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
+@media (pointer: coarse), (max-width: 900px) {
+  #modal { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
+  #modal .cabinet { width: 100%; height: 100%; max-height: none; border-radius: 0; border-width: 0; }
+  #modal .cab-bar { padding: 8px 12px; }
+  #modal .frame-box { aspect-ratio: auto; flex: 1; max-height: none; min-height: 0; }
+  #modal .cab-foot { display: none; }
+}
 .cab-foot { padding: 8px 16px; font-size: .74rem; color: var(--dim); border-top: 1px solid var(--line); }
 
 /* ---------- Footer, toast ---------- */
@@ -1360,6 +1369,10 @@ function SHELL() {
     if (S.paused) { S.fresh = true; togglePause(); return; }
     if ((S.state === "title" || S.state === "over") && canStart()) { S.fresh = true; start(...again()); }
   }, { passive: true });
+  const noScroll = (e) => { if (!(e.target.closest && e.target.closest("button"))) e.preventDefault(); };
+  addEventListener("touchstart", noScroll, { passive: false });
+  addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
+  addEventListener("gesturestart", (e) => e.preventDefault());
   pzBtn.addEventListener("click", (e) => { e.stopPropagation(); togglePause(); });
   addEventListener("keydown", (e) => {
     const k = keyOf(e);
@@ -5539,7 +5552,7 @@ function chessGame() {
   ];
   const DUO_KEYS = new Set(DUO.map((d) => d.key));
 
-  const SHELL_CSS = "html,body{margin:0;height:100%;background:#03020a;color:#fff;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;font-family:'Share Tech Mono',ui-monospace,Menlo,monospace}" +
+  const SHELL_CSS = "html,body{margin:0;height:100%;background:#03020a;color:#fff;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;-webkit-touch-callout:none;-webkit-tap-highlight-color:transparent;overscroll-behavior:none;font-family:'Share Tech Mono',ui-monospace,Menlo,monospace}" +
     "#wrap{position:fixed;inset:30px 0 0;display:grid;place-items:center}canvas{display:block;border:1px solid;border-radius:4px}" +
     "#hud{position:fixed;top:0;left:0;right:0;height:28px;display:flex;align-items:center;gap:10px;padding:0 8px;font-size:12px;letter-spacing:.14em;color:var(--c,#22e4ff);text-shadow:0 0 8px var(--c,#22e4ff);white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.07);background:linear-gradient(#0b0619,#03020a)}" +
     "#hud span{overflow:hidden;text-overflow:ellipsis;min-width:0}#hl{flex:1}#hc{flex:1.6;text-align:center;color:#e9e4ff;text-shadow:none}#hr{flex:1;text-align:right}" +
@@ -5974,6 +5987,7 @@ function chessGame() {
     const msgBox = (t) => el("div", { class: "none", style: "position:absolute;inset:0;display:grid;place-items:center;border:0", text: t });
     box.replaceChildren(msgBox("Loading cartridge…"));
     modal.classList.add("open"); modal.setAttribute("aria-hidden", "false");
+    document.documentElement.classList.add("playing");
     $("#close").focus();
     let code = codeOverride || (g.fn ? buildGame(g, opts) : null), why = "";
     if (!code && g.id) { try { code = (await api(`/submissions/${g.id}/code`)).code; } catch (e) { why = e.message; } }
@@ -5987,6 +6001,7 @@ function chessGame() {
   }
   function closeModal() {
     modal.classList.remove("open"); modal.setAttribute("aria-hidden", "true");
+    document.documentElement.classList.remove("playing");
     current = null;
     setTimeout(() => { if (!modal.classList.contains("open")) box.replaceChildren(); }, 300);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
