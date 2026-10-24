@@ -1,0 +1,54 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Level not found · Games by Levi</title>
+<meta name="robots" content="noindex">
+<meta name="theme-color" content="#07040f">
+<link rel="icon" href="/icon.svg" type="image/svg+xml">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Tilt+Neon&family=Chakra+Petch:wght@500;700&family=JetBrains+Mono&display=swap">
+<style>
+  :root { color-scheme: dark; --bg: #07040f; --fg: #f1ecff; --muted: #a69cc6; --a1: #ff2bd6; --a2: #22e4ff; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; min-height: 100%; }
+  body {
+    min-height: 100vh; min-height: 100svh; display: grid; place-items: center; text-align: center;
+    padding: 24px max(16px, env(safe-area-inset-right, 0px)) 24px max(16px, env(safe-area-inset-left, 0px));
+    background:
+      linear-gradient(transparent 62%, rgba(255,43,214,.08) 62.2%, transparent 62.6%),
+      repeating-linear-gradient(90deg, rgba(255,43,214,.07) 0 1px, transparent 1px 64px),
+      radial-gradient(ellipse at 50% 62%, rgba(255,43,214,.28), transparent 60%),
+      var(--bg);
+    color: var(--fg); font: 500 16px/1.6 "Chakra Petch", system-ui, sans-serif;
+  }
+  body::after { content: ""; position: fixed; inset: 0; pointer-events: none; background: repeating-linear-gradient(to bottom, rgba(255,255,255,.02) 0 1px, transparent 1px 3px); }
+  .code { font: 400 .8rem "JetBrains Mono", ui-monospace, monospace; letter-spacing: .3em; color: var(--a2); text-shadow: 0 0 10px var(--a2); }
+  h1 {
+    margin: 12px 0 6px; font: 400 clamp(3rem, 14vw, 7rem)/1 "Tilt Neon", "Chakra Petch", sans-serif; color: #fff7fd;
+    text-shadow: 0 0 4px #fff, 0 0 12px var(--a1), 0 0 30px var(--a1), 0 0 70px rgba(255,43,214,.6);
+  }
+  p { margin: 0 auto; max-width: 34ch; color: var(--muted); }
+  a {
+    display: inline-block; margin-top: 30px; padding: 14px 30px; border-radius: 999px; border: 1px solid var(--a1); color: var(--fg);
+    text-decoration: none; font-weight: 700; font-size: .85rem; letter-spacing: .16em; text-transform: uppercase;
+    background: rgba(255,43,214,.14); box-shadow: 0 0 20px rgba(255,43,214,.45), inset 0 0 14px rgba(255,43,214,.2);
+    transition: box-shadow .3s, transform .3s;
+  }
+  a:hover { transform: translateY(-2px); box-shadow: 0 0 34px rgba(255,43,214,.75), inset 0 0 18px rgba(255,43,214,.3); }
+  a:focus-visible { outline: 2px solid var(--a2); outline-offset: 4px; }
+  @media (prefers-reduced-motion: no-preference) { h1 { animation: flick 4s 1s infinite; } }
+  @keyframes flick { 0%, 90%, 93%, 96%, 100% { opacity: 1; } 91%, 95% { opacity: .4; } }
+</style>
+</head>
+<body>
+  <main>
+    <div class="code">ERROR 404</div>
+    <h1>Game Over</h1>
+    <p>This level doesn't exist. The page may have moved, or the link has a typo.</p>
+    <a href="/">Back to the arcade</a>
+  </main>
+</body>
+</html>

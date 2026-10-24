@@ -42,11 +42,7 @@ You need a free Cloudflare account and Node.js installed on your computer.
 
    It prints a `database_id` that looks like `a1b2c3d4-...`. Open `wrangler.toml` and paste it where it says `PASTE-YOUR-DATABASE-ID-HERE`.
 
-4. **Create the tables:**
-
-   ```
-   npm run db:remote
-   ```
+4. **Tables set themselves up.** The first time the site runs, it creates everything it needs in the database. (If you ever want to do it by hand, run `npm run db:remote`.)
 
 5. **Choose the admin name.** In `wrangler.toml`, `ADMIN_USERNAME = "Levi"` decides who can approve and reject submitted games. Change it if you want a different name.
 
