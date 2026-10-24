@@ -1,5 +1,5 @@
 {
-  "name": "games-by-levi",
+  "name": "gbl",
   "version": "1.0.0",
   "private": true,
   "description": "Games by Levi - the ultimate gaming hub. Runs on Cloudflare Workers with a D1 database.",
