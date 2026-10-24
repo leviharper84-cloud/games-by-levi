@@ -397,6 +397,68 @@ textarea.code {
 .duo-body .btn { margin-top: auto; align-self: flex-start; }
 .p2 { font: 700 .6rem var(--f-mono); letter-spacing: .1em; color: #ff7be6; border: 1px solid rgba(255,43,214,.55); border-radius: 999px; padding: 0 6px; }
 
+/* ---------- Tournament ---------- */
+.tour-setup { display: grid; gap: 18px; max-width: 760px; }
+.tour-h { margin: 0; font-family: var(--f-sign); font-weight: 400; font-size: 1.7rem; text-shadow: 0 0 12px rgba(var(--a1-rgb), .5); }
+.tour-opts { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 12px; }
+.tour-opt {
+  display: grid; gap: 4px; justify-items: start; text-align: left; padding: 16px 18px; border-radius: 16px; cursor: pointer;
+  border: 1px solid var(--line-2); background: rgba(7,4,15,.6); color: var(--fg); font: inherit;
+  transition: border-color .25s var(--ease), box-shadow .25s var(--ease), transform .25s var(--ease);
+}
+.tour-opt:hover { transform: translateY(-2px); border-color: var(--a2); }
+.tour-opt.on { border-color: var(--a1); background: rgba(var(--a1-rgb), .12); box-shadow: 0 0 24px rgba(var(--a1-rgb), .35), inset 0 0 14px rgba(var(--a1-rgb), .15); }
+.tour-opt b { font-size: 1.05rem; letter-spacing: .06em; }
+.tour-opt span { color: var(--muted); font-size: .86rem; }
+.tour-opt .tour-ico { font-size: 1.6rem; color: var(--a2); text-shadow: 0 0 12px rgba(var(--a2-rgb), .7); }
+.tour-names { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; }
+.tour-field { display: grid; gap: 6px; }
+.tour-field[hidden] { display: none; }
+.tour-field span { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--a2); font-weight: 700; }
+.tour-field .search { width: 100%; box-sizing: border-box; }
+.tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
+.tour-setup > .btn { justify-self: start; }
+.tour-score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; margin-bottom: 18px; }
+.tour-pl { display: flex; align-items: center; gap: 14px; min-width: 0; padding: 12px 18px; border-radius: 16px; background: var(--panel); border: 1px solid var(--line-2); }
+.tour-pl span { font-weight: 700; letter-spacing: .06em; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.tour-pl b { font: 800 2.4rem var(--f-mono); line-height: 1; }
+.tour-pl.tp1 { border-color: rgba(34,228,255,.5); color: #22e4ff; text-shadow: 0 0 14px rgba(34,228,255,.6); }
+.tour-pl.tp2 { justify-content: flex-end; border-color: rgba(255,43,214,.5); color: #ff2bd6; text-shadow: 0 0 14px rgba(255,43,214,.6); }
+.tour-pl.champ { box-shadow: 0 0 30px currentColor; }
+.tour-vs { font: 700 .72rem var(--f-mono); letter-spacing: .18em; color: var(--muted); text-align: center; }
+.tour-next { display: flex; flex-wrap: wrap; gap: 18px; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.tour-next-txt { display: grid; gap: 8px; flex: 1 1 320px; min-width: 0; }
+.tour-next h3 { margin: 0; font-family: var(--f-sign); font-weight: 400; font-size: 1.9rem; text-shadow: 0 0 12px rgba(var(--a1-rgb), .5); }
+.btn.big { padding: 16px 30px; font-size: .95rem; }
+.tour-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 14px; }
+.tour-card { border-radius: 14px; overflow: hidden; border: 1px solid var(--line-2); background: var(--panel); transition: transform .25s var(--ease), box-shadow .25s var(--ease); min-width: 0; }
+.tour-card.now { border-color: var(--a1); box-shadow: 0 0 26px rgba(var(--a1-rgb), .45); cursor: pointer; animation: tourPulse 1.6s ease-in-out infinite; }
+.tour-card.now:hover { transform: translateY(-3px); }
+.tour-card.locked { opacity: .5; }
+.tour-card.w1 { border-color: rgba(34,228,255,.7); }
+.tour-card.w2 { border-color: rgba(255,43,214,.7); }
+.tour-art { position: relative; }
+.tour-art .screen { aspect-ratio: 16 / 10; }
+.tour-art .glyph { font-size: 2rem; }
+.tour-num { position: absolute; top: 8px; left: 8px; z-index: 2; font: 700 .6rem var(--f-mono); letter-spacing: .14em; padding: 2px 8px; border-radius: 999px; background: rgba(7,4,15,.8); border: 1px solid var(--line-2); }
+.tour-body { padding: 10px 12px 12px; display: grid; gap: 4px; }
+.tour-body h4 { margin: 0; font-size: .95rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tour-status { font: 700 .66rem var(--f-mono); letter-spacing: .12em; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tour-card.w1 .tour-status { color: #22e4ff; }
+.tour-card.w2 .tour-status { color: #ff2bd6; }
+.tour-card.now .tour-status { color: var(--a1); }
+.tour-champ { text-align: center; padding: 28px 16px; margin-bottom: 20px; border-radius: 18px; border: 1px solid rgba(255,214,107,.5); background: radial-gradient(80% 120% at 50% 0%, rgba(255,214,107,.18), transparent 70%), var(--panel); box-shadow: 0 0 40px rgba(255,214,107,.2); }
+.tour-champ h3 { margin: 6px 0; font-family: var(--f-sign); font-weight: 400; font-size: clamp(1.6rem, 5vw, 2.6rem); color: #ffd66b; text-shadow: 0 0 18px rgba(255,214,107,.7); }
+.tour-champ p { color: var(--muted); margin: 0 0 16px; }
+.trophy { font-size: 3.4rem; animation: trophy 2s ease-in-out infinite; filter: drop-shadow(0 0 18px rgba(255,214,107,.8)); }
+.tour-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+.tour-quit { margin-top: 18px; text-align: center; }
+@keyframes tourPulse { 50% { box-shadow: 0 0 40px rgba(var(--a1-rgb), .7); } }
+@keyframes trophy { 50% { transform: translateY(-6px) rotate(-4deg); } }
+@media (max-width: 560px) { .tour-pl { padding: 10px 12px; gap: 8px; } .tour-pl b { font-size: 1.8rem; } .tour-score { gap: 8px; } .tour-vs { font-size: .6rem; } }
+@media (max-width: 1280px) { .links a { letter-spacing: .07em; padding: 6px 7px; } .themes span { display: none; } }
+@media (prefers-reduced-motion: reduce) { .tour-card.now, .trophy { animation: none; } }
+
 /* ---------- Leaderboards ---------- */
 .lb { display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 760px) { .lb { grid-template-columns: 1fr; } }
@@ -600,6 +662,8 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <div class="home-links">
       <button class="linkbtn" type="button" data-go="two-player">2 Players</button>
       <span aria-hidden="true">·</span>
+      <button class="linkbtn" type="button" data-go="tournament">Tournament</button>
+      <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="leaderboards">Leaderboards</button>
       <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="submit">Submit a game</button>
@@ -628,6 +692,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#home">Home</a>
       <a href="#library">Library</a>
       <a href="#two-player">2 Players</a>
+      <a href="#tournament">Tournament</a>
       <a href="#leaderboards">Leaderboards</a>
       <a href="#submit">Submit</a>
       <a href="#queue">Queue</a>
@@ -673,6 +738,19 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
         </div>
       </div>
       <div class="duo-grid" id="duo-grid"></div>
+    </div>
+  </section>
+
+  <section id="tournament">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">7 rounds. 1 champion.</p>
+          <h2>Tournament</h2>
+          <p class="lede">Seven random 2-player games, back to back. Play a friend on one screen or take on the bot. Win the most rounds to take the trophy.</p>
+        </div>
+      </div>
+      <div id="tour"></div>
     </div>
   </section>
 
@@ -810,6 +888,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <nav class="foot-links" aria-label="Footer">
       <a href="#library">Library</a>
       <a href="#two-player">2 Players</a>
+      <a href="#tournament">Tournament</a>
       <a href="#leaderboards">Leaderboards</a>
       <a href="#submit">Submit a game</a>
       <a href="#queue">Queue</a>
@@ -865,7 +944,7 @@ function SHELL() {
   const S = {
     state: "title", score: 0, best: window.BEST0 || 0, t: 0, clock: 0, keys: {}, px: -99, py: -99, down: false,
     overAt: 0, end: "", fresh: false, practice: false, duo: false, cd: 0, newBest: false, shown: 0, parts: [], pops: [], rings: [], banner: null,
-    shakeA: 0, shakeT: 0, flashC: "#ffffff", flashA: 0, sound: 2, paused: false,
+    shakeA: 0, shakeT: 0, flashC: "#ffffff", flashA: 0, sound: 2, paused: false, bot: false,
   };
   const DIRS = { ArrowUp: "up", w: "up", ArrowDown: "down", s: "down", ArrowLeft: "left", a: "left", ArrowRight: "right", d: "right" };
   let G = null, last = 0, sx = 0, sy = 0, dpr = 1, hudCache = "";
@@ -1001,19 +1080,22 @@ function SHELL() {
     fit(); G.init(); requestAnimationFrame(loop);
   }
   function start(practice, duo) {
-    S.duo = !!(duo && G.duo); S.practice = !!practice && !S.duo;
+    if (window.TOUR0) { duo = true; practice = false; }
+    S.duo = !!(duo && G.duo); S.practice = !!practice && !S.duo; S.bot = S.duo && !!window.BOT0;
     S.score = 0; S.t = 0; S.keys = {}; S.newBest = false; S.parts = []; S.pops = []; S.rings = []; S.banner = null; S.paused = false;
     G.init(); S.state = "count"; S.cd = 1.2; audio(); sfx("tick");
   }
   function over(text) {
     if (S.state !== "play") return;
+    if (S.duo) { const m = /PLAYER (\d) WINS/.exec(text || ""); try { parent.postMessage({ type: "gbl:match", winner: m ? +m[1] : 0 }, "*"); } catch (e) {} }
+    if (S.bot && text) text = text.replace("PLAYER 1 WINS", "YOU WIN!").replace("PLAYER 2 WINS", "BOT WINS");
     S.state = "over"; S.end = text || "GAME OVER"; S.overAt = performance.now();
     S.score = Math.floor(S.score); S.shown = 0;
     S.newBest = !S.practice && !S.duo && S.score > S.best && S.score > 0; if (S.newBest) S.best = S.score;
     sfx("over"); if (S.newBest) setTimeout(() => sfx("level"), 700);
     if (!S.practice && !S.duo) { try { parent.postMessage({ type: "gbl:score", score: S.score }, "*"); } catch (e) {} }
   }
-  const canStart = () => (S.state === "title" || S.state === "over") && performance.now() - S.overAt > 700;
+  const canStart = () => (S.state === "title" || (S.state === "over" && !window.TOUR0)) && performance.now() - S.overAt > 700;
   function togglePause() { if (S.state === "play" || S.state === "count") { S.paused = !S.paused; S.keys = {}; pzBtn.textContent = S.paused ? "▶" : "II"; if (!S.paused && ac) seqT = ac.currentTime + .03; } }
   function cycleSound() { S.sound = (S.sound + 2) % 3; sndBtn.textContent = ["♪ OFF", "♪ FX", "♪ ALL"][S.sound]; audio(); }
 
@@ -1069,18 +1151,18 @@ function SHELL() {
     x.fillStyle = "rgba(3,2,10,.8)"; x.fillRect(0, 0, G.w, G.h);
     const u = Math.min(G.w / 480, G.h / 420, 1.1), L = [];
     if (S.state === "over") {
-      if (S.duo) L.push([S.end, 30 * u, G.color, "g"], ["2-PLAYER MATCH", 12 * u, "#8f86b5"]);
+      if (S.duo) L.push([S.end, 30 * u, G.color, "g"], [window.BOT0 ? "MATCH VS BOT" : "2-PLAYER MATCH", 12 * u, "#8f86b5"]);
       else L.push([S.end, 30 * u, G.color, "g"], ["FINAL SCORE", 12 * u, "#8f86b5"], [fmt(S.shown), 40 * u, "#ffffff", "d"]);
       if (S.newBest) L.push(["★ NEW RECORD ★", 15 * u, Math.floor(S.clock * 4) % 2 ? "#ffd66b" : "#fff3c4", "d"]);
       (G.summary ? G.summary() : []).forEach((s) => L.push([s, 12 * u, "#d8d0f5"]));
-      if (S.practice || S.duo) L.push([S.duo ? "JUST FOR FUN  ·  NOT RANKED" : "PRACTICE RUN  ·  SCORE NOT SAVED", 12 * u, S.duo ? "#ff7be6" : "#3dffa8"]);
-      L.push(["", 6 * u], [Math.floor(S.clock * 2) % 2 ? "▶ TAP OR PRESS SPACE TO PLAY AGAIN" : "", 13 * u, G.color]);
+      if (S.practice || S.duo) L.push([S.duo ? (window.TOUR0 ? "TOURNAMENT ROUND COMPLETE" : "JUST FOR FUN  ·  NOT RANKED") : "PRACTICE RUN  ·  SCORE NOT SAVED", 12 * u, S.duo ? "#ff7be6" : "#3dffa8"]);
+      L.push(["", 6 * u], [window.TOUR0 ? "BACK TO THE TOURNAMENT IN A MOMENT..." : Math.floor(S.clock * 2) % 2 ? "▶ TAP OR PRESS SPACE TO PLAY AGAIN" : "", 13 * u, G.color]);
     } else {
       L.push([G.title.toUpperCase(), 34 * u, G.color, "g"], ["GAMES BY LEVI  //  HI-SCORE " + fmt(S.best), 11 * u, "#8f86b5"], ["", 8 * u]);
       (G.help || []).forEach((h, i) => L.push([h, 13 * u, i % 2 ? "#ff7be6" : "#d8d0f5"]));
       if (G.easy) L.push(["", 4 * u], ["PRACTICE: " + G.easy, 12 * u, "#3dffa8"]);
-      if (G.duo) L.push(["2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
-      L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && G.duo ? "▶ TAP OR PRESS SPACE TO START 2 PLAYERS" : G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
+      if (G.duo) L.push([window.BOT0 ? "VS BOT: YOU ARE PLAYER 1, THE BOT IS PLAYER 2" : "2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
+      L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && G.duo ? (window.BOT0 ? "▶ TAP OR PRESS SPACE TO PLAY THE BOT" : "▶ TAP OR PRESS SPACE TO START 2 PLAYERS") : G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
     }
     const total = L.reduce((a, l) => a + l[1] * 1.55, 0);
     let y = G.h / 2 - total / 2;
@@ -1126,13 +1208,13 @@ function SHELL() {
     if (S.paused && S.state === "count") { x.fillStyle = "rgba(3,2,10,.7)"; x.fillRect(0, 0, G.w, G.h); glitchText("PAUSED", G.w / 2, G.h / 2, 36, G.color); }
     x.setTransform(1, 0, 0, 1, 0, 0); x.drawImage(ov, 0, 0);
     hud(); music();
-    const menu = (S.state === "title" || S.state === "over") && performance.now() - S.overAt > 700;
+    const menu = (S.state === "title" || (S.state === "over" && !window.TOUR0)) && performance.now() - S.overAt > 700;
     const showGo = S.paused || menu;
     if (btns.hidden === showGo) btns.hidden = !showGo;
-    const showP = menu && !S.paused, showD = showP && !!G.duo, isOver = S.state === "over";
+    const showP = menu && !S.paused && !window.TOUR0, showD = showP && !!G.duo, isOver = S.state === "over";
     if (pracBtn.hidden === showP) pracBtn.hidden = !showP;
     if (duoBtn.hidden === showD) duoBtn.hidden = !showD;
-    const label = S.paused ? "▶ RESUME" : isOver ? (S.duo ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? "▶ START 2 PLAYERS" : "▶ START";
+    const label = S.paused ? "▶ RESUME" : isOver ? (S.duo ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? (window.BOT0 ? "▶ START VS BOT" : "▶ START 2 PLAYERS") : "▶ START";
     if (goBtn.textContent !== label) goBtn.textContent = label;
     const plabel = isOver && S.practice ? "RANKED GAME" : "PRACTICE";
     if (pracBtn.textContent !== plabel) pracBtn.textContent = plabel;
@@ -1164,7 +1246,7 @@ function SHELL() {
     if (k === "m") { cycleSound(); return; }
     if (k === "p") { togglePause(); return; }
     if (S.paused) { if (k === " " || k === "Enter") togglePause(); return; }
-    if (S.state === "title" || S.state === "over") { if (k === "e" && !e.repeat && canStart()) start(true); else if (k === "2" && G.duo && !e.repeat && canStart()) start(false, true); else if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(...again()); return; }
+    if (S.state === "title" || S.state === "over") { if (window.TOUR0) { if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(false, true); return; } if (k === "e" && !e.repeat && canStart()) start(true); else if (k === "2" && G.duo && !e.repeat && canStart()) start(false, true); else if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(...again()); return; }
     if (S.state !== "play") return;
     S.keys[k] = true;
     if (DIRS[k] && G.turn && (!e.repeat || G.repeat)) G.turn(DIRS[k], k);
@@ -1218,6 +1300,7 @@ function snakeGame() {
   function duoUpdate(dt) {
     if (duo.wait > 0) { duo.wait -= dt; if (duo.wait <= 0) { duo.round++; duoReset(); } return; }
     dacc += dt; if (dacc < DSPD) return; dacc = Math.min(dacc - DSPD, DSPD);
+    if (S.bot) snakeBot();
     const heads = duo.p.map((s) => { if (s.flip) { s.flip = false; s.body.reverse(); s.nd = { x: s.body[0].x - s.body[1].x, y: s.body[0].y - s.body[1].y }; const [a, b] = C(s.body[0]); pop(a, b - 16, "REVERSE", s.col); sfx("blip"); } s.d = s.nd; s.prev = s.body.map((q) => ({ ...q })); return { x: s.body[0].x + s.d.x, y: s.body[0].y + s.d.y }; });
     const dead = heads.map((h) => h.x < 0 || h.y < 0 || h.x >= N || h.y >= N || duo.p.some((s) => s.body.slice(0, -1).some((q) => q.x === h.x && q.y === h.y)));
     if (heads[0].x === heads[1].x && heads[0].y === heads[1].y) dead[0] = dead[1] = true;
@@ -1238,6 +1321,23 @@ function snakeGame() {
       }
       duo.wait = 1.6;
     }
+  }
+  function snakeBot() {
+    const s = duo.p[1], o = duo.p[0]; if (!s.alive) return;
+    const h = s.body[0], blocked = new Set();
+    duo.p.forEach((q) => q.body.slice(0, -1).forEach((c) => blocked.add(c.x + "," + c.y)));
+    const free = (x0, y0) => x0 >= 0 && y0 >= 0 && x0 < N && y0 < N && !blocked.has(x0 + "," + y0);
+    const room = (x0, y0) => { const seen = new Set([x0 + "," + y0]), st = [[x0, y0]]; while (st.length && seen.size < 60) { const [a, b] = st.pop(); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const k2 = (a + dx) + "," + (b + dy); if (!seen.has(k2) && free(a + dx, b + dy)) { seen.add(k2); st.push([a + dx, b + dy]); } } } return seen.size; };
+    let best = null, bv = -1e9;
+    for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) {
+      if (dx === -s.d.x && dy === -s.d.y) continue;
+      const nx = h.x + dx, ny = h.y + dy; if (!free(nx, ny)) continue;
+      const r = room(nx, ny), oh = o.alive ? o.body[0] : null;
+      let v = -(Math.abs(nx - duo.food.x) + Math.abs(ny - duo.food.y)) * 2 + (r < s.body.length + 4 ? r * 3 - 200 : 0) + Math.random() * 1.5;
+      if (oh && Math.abs(oh.x + o.d.x - nx) + Math.abs(oh.y + o.d.y - ny) === 0) v -= 60;
+      if (v > bv) { bv = v; best = [dx, dy]; }
+    }
+    if (best && Math.random() > .03) s.nd = { x: best[0], y: best[1] };
   }
   function duoDraw() {
     const [fa, fb] = C(duo.food);
@@ -1260,7 +1360,7 @@ function snakeGame() {
     hud() { if (S.duo) return "P1 " + duo.wins[0] + "  ·  ROUND " + duo.round + "  ·  " + duo.wins[1] + " P2  ·  FIRST TO 3"; return "LEVEL " + lvl + "  ·  LENGTH " + sn.length + "  ·  SPEED " + (0.13 / speed()).toFixed(1) + "x"; },
     summary() { if (S.duo) return ["ROUNDS  P1 " + duo.wins[0] + " : " + duo.wins[1] + " P2"]; return ["LEVEL " + lvl + "   LENGTH " + sn.length + "   CHIPS " + eaten]; },
     turn(dir, k, px) {
-      if (S.duo) return duoTurn(k ? (k.startsWith("Arrow") ? 1 : 0) : (px >= 240 ? 1 : 0), dir);
+      if (S.duo) return duoTurn(S.bot ? 0 : k ? (k.startsWith("Arrow") ? 1 : 0) : (px >= 240 ? 1 : 0), dir);
       const v = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir];
       if (v[0] === -d.x && v[1] === -d.y) { flip = true; return; }
       flip = false; nd = { x: v[0], y: v[1] };
@@ -1458,9 +1558,10 @@ function pongGame() {
     banner("POINT · PLAYER " + w, col); serve(w === 1 ? 1 : -1);
   }
   function duoUpdate(dt) {
-    const k1 = (S.keys.s ? 1 : 0) - (S.keys.w ? 1 : 0), k2 = (S.keys.ArrowDown ? 1 : 0) - (S.keys.ArrowUp ? 1 : 0), o1 = p, o2 = c;
+    const k1 = (S.keys.s ? 1 : 0) - (S.keys.w ? 1 : 0) + (S.bot ? (S.keys.ArrowDown ? 1 : 0) - (S.keys.ArrowUp ? 1 : 0) : 0), k2 = (S.keys.ArrowDown ? 1 : 0) - (S.keys.ArrowUp ? 1 : 0), o1 = p, o2 = c;
     if (k1) { p += k1 * 480 * dt; ty = p; } else p += (ty - p) * Math.min(1, dt * 18);
-    if (k2) { c += k2 * 480 * dt; ty2 = c; } else c += (ty2 - c) * Math.min(1, dt * 18);
+    if (S.bot) { const tg = b.vx > 0 ? b.y + Math.sin(S.t * 2.1) * 24 : H / 2; c += Math.max(-420 * dt, Math.min(420 * dt, tg - c)); }
+    else if (k2) { c += k2 * 480 * dt; ty2 = c; } else c += (ty2 - c) * Math.min(1, dt * 18);
     p = clampP(p); c = clampP(c);
     const v1 = (p - o1) / dt, v2 = (c - o2) / dt;
     pf = Math.max(0, pf - dt * 4); cf = Math.max(0, cf - dt * 4);
@@ -1492,8 +1593,8 @@ function pongGame() {
       return "LEVEL " + lvl + "  ·  LIVES " + (S.practice ? "∞" : "◆".repeat(lives)) + "  ·  RALLY " + rally;
     },
     summary() { return S.duo ? ["FINAL SCORE  P1 " + sc1 + " : " + sc2 + " P2"] : []; },
-    move(px, py) { if (S.duo && px >= W / 2) ty2 = py; else ty = py; },
-    down(px, py) { if (S.duo && px >= W / 2) ty2 = py; else ty = py; },
+    move(px, py) { if (S.duo && !S.bot && px >= W / 2) ty2 = py; else ty = py; },
+    down(px, py) { if (S.duo && !S.bot && px >= W / 2) ty2 = py; else ty = py; },
     update(dt) {
       if (S.duo) return duoUpdate(dt);
       const old = p, kd = (S.keys.ArrowDown || S.keys.s ? 1 : 0) - (S.keys.ArrowUp || S.keys.w ? 1 : 0);
@@ -1850,14 +1951,14 @@ function g2048Game() {
 /* ---------- 07 Memory Grid ---------- */
 function memoryGame() {
   const SY = ["●", "▲", "■", "◆", "★", "✚", "♥", "☾"], CO = ["#22e4ff", "#ff2bd6", "#b6ff3b", "#ffc23d", "#a35bff", "#ff8a1f", "#ff4d6d", "#6af7ff"];
-  let cards, open, moves, lock, matched, streak, round, rt, limit, cleared, swapNext, pairs = [0, 0], turnP = 0, switchNext = false;
+  let botT = 1, seen = {}, cards, open, moves, lock, matched, streak, round, rt, limit, cleared, swapNext, pairs = [0, 0], turnP = 0, switchNext = false;
   const cell = (i) => [(i % 4) * 120 + 60, (i / 4 | 0) * 120 + 60];
   const timeFor = (r) => Math.max(16, 60 - (r - 1) * 8);
   function deal() {
     const a = [0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7];
     for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; }
     cards = a.map((v) => ({ v, up: false, done: false, f: 0, bad: 0, sw: 0, circ: Array.from({ length: 4 }, () => [Math.random() * 80 - 40, Math.random() * 80 - 40, Math.random() < .5]) }));
-    open = []; lock = 0; matched = 0; swapNext = false; limit = timeFor(round); rt = limit;
+    seen = {}; open = []; lock = 0; matched = 0; swapNext = false; limit = timeFor(round); rt = limit;
   }
   function swap() {
     const hidden = cards.map((k, i) => i).filter((i) => !cards[i].done && !cards[i].up);
@@ -1873,11 +1974,11 @@ function memoryGame() {
     init() { moves = 0; streak = 0; round = 1; cleared = 0; pairs = [0, 0]; turnP = 0; switchNext = false; deal(); },
     hud() { if (S.duo) return "P1 " + pairs[0] + " PAIRS  ·  PLAYER " + (turnP + 1) + "'S TURN  ·  P2 " + pairs[1] + " PAIRS"; return "ROUND " + round + "  ·  " + (S.practice ? "NO TIMER" : Math.ceil(rt) + "s")+ "  ·  STREAK " + streak; },
     summary() { if (S.duo) return ["PAIRS  P1 " + pairs[0] + " : " + pairs[1] + " P2"]; return ["ROUNDS CLEARED " + cleared + "   MOVES " + moves]; },
-    down(px, py) {
-      if (lock > 0) return;
+    down(px, py, pid) {
+      if (lock > 0 || (S.bot && turnP === 1 && pid !== "bot")) return;
       const c = Math.floor(px / 120), r = Math.floor(py / 120); if (c < 0 || c > 3 || r < 0 || r > 3) return;
       const i = r * 4 + c, k = cards[i]; if (k.up || k.done) return;
-      k.up = true; open.push(i); sfx("blip");
+      k.up = true; open.push(i); seen[i] = k.v; sfx("blip");
       if (open.length === 2) {
         moves++;
         const [A, B] = open.map((j) => cards[j]);
@@ -1901,6 +2002,19 @@ function memoryGame() {
     update(dt) {
       if (!S.practice && !S.duo) { rt -= dt; if (rt <= 0) { rt = 0; flash("#ff4d6d", .4); shake(6, .3); return over("TIME UP"); } }
       for (const k of cards) { k.f += (((k.up || k.done) ? 1 : 0) - k.f) * Math.min(1, dt * 12); k.bad = Math.max(0, k.bad - dt); k.sw = Math.max(0, k.sw - dt); }
+      if (S.bot && turnP === 1 && lock <= 0) {
+        botT -= dt;
+        if (botT <= 0) {
+          botT = .75;
+          const hid = cards.map((c, i) => i).filter((i) => !cards[i].up && !cards[i].done), unseen = hid.filter((i) => seen[i] === undefined);
+          const rnd = (a) => a[Math.random() * a.length | 0];
+          let pick = -1;
+          if (!open.length) { for (const i of hid) { const j = hid.find((q) => q !== i && seen[q] !== undefined && seen[q] === seen[i]); if (j !== undefined && Math.random() < .9) { pick = i; break; } } }
+          else { const v = cards[open[0]].v, j = hid.find((q) => seen[q] === v); if (j !== undefined && Math.random() < .8) pick = j; }
+          if (pick < 0) pick = unseen.length ? rnd(unseen) : rnd(hid);
+          if (pick !== undefined && pick >= 0) { const [X, Y] = cell(pick); this.down(X, Y, "bot"); }
+        }
+      } else botT = .9;
       if (lock > 0) { lock -= dt; if (lock <= 0) { open.forEach((j) => { cards[j].up = false; }); open = []; if (swapNext) { swapNext = false; swap(); } if (switchNext) { switchNext = false; turnP = 1 - turnP; banner("PLAYER " + (turnP + 1) + "'S TURN", turnP ? "#ff2bd6" : "#22e4ff"); sfx("blip"); } } }
     },
     draw() {
@@ -2267,8 +2381,9 @@ function targetsGame() {
     const x0 = 44 + Math.random() * (W / 2 - 88), y = 84 + Math.random() * (H - 134), rot = Math.random() * 6, r0 = TYPES[k][1];
     T.push({ k, side: 0, x: x0, y, r: r0, life, age: 0, vx: 0, vy: 0, rot }, { k, side: 1, x: W - x0, y, r: r0, life, age: 0, vx: 0, vy: 0, rot: -rot });
   }
-  function duoDown(px, py) {
+  function duoDown(px, py, isBot) {
     const side = px < W / 2 ? 0 : 1, pc = side ? "#ff2bd6" : "#22e4ff";
+    if (S.bot && side === 1 && !isBot) return;
     for (let i = T.length - 1; i >= 0; i--) {
       const t = T[i]; if (t.side !== side) continue;
       const r = t.r * (1 - (t.age / t.life) * .4);
@@ -2321,6 +2436,7 @@ function targetsGame() {
         T.push({ k, x: 50 + Math.random() * (W - 100), y: 70 + Math.random() * (H - 120), r: TYPES[k][1] * Math.max(.65, 1 - (stage - 1) * .07), life, age: 0, vx: mv ? Math.cos(a) * vs : 0, vy: mv ? Math.sin(a) * vs : 0, rot: Math.random() * 6 });
         spawn = Math.max(.2, .72 - stage * .08);
       }
+      if (S.bot) for (const t of T.slice()) if (t.side === 1) { if (t.bt === undefined) t.bt = t.k === "b" ? (Math.random() < .08 ? .6 : 99) : (Math.random() < .8 ? .35 + Math.random() * .5 : 99); if (t.age >= t.bt) { t.bt = 99; duoDown(t.x, t.y, true); } }
       for (const t of T) { t.age += dt; t.x += t.vx * dt; t.y += t.vy * dt; if (t.x < 40 || t.x > W - 40) t.vx = -t.vx; if (t.y < 60 || t.y > H - 40) t.vy = -t.vy; }
       const before = T.length; const expired = T.filter((t) => t.age >= t.life && t.k !== "b");
       T = T.filter((t) => t.age < t.life);
@@ -2560,7 +2676,7 @@ function pingpongGame() {
   let pads, ball, sc, phase, timer, rally, hits, lvl, aiErr, winner, trail;
   const clampX = (v) => Math.max(20, Math.min(W - 20, v));
   function server() { const n = sc[0] + sc[1]; return sc[0] >= 10 && sc[1] >= 10 ? n % 2 : Math.floor(n / 2) % 2; }
-  const human = (i) => i === 0 || S.duo;
+  const D2 = () => S.duo && !S.bot, human = (i) => i === 0 || D2();
   function serveNow(s) {
     pads[s].sw = 0;
     shoot(s, human(s) ? { off: (Math.random() - .5) * .8, pv: pads[s].vx, power: .15 } : aiQuality(true));
@@ -2610,7 +2726,7 @@ function pingpongGame() {
   function hit(r) {
     const p = pads[r]; rally++; p.fl = .15;
     sfx("hit", r ? .8 : 1); burst(ball.x, ball.y - ball.z * .55, COL[r], 14, 220, .35, 3); ring(ball.x, ball.y - ball.z * .55, COL[r], 4, 34, .3);
-    if (r === 1 && !S.duo) { p.sw = 0; const q = aiQuality(false, ball.ps); shoot(1, q); if (q.powerShot) powerFx(p); }
+    if (r === 1 && !D2()) { p.sw = 0; const q = aiQuality(false, ball.ps); shoot(1, q); if (q.powerShot) powerFx(p); }
     else {
       const off = Math.max(-1.3, Math.min(1.3, (ball.x - p.x) / (PW / 2)));
       const swung = p.sw >= 0, timing = swung ? 1 - Math.abs(p.sw / SWT() - .45) * 2 : 0, perfect = swung && timing > .65;
@@ -2619,6 +2735,7 @@ function pingpongGame() {
       if (perfect) { powerFx(p); if (r === 0 && !S.duo) S.score += 20; }
       else if (!swung) pop(p.x, p.y + (r ? 40 : -40), "BLOCK", "#a69cc6");
       else if (q.power > .6) { pop(ball.x, ball.y - 40, "SMASH!", "#ffd66b"); shake(4, .15); }
+      if (r === 0 && S.bot) aiErr = (Math.random() * 2 - 1) * 22;
       if (r === 0 && !S.duo) { S.score += 5; hits++; aiErr = (Math.random() * 2 - 1) * Math.max(4, 34 - lvl * 4); }
     }
     if (rally % 6 === 0) pop(W / 2, NETY - 30, "RALLY x" + rally, "#ffd66b");
@@ -2641,19 +2758,19 @@ function pingpongGame() {
   game({
     title: "Ping Pong", duo: "P1: ← → move, ↑ swings (bottom). P2: A D move, W swings (top). iPad: drag to move, tap to swing. First to 11.", easy: "slow ball, gentle AI, a bigger swing window, no score limit", w: W, h: H, color: "#22e4ff", bpm: 124,
     help: ["Move with the mouse, a finger or ← / →", "SWING with a tap, click, Space or ↑. No swing = soft block", "Perfect timing = POWER SHOT. Hit off-center to angle it", "It must bounce on the other side. First to 11"],
-    init() { pads = [{ x: W / 2, tx: W / 2, y: PY[0], vx: 0, fl: 0, sw: -1, cd: 0 }, { x: W / 2, tx: W / 2, y: PY[1], vx: 0, fl: 0, sw: -1, cd: 0 }]; sc = [0, 0]; rally = 0; hits = 0; lvl = 1; aiErr = 0; winner = -1; newBall(0); phase = "serve"; timer = 1.2; },
+    init() { pads = [{ x: W / 2, tx: W / 2, y: PY[0], vx: 0, fl: 0, sw: -1, cd: 0 }, { x: W / 2, tx: W / 2, y: PY[1], vx: 0, fl: 0, sw: -1, cd: 0 }]; sc = [0, 0]; rally = 0; hits = 0; lvl = S.bot ? 4 : 1; aiErr = 0; winner = -1; newBall(0); phase = "serve"; timer = 1.2; },
     hud() {
       if (S.duo) return "P1 " + sc[0] + " : " + sc[1] + " P2  ·  FIRST TO 11  ·  RALLY " + rally;
       return "YOU " + sc[0] + " : " + sc[1] + " AI  ·  AI LEVEL " + lvl + (S.practice ? "" : "  ·  FIRST TO 11");
     },
-    key(k, rep) { if (rep) return; if (k === " " || k === "ArrowUp" || (!S.duo && k === "w")) swing(0); if (S.duo && (k === "w" || k === "s")) swing(1); },
+    key(k, rep) { if (rep) return; if (k === " " || k === "ArrowUp" || (!D2() && k === "w")) swing(0); if (D2() && (k === "w" || k === "s")) swing(1); },
     summary() { return S.duo ? ["FINAL  P1 " + sc[0] + " : " + sc[1] + " P2"] : ["MATCH " + sc[0] + " : " + sc[1] + "   HITS " + hits]; },
-    move(px, py) { if (S.duo && py < H / 2) pads[1].tx = px; else pads[0].tx = px; },
-    down(px, py) { const i = S.duo && py < H / 2 ? 1 : 0; pads[i].tx = px; swing(i); },
+    move(px, py) { if (D2() && py < H / 2) pads[1].tx = px; else pads[0].tx = px; },
+    down(px, py) { const i = D2() && py < H / 2 ? 1 : 0; pads[i].tx = px; swing(i); },
     update(dt) {
-      const k0 = (S.keys.ArrowRight ? 1 : 0) - (S.keys.ArrowLeft ? 1 : 0) + (S.duo ? 0 : (S.keys.d ? 1 : 0) - (S.keys.a ? 1 : 0));
+      const k0 = (S.keys.ArrowRight ? 1 : 0) - (S.keys.ArrowLeft ? 1 : 0) + (D2() ? 0 : (S.keys.d ? 1 : 0) - (S.keys.a ? 1 : 0));
       movePad(0, k0, dt);
-      if (S.duo) movePad(1, (S.keys.d ? 1 : 0) - (S.keys.a ? 1 : 0), dt); else aiMove(dt);
+      if (D2()) movePad(1, (S.keys.d ? 1 : 0) - (S.keys.a ? 1 : 0), dt); else aiMove(dt);
       if (phase === "point") { timer -= dt; if (timer <= 0) { newBall(server()); phase = "serve"; timer = 1.1; } return; }
       if (phase === "done") { timer -= dt; if (timer <= 0) over(S.duo ? "PLAYER " + (winner + 1) + " WINS" : winner === 0 ? "YOU WIN!" : "AI WINS"); return; }
       if (phase === "serve") {
@@ -4060,7 +4177,7 @@ function questGame() {
 /* ---------- 27 Hoop Shot ---------- */
 function hoopGame() {
   const W = 480, H = 560, BR = 13, GRAV = 900, FLOOR = H - 24, BX = 446;
-  let ball, hy, hoopX, aim, drag, timeLeft, streak, made, level, shotT, spot, scored, touchedRim, duo, sdur;
+  let botT = 1, ball, hy, hoopX, aim, drag, timeLeft, streak, made, level, shotT, spot, scored, touchedRim, duo, sdur;
   const rimF = () => [hoopX - 50, hy], rimB = () => [hoopX - 4, hy];
   const SPOTS = [[90, 430], [150, 470], [60, 360], [200, 440], [110, 300], [40, 470], [170, 380], [250, 470]];
   function newShot() {
@@ -4109,16 +4226,35 @@ function hoopGame() {
     }
   }
   const dragVel = () => { const dx = drag.sx - drag.x, dy = drag.sy - drag.y, k = 4.2, vx = dx * k, vy = dy * k, sp = Math.hypot(vx, vy), mx = 980; return sp > mx ? [vx / sp * mx, vy / sp * mx] : [vx, vy]; };
+  function botShot() {
+    const sim = (vx, vy) => {
+      let bx = ball.x, by = ball.y, dt = 1 / 120;
+      for (let i = 0; i < 360; i++) {
+        const py0 = by; vy += GRAV * dt; bx += vx * dt; by += vy * dt;
+        for (const q of [rimF(), rimB()]) { const dx = bx - q[0], dy = by - q[1], d = Math.hypot(dx, dy), m = BR + 3; if (d < m && d > 0) { const nx = dx / d, ny = dy / d, vn = vx * nx + vy * ny; if (vn < 0) { vx -= 1.6 * vn * nx; vy -= 1.6 * vn * ny; } bx = q[0] + nx * m; by = q[1] + ny * m; } }
+        if (bx + BR > hoopX && by > hy - 110 && by < hy + 14 && bx < hoopX + 20) { bx = hoopX - BR; vx = -Math.abs(vx) * .6; }
+        if (py0 < hy && by >= hy && bx > rimF()[0] + 2 && bx < rimB()[0] - 2 && vy > 0) return true;
+        if (by > FLOOR) return false;
+      }
+      return false;
+    };
+    const good = [];
+    for (let a = -1.45; a < -.3; a += .03) for (let pw = 420; pw < 980; pw += 12) if (sim(Math.cos(a) * pw, Math.sin(a) * pw)) good.push([a, pw]);
+    let [a, pw] = good.length ? good[Math.random() * good.length | 0] : [-.9, 700];
+    if (Math.random() < .42) pw += (Math.random() < .5 ? -1 : 1) * (18 + Math.random() * 40);
+    launch(Math.cos(a) * pw, Math.sin(a) * pw);
+  }
+  const botTurn = () => S.bot && duo && duo.shot % 2 === 1;
   game({
     title: "Hoop Shot", duo: "Take turns shooting from the same spots, 5 shots each. Most points wins.", easy: "no timer and a full aiming guide", w: W, h: H, color: "#ff8a1f", bpm: 112,
     help: ["Drag back from anywhere and let go to shoot", "Keys: ↑ ↓ aim, ← → power, Space shoots", "Swish = no rim. 3 in a row and you're ON FIRE", "Each basket adds 2 seconds. The hoop starts moving"],
     init() { hy = 220; hoopX = BX; streak = 0; made = 0; level = 1; timeLeft = 45; drag = null; sdur = 0; duo = S.duo ? { pts: [0, 0], shot: 0, per: 5, seq: Array.from({ length: 30 }, (_, i) => [0, 3, 4, 1, 6, 2, 7, 5][(i >> 1) % 8]) } : null; newShot(); },
     hud() { if (S.duo) return "P1 " + duo.pts[0] + "  ·  SHOT " + (Math.floor(duo.shot / 2) + 1) + "/" + duo.per + "  ·  " + duo.pts[1] + " P2  ·  " + (duo.shot % 2 ? "P2" : "P1") + " SHOOTS"; return "LEVEL " + level + "  ·  STREAK " + streak + (S.practice ? "" : "  ·  TIME " + Math.ceil(timeLeft)); },
     summary() { return S.duo ? ["P1 " + duo.pts[0] + "  ·  P2 " + duo.pts[1]] : ["BASKETS " + made]; },
-    down(px, py) { if (!ball.live) drag = { sx: px, sy: py, x: px, y: py }; },
+    down(px, py) { if (!ball.live && !botTurn()) drag = { sx: px, sy: py, x: px, y: py }; },
     move(px, py) { if (drag) { drag.x = px; drag.y = py; } },
     up() { if (drag && !ball.live) { const [vx, vy] = dragVel(); if (Math.hypot(vx, vy) > 160) launch(vx, vy); } drag = null; },
-    key(k, rep) { if (k === " " && !rep && !ball.live) launch(Math.cos(aim.a) * aim.p, Math.sin(aim.a) * aim.p); },
+    key(k, rep) { if (k === " " && !rep && !ball.live && !botTurn()) launch(Math.cos(aim.a) * aim.p, Math.sin(aim.a) * aim.p); },
     update(dt) {
       if (!S.practice && !S.duo) { timeLeft -= dt; if (timeLeft <= 0) { timeLeft = 0; return over("TIME UP"); } }
       if (!ball.live) {
@@ -4128,6 +4264,7 @@ function hoopGame() {
       const lv = S.duo ? 1 : level;
       if (lv >= 2) hy = 220 + Math.sin(S.t * (.6 + lv * .1)) * Math.min(90, (lv - 1) * 30);
       if (lv >= 4) hoopX = BX - Math.abs(Math.sin(S.t * .4)) * Math.min(80, (lv - 3) * 25);
+      if (!ball.live && botTurn()) { botT -= dt; if (botT <= 0) { botT = 1.1; botShot(); } }
       if (!ball.live) return;
       shotT += dt;
       const steps = 3; for (let s = 0; s < steps; s++) {
@@ -4161,7 +4298,7 @@ function hoopGame() {
       x.save(); x.translate(ball.x, ball.y); x.rotate(ball.rot); glow(fire ? "#ff4d6d" : "#ff8a1f", fire ? 24 : 14);
       x.fillStyle = "#ff8a1f"; x.beginPath(); x.arc(0, 0, BR, 0, 7); x.fill(); glow();
       x.strokeStyle = "#3a1500"; x.lineWidth = 1.5; x.beginPath(); x.moveTo(-BR, 0); x.lineTo(BR, 0); x.moveTo(0, -BR); x.lineTo(0, BR); x.arc(0, 0, BR * .6, -1, 1); x.stroke(); x.restore();
-      if (S.duo && S.state === "play") txt((duo.shot % 2 ? "PLAYER 2" : "PLAYER 1") + " SHOOTING", 20, 26, 13, duo.shot % 2 ? "#ff2bd6" : "#22e4ff", "left", "d");
+      if (S.duo && S.state === "play") txt((duo.shot % 2 ? (S.bot ? "BOT" : "PLAYER 2") : (S.bot ? "YOU ARE" : "PLAYER 1")) + " SHOOTING", 20, 26, 13, duo.shot % 2 ? "#ff2bd6" : "#22e4ff", "left", "d");
     },
   });
 }
@@ -4169,7 +4306,7 @@ function hoopGame() {
 /* ---------- 28 Penalty Kick ---------- */
 function penaltyGame() {
   const W = 480, H = 560, GL = 80, GR2 = 400, GT = 110, GB = 270, BX0 = 240, BY0 = 480;
-  let phase, aimX, aimY, kick, keeper, lives, goals, streak, level, waitT, duo, msg, wob;
+  let botT = 1, phase, aimX, aimY, kick, keeper, lives, goals, streak, level, waitT, duo, msg, wob;
   function reset() {
     phase = S.duo ? "kAim" : "aim"; aimX = (GL + GR2) / 2; aimY = (GT + GB) / 2 + 20;
     kick = null; keeper = { x: 240, tx: 240, ty: 0, y: 0, dive: 0, react: 0, guessX: 240, guessY: 200, chosen: false };
@@ -4178,6 +4315,11 @@ function penaltyGame() {
     if (phase !== "aim" && phase !== "kAim") return;
     if (!S.duo) { const spread = S.practice ? 0 : Math.min(26, 6 + level * 2.5); tx += (Math.random() - .5) * spread * 2; ty += (Math.random() - .5) * spread; }
     kick = { tx, ty, t: 0, dur: S.duo ? .55 : Math.max(.42, .62 - level * .015) };
+    if (S.duo && S.bot) {
+      if (duo.kick % 2 === 0) { const read = Math.random() < .3; keeperChoose(read ? tx + (Math.random() - .5) * 50 : GL + 30 + Math.random() * (GR2 - GL - 60), read ? ty : GT + 40 + Math.random() * 120); keeper.react = .12; }
+      else { phase = "keep"; aimX = 240; aimY = 200; sfx("blip"); }
+      return;
+    }
     if (S.duo) { phase = "kHide"; sfx("blip"); return; }
     const skill = S.practice ? .25 : Math.min(.85, .35 + level * .07);
     keeper.react = S.practice ? .35 : Math.max(.08, .26 - level * .02);
@@ -4218,6 +4360,7 @@ function penaltyGame() {
     const e = t, x0 = BX0 + (kick.tx - BX0) * e, y0 = BY0 + (kick.ty - BY0) * e - Math.sin(e * Math.PI) * 40;
     return [x0, y0, 1 - e * .55];
   }
+  const botKicks = () => S.bot && duo && duo.kick % 2 === 1 && phase === "kAim";
   game({
     title: "Penalty Kick", duo: "Take turns. The kicker taps a spot, then hands over. The keeper taps where to dive. 5 kicks each.", easy: "slow keeper, perfect aim, no lives", w: W, h: H, color: "#3dffa8", bpm: 120,
     help: ["Tap or drag to aim at the goal, let go to shoot", "Keys: arrows aim, Space shoots", "Corners score double. Keep a streak for multipliers", "3 misses and you're out. The keeper gets better"],
@@ -4228,18 +4371,20 @@ function penaltyGame() {
     },
     summary() { return S.duo ? [] : ["GOALS " + goals]; },
     down(px, py) {
+      if (botKicks()) return;
       if (phase === "kHide") { phase = "keep"; aimX = 240; aimY = 200; sfx("tick"); return; }
       if (phase === "keep") { keeperChoose(px, Math.min(GB, py)); return; }
       if (phase === "aim" || phase === "kAim") { aimX = px; aimY = Math.min(py, GB + 30); }
     },
     move(px, py) { if ((phase === "aim" || phase === "kAim") && S.down) { aimX = px; aimY = Math.min(py, GB + 30); } },
-    up() { if ((phase === "aim" || phase === "kAim") && aimY < GB + 20) shoot(aimX, aimY); },
+    up() { if (botKicks()) return; if ((phase === "aim" || phase === "kAim") && aimY < GB + 20) shoot(aimX, aimY); },
     key(k, rep) {
-      if (rep) return;
+      if (rep || botKicks()) return;
       if (k === " " || k === "Enter") { if (phase === "aim" || phase === "kAim") shoot(aimX, aimY); else if (phase === "kHide") { phase = "keep"; aimX = 240; aimY = 200; } else if (phase === "keep") keeperChoose(aimX, aimY); }
     },
     update(dt) {
       wob += dt;
+      if (botKicks()) { botT -= dt; if (botT <= 0) { botT = 1.2; shoot(GL + 26 + Math.random() * (GR2 - GL - 52), GT + 22 + Math.random() * (GB - GT - 34)); } } else botT = 1.2;
       if (phase === "aim" || phase === "kAim" || phase === "keep") {
         const kx = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), ky = (S.keys.ArrowDown || S.keys.s ? 1 : 0) - (S.keys.ArrowUp || S.keys.w ? 1 : 0);
         aimX = Math.max(GL - 30, Math.min(GR2 + 30, aimX + kx * 260 * dt)); aimY = Math.max(GT - 30, Math.min(GB, aimY + ky * 220 * dt));
@@ -4293,7 +4438,7 @@ function penaltyGame() {
       if (phase === "keep") { glow("#ff2bd6", 12); x.strokeStyle = "#ff2bd6"; x.lineWidth = 2; x.setLineDash([5, 5]); x.beginPath(); x.arc(aimX, aimY, 20, 0, 7); x.stroke(); x.setLineDash([]); glow(); }
       if (S.duo && S.state === "play") {
         const kp = duo.kick % 2 + 1, keepP = 3 - kp;
-        let t = phase === "kAim" ? "PLAYER " + kp + ": TAP WHERE TO SHOOT" : phase === "kHide" ? "SHOT LOCKED! HAND IT TO PLAYER " + keepP + ", THEN TAP" : phase === "keep" ? "PLAYER " + keepP + ": TAP WHERE TO DIVE" : "";
+        let t = S.bot ? (phase === "kAim" ? (kp === 1 ? "YOUR KICK: TAP WHERE TO SHOOT" : "THE BOT IS LINING UP ITS KICK...") : phase === "keep" ? "BOT SHOT! TAP WHERE TO DIVE" : "") : phase === "kAim" ? "PLAYER " + kp + ": TAP WHERE TO SHOOT" : phase === "kHide" ? "SHOT LOCKED! HAND IT TO PLAYER " + keepP + ", THEN TAP" : phase === "keep" ? "PLAYER " + keepP + ": TAP WHERE TO DIVE" : "";
         if (t) { x.fillStyle = "rgba(4,2,10,.75)"; x.fillRect(0, H - 60, W, 40); txt(t, W / 2, H - 40, 13, kp === 1 ? "#22e4ff" : "#ff2bd6", "center", "d"); }
         if (phase === "kHide") { x.fillStyle = "rgba(4,2,10,.55)"; x.fillRect(0, 0, W, H - 60); }
         duo.res.forEach((r, i) => { for (let k = 0; k < Math.max(5, r.length); k++) { const v = r[k]; x.fillStyle = v === undefined ? "rgba(255,255,255,.15)" : v ? "#3dffa8" : "#ff4d6d"; x.beginPath(); x.arc(i ? W - 20 - k * 16 : 20 + k * 16, 60, 6, 0, 7); x.fill(); } });
@@ -4439,6 +4584,7 @@ function c4Game() {
   const W = 480, H = 540, C = 7, R = 6, Z = 62, OX = (W - C * Z) / 2, OY = 120, ORDER = [3, 2, 4, 1, 5, 0, 6];
   const PC = ["", "#ff2bd6", "#ffc23d"];
   let b, hgt, turn, level, anim, winCells, aiT, cur, moves, endT, endMsg, startP;
+  const hum = () => (S.duo && !S.bot) || turn === 1;
   const full = () => hgt.every((h) => h >= R);
   function play(c, p) { b[c][hgt[c]] = p; hgt[c]++; }
   function undo(c) { hgt[c]--; b[c][hgt[c]] = 0; }
@@ -4498,13 +4644,13 @@ function c4Game() {
   game({
     title: "Connect Four", duo: "Pass and play: P1 is pink, P2 is gold. Tap a column to drop.", easy: "a sleepy AI that makes lots of mistakes", w: W, h: H, color: "#ff2bd6", bpm: 108,
     help: ["Tap a column to drop your pink disc", "Get 4 in a row: across, down or diagonal", "Keys: ← → pick a column, Space or ↓ drops", "Beat the AI to level up. It thinks harder every level"],
-    init() { level = 1; cur = 3; startP = 1; newGame(); },
+    init() { level = S.bot ? 3 : 1; cur = 3; startP = 1; newGame(); },
     hud() { if (S.duo) return "PLAYER " + turn + "'S TURN"; return "LEVEL " + level + "  ·  AI DEPTH " + (S.practice ? 1 : Math.min(7, level + 1)) + "  ·  " + (turn === 1 ? "YOUR TURN" : "AI THINKING"); },
     summary() { return S.duo ? [] : ["BEAT THE AI " + (level - 1) + " TIME" + (level === 2 ? "" : "S")]; },
-    tap(px) { const c = Math.floor((px - OX) / Z); if (c < 0 || c >= C) return; cur = c; if (S.duo || turn === 1) drop(c); },
+    tap(px) { const c = Math.floor((px - OX) / Z); if (c < 0 || c >= C) return; cur = c; if (hum()) drop(c); },
     move(px) { const c = Math.floor((px - OX) / Z); if (c >= 0 && c < C) cur = c; },
-    turn(dir, k) { if (!k) return; if (dir === "left") cur = Math.max(0, cur - 1); else if (dir === "right") cur = Math.min(C - 1, cur + 1); else if (dir === "down" && (S.duo || turn === 1)) drop(cur); sfx("tick"); },
-    key(k, rep) { if (rep) return; if (k === " " && (S.duo || turn === 1)) drop(cur); const n = parseInt(k, 10); if (n >= 1 && n <= 7 && (S.duo || turn === 1)) { cur = n - 1; drop(cur); } },
+    turn(dir, k) { if (!k) return; if (dir === "left") cur = Math.max(0, cur - 1); else if (dir === "right") cur = Math.min(C - 1, cur + 1); else if (dir === "down" && hum()) drop(cur); sfx("tick"); },
+    key(k, rep) { if (rep) return; if (k === " " && hum()) drop(cur); const n = parseInt(k, 10); if (n >= 1 && n <= 7 && hum()) { cur = n - 1; drop(cur); } },
     update(dt) {
       if (endT > 0) {
         endT -= dt;
@@ -4517,12 +4663,12 @@ function c4Game() {
         return;
       }
       if (anim) { anim.vy += 2600 * dt; anim.y += anim.vy * dt; if (anim.y >= anim.ty) { anim.y = anim.ty; landed(); } return; }
-      if (!S.duo && turn === 2) { aiT -= dt; if (aiT <= 0) drop(aiMove()); }
+      if ((!S.duo || S.bot) && turn === 2) { aiT -= dt; if (aiT <= 0) drop(aiMove()); }
     },
     draw() {
       techBg("#ff2bd6");
       const hc = PC[turn];
-      if (S.state === "play" && !anim && !endT && (S.duo || turn === 1)) { glow(hc, 16); x.fillStyle = ca(hc, .8); x.beginPath(); x.arc(OX + cur * Z + Z / 2, OY - Z / 2 - 4 + Math.sin(S.clock * 5) * 3, Z * .38, 0, 7); x.fill(); glow(); }
+      if (S.state === "play" && !anim && !endT && hum()) { glow(hc, 16); x.fillStyle = ca(hc, .8); x.beginPath(); x.arc(OX + cur * Z + Z / 2, OY - Z / 2 - 4 + Math.sin(S.clock * 5) * 3, Z * .38, 0, 7); x.fill(); glow(); }
       if (anim) { glow(PC[anim.p], 16); x.fillStyle = PC[anim.p]; x.beginPath(); x.arc(OX + anim.c * Z + Z / 2, anim.y, Z * .4, 0, 7); x.fill(); glow(); }
       for (let c = 0; c < C; c++) for (let r = 0; r < R; r++) {
         const v = b[c][r], X = OX + c * Z + Z / 2, Y = OY + (R - 1 - r) * Z + Z / 2;
@@ -4532,7 +4678,7 @@ function c4Game() {
       for (let c = 0; c < C; c++) for (let r = 0; r < R; r++) { const X = OX + c * Z + Z / 2, Y = OY + r * Z + Z / 2; x.moveTo(X + Z * .42, Y); x.arc(X, Y, Z * .42, 0, 6.2832, true); }
       x.fillStyle = "rgba(40,20,110,.55)"; x.fill("evenodd"); x.restore();
       glow("#3d5cff", 18); x.strokeStyle = "#6b8cff"; x.lineWidth = 3; rr(OX - 10, OY - 6, C * Z + 20, R * Z + 16, 14); x.stroke(); glow();
-      if (S.state === "play" && (S.duo || turn === 1) && !anim && !endT) { x.fillStyle = "rgba(255,255,255,.05)"; x.fillRect(OX + cur * Z, OY - 4, Z, R * Z + 8); }
+      if (S.state === "play" && hum() && !anim && !endT) { x.fillStyle = "rgba(255,255,255,.05)"; x.fillRect(OX + cur * Z, OY - 4, Z, R * Z + 8); }
       if (endMsg && endT > 0) { x.fillStyle = "rgba(4,2,10,.6)"; x.fillRect(0, H / 2 - 34, W, 68); glow(endMsg === "AI WINS" ? "#ff4d6d" : "#ffd66b", 20); txt(endMsg, W / 2, H / 2, 30, endMsg === "AI WINS" ? "#ff4d6d" : "#ffd66b", "center", "d"); glow(); }
       txt(S.duo ? "P1 ●  vs  ● P2" : "YOU ●  vs  ● AI", W / 2, 40, 14, "#d8d0f5", "center", "d");
       x.fillStyle = PC[1]; x.beginPath(); x.arc(W / 2 - (S.duo ? 40 : 46), 40, 7, 0, 7); x.fill(); x.fillStyle = PC[2]; x.beginPath(); x.arc(W / 2 + (S.duo ? 40 : 38), 40, 7, 0, 7); x.fill();
@@ -4555,6 +4701,7 @@ function reversiGame() {
   }
   function movesFor(bd, p) { const m = []; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const f = flipsFor(bd, c, r, p); if (f.length) m.push([c, r, f]); } return m; }
   function apply(bd, c, r, p, f) { const nb = bd.map((row) => row.slice()); nb[r][c] = p; for (const [a, bb] of f) nb[bb][a] = p; return nb; }
+  const hum = () => (S.duo && !S.bot) || turn === 1;
   const count = (bd, p) => bd.reduce((s, row) => s + row.filter((v) => v === p).length, 0);
   function evalB(bd, p) { let s = 0; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { if (bd[r][c] === p) s += WT[r][c]; else if (bd[r][c] === 3 - p) s -= WT[r][c]; } return s + (movesFor(bd, p).length - movesFor(bd, 3 - p).length) * 4; }
   function nm(bd, depth, alpha, beta, p) {
@@ -4598,12 +4745,12 @@ function reversiGame() {
   game({
     title: "Reversi", duo: "Pass and play: P1 is cyan, P2 is pink. Tap a glowing dot to move.", easy: "the AI just picks random moves", w: W, h: H, color: "#22e4ff", bpm: 100,
     help: ["Tap a glowing dot to place a cyan disc", "Trap pink discs in a line to flip them to your color", "Most discs when the board is full wins. Corners are gold", "Keys: arrows move, Space places. The AI gets smarter"],
-    init() { level = 1; cur = [2, 3]; newGame(); },
+    init() { level = S.bot ? 2 : 1; cur = [2, 3]; newGame(); },
     hud() { const a = count(b, 1), c2 = count(b, 2); return (S.duo ? "P1 " + a + "  ·  " + c2 + " P2  ·  PLAYER " + turn + "'S TURN" : "LEVEL " + level + "  ·  YOU " + a + "  ·  AI " + c2); },
     summary() { return S.duo ? [] : ["BEAT THE AI " + (level - 1) + " TIME" + (level === 2 ? "" : "S")]; },
-    tap(px, py) { const c = Math.floor((px - OX) / Z), r = Math.floor((py - OY) / Z); if (c < 0 || r < 0 || c >= N || r >= N) return; cur = [c, r]; if (S.duo || turn === 1) doMove(c, r); },
+    tap(px, py) { const c = Math.floor((px - OX) / Z), r = Math.floor((py - OY) / Z); if (c < 0 || r < 0 || c >= N || r >= N) return; cur = [c, r]; if (hum()) doMove(c, r); },
     turn(dir, k) { if (!k) return; const v = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir]; cur = [Math.max(0, Math.min(N - 1, cur[0] + v[0])), Math.max(0, Math.min(N - 1, cur[1] + v[1]))]; sfx("tick"); },
-    key(k, rep) { if (!rep && (k === " " || k === "Enter") && (S.duo || turn === 1)) doMove(cur[0], cur[1]); },
+    key(k, rep) { if (!rep && (k === " " || k === "Enter") && hum()) doMove(cur[0], cur[1]); },
     update(dt) {
       if (passMsg) { passMsg.l -= dt; if (passMsg.l <= 0) passMsg = null; }
       if (endT > 0) {
@@ -4616,7 +4763,7 @@ function reversiGame() {
         }
         return;
       }
-      if (!S.duo && turn === 2) { aiT -= dt; if (aiT <= 0) { const m = aiMove(); if (m) doMove(m[0], m[1]); else nextTurn(); } }
+      if ((!S.duo || S.bot) && turn === 2) { aiT -= dt; if (aiT <= 0) { const m = aiMove(); if (m) doMove(m[0], m[1]); else nextTurn(); } }
     },
     draw() {
       techBg("#22e4ff");
@@ -4624,7 +4771,7 @@ function reversiGame() {
       glow("#22e4ff", 14); x.strokeStyle = "rgba(34,228,255,.7)"; x.lineWidth = 2; rr(OX - 6, OY - 6, N * Z + 12, N * Z + 12, 12); x.stroke(); glow();
       x.strokeStyle = "rgba(34,228,255,.18)"; x.lineWidth = 1; x.beginPath(); for (let i = 1; i < N; i++) { x.moveTo(OX + i * Z, OY); x.lineTo(OX + i * Z, OY + N * Z); x.moveTo(OX, OY + i * Z); x.lineTo(OX + N * Z, OY + i * Z); } x.stroke();
       for (const [c, r] of [[0, 0], [N - 1, 0], [0, N - 1], [N - 1, N - 1]]) { x.fillStyle = "rgba(255,214,107,.08)"; x.fillRect(OX + c * Z, OY + r * Z, Z, Z); }
-      const mine = S.duo || turn === 1, ms = S.state === "play" && mine && !endT ? movesFor(b, turn) : [];
+      const mine = hum(), ms = S.state === "play" && mine && !endT ? movesFor(b, turn) : [];
       for (const [c, r, f] of ms) { x.fillStyle = ca(PC[turn], .35 + .15 * Math.sin(S.clock * 4)); x.beginPath(); x.arc(OX + c * Z + Z / 2, OY + r * Z + Z / 2, 5 + Math.min(4, f.length * .6), 0, 7); x.fill(); }
       for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) {
         const v = b[r][c]; if (!v) continue;
@@ -4978,7 +5125,7 @@ function simonGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + "(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + "(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -5105,7 +5252,7 @@ function simonGame() {
   const chips = $("#chips");
   ["All", ...GENRES].forEach((name) => chips.append(el("button", {
     class: "chip", type: "button", "aria-pressed": String(name === "All"), text: name,
-    onclick: (e) => { genre = name; chips.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c === e.currentTarget))); renderLibrary(); },
+    onclick: (e) => { genre = name; chips.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c === e.currentTarget))); renderLibrary(); renderDuo(); },
   })));
   $("#q").addEventListener("input", (e) => { query = e.target.value.trim().toLowerCase(); renderLibrary(); });
   $("#more").addEventListener("click", () => { showAll += 100; renderLibrary(); });
@@ -5407,7 +5554,7 @@ function simonGame() {
     frame.srcdoc = code;
     frame.addEventListener("load", () => { try { frame.focus(); } catch {} });
     box.replaceChildren(frame);
-    current = { g, frame, ranked: !!(g.slot && !codeOverride) };
+    current = { g, frame, ranked: !!(g.slot && !codeOverride) && !(opts && opts.duo), onMatch: opts && opts.onMatch };
   }
   function closeModal() {
     modal.classList.remove("open"); modal.setAttribute("aria-hidden", "true");
@@ -5426,6 +5573,7 @@ function simonGame() {
   addEventListener("message", (e) => {
     if (!current || e.source !== current.frame.contentWindow) return;
     const d = e.data;
+    if (d && d.type === "gbl:match") { if (current.onMatch) { const f = current.onMatch; current.onMatch = null; f(d.winner | 0); } return; }
     if (!d || d.type !== "gbl:score") return;
     const s = Math.floor(Number(d.score));
     if (!Number.isFinite(s) || s < 0 || s > 1e7) return;
@@ -5540,10 +5688,115 @@ function simonGame() {
     }));
   }
 
+  /* ---------- Tournament ---------- */
+  const TOUR_BOT = ["pong", "snake", "memory", "targets", "pingpong", "connect4", "reversi", "hoops", "penalty"];
+  const TOUR_KEY = "gbl-tour", ROUNDS = 7;
+  let tour = null, tourMode = "bot";
+  try { tour = JSON.parse(store.get(TOUR_KEY) || "null"); if (tour && !Array.isArray(tour.rounds)) tour = null; } catch { tour = null; }
+  const saveTour = () => store.set(TOUR_KEY, JSON.stringify(tour));
+  const gameOf = (key) => { const i = BUILTINS.findIndex((b) => b.key === key); return i < 0 ? null : { ...BUILTINS[i], slot: i + 1 }; };
+  const shuffled = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+  const tourPool = (bot) => (bot ? TOUR_BOT : DUO.map((d) => d.key)).filter((k) => gameOf(k));
+  const tally = () => [1, 2].map((p) => tour.rounds.filter((r) => r.w === p).length);
+  const nextRound = () => tour.rounds.findIndex((r) => r.w === null);
+  function startTour(bot, names) {
+    const pool = shuffled(tourPool(bot));
+    tour = { bot, names, rounds: pool.slice(0, ROUNDS).map((key) => ({ key, w: null })), spare: pool.slice(ROUNDS) };
+    saveTour(); renderTour();
+    $("#tournament").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  function finishRound(i, w) {
+    if (!tour || !tour.rounds[i] || tour.rounds[i].w !== null) return;
+    tour.rounds[i].w = w;
+    if (nextRound() < 0) {
+      const [a, b] = tally();
+      if (a === b) { const key = tour.spare.shift() || shuffled(tourPool(tour.bot))[0]; tour.rounds.push({ key, w: null, sudden: true }); }
+    }
+    saveTour();
+    toast(w ? tour.names[w - 1] + " wins round " + (i + 1) + "!" : "Round " + (i + 1) + " is a draw");
+    renderTour();
+  }
+  function playRound() {
+    const i = nextRound(); if (i < 0) return;
+    const g = gameOf(tour.rounds[i].key); if (!g) return;
+    play(g, null, { duo: true, bot: tour.bot, tour: true, onMatch: (w) => {
+      finishRound(i, w);
+      setTimeout(() => { if (current && current.g.key === g.key) closeModal(); }, 2600);
+    } });
+  }
+  function renderTour() {
+    const box = $("#tour"); if (!box) return;
+    if (!tour) {
+      const n1 = el("input", { class: "search", id: "t-p1", maxlength: "16", placeholder: "Player 1", value: (typeof me !== "undefined" && me && me.username) || "" });
+      const n2 = el("input", { class: "search", id: "t-p2", maxlength: "16", placeholder: "Player 2" });
+      const f2 = el("label", { class: "tour-field" }, el("span", { text: "Player 2 name" }), n2);
+      const pick = (mode) => { tourMode = mode; opts.forEach((o) => o.classList.toggle("on", o.dataset.mode === mode)); f2.hidden = mode === "bot"; };
+      const opt = (mode, icon, title, sub) => el("button", { class: "tour-opt", type: "button", "data-mode": mode, onclick: () => pick(mode) },
+        el("span", { class: "tour-ico", text: icon }), el("b", { text: title }), el("span", { text: sub }));
+      const opts = [opt("bot", "⚙", "VS the bot", "Just you against the computer. " + tourPool(true).length + " games it can play."),
+        opt("friend", "⚔", "VS a friend", "Two players, one screen. Share the keyboard or the iPad.")];
+      box.replaceChildren(el("div", { class: "panel lit tour-setup" },
+        el("h3", { class: "tour-h", text: "Start a tournament" }),
+        el("div", { class: "tour-opts" }, ...opts),
+        el("div", { class: "tour-names" }, el("label", { class: "tour-field" }, el("span", { text: "Player 1 name (you)" }), n1), f2),
+        el("ul", { class: "tour-rules" },
+          el("li", { text: "7 rounds, each one a different random 2-player game." }),
+          el("li", { text: "Win a round to score a point. The most points after 7 rounds wins." }),
+          el("li", { text: "Tied at the end? A sudden-death round decides the champion." })),
+        el("button", { class: "btn hot", type: "button", text: "Start tournament ▸", onclick: () => {
+          const a = (n1.value.trim() || "Player 1").slice(0, 16), b = tourMode === "bot" ? "Bot" : (n2.value.trim() || "Player 2").slice(0, 16);
+          startTour(tourMode === "bot", [a, b]);
+        } })));
+      pick(tourMode);
+      return;
+    }
+    const [a, b] = tally(), ni = nextRound(), done = ni < 0;
+    const score = el("div", { class: "tour-score" },
+      el("div", { class: "tour-pl tp1" + (done && a > b ? " champ" : "") }, el("span", { text: tour.names[0] }), el("b", { text: String(a) })),
+      el("div", { class: "tour-vs", text: done ? "FINAL" : "ROUND " + (ni + 1) + (ni >= ROUNDS ? " · SUDDEN DEATH" : " OF " + ROUNDS) }),
+      el("div", { class: "tour-pl tp2" + (done && b > a ? " champ" : "") }, el("b", { text: String(b) }), el("span", { text: tour.names[1] })));
+    const cards = tour.rounds.map((r, i) => {
+      const g = gameOf(r.key) || { title: r.key, genre: "" }, now = i === ni;
+      const status = r.w === null ? (now ? "UP NEXT" : "LOCKED") : r.w === 0 ? "DRAW" : tour.names[r.w - 1] + " WON";
+      const card = el("article", { class: "tour-card" + (now ? " now" : "") + (r.w === 1 ? " w1" : r.w === 2 ? " w2" : r.w === 0 ? " draw" : "") + (r.w === null && !now ? " locked" : "") },
+        el("div", { class: "tour-art" }, art(g), el("span", { class: "tour-num", text: r.sudden ? "SUDDEN DEATH" : "ROUND " + (i + 1) })),
+        el("div", { class: "tour-body" }, el("h4", { text: g.title }), el("span", { class: "tour-status", text: status })));
+      if (now) card.addEventListener("click", playRound);
+      return card;
+    });
+    const parts = [score];
+    if (done) {
+      const champ = tour.names[a > b ? 0 : 1], youLost = tour.bot && b > a;
+      parts.push(el("div", { class: "tour-champ" },
+        el("div", { class: "trophy", text: "🏆" }),
+        el("h3", { text: youLost ? "The bot is the champion!" : champ + " is the champion!" }),
+        el("p", { text: (youLost ? "So close. Run it back?" : "Won the tournament " + Math.max(a, b) + " to " + Math.min(a, b) + ".") }),
+        el("div", { class: "tour-btns" },
+          el("button", { class: "btn hot", type: "button", text: "Rematch ▸", onclick: () => startTour(tour.bot, tour.names) }),
+          el("button", { class: "btn", type: "button", text: "New tournament", onclick: () => { tour = null; store.set(TOUR_KEY, "null"); renderTour(); } }))));
+    } else {
+      const g = gameOf(tour.rounds[ni].key), d = DUO.find((q) => q.key === tour.rounds[ni].key);
+      parts.push(el("div", { class: "panel lit tour-next" },
+        el("div", { class: "tour-next-txt" },
+          el("p", { class: "eyebrow", text: (tour.rounds[ni].sudden ? "Sudden death" : "Round " + (ni + 1)) + (tour.bot ? " · vs the bot" : "") }),
+          el("h3", { text: g.title }),
+          el("p", { class: "duo-how", text: d ? d.how : "" }),
+          d ? el("div", { class: "duo-ctl" },
+            el("div", { class: "kbd" }, el("b", { text: "Keyboard" }), el("span", { text: tour.bot ? "You are Player 1. " + d.keys.split("·")[0].trim() : d.keys })),
+            el("div", { class: "kbd" }, el("b", { text: "iPad / touch" }), el("span", { text: tour.bot ? "You are Player 1, the bot plays Player 2" : d.touch }))) : null),
+        el("button", { class: "btn hot big", type: "button", text: "Play round " + (ni + 1) + " ▸", onclick: playRound })));
+    }
+    parts.push(el("div", { class: "tour-grid" }, ...cards));
+    if (!done) parts.push(el("div", { class: "tour-quit" }, el("button", { class: "linkbtn", type: "button", text: "Quit this tournament", onclick: () => { if (confirm("Quit this tournament? The scores will be lost.")) { tour = null; store.set(TOUR_KEY, "null"); renderTour(); } } })));
+    box.replaceChildren(...parts);
+  }
+
   /* ---------- Boot ---------- */
   function renderDuo() {
     const grid = $("#duo-grid"); if (!grid) return;
-    grid.replaceChildren(...DUO.map((d) => {
+    const list = DUO.filter((d) => { const b = BUILTINS.find((q) => q.key === d.key); return b && (genre === "All" || b.genre === genre); });
+    if (!list.length) { grid.replaceChildren(el("p", { class: "duo-how", text: "No 2-player games in " + genre + " yet. Pick another genre, or All." })); return; }
+    grid.replaceChildren(...list.map((d) => {
       const i = BUILTINS.findIndex((b) => b.key === d.key), g = { ...BUILTINS[i], slot: i + 1 };
       const go = () => play(g, null, { duo: true });
       return el("article", { class: "duo-card" },
@@ -5559,6 +5812,7 @@ function simonGame() {
     }));
   }
   renderDuo();
+  renderTour();
   function renderAll() { renderLibrary(); renderBoard(); renderQueue(); }
   async function refresh(what) {
     const jobs = [];
@@ -5582,7 +5836,7 @@ function simonGame() {
 (() => {
   const home = document.getElementById("home"), hub = document.getElementById("hub");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const HUB = ["games", "library", "two-player", "leaderboards", "submit", "queue"];
+  const HUB = ["games", "library", "two-player", "tournament", "leaderboards", "submit", "queue"];
   let inHub = false;
   const setHash = (h) => { try { history.pushState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) {} };
   function showHub(target, animate) {
