@@ -2577,17 +2577,20 @@ function pingpongGame() {
     let tx = W / 2 + q.off * 140 + q.pv * .1;
     tx = Math.max(TX0 - 60, Math.min(TX1 + 60, tx));
     const ty = toTop ? TY0 + 40 + Math.random() * (NETY - TY0 - 110) : NETY + 70 + Math.random() * (TY1 - NETY - 110);
-    const T = Math.max(.42, (S.practice ? 1.05 : .86) - q.power * .3);
+    let T = Math.max(.42, (S.practice ? 1.05 : .86) - q.power * .3);
+    if (q.soft) T += .22;
+    if (q.powerShot) T = Math.min(T, S.practice ? .62 : .44);
     ball.vx = (tx - ball.x) / T; ball.vy = (ty - ball.y) / T; ball.vz = (GRAV * T * T / 2 - ball.z) / T;
     const tn = (NETY - ball.y) / ball.vy;
     if (q.net) ball.vz *= .55;
     else if (tn > 0 && tn < T) { const zn = ball.z + ball.vz * tn - GRAV * tn * tn / 2; if (zn < NETZ + 8) ball.vz += (NETZ + 12 - zn) / tn; }
-    ball.ax = q.pv * .08; ball.by = i; ball.bounced = false;
+    ball.ax = q.pv * .08; ball.by = i; ball.bounced = false; ball.ps = !!q.powerShot;
   }
-  function aiQuality(serve) {
+  function aiQuality(serve, vsPower) {
     const q = { off: (Math.random() * 2 - 1) * Math.min(.85, .4 + lvl * .06), pv: 0, power: S.practice ? 0 : Math.min(.8, lvl * .07) };
-    const errP = S.practice ? .03 : Math.max(.03, .2 - lvl * .02);
+    const errP = (S.practice ? .03 : Math.max(.03, .2 - lvl * .02)) + (vsPower ? .3 : 0);
     if (!serve && Math.random() < errP) { if (Math.random() < .5) q.off = (Math.random() < .5 ? -1 : 1) * 1.8; else q.net = true; }
+    else if (!serve && !S.practice && Math.random() < Math.min(.22, lvl * .03)) q.powerShot = true;
     return q;
   }
   function movePad(i, k, dt) {
@@ -2607,17 +2610,23 @@ function pingpongGame() {
   function hit(r) {
     const p = pads[r]; rally++; p.fl = .15;
     sfx("hit", r ? .8 : 1); burst(ball.x, ball.y - ball.z * .55, COL[r], 14, 220, .35, 3); ring(ball.x, ball.y - ball.z * .55, COL[r], 4, 34, .3);
-    if (r === 1 && !S.duo) { p.sw = 0; shoot(1, aiQuality(false)); }
+    if (r === 1 && !S.duo) { p.sw = 0; const q = aiQuality(false, ball.ps); shoot(1, q); if (q.powerShot) powerFx(p); }
     else {
       const off = Math.max(-1.3, Math.min(1.3, (ball.x - p.x) / (PW / 2)));
-      const timing = 1 - Math.abs(Math.max(0, p.sw) / SWT() - .45) * 2;
-      const q = { off: Math.abs(off) > .92 ? off * 1.7 : off, pv: p.vx, power: Math.min(1, Math.abs(p.vx) / 900 + (timing > .65 ? .35 : 0)) };
-      if (timing > .65) pop(p.x, p.y + (r ? 44 : -44), "PERFECT", "#3dffa8");
-      shoot(r, q);
-      if (q.power > .6) { pop(ball.x, ball.y - 40, "SMASH!", "#ffd66b"); shake(4, .15); }
+      const swung = p.sw >= 0, timing = swung ? 1 - Math.abs(p.sw / SWT() - .45) * 2 : 0, perfect = swung && timing > .65;
+      const q = { off: Math.abs(off) > .92 ? off * 1.7 : off, pv: swung ? p.vx : p.vx * .3, power: swung ? Math.min(1, Math.abs(p.vx) / 900) : 0, soft: !swung, powerShot: perfect };
+      p.sw = -1; shoot(r, q);
+      if (perfect) { powerFx(p); if (r === 0 && !S.duo) S.score += 20; }
+      else if (!swung) pop(p.x, p.y + (r ? 40 : -40), "BLOCK", "#a69cc6");
+      else if (q.power > .6) { pop(ball.x, ball.y - 40, "SMASH!", "#ffd66b"); shake(4, .15); }
       if (r === 0 && !S.duo) { S.score += 5; hits++; aiErr = (Math.random() * 2 - 1) * Math.max(4, 34 - lvl * 4); }
     }
     if (rally % 6 === 0) pop(W / 2, NETY - 30, "RALLY x" + rally, "#ffd66b");
+  }
+  function powerFx(p) {
+    const bx = ball.x, by = ball.y - ball.z * .55;
+    pop(p.x, p.y + (p.y < H / 2 ? 46 : -46), "POWER SHOT!", "#ff8a1f"); sfx("power"); shake(7, .25); flash("#ff8a1f", .18);
+    burst(bx, by, "#ff8a1f", 30, 340, .5, 3); burst(bx, by, "#ffd66b", 14, 220, .4, 2); ring(bx, by, "#ff8a1f", 6, 70, .35);
   }
   function pointTo(w, why) {
     sc[w]++; phase = "point"; timer = 1.1; rally = 0;
@@ -2631,7 +2640,7 @@ function pingpongGame() {
   }
   game({
     title: "Ping Pong", duo: "P1: ← → move, ↑ swings (bottom). P2: A D move, W swings (top). iPad: drag to move, tap to swing. First to 11.", easy: "slow ball, gentle AI, a bigger swing window, no score limit", w: W, h: H, color: "#22e4ff", bpm: 124,
-    help: ["Move with the mouse, a finger or ← / →", "SWING with a tap, click, Space or ↑ as the ball reaches you", "Perfect timing = extra power. Hit off-center to angle it", "It must bounce on the other side. First to 11"],
+    help: ["Move with the mouse, a finger or ← / →", "SWING with a tap, click, Space or ↑. No swing = soft block", "Perfect timing = POWER SHOT. Hit off-center to angle it", "It must bounce on the other side. First to 11"],
     init() { pads = [{ x: W / 2, tx: W / 2, y: PY[0], vx: 0, fl: 0, sw: -1, cd: 0 }, { x: W / 2, tx: W / 2, y: PY[1], vx: 0, fl: 0, sw: -1, cd: 0 }]; sc = [0, 0]; rally = 0; hits = 0; lvl = 1; aiErr = 0; winner = -1; newBall(0); phase = "serve"; timer = 1.2; },
     hud() {
       if (S.duo) return "P1 " + sc[0] + " : " + sc[1] + " P2  ·  FIRST TO 11  ·  RALLY " + rally;
@@ -2652,7 +2661,7 @@ function pingpongGame() {
         if (timer <= 0 && !human(s)) serveNow(s);
         return;
       }
-      trail.push([ball.x, ball.y - ball.z * .55]); if (trail.length > 10) trail.shift();
+      trail.push([ball.x, ball.y - ball.z * .55]); if (trail.length > (ball.ps ? 18 : 10)) trail.shift();
       for (let s = 0; s < 3; s++) {
         const h = dt / 3, py = ball.y;
         ball.vx += ball.ax * h; ball.x += ball.vx * h; ball.y += ball.vy * h; ball.z += ball.vz * h; ball.vz -= GRAV * h;
@@ -2668,7 +2677,7 @@ function pingpongGame() {
           } else return pointTo(ball.bounced ? ball.by : 1 - ball.by, ball.bounced ? "MISSED" : "OUT");
         }
         const r = 1 - ball.by, p = pads[r];
-        const reach = human(r) ? (p.sw >= 0 ? (S.practice ? 42 : 32) : -1) : 22;
+        const reach = human(r) ? (p.sw >= 0 ? (S.practice ? 42 : 32) : 20) : 22;
         if (ball.bounced && (r === 0 ? ball.vy > 0 : ball.vy < 0) && Math.abs(ball.y - p.y) < reach && Math.abs(ball.x - p.x) < PW / 2 + (S.practice ? 16 : 9) && ball.z < 110) { hit(r); break; }
         if (ball.y > H + 30 || ball.y < -30) return pointTo(ball.bounced ? ball.by : 1 - ball.by, ball.bounced ? "MISSED" : "OUT");
       }
@@ -2704,9 +2713,9 @@ function pingpongGame() {
       pad(1);
       if (phase !== "point" && phase !== "done") {
         const by = ball.y - ball.z * .55, r = 6 + ball.z * .02;
-        trail.forEach(([tx0, ty0], i) => { x.globalAlpha = (i / trail.length) * .35; x.fillStyle = "#ffffff"; x.beginPath(); x.arc(tx0, ty0, r * i / trail.length, 0, 7); x.fill(); });
+        trail.forEach(([tx0, ty0], i) => { x.globalAlpha = (i / trail.length) * (ball.ps ? .8 : .35); x.fillStyle = ball.ps ? (i % 2 ? "#ff8a1f" : "#ffd66b") : "#ffffff"; x.beginPath(); x.arc(tx0, ty0, r * i / trail.length, 0, 7); x.fill(); });
         x.globalAlpha = Math.max(.15, .55 - ball.z / 260); x.fillStyle = "#000"; x.beginPath(); x.ellipse(ball.x, ball.y, 7, 3.5, 0, 0, 7); x.fill(); x.globalAlpha = 1;
-        glow("#ffffff", 18); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(ball.x, by, r, 0, 7); x.fill(); glow();
+        glow(ball.ps ? "#ff8a1f" : "#ffffff", ball.ps ? 28 : 18); x.fillStyle = ball.ps ? "#fff1d6" : "#ffffff"; x.beginPath(); x.arc(ball.x, by, ball.ps ? r + 1.5 : r, 0, 7); x.fill(); glow();
       }
       pad(0);
       txt(S.duo ? "P2" : "AI", 16, 16, 12, COL[1], "left", "d"); txt(S.duo ? "P1" : "YOU", 16, H - 16, 12, COL[0], "left", "d");
