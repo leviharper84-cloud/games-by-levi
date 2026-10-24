@@ -1,6 +1,6 @@
 # Games by Levi
 
-The ultimate gaming hub: 11 neon arcade games, player accounts, leaderboards, and a place for people to submit their own games.
+The ultimate gaming hub: 13 neon games, player accounts, leaderboards, and a place for people to submit their own games.
 
 It runs on **Cloudflare Workers** (the website and server) with a **Cloudflare D1** database (accounts, scores, submitted games). Both are free for a site this size.
 
@@ -82,7 +82,7 @@ Then open <http://localhost:8787>. This uses a separate test database, so nothin
 ## How submissions work
 
 - Logged-in players paste a single-file HTML game (200 KB max) and submit it. Each player can have up to 5 games waiting at once.
-- The admin approves or rejects games in the queue. Approved games take the next open slot on the 100-slot wall and get their own leaderboard.
+- The admin approves or rejects games in the queue. Approved games take the next open slot on the 1000-slot wall and get their own leaderboard.
 - Submitted games run in a sealed sandbox, so they can't read cookies, log anyone in or out, or touch the rest of the site.
 - A game posts a score by calling `parent.postMessage({ type: "gbl:score", score: 123 }, "*")` when a run ends.
 

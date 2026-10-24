@@ -4,12 +4,12 @@
  * with accounts, leaderboards and game submissions stored in a D1 database.
  */
 
-const BUILTIN_GAMES = new Set(["snake", "bricks", "pong", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets"]);
-const GENRES = new Set(["Arcade", "Action", "Puzzle", "Racing", "Platformer", "Strategy", "Other"]);
+const BUILTIN_GAMES = new Set(["snake", "bricks", "pong", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "pingpong"]);
+const GENRES = new Set(["Arcade", "Action", "Puzzle", "Racing", "Platformer", "Sports", "Strategy", "Other"]);
 const USER_RE = /^[A-Za-z0-9 _.\-]{3,16}$/;
 const MAX_CODE_BYTES = 200 * 1024;
 const MAX_SCORE = 10_000_000;
-const MAX_WALL = 100;
+const MAX_WALL = 1000;
 const BUILTIN_COUNT = BUILTIN_GAMES.size;
 const SESSION_DAYS = 30;
 const PBKDF2_ITERATIONS = 100_000; // the Workers runtime allows up to 100,000
@@ -307,7 +307,7 @@ async function setStatus(request, env, user, id) {
   if (!row) fail(404, "That game doesn't exist.");
   if (status === "approved" && row.status !== "approved") {
     const n = await env.DB.prepare("SELECT COUNT(*) AS n FROM submissions WHERE status = 'approved'").first();
-    if (n.n + BUILTIN_COUNT >= MAX_WALL) fail(409, "The wall is full. All 100 slots are taken.");
+    if (n.n + BUILTIN_COUNT >= MAX_WALL) fail(409, "The wall is full. All 1000 slots are taken.");
   }
   await env.DB.prepare(`
     UPDATE submissions

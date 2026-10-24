@@ -31,7 +31,7 @@ img { max-width: 100%; }
 :root { padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 
 /* Layout: a night arcade. Fixed synthwave floor behind everything, a neon sign up top,
-   then a wall of 100 cartridge slots, a submission bench, and the incoming queue. */
+   then a wall of 1000 cartridge slots, a submission bench, and the incoming queue. */
 :root {
   color-scheme: dark;
   --bg: #07040f;
@@ -608,7 +608,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <div class="meter" aria-label="Library progress">
       <div class="meter-top">
         <span class="meter-label">Cabinets lit</span>
-        <span class="meter-num"><b id="lit-count">11</b> / 100</span>
+        <span class="meter-num"><b id="lit-count">13</b> / 1000</span>
       </div>
       <div class="ticks" id="ticks"></div>
     </div>
@@ -649,7 +649,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <div class="sec-head">
         <div>
           <p class="eyebrow">The library</p>
-          <h2>100 slots. One wall.</h2>
+          <h2>1000 slots. One wall.</h2>
           <p class="lede">Every game gets its own numbered cabinet. Approved submissions light up the next open slot.</p>
         </div>
       </div>
@@ -659,7 +659,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
         <div class="chips" id="chips" role="group" aria-label="Filter by genre"></div>
       </div>
       <div class="grid" id="grid"></div>
-      <div class="more"><button class="btn sm" id="more" type="button">Show all 100 slots</button></div>
+      <div class="more"><button class="btn sm" id="more" type="button">Show 100 more slots</button></div>
     </div>
   </section>
 
@@ -814,7 +814,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#submit">Submit a game</a>
       <a href="#queue">Queue</a>
     </nav>
-    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">11</span> of 100 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
+    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">13</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
   </div>
 </footer>
 </div>
@@ -1186,6 +1186,7 @@ function SHELL() {
   addEventListener("pointerup", (e) => {
     const st = PT.get(e.pointerId); PT.delete(e.pointerId); S.down = PT.size > 0;
     if (!G || !st || st.fresh || S.state !== "play" || S.paused) return;
+    if (G.up) { const [ux, uy] = local(e); G.up(ux, uy, e.pointerId); return; }
     const dx = e.clientX - st.sx, dy = e.clientY - st.sy;
     if (Math.max(Math.abs(dx), Math.abs(dy)) > 24) {
       const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
@@ -1213,11 +1214,11 @@ function snakeGame() {
   function duoFree() { let p; do { p = { x: Math.random() * N | 0, y: Math.random() * N | 0 }; } while (duo.p.some((s) => s.body.some((q) => q.x === p.x && q.y === p.y))); return p; }
   function duoReset() { duo.p = [mkSnake(4, 6, 1, "#22e4ff"), mkSnake(15, 13, -1, "#ff2bd6")]; duo.food = duoFree(); duo.wait = 0; dacc = 0; }
   function duoInit() { duo = { wins: [0, 0], round: 1, p: [] }; duoReset(); }
-  function duoTurn(i, dir) { const s = duo.p[i], v = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir]; if (!s || !v || (v[0] === -s.d.x && v[1] === -s.d.y)) return; s.nd = { x: v[0], y: v[1] }; }
+  function duoTurn(i, dir) { const s = duo.p[i], v = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir]; if (!s || !v) return; if (v[0] === -s.d.x && v[1] === -s.d.y) { s.flip = true; return; } s.flip = false; s.nd = { x: v[0], y: v[1] }; }
   function duoUpdate(dt) {
     if (duo.wait > 0) { duo.wait -= dt; if (duo.wait <= 0) { duo.round++; duoReset(); } return; }
     dacc += dt; if (dacc < DSPD) return; dacc = Math.min(dacc - DSPD, DSPD);
-    const heads = duo.p.map((s) => { s.d = s.nd; s.prev = s.body.map((q) => ({ ...q })); return { x: s.body[0].x + s.d.x, y: s.body[0].y + s.d.y }; });
+    const heads = duo.p.map((s) => { if (s.flip) { s.flip = false; s.body.reverse(); s.nd = { x: s.body[0].x - s.body[1].x, y: s.body[0].y - s.body[1].y }; const [a, b] = C(s.body[0]); pop(a, b - 16, "REVERSE", s.col); sfx("blip"); } s.d = s.nd; s.prev = s.body.map((q) => ({ ...q })); return { x: s.body[0].x + s.d.x, y: s.body[0].y + s.d.y }; });
     const dead = heads.map((h) => h.x < 0 || h.y < 0 || h.x >= N || h.y >= N || duo.p.some((s) => s.body.slice(0, -1).some((q) => q.x === h.x && q.y === h.y)));
     if (heads[0].x === heads[1].x && heads[0].y === heads[1].y) dead[0] = dead[1] = true;
     duo.p.forEach((s, i) => {
@@ -1253,7 +1254,7 @@ function snakeGame() {
     txt("P1  " + duo.wins[0], 16, 20, 14, "#22e4ff", "left", "d"); txt(duo.wins[1] + "  P2", 464, 20, 14, "#ff2bd6", "right", "d");
   }
   game({
-    title: "Neon Snake", duo: "P1 uses W A S D, P2 uses the arrows (or swipe your own half). First to 3 rounds.", easy: "walls wrap around, no firewalls, slow and steady", w: 480, h: 480, color: "#22e4ff", bpm: 120,
+    title: "Neon Snake", duo: "P1 uses W A S D, P2 uses the arrows (or swipe your own half). Go backwards to turn around. First to 3 rounds.", easy: "walls wrap around, no firewalls, slow and steady", w: 480, h: 480, color: "#22e4ff", bpm: 120,
     help: ["Arrows / WASD or swipe to steer", "Walls are deadly. Go backwards to turn around.", "Every 5 chips: next level, faster, more red firewalls", "Gold chips are worth +5"],
     init() { sn = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }]; prev = sn.map((p) => ({ ...p })); d = nd = { x: 1, y: 0 }; flip = false; acc = 0; f = null; bonus = null; walls = []; lvl = 1; f = free(); eaten = 0; if (S.duo) duoInit(); },
     hud() { if (S.duo) return "P1 " + duo.wins[0] + "  ·  ROUND " + duo.round + "  ·  " + duo.wins[1] + " P2  ·  FIRST TO 3"; return "LEVEL " + lvl + "  ·  LENGTH " + sn.length + "  ·  SPEED " + (0.13 / speed()).toFixed(1) + "x"; },
@@ -2363,13 +2364,335 @@ function targetsGame() {
   });
 }
 
+/* ---------- 12 Mini Golf ---------- */
+function golfGame() {
+  const W = 480, H = 640, BR = 7, MAXV = 940, COLS = ["#22e4ff", "#ff2bd6"];
+  const Rc = (x0, y0, x1, y1) => [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+  const HOLES = [
+    { par: 2, start: [240, 540], cup: [240, 130], walls: [Rc(150, 70, 330, 600)] },
+    { par: 3, start: [130, 545], cup: [355, 135], walls: [[[60, 600], [200, 600], [200, 220], [420, 220], [420, 70], [60, 70]]] },
+    { par: 2, start: [240, 555], cup: [240, 110], walls: [Rc(80, 60, 400, 600)], bump: [[240, 330, 30], [160, 230, 20], [320, 430, 20], [320, 230, 16], [160, 430, 16]] },
+    { par: 3, start: [160, 545], cup: [160, 120], walls: [Rc(80, 60, 400, 600)], water: [[80, 280, 320, 380]] },
+    { par: 3, start: [240, 555], cup: [240, 115], walls: [Rc(140, 60, 340, 600), Rc(140, 315, 205, 345), Rc(275, 315, 340, 345)], mill: [240, 330, 62, 1.6] },
+    { par: 4, start: [360, 545], cup: [110, 115], walls: [Rc(60, 60, 420, 600), Rc(60, 210, 330, 230), Rc(150, 410, 420, 430)] },
+    { par: 3, start: [240, 560], cup: [240, 140], walls: [Rc(90, 60, 390, 610)], sand: [[160, 180, 320, 250], [90, 380, 200, 450]], bump: [[300, 420, 22]] },
+    { par: 3, start: [240, 560], cup: [240, 110], walls: [Rc(60, 60, 420, 610)], water: [[60, 220, 210, 420], [270, 220, 420, 420]], mill: [240, 320, 40, 2.2] },
+    { par: 4, start: [240, 565], cup: [240, 105], walls: [Rc(70, 60, 410, 615), Rc(70, 330, 180, 350), Rc(300, 330, 410, 350)], water: [[180, 440, 300, 500]], bump: [[140, 200, 18], [340, 200, 18], [240, 250, 14]], mill: [240, 340, 56, -2] },
+  ];
+  let hi, hole, SEGS, b, aim, power, drag, phase, wait, strokes, last, card, player, millA, bumpFx;
+  const maxS = () => (S.practice ? 15 : 8);
+  const sum = (a) => a.reduce((s, v) => s + (v || 0), 0);
+  const parSoFar = () => HOLES.slice(0, card[0].length).reduce((s, h) => s + h.par, 0);
+  function loadHole(i) {
+    hi = i; hole = HOLES[i]; millA = 0; SEGS = [];
+    for (const poly of hole.walls) for (let k = 0; k < poly.length; k++) { const a = poly[k], c = poly[(k + 1) % poly.length]; SEGS.push([a[0], a[1], c[0], c[1]]); }
+    placeBall();
+  }
+  function placeBall() { b = { x: hole.start[0], y: hole.start[1], vx: 0, vy: 0 }; last = { x: b.x, y: b.y }; strokes = 0; phase = "aim"; aim = -Math.PI / 2; power = .45; drag = null; }
+  function collide(ax, ay, bx, by, e, extra) {
+    const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
+    let t = ((b.x - ax) * dx + (b.y - ay) * dy) / L2; t = t < 0 ? 0 : t > 1 ? 1 : t;
+    const cx = ax + t * dx, cy = ay + t * dy; let nx = b.x - cx, ny = b.y - cy; const d = Math.hypot(nx, ny), rad = BR + extra;
+    if (d >= rad || d === 0) return false;
+    nx /= d; ny /= d; const vn = b.vx * nx + b.vy * ny;
+    if (vn < 0) { b.vx -= (1 + e) * vn * nx; b.vy -= (1 + e) * vn * ny; }
+    b.x = cx + nx * rad; b.y = cy + ny * rad;
+    return vn < -60;
+  }
+  function shoot() {
+    if (phase !== "aim" || S.state !== "play") return;
+    strokes++; last = { x: b.x, y: b.y };
+    const v = MAXV * Math.max(.05, power);
+    b.vx = Math.cos(aim) * v; b.vy = Math.sin(aim) * v; phase = "roll"; drag = null;
+    sfx("hit", .9 + power * .4); burst(b.x, b.y, COLS[player], 10, 150, .3, 2, aim + Math.PI, 1.2);
+  }
+  function record(n) { card[player][hi] = n; }
+  function splash() {
+    burst(b.x, b.y, "#2aa8ff", 26, 230, .6); ring(b.x, b.y, "#2aa8ff", 4, 40, .4); sfx("pop");
+    if (S.practice) pop(b.x, b.y - 20, "SPLASH", "#2aa8ff"); else { strokes++; pop(b.x, b.y - 20, "WATER +1", "#2aa8ff"); }
+    b.x = last.x; b.y = last.y; b.vx = b.vy = 0; phase = "aim";
+    if (strokes >= maxS()) pickup();
+  }
+  function sink() {
+    phase = "sunk"; wait = 1.6; b.vx = b.vy = 0; b.x = hole.cup[0]; b.y = hole.cup[1];
+    const d = strokes - hole.par;
+    const name = strokes === 1 ? "HOLE IN ONE!" : d <= -2 ? "EAGLE" : d === -1 ? "BIRDIE" : d === 0 ? "PAR" : d === 1 ? "BOGEY" : "+" + d + " OVER PAR";
+    record(strokes);
+    banner((S.duo ? "P" + (player + 1) + " · " : "") + name, strokes === 1 ? "#ffd66b" : COLS[player]);
+    sfx(d <= 0 ? "level" : "score"); burst(b.x, b.y, "#ffd66b", 30, 260, .7); ring(b.x, b.y, "#ffd66b", 6, 70, .5);
+    if (strokes === 1) { flash("#ffd66b", .35); shake(6, .3); }
+    if (!S.duo) { const pts = Math.max(0, hole.par + 3 - strokes) * 100 + (strokes === 1 ? 300 : 0); S.score += pts; if (pts) pop(b.x, b.y - 34, "+" + pts, "#ffd66b"); }
+  }
+  function pickup() { phase = "pickup"; wait = 1.3; record(maxS()); banner("PICKED UP · " + maxS() + " STROKES", "#ff4d6d"); sfx("bad"); }
+  function nextTurn() {
+    if (S.duo && player === 0) { player = 1; placeBall(); banner("PLAYER 2'S TURN", COLS[1]); return; }
+    player = 0;
+    if (hi + 1 >= HOLES.length) {
+      const t0 = sum(card[0]), t1 = sum(card[1]);
+      if (S.duo) return over(t0 === t1 ? "IT'S A TIE" : "PLAYER " + (t0 < t1 ? 1 : 2) + " WINS");
+      return over("ROUND COMPLETE");
+    }
+    loadHole(hi + 1); banner("HOLE " + (hi + 1) + " · PAR " + hole.par, "#3dffa8");
+  }
+  function step(h) {
+    b.x += b.vx * h; b.y += b.vy * h;
+    let thud = false;
+    for (const sg of SEGS) if (collide(sg[0], sg[1], sg[2], sg[3], .78, 0)) thud = true;
+    if (thud) sfx("tick");
+    if (hole.mill) {
+      const [mx, my, ml, w] = hole.mill, c = Math.cos(millA), s = Math.sin(millA);
+      if (collide(mx - c * ml, my - s * ml, mx + c * ml, my + s * ml, .9, 4)) { const rx = b.x - mx, ry = b.y - my; b.vx += -w * ry * .6; b.vy += w * rx * .6; sfx("hit", .6); }
+    }
+    for (const bp of hole.bump || []) {
+      const dx = b.x - bp[0], dy = b.y - bp[1], d = Math.hypot(dx, dy);
+      if (d < bp[2] + BR && d > 0) {
+        const nx = dx / d, ny = dy / d, vn = b.vx * nx + b.vy * ny;
+        if (vn < 0) { b.vx -= 2.15 * vn * nx; b.vy -= 2.15 * vn * ny; sfx("pop"); bumpFx.push({ x: bp[0], y: bp[1], r: bp[2], l: .25 }); }
+        b.x = bp[0] + nx * (bp[2] + BR); b.y = bp[1] + ny * (bp[2] + BR);
+      }
+    }
+    for (const w of hole.water || []) if (b.x > w[0] && b.x < w[2] && b.y > w[1] && b.y < w[3]) { splash(); return; }
+    let sand = false;
+    for (const sd of hole.sand || []) if (b.x > sd[0] && b.x < sd[2] && b.y > sd[1] && b.y < sd[3]) sand = true;
+    const sp = Math.hypot(b.vx, b.vy), dc = Math.hypot(b.x - hole.cup[0], b.y - hole.cup[1]);
+    if (dc < 11 && sp < 340) { sink(); return; }
+    if (dc < 18 && sp < 220) { b.vx += (hole.cup[0] - b.x) * 7 * h; b.vy += (hole.cup[1] - b.y) * 7 * h; }
+    const ns = Math.max(0, sp - (sand ? 760 : 170) * h - sp * .25 * h);
+    if (sp > 0) { b.vx *= ns / sp; b.vy *= ns / sp; }
+  }
+  game({
+    title: "Mini Golf", duo: "take turns on all 9 holes. Fewest total strokes wins.", easy: "water costs no strokes, 15 tries per hole, an aiming guide", w: W, h: H, color: "#3dffa8", bpm: 98,
+    help: ["Drag back from anywhere and let go to shoot", "Keyboard: arrows aim and set power, Space shoots", "Water costs a stroke. Sand slows you down.", "9 holes. Beat par for bonus points"],
+    init() { card = [[], []]; player = 0; bumpFx = []; loadHole(0); },
+    hud() {
+      if (S.duo) return "HOLE " + (hi + 1) + "/9  ·  PLAYER " + (player + 1) + "'S TURN  ·  P1 " + sum(card[0]) + "  ·  P2 " + sum(card[1]);
+      const diff = sum(card[0]) - parSoFar();
+      return "HOLE " + (hi + 1) + "/9  ·  PAR " + hole.par + "  ·  STROKE " + strokes + "  ·  " + (diff === 0 ? "EVEN" : diff > 0 ? "+" + diff : diff);
+    },
+    summary() {
+      const t0 = sum(card[0]), par = HOLES.reduce((s, h) => s + h.par, 0);
+      if (S.duo) return ["STROKES  P1 " + t0 + " : " + sum(card[1]) + " P2   (PAR " + par + ")"];
+      const d = t0 - par; return ["STROKES " + t0 + "   PAR " + par + "   " + (d === 0 ? "EVEN" : d > 0 ? "+" + d : String(d))];
+    },
+    down(px, py) { if (phase === "aim") drag = { x: px, y: py }; },
+    move(px, py) {
+      if (!drag || phase !== "aim") return;
+      const dx = drag.x - px, dy = drag.y - py, L = Math.hypot(dx, dy);
+      if (L > 6) { aim = Math.atan2(dy, dx); power = Math.max(.05, Math.min(1, L / 160)); }
+    },
+    up(px, py) { if (!drag) return; const L = Math.hypot(drag.x - px, drag.y - py); drag = null; if (L > 12) shoot(); },
+    key(k) { if (k === " ") shoot(); },
+    update(dt) {
+      if (hole.mill) millA += dt * hole.mill[3];
+      for (const f of bumpFx) f.l -= dt; bumpFx = bumpFx.filter((f) => f.l > 0);
+      if (phase === "sunk" || phase === "pickup") { wait -= dt; if (wait <= 0) nextTurn(); return; }
+      if (phase === "aim") {
+        const k = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
+        if (k) aim += k * 2.2 * dt;
+        const kp = (S.keys.ArrowUp || S.keys.w ? 1 : 0) - (S.keys.ArrowDown || S.keys.s ? 1 : 0);
+        if (kp) power = Math.max(.05, Math.min(1, power + kp * .8 * dt));
+        return;
+      }
+      for (let s = 0; s < 6; s++) { step(dt / 6); if (phase !== "roll") return; }
+      if (Math.hypot(b.vx, b.vy) < 6) { b.vx = b.vy = 0; if (strokes >= maxS()) pickup(); else phase = "aim"; }
+    },
+    draw() {
+      bg("#020509");
+      const outer = hole.walls[0], path = (poly) => { x.beginPath(); poly.forEach(([px, py], i) => (i ? x.lineTo(px, py) : x.moveTo(px, py))); x.closePath(); };
+      x.save(); path(outer); x.clip();
+      for (let yy = 0; yy < H; yy += 32) { x.fillStyle = (yy / 32) % 2 ? "#063a26" : "#07452e"; x.fillRect(0, yy, W, 32); }
+      x.restore();
+      for (const sd of hole.sand || []) {
+        x.fillStyle = "rgba(225,184,110,.45)"; rr(sd[0], sd[1], sd[2] - sd[0], sd[3] - sd[1], 16); x.fill();
+        x.fillStyle = "rgba(255,230,180,.35)"; for (let i = 0; i < 26; i++) x.fillRect(sd[0] + ((i * 37) % (sd[2] - sd[0])), sd[1] + ((i * 23) % (sd[3] - sd[1])), 2, 2);
+      }
+      for (const w of hole.water || []) {
+        x.fillStyle = "rgba(18,110,255,.5)"; x.fillRect(w[0], w[1], w[2] - w[0], w[3] - w[1]);
+        x.strokeStyle = "rgba(140,210,255,.45)"; x.lineWidth = 1.5; x.beginPath();
+        for (let yy = w[1] + 12; yy < w[3]; yy += 18) for (let xx = w[0]; xx < w[2]; xx += 6) { const yw = yy + Math.sin(xx / 14 + S.clock * 3 + yy) * 2.5; if (xx === w[0]) x.moveTo(xx, yw); else x.lineTo(xx, yw); }
+        x.stroke(); glow("#2aa8ff", 10); x.strokeStyle = "#2aa8ff"; x.lineWidth = 1.5; x.strokeRect(w[0], w[1], w[2] - w[0], w[3] - w[1]); glow();
+      }
+      for (const poly of hole.walls.slice(1)) { path(poly); x.fillStyle = "#0b1020"; x.fill(); glow("#22e4ff", 12); x.strokeStyle = "#22e4ff"; x.lineWidth = 3; x.stroke(); glow(); }
+      path(outer); glow("#22e4ff", 16); x.strokeStyle = "#22e4ff"; x.lineWidth = 4; x.stroke(); glow();
+      for (const bp of hole.bump || []) {
+        const hitFx = bumpFx.find((f) => f.x === bp[0] && f.y === bp[1]);
+        x.beginPath(); x.arc(bp[0], bp[1], bp[2], 0, 7); x.fillStyle = hitFx ? "#ff2bd6" : "#16061f"; x.fill();
+        glow("#ff2bd6", 16); x.strokeStyle = "#ff2bd6"; x.lineWidth = 3; x.stroke(); glow();
+        x.fillStyle = "rgba(255,255,255,.5)"; x.beginPath(); x.arc(bp[0] - bp[2] * .3, bp[1] - bp[2] * .3, bp[2] * .22, 0, 7); x.fill();
+      }
+      const [cx0, cy0] = hole.cup;
+      x.fillStyle = "#000"; x.beginPath(); x.arc(cx0, cy0, 10, 0, 7); x.fill();
+      x.strokeStyle = "rgba(255,255,255,.8)"; x.lineWidth = 2; x.stroke();
+      x.strokeStyle = "#ffffff"; x.lineWidth = 2; x.beginPath(); x.moveTo(cx0, cy0); x.lineTo(cx0, cy0 - 42); x.stroke();
+      const wv = Math.sin(S.clock * 5) * 3;
+      glow("#ff2bd6", 14); x.fillStyle = "#ff2bd6"; x.beginPath(); x.moveTo(cx0, cy0 - 42); x.lineTo(cx0 + 24 + wv, cy0 - 35); x.lineTo(cx0, cy0 - 28); x.closePath(); x.fill(); glow();
+      if (hole.mill) {
+        const [mx, my, ml] = hole.mill, c = Math.cos(millA), s = Math.sin(millA);
+        glow("#ff8a1f", 16); x.strokeStyle = "#ff8a1f"; x.lineWidth = 8; x.lineCap = "round"; x.beginPath(); x.moveTo(mx - c * ml, my - s * ml); x.lineTo(mx + c * ml, my + s * ml); x.stroke(); glow();
+        x.fillStyle = "#ffc23d"; x.beginPath(); x.arc(mx, my, 9, 0, 7); x.fill(); x.lineCap = "butt";
+      }
+      if (phase !== "sunk") {
+        x.fillStyle = "rgba(0,0,0,.45)"; x.beginPath(); x.ellipse(b.x + 3, b.y + 4, BR, BR * .7, 0, 0, 7); x.fill();
+        glow(COLS[player], 16); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(b.x, b.y, BR, 0, 7); x.fill(); glow();
+        x.strokeStyle = COLS[player]; x.lineWidth = 2; x.beginPath(); x.arc(b.x, b.y, BR, 0, 7); x.stroke();
+      }
+      if (phase === "aim" && S.state === "play") {
+        const len = 26 + power * 120, col = power < .4 ? "#3dffa8" : power < .75 ? "#ffc23d" : "#ff4d6d", ca0 = Math.cos(aim), sa0 = Math.sin(aim);
+        if (S.practice) { x.strokeStyle = "rgba(255,255,255,.25)"; x.lineWidth = 2; x.setLineDash([4, 8]); x.beginPath(); x.moveTo(b.x, b.y); x.lineTo(b.x + ca0 * (60 + power * 330), b.y + sa0 * (60 + power * 330)); x.stroke(); x.setLineDash([]); }
+        glow(col, 12); x.fillStyle = col;
+        for (let d = 16; d < len; d += 10) { x.beginPath(); x.arc(b.x + ca0 * d, b.y + sa0 * d, 2.6, 0, 7); x.fill(); }
+        const ex = b.x + ca0 * len, ey = b.y + sa0 * len;
+        x.beginPath(); x.moveTo(ex + ca0 * 10, ey + sa0 * 10); x.lineTo(ex - sa0 * 7, ey + ca0 * 7); x.lineTo(ex + sa0 * 7, ey - ca0 * 7); x.closePath(); x.fill(); glow();
+        x.fillStyle = "rgba(255,255,255,.1)"; x.fillRect(16, H - 22, 120, 8); x.fillStyle = col; x.fillRect(16, H - 22, 120 * power, 8);
+        txt("POWER", 142, H - 18, 11, "#d8d0f5", "left");
+      }
+      txt("HOLE " + (hi + 1) + "  ·  PAR " + hole.par, 16, 30, 14, "#3dffa8", "left", "d");
+      txt(S.duo ? "PLAYER " + (player + 1) : "STROKE " + strokes, W - 16, 30, 14, S.duo ? COLS[player] : "#ffffff", "right", "d");
+    },
+  });
+}
+
+/* ---------- 13 Ping Pong ---------- */
+function pingpongGame() {
+  const W = 480, H = 640, TX0 = 70, TX1 = 410, TY0 = 70, TY1 = 570, NETY = 320, NETZ = 20, GRAV = 1150, PW = 66;
+  const PY = [612, 28], COL = ["#22e4ff", "#ff2bd6"];
+  let pads, ball, sc, phase, timer, rally, hits, lvl, aiErr, winner, trail;
+  const clampX = (v) => Math.max(20, Math.min(W - 20, v));
+  function server() { const n = sc[0] + sc[1]; return sc[0] >= 10 && sc[1] >= 10 ? n % 2 : Math.floor(n / 2) % 2; }
+  function newBall(s) { ball = { x: pads[s].x, y: s ? TY0 + 6 : TY1 - 6, z: 26, vx: 0, vy: 0, vz: 0, ax: 0, by: s, bounced: false }; trail = []; }
+  function shoot(i, q) {
+    const toTop = i === 0;
+    let tx = W / 2 + q.off * 140 + q.pv * .1;
+    tx = Math.max(TX0 - 60, Math.min(TX1 + 60, tx));
+    const ty = toTop ? TY0 + 40 + Math.random() * (NETY - TY0 - 110) : NETY + 70 + Math.random() * (TY1 - NETY - 110);
+    const T = Math.max(.42, (S.practice ? 1.05 : .86) - q.power * .3);
+    ball.vx = (tx - ball.x) / T; ball.vy = (ty - ball.y) / T; ball.vz = (GRAV * T * T / 2 - ball.z) / T;
+    const tn = (NETY - ball.y) / ball.vy;
+    if (q.net) ball.vz *= .55;
+    else if (tn > 0 && tn < T) { const zn = ball.z + ball.vz * tn - GRAV * tn * tn / 2; if (zn < NETZ + 8) ball.vz += (NETZ + 12 - zn) / tn; }
+    ball.ax = q.pv * .08; ball.by = i; ball.bounced = false;
+  }
+  function aiQuality(serve) {
+    const q = { off: (Math.random() * 2 - 1) * Math.min(.85, .4 + lvl * .06), pv: 0, power: S.practice ? 0 : Math.min(.8, lvl * .07) };
+    const errP = S.practice ? .03 : Math.max(.03, .2 - lvl * .02);
+    if (!serve && Math.random() < errP) { if (Math.random() < .5) q.off = (Math.random() < .5 ? -1 : 1) * 1.8; else q.net = true; }
+    return q;
+  }
+  function movePad(i, k, dt) {
+    const p = pads[i], ox = p.x;
+    if (k) { p.x += k * 540 * dt; p.tx = p.x; } else p.x += (p.tx - p.x) * Math.min(1, dt * 16);
+    p.x = clampX(p.x); p.vx = (p.x - ox) / dt; p.fl = Math.max(0, p.fl - dt);
+  }
+  function aiMove(dt) {
+    const p = pads[1], ox = p.x; let tx = W / 2;
+    if (phase === "rally" && ball.by === 0 && ball.vy < 0) { const tt = Math.max(0, (ball.y - p.y) / -ball.vy); tx = ball.x + ball.vx * tt + .5 * ball.ax * tt * tt + aiErr; }
+    else if (phase === "serve" && ball.by === 1) tx = W / 2 + Math.sin(S.t * 2) * 40;
+    const sp = S.practice ? 170 : Math.min(560, 210 + lvl * 42);
+    p.x += Math.max(-sp * dt, Math.min(sp * dt, tx - p.x)); p.x = clampX(p.x); p.vx = (p.x - ox) / dt; p.fl = Math.max(0, p.fl - dt);
+  }
+  function hit(r) {
+    const p = pads[r]; rally++; p.fl = .15;
+    sfx("hit", r ? .8 : 1); burst(ball.x, ball.y - ball.z * .55, COL[r], 14, 220, .35, 3); ring(ball.x, ball.y - ball.z * .55, COL[r], 4, 34, .3);
+    if (r === 1 && !S.duo) shoot(1, aiQuality(false));
+    else {
+      const off = Math.max(-1.3, Math.min(1.3, (ball.x - p.x) / (PW / 2)));
+      const q = { off: Math.abs(off) > .92 ? off * 1.7 : off, pv: p.vx, power: Math.min(1, Math.abs(p.vx) / 900) };
+      shoot(r, q);
+      if (q.power > .6) { pop(ball.x, ball.y - 40, "SMASH!", "#ffd66b"); shake(4, .15); }
+      if (r === 0 && !S.duo) { S.score += 5; hits++; aiErr = (Math.random() * 2 - 1) * Math.max(4, 34 - lvl * 4); }
+    }
+    if (rally % 6 === 0) pop(W / 2, NETY - 30, "RALLY x" + rally, "#ffd66b");
+  }
+  function pointTo(w, why) {
+    sc[w]++; phase = "point"; timer = 1.1; rally = 0;
+    const name = S.duo ? "PLAYER " + (w + 1) : w === 0 ? "YOU" : "AI";
+    banner(why + " · POINT " + name, COL[w]); flash(COL[w], .15);
+    sfx(S.duo || w === 0 ? "score" : "bad");
+    if (!S.duo && w === 0) S.score += 100;
+    if (!S.duo && !S.practice) { const nl = 1 + Math.floor((sc[0] + sc[1]) / 3); if (nl > lvl) { lvl = nl; pop(W / 2, NETY + 46, "AI LEVEL " + lvl, "#ff2bd6"); } }
+    const goal = S.practice ? 999 : 11;
+    if (sc[w] >= goal && sc[w] - sc[1 - w] >= 2) { winner = w; phase = "done"; timer = 1.3; if (!S.duo && w === 0) S.score += 1000; }
+  }
+  game({
+    title: "Ping Pong", duo: "P1 uses the arrows (bottom), P2 uses A/D (top), or each drag your own half. First to 11.", easy: "slow ball, gentle AI, no score limit", w: W, h: H, color: "#22e4ff", bpm: 124,
+    help: ["Move your paddle with mouse, finger or the arrows", "Hits are automatic. Hit off-center to angle the ball", "Swing fast as you hit to smash", "It must bounce on the other side. First to 11"],
+    init() { pads = [{ x: W / 2, tx: W / 2, y: PY[0], vx: 0, fl: 0 }, { x: W / 2, tx: W / 2, y: PY[1], vx: 0, fl: 0 }]; sc = [0, 0]; rally = 0; hits = 0; lvl = 1; aiErr = 0; winner = -1; newBall(0); phase = "serve"; timer = 1.2; },
+    hud() {
+      if (S.duo) return "P1 " + sc[0] + " : " + sc[1] + " P2  ·  FIRST TO 11  ·  RALLY " + rally;
+      return "YOU " + sc[0] + " : " + sc[1] + " AI  ·  AI LEVEL " + lvl + (S.practice ? "" : "  ·  FIRST TO 11");
+    },
+    summary() { return S.duo ? ["FINAL  P1 " + sc[0] + " : " + sc[1] + " P2"] : ["MATCH " + sc[0] + " : " + sc[1] + "   HITS " + hits]; },
+    move(px, py) { if (S.duo && py < H / 2) pads[1].tx = px; else pads[0].tx = px; },
+    down(px, py) { if (S.duo && py < H / 2) pads[1].tx = px; else pads[0].tx = px; },
+    update(dt) {
+      const k0 = (S.keys.ArrowRight ? 1 : 0) - (S.keys.ArrowLeft ? 1 : 0) + (S.duo ? 0 : (S.keys.d ? 1 : 0) - (S.keys.a ? 1 : 0));
+      movePad(0, k0, dt);
+      if (S.duo) movePad(1, (S.keys.d ? 1 : 0) - (S.keys.a ? 1 : 0), dt); else aiMove(dt);
+      if (phase === "point") { timer -= dt; if (timer <= 0) { newBall(server()); phase = "serve"; timer = 1.1; } return; }
+      if (phase === "done") { timer -= dt; if (timer <= 0) over(S.duo ? "PLAYER " + (winner + 1) + " WINS" : winner === 0 ? "YOU WIN!" : "AI WINS"); return; }
+      if (phase === "serve") {
+        const s = ball.by; ball.x = pads[s].x; timer -= dt;
+        if (timer <= 0) { shoot(s, s === 1 && !S.duo ? aiQuality(true) : { off: (Math.random() - .5) * .8, pv: 0, power: .15 }); sfx("hit"); phase = "rally"; }
+        return;
+      }
+      trail.push([ball.x, ball.y - ball.z * .55]); if (trail.length > 10) trail.shift();
+      for (let s = 0; s < 3; s++) {
+        const h = dt / 3, py = ball.y;
+        ball.vx += ball.ax * h; ball.x += ball.vx * h; ball.y += ball.vy * h; ball.z += ball.vz * h; ball.vz -= GRAV * h;
+        if ((py - NETY) * (ball.y - NETY) <= 0 && py !== ball.y && ball.z < NETZ && ball.x > TX0 - 14 && ball.x < TX1 + 14) {
+          burst(ball.x, NETY, "#ffffff", 10, 120, .3, 2); return pointTo(1 - ball.by, "NET");
+        }
+        if (ball.z <= 0) {
+          if (ball.x >= TX0 && ball.x <= TX1 && ball.y >= TY0 && ball.y <= TY1) {
+            const side = ball.y > NETY ? 0 : 1;
+            if (side === ball.by) return pointTo(1 - ball.by, "FAULT");
+            if (ball.bounced) return pointTo(ball.by, "DOUBLE BOUNCE");
+            ball.bounced = true; ball.z = 0; ball.vz = Math.abs(ball.vz) * .78; sfx("tick"); burst(ball.x, ball.y, "#ffffff", 5, 90, .3, 2);
+          } else return pointTo(ball.bounced ? ball.by : 1 - ball.by, ball.bounced ? "MISSED" : "OUT");
+        }
+        const r = 1 - ball.by, p = pads[r];
+        if (ball.bounced && (r === 0 ? ball.vy > 0 : ball.vy < 0) && Math.abs(ball.y - p.y) < 22 && Math.abs(ball.x - p.x) < PW / 2 + 9 && ball.z < 110) { hit(r); break; }
+        if (ball.y > H + 30 || ball.y < -30) return pointTo(ball.bounced ? ball.by : 1 - ball.by, ball.bounced ? "MISSED" : "OUT");
+      }
+    },
+    draw() {
+      bg("#03040c");
+      const g = x.createRadialGradient(W / 2, H / 2, 40, W / 2, H / 2, 420); g.addColorStop(0, "rgba(34,228,255,.09)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+      x.fillStyle = "#0a1838"; x.fillRect(TX0, TY0, TX1 - TX0, TY1 - TY0);
+      x.strokeStyle = "rgba(255,255,255,.35)"; x.lineWidth = 2; x.beginPath(); x.moveTo(W / 2, TY0); x.lineTo(W / 2, TY1); x.stroke();
+      glow("#22e4ff", 16); x.strokeStyle = "#7ff3ff"; x.lineWidth = 3; x.strokeRect(TX0, TY0, TX1 - TX0, TY1 - TY0); glow();
+      txt(String(sc[1]), W / 2, (TY0 + NETY) / 2, 110, "rgba(255,43,214,.09)", "center", "d");
+      txt(String(sc[0]), W / 2, (NETY + TY1) / 2, 110, "rgba(34,228,255,.09)", "center", "d");
+      x.strokeStyle = "rgba(255,255,255,.22)"; x.lineWidth = 1; x.beginPath(); for (let xx = TX0 - 12; xx <= TX1 + 12; xx += 8) { x.moveTo(xx, NETY - 5); x.lineTo(xx, NETY + 5); } x.stroke();
+      glow("#ffffff", 14); x.strokeStyle = "#ffffff"; x.lineWidth = 4; x.beginPath(); x.moveTo(TX0 - 14, NETY); x.lineTo(TX1 + 14, NETY); x.stroke(); glow();
+      x.fillStyle = "#ffffff"; x.fillRect(TX0 - 18, NETY - 6, 6, 12); x.fillRect(TX1 + 12, NETY - 6, 6, 12);
+      const pad = (i) => {
+        const p = pads[i], c = p.fl > 0 ? "#ffffff" : COL[i];
+        x.fillStyle = ca(COL[i], .6); x.fillRect(p.x - 4, i ? p.y - 22 : p.y + 7, 8, 15);
+        glow(c, 18); x.fillStyle = c; rr(p.x - PW / 2, p.y - 7, PW, 14, 7); x.fill(); glow();
+        x.fillStyle = "rgba(4,2,10,.55)"; x.fillRect(p.x - PW / 2 + 8, p.y - 1.5, PW - 16, 3);
+      };
+      pad(1);
+      if (phase !== "point" && phase !== "done") {
+        const by = ball.y - ball.z * .55, r = 6 + ball.z * .02;
+        trail.forEach(([tx0, ty0], i) => { x.globalAlpha = (i / trail.length) * .35; x.fillStyle = "#ffffff"; x.beginPath(); x.arc(tx0, ty0, r * i / trail.length, 0, 7); x.fill(); });
+        x.globalAlpha = Math.max(.15, .55 - ball.z / 260); x.fillStyle = "#000"; x.beginPath(); x.ellipse(ball.x, ball.y, 7, 3.5, 0, 0, 7); x.fill(); x.globalAlpha = 1;
+        glow("#ffffff", 18); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(ball.x, by, r, 0, 7); x.fill(); glow();
+      }
+      pad(0);
+      txt(S.duo ? "P2" : "AI", 16, 16, 12, COL[1], "left", "d"); txt(S.duo ? "P1" : "YOU", 16, H - 16, 12, COL[0], "left", "d");
+      if (phase === "serve" && S.state === "play") { const s = ball.by; txt((S.duo ? "P" + (s + 1) : s ? "AI" : "YOUR") + " SERVE", W - 16, s ? 16 : H - 16, 12, COL[s], "right", "d"); }
+    },
+  });
+}
+
 /* ====================================================================
    The hub
    ==================================================================== */
 (() => {
   "use strict";
   const $ = (s) => document.querySelector(s);
-  const GENRES = ["Arcade", "Action", "Puzzle", "Racing", "Platformer", "Strategy", "Other"];
+  const GENRES = ["Arcade", "Action", "Puzzle", "Racing", "Platformer", "Sports", "Strategy", "Other"];
   const MAX_BYTES = 200 * 1024;
   const store = {
     get(k) { try { return localStorage.getItem(k); } catch { return null; } },
@@ -2491,13 +2814,17 @@ function targetsGame() {
     { key: "racer", title: "Lane Racer", genre: "Racing", fn: racerGame },
     { key: "blocks", title: "Block Drop", genre: "Puzzle", fn: blocksGame },
     { key: "targets", title: "Target Rush", genre: "Action", fn: targetsGame },
+    { key: "golf", title: "Mini Golf", genre: "Sports", fn: golfGame },
+    { key: "pingpong", title: "Ping Pong", genre: "Sports", fn: pingpongGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
     { key: "pong", how: "Head-to-head. First to 7 points wins.", keys: "P1 W / S  ·  P2 ↑ / ↓", touch: "Each player drags on their own half" },
-    { key: "snake", how: "Two snakes, one arena. Crash and the round goes to your rival. First to 3 rounds.", keys: "P1 W A S D  ·  P2 arrow keys", touch: "Each player swipes on their own half" },
+    { key: "snake", how: "Two snakes, one arena. Go backwards to turn around. Crash and the round goes to your rival. First to 3 rounds.", keys: "P1 W A S D  ·  P2 arrow keys", touch: "Each player swipes on their own half" },
     { key: "memory", how: "Take turns flipping cards. Find a pair and go again. Most pairs wins.", keys: "Click the cards, one player at a time", touch: "Pass the iPad between turns" },
     { key: "targets", how: "Split screen with the same targets on both sides. Best score in 30 seconds wins.", keys: "Best on a touch screen", touch: "P1 taps the left half, P2 the right" },
+    { key: "pingpong", how: "Real table tennis: the ball has to bounce on the other side. First to 11.", keys: "P1 ← / → (bottom)  ·  P2 A / D (top)", touch: "P1 drags the bottom half, P2 the top" },
+    { key: "golf", how: "Take turns on all 9 holes. Fewest total strokes wins.", keys: "Drag to aim and shoot, or arrows + Space", touch: "Pass the iPad between turns" },
   ];
   const DUO_KEYS = new Set(DUO.map((d) => d.key));
 
@@ -2586,7 +2913,7 @@ function targetsGame() {
   let online = false;                // server reachable
   let subs = [];                     // submitted games (no code)
   let scoreDocs = [];                // [{ uid, tag, av, joined, best: { game: { s, at } } }]
-  let showAll = false, genre = "All", query = "", lbKey = "snake", libReady = false;
+  let showAll = 0, genre = "All", query = "", lbKey = "snake", libReady = false;
 
   const readJsonStore = (k) => { try { return JSON.parse(store.get(k) || "{}") || {}; } catch { return {}; } };
   let localBest = readJsonStore("gbl-best");   // best on this device (any account)
@@ -2602,7 +2929,7 @@ function targetsGame() {
   function allSubs() { return subs.map((s) => ({ ...s, key: subKey(s), uid: s.userId })); }
   const statusOf = (key) => { const s = subs.find((x) => subKey(x) === key); return s ? s.status : "pending"; };
   function approvedGames() { return allSubs().filter((s) => s.status === "approved").sort((a, b) => (a.approvedAt || 0) - (b.approvedAt || 0)); }
-  function libraryGames() { return [...BUILTINS, ...approvedGames()].slice(0, 100).map((g, i) => ({ ...g, slot: i + 1 })); }
+  function libraryGames() { return [...BUILTINS, ...approvedGames()].slice(0, 1000).map((g, i) => ({ ...g, slot: i + 1 })); }
 
   function entries(key) {
     let list = scoreDocs
@@ -2623,7 +2950,7 @@ function targetsGame() {
     const pending = subs.filter((s) => s.status === "pending").length;
     $("#lit-count").textContent = lit;
     const fc = document.getElementById("foot-count"); if (fc) fc.textContent = lit;
-    [...ticks.children].forEach((t, i) => { t.classList.toggle("on", i < lit); t.classList.toggle("pending", i >= lit && i < lit + pending); });
+    [...ticks.children].forEach((t, i) => { t.classList.toggle("on", i < Math.ceil(lit / 10)); t.classList.toggle("pending", i >= Math.ceil(lit / 10) && i < Math.ceil((lit + pending) / 10)); });
   }
 
   /* ---------- Library ---------- */
@@ -2646,7 +2973,7 @@ function targetsGame() {
     onclick: (e) => { genre = name; chips.querySelectorAll(".chip").forEach((c) => c.setAttribute("aria-pressed", String(c === e.currentTarget))); renderLibrary(); },
   })));
   $("#q").addEventListener("input", (e) => { query = e.target.value.trim().toLowerCase(); renderLibrary(); });
-  $("#more").addEventListener("click", () => { showAll = !showAll; renderLibrary(); });
+  $("#more").addEventListener("click", () => { showAll += 100; renderLibrary(); });
 
   function renderLibrary() {
     const grid = $("#grid");
@@ -2673,8 +3000,8 @@ function targetsGame() {
       frag.append(card);
     });
     if (!filtering) {
-      const limit = showAll ? 100 : Math.max(20, Math.ceil((games.length + 4) / 5) * 5);
-      for (let s = games.length + 1; s <= Math.min(limit, 100); s++) {
+      const limit = Math.min(1000, Math.max(20, Math.ceil((games.length + 4) / 5) * 5) + showAll);
+      for (let s = games.length + 1; s <= Math.min(limit, 1000); s++) {
         const c = el("article", { class: "card empty", "aria-label": `Slot ${s} open` },
           el("div", { class: "screen" }, el("span", { class: "glyph", text: pad(s) })),
           el("div", { class: "card-body" }, el("div", { class: "card-title", text: "Open slot" }), el("div", { class: "card-meta", text: "Waiting for a game" })));
@@ -2685,8 +3012,8 @@ function targetsGame() {
     grid.replaceChildren(frag);
     if (filtering && !list.length) grid.replaceChildren(el("div", { class: "none", style: "grid-column:1/-1", text: "No games match yet. Try another genre or clear the search." }));
     const more = $("#more");
-    more.hidden = filtering || games.length >= 100;
-    more.textContent = showAll ? "Show fewer slots" : "Show all 100 slots";
+    more.hidden = filtering || Math.max(20, Math.ceil((games.length + 4) / 5) * 5) + showAll >= 1000;
+    more.textContent = "Show 100 more slots";
     renderMeter();
     libReady = true;
   }
@@ -2745,7 +3072,7 @@ function targetsGame() {
     const t = document.getElementById("ticker"); if (!t) return;
     const items = [];
     for (const g of libraryGames()) { const e = entries(g.key)[0]; if (e) items.push([g.title, nameOf(e), fmt(e.s)]); }
-    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["11 games", "ready to play", "Insert coin"]];
+    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["13 games", "ready to play", "Insert coin"]];
     let half = []; while (half.length < 8) half = half.concat(one);
     const make = () => half.map(([g, n, v]) => el("span", { class: "tick-item" }, el("b", { text: g }), el("span", { text: n }), el("em", { text: v })));
     t.replaceChildren(...make(), ...make());
