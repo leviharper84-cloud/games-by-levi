@@ -1,0 +1,15 @@
+{
+  "name": "games-by-levi",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Games by Levi - the ultimate gaming hub. Runs on Cloudflare Workers with a D1 database.",
+  "scripts": {
+    "dev": "wrangler dev",
+    "db:local": "wrangler d1 execute games-by-levi --local --file=./schema.sql",
+    "db:remote": "wrangler d1 execute games-by-levi --remote --file=./schema.sql",
+    "deploy": "wrangler deploy"
+  },
+  "devDependencies": {
+    "wrangler": "4.149.0"
+  }
+}
