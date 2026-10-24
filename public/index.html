@@ -536,6 +536,19 @@ textarea.code {
 .shop-item .sw { width: 100%; height: 14px; border-radius: 7px; }
 .shop-item small { color: var(--muted); font-size: .76rem; }
 @media (max-width: 1280px) { .w-bar:not(.big) { display: none; } }
+.confetti { position: fixed; inset: 0; z-index: 300; pointer-events: none; }
+.weekend { margin-bottom: 16px; padding: 10px 16px; border-radius: 14px; text-align: center; font: 800 .82rem var(--f-mono); letter-spacing: .14em; color: #1a1200; background: linear-gradient(90deg, #ffd66b, #ff8a1f, #ffd66b); background-size: 200% 100%; animation: wkShine 3s linear infinite; box-shadow: 0 0 26px rgba(255,214,107,.5); }
+.weekend[hidden] { display: none; }
+@keyframes wkShine { to { background-position: -200% 0; } }
+.surprise-btn { white-space: nowrap; }
+.pcard { display: flex; gap: 18px; align-items: center; flex-wrap: wrap; margin-bottom: 18px; padding: 16px 18px; border-radius: 18px; border: 1px solid rgba(var(--a1-rgb), .4); background: var(--panel); box-shadow: 0 0 26px rgba(var(--a1-rgb), .12); }
+.pc-lv { width: 84px; height: 84px; border-radius: 50%; display: grid; place-items: center; align-content: center; border: 3px solid #ffd66b; box-shadow: 0 0 22px rgba(255,214,107,.5); }
+.pc-lv span { font: 700 .7rem var(--f-mono); color: #ffd66b; letter-spacing: .2em; }
+.pc-lv b { font: 800 2rem var(--f-mono); line-height: 1; }
+.pc-grid { flex: 1; display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 10px; min-width: 0; }
+.pc-cell { display: grid; gap: 2px; padding: 8px 12px; border-radius: 12px; background: rgba(7,4,15,.6); border: 1px solid var(--line); }
+.pc-cell b { font: 800 1.1rem var(--f-mono); }
+.pc-cell small { color: var(--muted); font-size: .74rem; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
@@ -788,6 +801,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
 
     <div class="cta">
       <button class="btn hot big" type="button" id="browse">Browse games ▸</button>
+      <button class="btn big" type="button" data-surprise>🎲 Surprise me</button>
     </div>
     <div class="home-links">
       <button class="linkbtn" type="button" data-go="two-player">2 Players</button>
@@ -856,11 +870,13 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
           <p class="lede">Every game gets its own numbered cabinet. Approved submissions light up the next open slot.</p>
         </div>
       </div>
+      <div class="weekend" id="weekend" hidden>⚡ DOUBLE COINS WEEKEND · every game pays 2× today ⚡</div>
       <div class="daily" id="daily" hidden></div>
       <div class="strips" id="strips" hidden></div>
       <div class="tools">
         <label class="sr" for="q">Search games</label>
         <input class="search" id="q" type="search" placeholder="Search by title or creator" autocomplete="off">
+        <button class="btn sm surprise-btn" type="button" data-surprise>🎲 Surprise me</button>
         <div class="chips" id="chips" role="group" aria-label="Filter by genre"></div>
       </div>
       <div class="grid" id="grid"></div>
@@ -949,6 +965,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
           <p class="lede">Unlock badges by exploring the hub, setting big scores, winning tournaments and playing online. <b id="badges-count"></b></p>
         </div>
       </div>
+      <div class="pcard" id="pcard"></div>
       <div class="badges-grid" id="badges-grid"></div>
     </div>
   </section>
@@ -6853,7 +6870,7 @@ function slitherGame() {
   }
   function achToast(a) {
     const n = el("div", { class: "ach-pop", role: "status" }, el("span", { class: "ach-ico", text: a[1] }), el("div", {}, el("small", { text: "ACHIEVEMENT UNLOCKED" }), el("b", { text: a[2] })));
-    document.body.append(n); requestAnimationFrame(() => n.classList.add("show"));
+    document.body.append(n); requestAnimationFrame(() => n.classList.add("show")); if (window.gblConfetti) window.gblConfetti(100);
     setTimeout(() => { n.classList.remove("show"); setTimeout(() => n.remove(), 500); }, 3600);
   }
   function checkAch(silent) {
@@ -7023,21 +7040,21 @@ function slitherGame() {
     prog.stats.coins = coins() + n; if (n > 0) prog.stats.xp = xpOf() + n;
     const after = levelOf(xpOf());
     if (!silent) coinPop("+" + n + " ⚡" + (why ? "  " + why : ""));
-    if (after > before) { prog.stats.coins += 50; setTimeout(() => coinPop("LEVEL UP! You're level " + after + "  ·  +50 ⚡", true), 1400); }
+    if (after > before) { prog.stats.coins += 50; setTimeout(() => { coinPop("LEVEL UP! You're level " + after + "  ·  +50 ⚡", true); if (window.gblConfetti) window.gblConfetti(160); }, 1400); }
     saveProg(); renderWallet();
   }
   function coinPop(t, big) {
     const n = el("div", { class: "coin-pop" + (big ? " big" : ""), text: t }); document.body.append(n);
     requestAnimationFrame(() => n.classList.add("show")); setTimeout(() => { n.classList.remove("show"); setTimeout(() => n.remove(), 500); }, big ? 3200 : 2200);
   }
-  function renderWallet() {
+  var renderWallet = function () {
     document.querySelectorAll("[data-wallet]").forEach((b2) => {
       const xp = xpOf(), lv = levelOf(xp), k = Math.min(1, (xp - xpFor(lv)) / Math.max(1, xpFor(lv + 1) - xpFor(lv)));
       b2.replaceChildren(el("span", { class: "w-coins", text: "⚡ " + fmt(coins()) }), el("span", { class: "w-lv", text: "LV " + lv }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(k * 100) + "%" })));
       const due = (prog.missions && prog.missions.list || []).some((m) => m.done && !m.claimed) || (prog.stats.spinDay !== todayKey());
       b2.classList.toggle("due", due);
     });
-  }
+  };
   /* missions */
   function seeded(seed) { let h = 2166136261; for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0) / 4294967296; }
   function missions() {
@@ -7069,8 +7086,10 @@ function slitherGame() {
   /* hooks */
   window.gblReward = (cur, s) => {
     if (!cur || !cur.g || !BUILTINS.some((b) => b.key === cur.g.key)) return;
-    const n = 5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0);
-    giveCoins(n, cur.daily ? "daily bonus!" : "");
+    const wk = new Date().getDay() % 6 === 0, n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1);
+    const prevBest = typeof myBest === "function" ? myBest(cur.g.key) || 0 : 0;
+    giveCoins(n, (cur.daily ? "daily bonus! " : "") + (wk ? "x2 weekend!" : ""));
+    if (s > 0 && s > prevBest && prevBest > 0) { setTimeout(() => { coinPop("🏅 NEW PERSONAL BEST in " + cur.g.title + "!", true); if (window.gblConfetti) window.gblConfetti(150); }, 900); }
     missionProgress(cur.g.key, s);
   };
   window.gblAchCoins = (n) => giveCoins(100 * n, n > 1 ? "badges!" : "badge!");
@@ -7088,7 +7107,7 @@ function slitherGame() {
     if (rtab === "missions") {
       body = el("div", { class: "rew-list" }, ...missions().map((m) => el("div", { class: "mission" + (m.done ? " done" : "") },
         el("div", { class: "m-txt" }, el("b", { text: m.text }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(Math.min(1, m.have / m.need) * 100) + "%" })), el("small", { text: (m.kind === "score" ? "best " + fmt(Math.min(m.have, m.need)) + " / " + fmt(m.need) : Math.min(m.have, m.need) + " / " + m.need) })),
-        m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (m.done ? " hot" : ""), type: "button", disabled: !m.done, text: "Claim " + m.reward + " ⚡", onclick: () => { m.claimed = true; giveCoins(m.reward, "mission!"); renderRewards(); } }))),
+        m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (m.done ? " hot" : ""), type: "button", disabled: !m.done, text: "Claim " + m.reward + " ⚡", onclick: () => { m.claimed = true; giveCoins(m.reward, "mission!"); if (window.gblConfetti) window.gblConfetti(90); renderRewards(); } }))),
         el("p", { class: "set-note", text: "New missions every day. Coins come from every game you finish, badges, tournaments and online wins." }));
     } else if (rtab === "spin") {
       const can = prog.stats.spinDay !== todayKey();
@@ -7102,7 +7121,7 @@ function slitherGame() {
         const base = Math.floor((prog.stats.spinAngle || 0) / 360) * 360;
         prog.stats.spinAngle = base + land; prog.stats.spinDay = todayKey(); saveProg();
         wheel.style.transition = "transform 4s cubic-bezier(.12,.8,.2,1)"; wheel.style.transform = "rotate(" + (base + land) + "deg)";
-        setTimeout(() => { spinning = false; giveCoins(WHEEL[pick][0], "from the wheel!"); sfxHub(); renderRewards(); }, 4200);
+        setTimeout(() => { spinning = false; giveCoins(WHEEL[pick][0], "from the wheel!"); sfxHub(); if (window.gblConfetti) window.gblConfetti(WHEEL[pick][0] >= 100 ? 200 : 70); renderRewards(); }, 4200);
       } });
       body = el("div", { class: "spin-box" }, el("div", { class: "wheel-wrap" }, wheel, el("div", { class: "wheel-pin" })), btn, el("p", { class: "set-note", text: "One free spin every day." }));
     } else {
@@ -7131,6 +7150,48 @@ function slitherGame() {
   document.querySelectorAll("[data-rewards]").forEach((b2) => b2.addEventListener("click", () => openRewards()));
   renderWallet();
 
+  /* ---------- Extra fun: confetti, streaks, weekend bonus, surprise me, player card ---------- */
+  const confettiCv = el("canvas", { class: "confetti", "aria-hidden": "true" }); document.body.append(confettiCv);
+  let confParts = [], confRun = false;
+  function confetti(n) {
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    const cols = ["#ff2bd6", "#22e4ff", "#ffd66b", "#b6ff3b", "#a35bff", "#ff8a1f"];
+    for (let i = 0; i < (n || 120); i++) confParts.push({ x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight * .35, vx: (Math.random() - .5) * 900, vy: -300 - Math.random() * 700, r: Math.random() * 6.28, vr: (Math.random() - .5) * 12, c: cols[i % cols.length], s: 5 + Math.random() * 6, l: 2.4 + Math.random() });
+    if (!confRun) { confRun = true; let last = performance.now(); const step = (t) => {
+      const dt = Math.min(.05, (t - last) / 1000); last = t; const c = confettiCv.getContext("2d");
+      confettiCv.width = innerWidth; confettiCv.height = innerHeight; c.clearRect(0, 0, innerWidth, innerHeight);
+      for (const p of confParts) { p.vy += 900 * dt; p.vx *= .99; p.x += p.vx * dt; p.y += p.vy * dt; p.r += p.vr * dt; p.l -= dt; c.save(); c.translate(p.x, p.y); c.rotate(p.r); c.globalAlpha = Math.min(1, p.l); c.fillStyle = p.c; c.fillRect(-p.s / 2, -p.s / 4, p.s, p.s / 2); c.restore(); }
+      confParts = confParts.filter((p) => p.l > 0 && p.y < innerHeight + 40);
+      if (confParts.length) requestAnimationFrame(step); else { confRun = false; c.clearRect(0, 0, innerWidth, innerHeight); }
+    }; requestAnimationFrame(step); }
+  }
+  window.gblConfetti = confetti;
+  const isWeekend = () => { const d = new Date().getDay(); return d === 0 || d === 6; };
+  function checkStreak() {
+    const today = todayKey(), y = new Date(Date.now() - 864e5).toISOString().slice(0, 10), last = prog.stats.lastDay;
+    if (last === today) return;
+    const streak = last === y ? stat("streak") + 1 : 1;
+    prog.stats.streak = streak; prog.stats.lastDay = today; prog.stats.bestStreak = Math.max(stat("bestStreak"), streak);
+    const bonus = 10 * Math.min(7, streak);
+    setTimeout(() => { giveCoins(bonus, streak > 1 ? "🔥 " + streak + "-day streak!" : "daily login bonus"); if (streak > 1) confetti(80); }, 1200);
+  }
+  function pickSurprise() {
+    const pool = BUILTINS.filter((g) => !(prog.recent || []).slice(0, 2).includes(g.key)), g = pool[Math.floor(Math.random() * pool.length)], i = BUILTINS.indexOf(g);
+    toast("🎲 Surprise! Let's play " + g.title); play({ ...g, slot: i + 1 });
+  }
+  document.querySelectorAll("[data-surprise]").forEach((b2) => b2.addEventListener("click", pickSurprise));
+  function renderPCard() {
+    const box = $("#pcard"); if (!box) return;
+    const xp = xpOf(), total = Object.values(prog.played || {}).reduce((a, b2) => a + (+b2 || 0), 0), got = ACH.filter((a) => prog.ach[a[0]]).length;
+    const cell = (v, l) => el("div", { class: "pc-cell" }, el("b", { text: v }), el("small", { text: l }));
+    box.replaceChildren(
+      el("div", { class: "pc-lv" }, el("span", { text: "LV" }), el("b", { text: String(levelOf(xp)) })),
+      el("div", { class: "pc-grid" }, cell("⚡ " + fmt(coins()), "Coins"), cell(fmt(total), "Games played"), cell(got + "/" + ACH.length, "Badges"),
+        cell("🔥 " + stat("streak"), "Day streak"), cell(fmt(stat("maxScore")), "Best score"), cell(String((prog.favs || []).length), "Favorites")));
+  }
+  const _rw = renderWallet; renderWallet = function () { _rw(); renderPCard(); const wk = $("#weekend"); if (wk) wk.hidden = !isWeekend(); };
+  setTimeout(checkStreak, 2500);
+  renderWallet();
   const SET_REMOTE = {
     can: () => !!me,
     load: async () => (await api("/settings")).settings,
