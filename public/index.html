@@ -549,6 +549,9 @@ textarea.code {
 .pc-cell { display: grid; gap: 2px; padding: 8px 12px; border-radius: 12px; background: rgba(7,4,15,.6); border: 1px solid var(--line); }
 .pc-cell b { font: 800 1.1rem var(--f-mono); }
 .pc-cell small { color: var(--muted); font-size: .74rem; }
+.arena-card { grid-column: 1 / -1; display: flex; gap: 18px; align-items: center; justify-content: space-between; flex-wrap: wrap; border-color: rgba(61,255,168,.55); box-shadow: 0 0 30px rgba(61,255,168,.15); }
+.arena-card .eyebrow { color: #3dffa8; }
+.arena-txt { flex: 1 1 300px; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
@@ -5773,6 +5776,56 @@ function slitherGame() {
   const SK = (window.SKIN0 || {}).slither || "", SPECIAL = { "sl-fire": "fire", "sl-galaxy": "galaxy", "sl-rainbow": "rainbow" }, BASIC = { "sl-pink": 0, "sl-lime": 2, "sl-gold": 3 };
   const PUPS = { magnet: ["#22e4ff", "MAGNET"], speed: ["#ffd66b", "SPEED"], double: ["#ff2bd6", "DOUBLE FOOD"] };
   let pups = [], pupT = 6, streak = [];
+  /* online arena */
+  const NET = window.SLWS0 || null, MYNAME = (window.SLNAME0 || "Player").slice(0, 14);
+  let ws = null, myId = null, isHost = false, netT = 0, eatQ = [], dropQ = [], players = 1, feed = [], botIdx = [], myIdx = 0, netState = "", retryT = 0;
+  const remote = new Map();
+  function netSend(o) { if (ws && ws.readyState === 1) { try { ws.send(JSON.stringify(o)); } catch (e) {} } }
+  const pack = (s2) => { const fl = []; for (let i = 0; i < s2.pts.length; i += 2) fl.push(Math.round(s2.pts[i][0]), Math.round(s2.pts[i][1])); return { n: s2.name, k: s2.skin, sp: s2.special || 0, x: Math.round(s2.x), y: Math.round(s2.y), a: Math.round(s2.a * 100) / 100, m: Math.round(s2.mass), b: s2.boost ? 1 : 0, i: s2.inv > 0 ? 1 : 0, p: fl }; };
+  function upsertRemote(id, d, isBot) {
+    let o = remote.get(id);
+    if (!o || !o.alive && d) { o = { remote: true, bot: !!isBot, netId: id, alive: true, kills: 0, inv: 0, think: 0, mass: 20, pts: [], skin: 1, a: 0, x: 0, y: 0, ux: 0, uy: 0, ut: 0, name: "?" }; const slot = snakes.findIndex((q) => q && q.netId === id); if (slot >= 0) snakes[slot] = o; else snakes.push(o); remote.set(id, o); }
+    o.name = String(d.n || "?").slice(0, 14); o.skin = (d.k | 0) % SKINS.length; o.special = d.sp || null; o.a = +d.a || 0; o.mass = Math.max(10, +d.m || 10); o.boost = !!d.b; o.inv = d.i ? 1 : 0;
+    o.ux = +d.x || 0; o.uy = +d.y || 0; o.ut = S.t; o.x = o.ux; o.y = o.uy;
+    const pts = []; const fl = Array.isArray(d.p) ? d.p : []; for (let i = 0; i + 1 < fl.length; i += 2) pts.push([+fl[i] || 0, +fl[i + 1] || 0]); if (!pts.length) pts.push([o.x, o.y]); o.pts = pts;
+  }
+  function dropRemote(prefix) { for (const [id, o] of remote) if (id === prefix || id.startsWith(prefix + ":")) { o.alive = false; o.deadAt = S.t; remote.delete(id); } }
+  function hostBots() { for (let k = 0; k < 8; k++) { const i = snakes.length; snakes.push(null); botIdx.push(i); spawnBot(i); } }
+  function connect() {
+    if (!NET || ws) return;
+    netState = "CONNECTING...";
+    try { ws = new WebSocket(NET); } catch (e) { ws = null; netState = "CAN'T CONNECT"; retryT = 3; return; }
+    ws.onmessage = (e) => {
+      let m; try { m = JSON.parse(e.data); } catch (er) { return; }
+      if (m.t === "welcome") {
+        myId = m.id; isHost = !!m.host; players = m.players || 1; netState = "";
+        pellets = []; for (const q of m.pellets || []) addLocalPellet(q);
+        if (isHost && !botIdx.length) hostBots();
+        banner(players > 1 ? players + " PLAYERS ONLINE" : "YOU'RE FIRST · BOTS JOINED", "#3dffa8");
+      } else if (m.t === "st" && m.s) upsertRemote(m.id, m.s, false);
+      else if (m.t === "bots" && Array.isArray(m.l)) {
+        const seen = new Set(); m.l.forEach((d) => { if (!d) return; const id = m.id + ":" + d.bi; seen.add(id); upsertRemote(id, d, true); });
+        for (const [id, o] of remote) if (id.startsWith(m.id + ":") && !seen.has(id)) { o.alive = false; remote.delete(id); }
+      } else if (m.t === "pe") {
+        const rm = new Set(m.rm || []); if (rm.size) pellets = pellets.filter((q) => !rm.has(q.id));
+        for (const q of m.add || []) addLocalPellet(q);
+      } else if (m.t === "bye") { dropRemote(m.id); players = m.players || players; }
+      else if (m.t === "count") players = m.players || players;
+      else if (m.t === "host") { isHost = true; if (!botIdx.length) hostBots(); }
+      else if (m.t === "kill") {
+        feed.unshift({ t: S.t, txt: (m.bn || "The wall") + "  ⟶  " + (m.vn || "?") }); feed = feed.slice(0, 4);
+        const dv = remote.get(m.v); if (dv) { dv.alive = false; dv.deadAt = S.t; remote.delete(m.v); const [sx, sy] = toScreen(dv.x, dv.y); if (Math.hypot(dv.x - cam.x, dv.y - cam.y) < 500) { burst(sx, sy, SKINS[dv.skin][0], 40, 300, .8); sfx("boom"); } }
+        if (m.by && m.by === myId && !String(m.v).startsWith(myId + ":")) creditKill(m.vn || "a snake", 60);
+      }
+    };
+    ws.onclose = () => { ws = null; myId = null; netState = "RECONNECTING..."; retryT = 2; for (const id of [...remote.keys()]) dropRemote(id); if (isHost) { for (const i of botIdx) if (snakes[i]) snakes[i].alive = false; botIdx = []; isHost = false; } };
+  }
+  function addLocalPellet(q) { if (!Array.isArray(q)) return; const v = q[3] | 0 || 1; pellets.push({ id: q[0], x: q[1], y: q[2], v, r: v >= 8 ? 10 : v >= 3 ? 6.5 : v >= 2 ? 5 : 4, c: q[4] || "#22e4ff", ph: Math.random() * 6 }); }
+  function creditKill(name, mass) {
+    kills++; streak = streak.filter((t) => S.t - t < 7); streak.push(S.t);
+    if (streak.length >= 2) { banner(["", "", "DOUBLE KILL!", "TRIPLE KILL!", "MEGA KILL!"][streak.length] || "RAMPAGE!", "#ff4d6d"); sfx("level"); shake(6, .3); }
+    S.score += 50 + Math.floor(mass); pop(W / 2, H / 2 - 70, "KILLED " + String(name).toUpperCase() + "!", "#ffd66b"); sfx("score");
+  }
   let snakes, me, pellets, pill, pillT, cam, zoom, kills, grid, deadT, bestRank, boostIds, aim, keyTurn;
   const rnd = (a, b) => a + Math.random() * (b - a);
   const rad = (s) => Math.min(24, 6 + Math.sqrt(s.mass) * .42);
@@ -5785,25 +5838,27 @@ function slitherGame() {
   function freeSpot(minD) {
     for (let k = 0; k < 40; k++) {
       const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (ARENA - 200), x = Math.cos(a) * r, y = Math.sin(a) * r;
-      if (!snakes.some((s) => s.alive && Math.hypot(s.x - x, s.y - y) < minD)) return [x, y];
+      if (!snakes.some((s) => s && s.alive && Math.hypot(s.x - x, s.y - y) < minD)) return [x, y];
     }
     return [0, 0];
   }
   function addPellet(x, y, v, c) {
     if (Math.hypot(x, y) > ARENA - 10) return;
     v = v || (Math.random() < .05 ? 8 : Math.random() < .3 ? 3 : 1);
+    if (NET) { if (dropQ.length < 400) dropQ.push([Math.round(x), Math.round(y), v, c || "#22e4ff"]); return; }
     pellets.push({ x, y, v, r: v >= 8 ? 10 : v >= 3 ? 6.5 : v >= 2 ? 5 : 4, c: c || SKINS[Math.random() * SKINS.length | 0][0], ph: Math.random() * 6 });
   }
   function spawnBot(i, far) {
     const [x, y] = freeSpot(far ? 500 : 200), lvlBoost = Math.min(120, S.t * .6);
-    snakes[i] = mk(x, y, Math.random() * 6.283, i % SKINS.length, NAMES[i], true, rnd(15, 45) + Math.random() * lvlBoost);
+    snakes[i] = mk(x, y, Math.random() * 6.283, i % SKINS.length, NAMES[i % NAMES.length], true, rnd(15, 45) + Math.random() * lvlBoost);
   }
   function kill(s, by) {
     if (!s.alive) return;
     s.alive = false; s.deadAt = S.t;
     const per = Math.max(1, Math.round(s.mass / s.pts.length * 2.2));
     for (let i = 0; i < s.pts.length; i += 2) addPellet(s.pts[i][0] + rnd(-6, 6), s.pts[i][1] + rnd(-6, 6), per >= 8 ? 8 : per >= 3 ? 3 : 2, SKINS[s.skin][0]);
-    if (by) { by.kills++; if (by === me) { kills++; streak = streak.filter((t) => S.t - t < 7); streak.push(S.t); if (streak.length >= 2) { banner(["", "", "DOUBLE KILL!", "TRIPLE KILL!", "MEGA KILL!"][streak.length] || "RAMPAGE!", "#ff4d6d"); sfx("level"); shake(6, .3); } S.score += 50 + Math.floor(s.mass); pop(W / 2, H / 2 - 70, "KILLED " + s.name.toUpperCase() + "!", "#ffd66b"); sfx("score"); } }
+    if (by) { by.kills++; if (by === me) creditKill(s.name, s.mass); }
+    if (NET && (s === me || botIdx.includes(snakes.indexOf(s)))) netSend({ t: "die", by: by ? (by === me ? myId : by.netId || (botIdx.includes(snakes.indexOf(by)) ? myId + ":" + snakes.indexOf(by) : "")) : "", bot: s === me ? undefined : snakes.indexOf(s), vn: s === me ? MYNAME : s.name, bn: by ? (by === me ? MYNAME : by.name) : "" });
     const onScreen = Math.hypot(s.x - cam.x, s.y - cam.y) < 500;
     if (onScreen) { const [sx, sy] = toScreen(s.x, s.y); burst(sx, sy, SKINS[s.skin][0], 40, 300, .8); if (s !== me) sfx("boom"); }
   }
@@ -5811,7 +5866,7 @@ function slitherGame() {
   function buildGrid() {
     grid = new Map();
     snakes.forEach((s, si) => {
-      if (!s.alive) return; const r = rad(s);
+      if (!s || !s.alive) return; const r = rad(s);
       for (let i = 3; i < s.pts.length; i += 1) { const [x0, y0] = s.pts[i], k = Math.floor(x0 / CELL) + "," + Math.floor(y0 / CELL); let c = grid.get(k); if (!c) grid.set(k, (c = [])); c.push(si, x0, y0, r); }
     });
   }
@@ -5844,14 +5899,14 @@ function slitherGame() {
     }
     // run from a big hunter (or an invincible player)
     for (const o of snakes) {
-      if (o === s || !o.alive) continue;
+      if (!o || o === s || !o.alive) continue;
       const d = Math.hypot(o.x - s.x, o.y - s.y);
       if (d < 150 && (o.mass > s.mass * 1.8 || o.inv > 0)) { s.ta = Math.atan2(s.y - o.y, s.x - o.x); s.boost = s.mass > 30 && Math.random() < hard * .6; return; }
     }
     // hunt: cut in front of a nearby snake
     if (Math.random() < s.aggro * hard) {
       let best = null, bd = 260 + hard * 120;
-      for (const o of snakes) { if (o === s || !o.alive || o.inv > 0) continue; const d = Math.hypot(o.x - s.x, o.y - s.y); if (d < bd && s.mass > o.mass * .5) { bd = d; best = o; } }
+      for (const o of snakes) { if (!o || o === s || !o.alive || o.inv > 0) continue; const d = Math.hypot(o.x - s.x, o.y - s.y); if (d < bd && s.mass > o.mass * .5) { bd = d; best = o; } }
       if (best) {
         const lead = 70 + rad(best) * 3, tx = best.x + Math.cos(best.a) * lead, ty = best.y + Math.sin(best.a) * lead;
         s.ta = Math.atan2(ty - s.y, tx - s.x);
@@ -5890,7 +5945,7 @@ function slitherGame() {
       if (p.dead) continue;
       const dx = s.x - p.x, dy = s.y - p.y, d = Math.hypot(dx, dy);
       if (d < reach + 16 && d > 0) { p.x += dx / d * 220 * dt; p.y += dy / d * 220 * dt; }
-      if (d < r + p.r) { p.dead = true; const pv = p.v * (s.dbl > 0 ? 2 : 1); s.mass += pv * .6; if (s === me) { S.score += pv; if (p.v >= 8) sfx("pop"); else if (Math.random() < .3) sfx("tick"); } }
+      if (d < r + p.r) { p.dead = true; if (NET && p.id) eatQ.push(p.id); const pv = p.v * (s.dbl > 0 ? 2 : 1); s.mass += pv * .6; if (s === me) { S.score += pv; if (p.v >= 8) sfx("pop"); else if (Math.random() < .3) sfx("tick"); } }
     }
     for (const u of pups) if (!u.dead && Math.hypot(u.x - s.x, u.y - s.y) < r + 16) {
       u.dead = true; const t = u.k === "double" ? 12 : 8; if (u.k === "magnet") s.mag = t; else if (u.k === "speed") s.fast = t; else s.dbl = t;
@@ -5902,27 +5957,41 @@ function slitherGame() {
     }
   }
   function respawnMe() {
-    const [x, y] = freeSpot(400); snakes[BOTS] = me = mk(x, y, Math.random() * 6.283, BASIC[SK] != null ? BASIC[SK] : 1, "YOU", false, 20); me.inv = 2.5; me.special = SPECIAL[SK] || null;
+    const [x, y] = freeSpot(400); snakes[myIdx] = me = mk(x, y, Math.random() * 6.283, BASIC[SK] != null ? BASIC[SK] : 1, NET ? MYNAME : "YOU", false, 20); me.inv = 2.5; me.special = SPECIAL[SK] || null;
     cam = { x, y };
   }
   game({
-    title: "Neon Slither", easy: "calmer bots, and if you crash you just respawn", w: W, h: H, color: "#3dffa8", bpm: 132,
-    help: ["Steer with your finger, the mouse, or ← →", "Eat glowing pellets to grow. Big ones are worth more", "Hold BOOST (or Space) to speed up. It costs length", "Grab power-ups: M = magnet, » = speed, x2 = double food. Crash into a body and you're out!"],
+    title: NET ? "Slither Arena" : "Neon Slither", easy: "calmer bots, and if you crash you just respawn", w: W, h: H, color: "#3dffa8", bpm: 132,
+    help: [NET ? "LIVE ONLINE: real players from everywhere, plus bots" : "Steer with your finger, the mouse, or ← →", "Eat glowing pellets to grow. Big ones are worth more", "Hold BOOST (or Space) to speed up. It costs length", "Grab power-ups: M = magnet, » = speed, x2 = double food. Crash into a body and you're out!"],
     init() {
       snakes = []; pellets = []; grid = new Map(); kills = 0; deadT = 0; bestRank = 21; pill = null; pillT = 15; boostIds = new Set(); aim = null; keyTurn = 0;
       cam = { x: 0, y: 0 }; zoom = 1;
-      for (let i = 0; i < BOTS; i++) spawnBot(i);
+      if (ws) { try { ws.onclose = null; ws.close(); } catch (e) {} ws = null; } remote.clear(); feed = []; isHost = false;
+      botIdx = NET ? [] : Array.from({ length: BOTS }, (_, i) => i); myIdx = NET ? 0 : BOTS;
+      for (const i of botIdx) spawnBot(i);
       respawnMe();
-      while (pellets.length < MAXP) { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (ARENA - 30); addPellet(Math.cos(a) * r, Math.sin(a) * r); }
+      while (!NET && pellets.length < MAXP) { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (ARENA - 30); addPellet(Math.cos(a) * r, Math.sin(a) * r); }
     },
-    hud() { const rank = 1 + snakes.filter((s) => s.alive && s !== me && s.mass > me.mass).length; return "LENGTH " + Math.floor(me.mass) + "  ·  KILLS " + kills + "  ·  RANK " + rank + "/" + (BOTS + 1); },
+    hud() { const rank = 1 + snakes.filter((s) => s && s.alive && s !== me && s.mass > me.mass).length; return (NET ? (netState || "ONLINE · " + players + " PLAYER" + (players === 1 ? "" : "S")) + "  ·  " : "") + "LENGTH " + Math.floor(me.mass) + "  ·  KILLS " + kills + "  ·  RANK " + rank + "/" + snakes.filter((s2) => s2 && s2.alive).length; },
     summary() { return ["LENGTH " + Math.floor(me.mass) + "   KILLS " + kills + "   BEST RANK #" + bestRank]; },
     down(px, py, pid) { if (px > W - 120 && py > H - 120) boostIds.add(pid); else aim = [px, py]; },
     move(px, py, pid) { if (boostIds.has(pid)) return; aim = [px, py]; },
     up(px, py, pid) { boostIds.delete(pid); },
     update(dt) {
       if (!S.down) boostIds.clear();
-      if (deadT > 0) { deadT -= dt; if (deadT <= 0) { if (!S.practice) return over("EATEN!"); respawnMe(); } }
+      if (NET) {
+        if (!ws) { retryT -= dt; if (retryT <= 0) connect(); }
+        netT -= dt;
+        if (netT <= 0 && ws && ws.readyState === 1 && myId) {
+          netT = .1;
+          if (me.alive) netSend({ t: "st", s: pack(me) });
+          if (isHost && botIdx.length) netSend({ t: "bots", l: botIdx.map((i) => snakes[i] && snakes[i].alive ? { ...pack(snakes[i]), bi: i } : null).filter(Boolean) });
+          if (eatQ.length) { netSend({ t: "eat", ids: eatQ.splice(0, 120) }); }
+          if (dropQ.length) { netSend({ t: "drop", l: dropQ.splice(0, 160) }); }
+        }
+        for (const o of remote.values()) { if (!o.alive) continue; const k = Math.min(.25, S.t - o.ut), sp = o.boost ? 290 : 155; o.x = o.ux + Math.cos(o.a) * sp * k; o.y = o.uy + Math.sin(o.a) * sp * k; o.pts[0] = [o.x, o.y]; if (S.t - o.ut > 3) { o.alive = false; remote.delete(o.netId); } }
+      }
+      if (deadT > 0) { deadT -= dt; if (deadT <= 0) { if (!S.practice && !NET) return over("EATEN!"); respawnMe(); } }
       // player input
       if (me.alive) {
         const k = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
@@ -5931,14 +6000,14 @@ function slitherGame() {
         me.boost = boostIds.size > 0 || !!(S.keys[" "] || S.keys.Shift || S.keys.ArrowUp || S.keys.w);
       }
       buildGrid();
-      for (const s of snakes) if (s.alive && s.bot) { s.think -= dt; if (s.think <= 0) { s.think = .12 + Math.random() * .08; think(s); } }
+      for (const s of snakes) if (s && s.alive && s.bot && !s.remote) { s.think -= dt; if (s.think <= 0) { s.think = .12 + Math.random() * .08; think(s); } }
       buildGrid();
-      for (const s of snakes) if (s.alive) move(s, dt);
+      for (const s of snakes) if (s && s.alive && !s.remote) move(s, dt);
       pellets = pellets.filter((p) => !p.dead);
       buildGrid();
       // collisions
       for (let i = 0; i < snakes.length; i++) {
-        const s = snakes[i]; if (!s.alive) continue;
+        const s = snakes[i]; if (!s || !s.alive || s.remote) continue;
         const r = rad(s);
         if (Math.hypot(s.x, s.y) > ARENA - r) { if (s.inv > 0) { s.a += Math.PI; s.ta = s.a; } else { kill(s, null); if (s === me) { deadT = 1.4; shake(10, .4); flash("#ff4d6d", .4); sfx("boom"); pop(W / 2, H / 2 - 40, "HIT THE WALL", "#ff4d6d"); } continue; } }
         if (s.inv > 0) continue;
@@ -5948,14 +6017,14 @@ function slitherGame() {
           if (s === me) { deadT = 1.4; shake(10, .4); flash("#ff4d6d", .4); sfx("boom"); pop(W / 2, H / 2 - 40, "EATEN BY " + snakes[j].name.toUpperCase(), "#ff4d6d"); }
         }
       }
-      for (let i = 0; i < BOTS; i++) if (!snakes[i].alive && S.t - snakes[i].deadAt > 3) spawnBot(i, true);
-      while (pellets.length < MAXP) { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (ARENA - 30); addPellet(Math.cos(a) * r, Math.sin(a) * r); }
+      for (const i of botIdx) if (snakes[i] && !snakes[i].alive && S.t - snakes[i].deadAt > 3) spawnBot(i, true);
+      while (!NET && pellets.length < MAXP) { const a = Math.random() * 6.283, r = Math.sqrt(Math.random()) * (ARENA - 30); addPellet(Math.cos(a) * r, Math.sin(a) * r); }
       if (pellets.length > MAXP * 2) pellets.splice(0, pellets.length - MAXP * 2);
       pups = pups.filter((u) => !u.dead); pupT -= dt; if (pupT <= 0 && pups.length < 4) { pupT = 7 + Math.random() * 5; const [ux, uy] = freeSpot(120), ks = Object.keys(PUPS); pups.push({ x: ux, y: uy, k: ks[Math.random() * ks.length | 0] }); }
       pillT -= dt; if (!pill && pillT <= 0) { const [x, y] = freeSpot(150); pill = { x, y }; if (me.alive && Math.hypot(x - me.x, y - me.y) < 900) pop(W / 2, 80, "A MAGIC PILL APPEARED!", "#ffd66b"); }
       if (me.alive) { cam.x += (me.x - cam.x) * Math.min(1, dt * 8); cam.y += (me.y - cam.y) * Math.min(1, dt * 8); }
       zoom += (Math.max(.5, Math.min(1, 1.15 - rad(me) * .022)) - zoom) * Math.min(1, dt * 2);
-      if (me.alive) { const rank = 1 + snakes.filter((s) => s.alive && s !== me && s.mass > me.mass).length; if (rank < bestRank) { bestRank = rank; if (rank === 1) { banner("#1 · BIGGEST SNAKE!", "#ffd66b"); sfx("level"); } } }
+      if (me.alive) { const rank = 1 + snakes.filter((s) => s && s.alive && s !== me && s.mass > me.mass).length; if (rank < bestRank) { bestRank = rank; if (rank === 1) { banner("#1 · BIGGEST SNAKE!", "#ffd66b"); sfx("level"); } } }
     },
     draw() {
       bg("#04030c");
@@ -5982,7 +6051,7 @@ function slitherGame() {
         glow(c, 26); x.fillStyle = c; x.beginPath(); x.ellipse(pill.x, pill.y, 16, 9, S.clock * 2, 0, 6.2832); x.fill(); glow();
         x.fillStyle = "#ffffff"; x.beginPath(); x.ellipse(pill.x, pill.y, 7, 3, S.clock * 2, 0, 6.2832); x.fill();
       }
-      const order = snakes.filter((s) => s.alive).sort((a, b) => a.mass - b.mass);
+      const order = snakes.filter((s) => s && s.alive).sort((a, b) => a.mass - b.mass);
       for (const s of order) {
         const r = rad(s), far = Math.hypot(s.x - cam.x, s.y - cam.y) - s.pts.length * SEG;
         if (far > Math.max(vw, vh) + 60) continue;
@@ -6005,24 +6074,27 @@ function slitherGame() {
           x.fillStyle = "#ffffff"; x.beginPath(); x.arc(ox, oy, r * .34, 0, 6.2832); x.fill();
           x.fillStyle = "#05030c"; x.beginPath(); x.arc(ox + ex * r * .12, oy + ey * r * .12, r * .17, 0, 6.2832); x.fill();
         }
-        if (s.bot || S.practice) { x.font = "700 " + Math.round(12 / zoom) + "px 'Share Tech Mono', monospace"; x.textAlign = "center"; x.fillStyle = "rgba(255,255,255,.75)"; x.fillText(s.name, s.x, s.y - r - 12 / zoom); }
+        if (s.bot || S.practice || NET) { x.font = "700 " + Math.round(12 / zoom) + "px 'Share Tech Mono', monospace"; x.textAlign = "center"; x.fillStyle = "rgba(255,255,255,.75)"; x.fillText(s.name, s.x, s.y - r - 12 / zoom); }
       }
       x.restore();
       // leaderboard
-      const top = snakes.filter((s) => s.alive).sort((a, b) => b.mass - a.mass).slice(0, 5);
+      const top = snakes.filter((s) => s && s.alive).sort((a, b) => b.mass - a.mass).slice(0, 5);
       x.fillStyle = "rgba(4,2,10,.6)"; rr(W - 170, 10, 160, 22 + top.length * 18, 10); x.fill();
       txt("TOP SNAKES", W - 90, 22, 11, "#3dffa8", "center", "d");
       top.forEach((s, i) => { const mine = s === me; txt((i + 1) + ". " + s.name, W - 162, 42 + i * 18, 12, mine ? "#ffd66b" : SKINS[s.skin][0], "left"); txt(String(Math.floor(s.mass)), W - 18, 42 + i * 18, 12, mine ? "#ffd66b" : "#d8d0f5", "right"); });
       // minimap
       const mx = 62, my = H - 62, mr = 50;
       x.fillStyle = "rgba(4,2,10,.6)"; x.beginPath(); x.arc(mx, my, mr + 4, 0, 6.2832); x.fill(); x.strokeStyle = "rgba(255,77,109,.6)"; x.lineWidth = 1.5; x.stroke();
-      for (const s of snakes) { if (!s.alive) continue; const k = mr / ARENA; x.fillStyle = s === me ? "#ffffff" : ca(SKINS[s.skin][0], .8); x.beginPath(); x.arc(mx + s.x * k, my + s.y * k, s === me ? 3.5 : 1.6 + Math.min(3, s.mass / 80), 0, 6.2832); x.fill(); }
+      for (const s of snakes) { if (!s || !s.alive) continue; const k = mr / ARENA; x.fillStyle = s === me ? "#ffffff" : ca(SKINS[s.skin][0], .8); x.beginPath(); x.arc(mx + s.x * k, my + s.y * k, s === me ? 3.5 : 1.6 + Math.min(3, s.mass / 80), 0, 6.2832); x.fill(); }
       if (pill) { x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(mx + pill.x * mr / ARENA, my + pill.y * mr / ARENA, 2.5, 0, 6.2832); x.fill(); }
       // boost button
       const on = me.alive && me.boost;
       glow("#3dffa8", on ? 22 : 6); x.fillStyle = on ? "rgba(61,255,168,.35)" : "rgba(61,255,168,.1)"; x.strokeStyle = "#3dffa8"; x.lineWidth = 2.5; x.beginPath(); x.arc(W - 62, H - 62, 46, 0, 6.2832); x.fill(); x.stroke(); glow();
       txt("BOOST", W - 62, H - 62, 13, "#ffffff", "center", "d");
       if (me.alive) { const act = [["mag", "MAGNET", "#22e4ff"], ["fast", "SPEED", "#ffd66b"], ["dbl", "x2 FOOD", "#ff2bd6"]].filter(([k]) => me[k] > 0); act.forEach(([k, n, c], i) => txt(n + " " + Math.ceil(me[k]) + "s", W / 2, 86 + i * 20, 13, c, "center", "d")); }
+      if (NET) feed.filter((f) => S.t - f.t < 5).forEach((f, i) => txt(f.txt, 14, 24 + i * 18, 12, "#ff7be6", "left"));
+      if (NET && netState) { x.fillStyle = "rgba(4,2,10,.7)"; x.fillRect(0, H / 2 - 30, W, 60); txt(netState, W / 2, H / 2, 20, "#3dffa8", "center", "d"); }
+      if (NET && !me.alive && deadT > 0) txt("RESPAWNING...", W / 2, H / 2 + 40, 16, "#ffffff", "center", "d");
       if (me.inv > 0 && me.alive) txt("INVINCIBLE " + Math.ceil(me.inv) + "s", W / 2, 60, 16, "#ffd66b", "center", "d");
     },
   });
@@ -6214,7 +6286,7 @@ function slitherGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + "window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -6991,6 +7063,16 @@ function slitherGame() {
     poll();
   }
 
+  const _renderOnline = renderOnline;
+  renderOnline = function () {
+    _renderOnline();
+    const box = $("#online-box"); if (!box || !XR.online) return;
+    const name = (typeof me !== "undefined" && me && me.username) || "Guest" + Math.floor(100 + Math.random() * 900);
+    box.prepend(el("div", { class: "panel lit arena-card" },
+      el("div", { class: "arena-txt" }, el("p", { class: "eyebrow", text: "● LIVE NOW" }), el("h3", { class: "tour-h", text: "🐍 Slither Arena" }),
+        el("p", { class: "duo-how", text: "Jump into a live Neon Slither arena with players from everywhere, plus bots. No code needed. Your shop skin comes with you." })),
+      el("button", { class: "btn hot big", type: "button", text: "Play live ▸", onclick: () => { const g = gameOf("slither"); if (g) play(g, null, { slitherOnline: true, name }); } })));
+  };
   /* ---------- Hooks from games and tournaments ---------- */
   window.gblOnPlay = (g, opts) => {
     if (!g || !g.key || !BUILTINS.some((b) => b.key === g.key)) return;

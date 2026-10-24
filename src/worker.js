@@ -20,6 +20,10 @@ export default {
   async fetch(request, env) {
     await ensureTables(env);
     const url = new URL(request.url);
+    if (url.pathname === "/api/slither") {
+      if (!env.ARENA) return json({ error: "The online arena isn't set up." }, 503);
+      return env.ARENA.get(env.ARENA.idFromName("main")).fetch(request);
+    }
     if (url.pathname === "/" || url.pathname === "/index.html") return homePage(request, env, url);
     if (!url.pathname.startsWith("/api/")) return env.ASSETS.fetch(request);
     try {
@@ -578,4 +582,69 @@ const b64url = (u8) => b64e(u8).replace(/\+/g, "-").replace(/\//g, "_").replace(
 async function sha256hex(s) {
   const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s));
   return [...new Uint8Array(d)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+/* ------------------------------------------------------------------ */
+/* Neon Slither online arena: one shared room that relays snake        */
+/* positions between players and keeps the pellets in sync.            */
+/* ------------------------------------------------------------------ */
+
+const ARENA_R = 1500, PELLETS = 450, MAX_PLAYERS = 16;
+const PCOLS = ["#ff2bd6", "#22e4ff", "#b6ff3b", "#ffc23d", "#a35bff", "#ff4d6d", "#3dffa8", "#ff8a1f"];
+export class SlitherArena {
+  constructor(state, env) { this.state = state; this.conns = new Map(); this.pel = new Map(); this.pid = 1; this.host = null; }
+  addPellet(x, y, v, c) { const id = this.pid++, p = [id, Math.round(x), Math.round(y), v, c]; this.pel.set(id, p); return p; }
+  fill() {
+    const add = [];
+    while (this.pel.size < PELLETS) {
+      const a = Math.random() * 6.2832, r = Math.sqrt(Math.random()) * (ARENA_R - 30), v = Math.random() < .05 ? 8 : Math.random() < .3 ? 3 : 1;
+      add.push(this.addPellet(Math.cos(a) * r, Math.sin(a) * r, v, PCOLS[Math.floor(Math.random() * PCOLS.length)]));
+    }
+    return add;
+  }
+  send(ws, obj) { try { ws.send(JSON.stringify(obj)); } catch {} }
+  bcast(obj, except) { const s = JSON.stringify(obj); for (const [id, ws] of this.conns) if (id !== except) { try { ws.send(s); } catch {} } }
+  async fetch(request) {
+    if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected a websocket", { status: 426 });
+    if (this.conns.size >= MAX_PLAYERS) return new Response("The arena is full", { status: 503 });
+    const pair = new WebSocketPair(), client = pair[0], ws = pair[1];
+    ws.accept();
+    const id = Math.random().toString(36).slice(2, 8);
+    this.conns.set(id, ws);
+    if (!this.host || !this.conns.has(this.host)) this.host = id;
+    this.fill();
+    this.send(ws, { t: "welcome", id, host: this.host === id, players: this.conns.size, pellets: [...this.pel.values()] });
+    this.bcast({ t: "count", players: this.conns.size }, id);
+    ws.addEventListener("message", (e) => {
+      if (typeof e.data !== "string" || e.data.length > 24000) return;
+      let m; try { m = JSON.parse(e.data); } catch { return; }
+      if (m && typeof m === "object") this.onMsg(id, m);
+    });
+    const bye = () => {
+      if (!this.conns.has(id)) return;
+      this.conns.delete(id);
+      this.bcast({ t: "bye", id, players: this.conns.size });
+      if (this.host === id) {
+        this.host = this.conns.keys().next().value || null;
+        if (this.host) this.send(this.conns.get(this.host), { t: "host" });
+      }
+      if (!this.conns.size) this.pel.clear();
+    };
+    ws.addEventListener("close", bye);
+    ws.addEventListener("error", bye);
+    return new Response(null, { status: 101, webSocket: client });
+  }
+  onMsg(id, m) {
+    if (m.t === "st" || m.t === "bots") { if (m.t === "bots" && id !== this.host) return; m.id = id; this.bcast(m, id); }
+    else if (m.t === "eat" && Array.isArray(m.ids)) {
+      const rm = m.ids.slice(0, 120).filter((i) => this.pel.delete(i));
+      if (rm.length) this.bcast({ t: "pe", rm, add: this.fill() });
+    } else if (m.t === "drop" && Array.isArray(m.l)) {
+      if (this.pel.size > 1800) return;
+      const add = m.l.slice(0, 160).map((q) => Array.isArray(q) ? this.addPellet(Math.max(-ARENA_R, Math.min(ARENA_R, +q[0] || 0)), Math.max(-ARENA_R, Math.min(ARENA_R, +q[1] || 0)), [1, 2, 3, 8].includes(q[2]) ? q[2] : 1, typeof q[3] === "string" && q[3].length < 12 ? q[3] : "#22e4ff") : null).filter(Boolean);
+      if (add.length) this.bcast({ t: "pe", rm: [], add });
+    } else if (m.t === "die") {
+      this.bcast({ t: "kill", v: Number.isInteger(m.bot) ? id + ":" + m.bot : id, by: String(m.by || "").slice(0, 24), vn: String(m.vn || "").slice(0, 16), bn: String(m.bn || "").slice(0, 16) });
+    }
+  }
 }

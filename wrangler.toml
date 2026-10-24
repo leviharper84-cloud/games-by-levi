@@ -22,3 +22,12 @@ database_id = "91bf4ccf-de67-4f01-a549-caa968d7a297"
 # The account with this username is the admin who approves and rejects submitted games.
 # Sign up with this name right after you deploy, before anyone else can take it.
 ADMIN_USERNAME = "Levi"
+
+# The live Neon Slither arena (real-time online play).
+[[durable_objects.bindings]]
+name = "ARENA"
+class_name = "SlitherArena"
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["SlitherArena"]
