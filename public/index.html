@@ -375,6 +375,28 @@ textarea.code {
 .q-act { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
 .owner-note { font-size: .82rem; color: var(--a1); margin-top: 10px; }
 
+/* ---------- 2-player page ---------- */
+.duo-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 18px; }
+.duo-card {
+  display: flex; flex-direction: column; min-width: 0; background: var(--panel); border: 1px solid rgba(255,43,214,.32); border-radius: var(--r); overflow: hidden;
+  transition: transform .35s var(--ease), box-shadow .35s var(--ease), border-color .35s var(--ease);
+}
+.duo-card:hover { transform: translateY(-4px); border-color: rgba(255,43,214,.75); box-shadow: 0 10px 40px rgba(255,43,214,.2), 0 0 0 1px rgba(34,228,255,.25); }
+.duo-art { position: relative; cursor: pointer; }
+.duo-art .screen { aspect-ratio: 16 / 9; }
+.duo-tag {
+  position: absolute; top: 10px; right: 10px; z-index: 2; font: 700 .64rem var(--f-mono); letter-spacing: .16em; padding: 3px 10px; border-radius: 999px;
+  color: #07040f; background: linear-gradient(90deg, #22e4ff, #ff2bd6); box-shadow: 0 0 14px rgba(255,43,214,.6);
+}
+.duo-body { padding: 14px 16px 18px; display: flex; flex-direction: column; gap: 12px; flex: 1; min-width: 0; }
+.duo-body h3 { margin: 0; font-family: var(--f-sign); font-weight: 400; font-size: 1.55rem; line-height: 1.1; text-shadow: 0 0 12px rgba(255,43,214,.5); }
+.duo-how { margin: 0; color: var(--muted); font-size: .9rem; }
+.duo-ctl { display: grid; gap: 6px; }
+.kbd { display: grid; gap: 2px; padding: 7px 10px; border-radius: 9px; border: 1px solid var(--line-2); background: rgba(7,4,15,.7); font: 400 .76rem var(--f-mono); color: var(--fg); }
+.kbd b { font: 700 .6rem var(--f-body); letter-spacing: .16em; text-transform: uppercase; color: var(--a2); }
+.duo-body .btn { margin-top: auto; align-self: flex-start; }
+.p2 { font: 700 .6rem var(--f-mono); letter-spacing: .1em; color: #ff7be6; border: 1px solid rgba(255,43,214,.55); border-radius: 999px; padding: 0 6px; }
+
 /* ---------- Leaderboards ---------- */
 .lb { display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 760px) { .lb { grid-template-columns: 1fr; } }
@@ -576,6 +598,8 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <button class="btn hot big" type="button" id="browse">Browse games ▸</button>
     </div>
     <div class="home-links">
+      <button class="linkbtn" type="button" data-go="two-player">2 Players</button>
+      <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="leaderboards">Leaderboards</button>
       <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="submit">Submit a game</button>
@@ -603,6 +627,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <nav class="links" aria-label="Sections">
       <a href="#home">Home</a>
       <a href="#library">Library</a>
+      <a href="#two-player">2 Players</a>
       <a href="#leaderboards">Leaderboards</a>
       <a href="#submit">Submit</a>
       <a href="#queue">Queue</a>
@@ -635,6 +660,19 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       </div>
       <div class="grid" id="grid"></div>
       <div class="more"><button class="btn sm" id="more" type="button">Show all 100 slots</button></div>
+    </div>
+  </section>
+
+  <section id="two-player">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">Grab a friend</p>
+          <h2>2-player games</h2>
+          <p class="lede">Play side by side on one keyboard, or share an iPad. Matches are just for fun and never go on the leaderboards.</p>
+        </div>
+      </div>
+      <div class="duo-grid" id="duo-grid"></div>
     </div>
   </section>
 
@@ -771,6 +809,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <a class="brand" href="#home">Games <b>by Levi</b></a>
     <nav class="foot-links" aria-label="Footer">
       <a href="#library">Library</a>
+      <a href="#two-player">2 Players</a>
       <a href="#leaderboards">Leaderboards</a>
       <a href="#submit">Submit a game</a>
       <a href="#queue">Queue</a>
@@ -1041,7 +1080,7 @@ function SHELL() {
       (G.help || []).forEach((h, i) => L.push([h, 13 * u, i % 2 ? "#ff7be6" : "#d8d0f5"]));
       if (G.easy) L.push(["", 4 * u], ["PRACTICE: " + G.easy, 12 * u, "#3dffa8"]);
       if (G.duo) L.push(["2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
-      L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
+      L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && G.duo ? "▶ TAP OR PRESS SPACE TO START 2 PLAYERS" : G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
     }
     const total = L.reduce((a, l) => a + l[1] * 1.55, 0);
     let y = G.h / 2 - total / 2;
@@ -1093,11 +1132,11 @@ function SHELL() {
     const showP = menu && !S.paused, showD = showP && !!G.duo, isOver = S.state === "over";
     if (pracBtn.hidden === showP) pracBtn.hidden = !showP;
     if (duoBtn.hidden === showD) duoBtn.hidden = !showD;
-    const label = S.paused ? "▶ RESUME" : isOver ? (S.duo ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : "▶ START";
+    const label = S.paused ? "▶ RESUME" : isOver ? (S.duo ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? "▶ START 2 PLAYERS" : "▶ START";
     if (goBtn.textContent !== label) goBtn.textContent = label;
     const plabel = isOver && S.practice ? "RANKED GAME" : "PRACTICE";
     if (pracBtn.textContent !== plabel) pracBtn.textContent = plabel;
-    const dlabel = isOver && S.duo ? "1 PLAYER" : "2 PLAYERS";
+    const dlabel = (isOver ? S.duo : duoDefault()) ? "1 PLAYER" : "2 PLAYERS";
     if (duoBtn.textContent !== dlabel) duoBtn.textContent = dlabel;
   }
 
@@ -1105,10 +1144,11 @@ function SHELL() {
   function local(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * G.w / r.width, (e.clientY - r.top) * G.h / r.height]; }
   const keyOf = (e) => (e.key.length === 1 ? e.key.toLowerCase() : e.key);
   sndBtn.addEventListener("click", (e) => { e.stopPropagation(); cycleSound(); });
-  const again = () => (S.state === "over" ? [S.practice, S.duo] : [false, false]);
+  const duoDefault = () => !!(window.DUO0 && G && G.duo);
+  const again = () => (S.state === "over" ? [S.practice, S.duo] : [false, duoDefault()]);
   goBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (S.paused) togglePause(); else if (canStart()) start(...again()); });
   pracBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (canStart()) start(!(S.state === "over" && S.practice), false); });
-  duoBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, !(S.state === "over" && S.duo)); });
+  duoBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, !(S.state === "over" ? S.duo : duoDefault())); });
   addEventListener("touchstart", (e) => {
     if (!G || (e.target.closest && e.target.closest("button"))) return;
     audio();
@@ -2453,6 +2493,14 @@ function targetsGame() {
     { key: "targets", title: "Target Rush", genre: "Action", fn: targetsGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
+  const DUO = [
+    { key: "pong", how: "Head-to-head. First to 7 points wins.", keys: "P1 W / S  ·  P2 ↑ / ↓", touch: "Each player drags on their own half" },
+    { key: "snake", how: "Two snakes, one arena. Crash and the round goes to your rival. First to 3 rounds.", keys: "P1 W A S D  ·  P2 arrow keys", touch: "Each player swipes on their own half" },
+    { key: "memory", how: "Take turns flipping cards. Find a pair and go again. Most pairs wins.", keys: "Click the cards, one player at a time", touch: "Pass the iPad between turns" },
+    { key: "targets", how: "Split screen with the same targets on both sides. Best score in 30 seconds wins.", keys: "Best on a touch screen", touch: "P1 taps the left half, P2 the right" },
+  ];
+  const DUO_KEYS = new Set(DUO.map((d) => d.key));
+
   const SHELL_CSS = "html,body{margin:0;height:100%;background:#03020a;color:#fff;overflow:hidden;user-select:none;-webkit-user-select:none;touch-action:none;font-family:'Share Tech Mono',ui-monospace,Menlo,monospace}" +
     "#wrap{position:fixed;inset:30px 0 0;display:grid;place-items:center}canvas{display:block;border:1px solid;border-radius:4px}" +
     "#hud{position:fixed;top:0;left:0;right:0;height:28px;display:flex;align-items:center;gap:10px;padding:0 8px;font-size:12px;letter-spacing:.14em;color:var(--c,#22e4ff);text-shadow:0 0 8px var(--c,#22e4ff);white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.07);background:linear-gradient(#0b0619,#03020a)}" +
@@ -2464,11 +2512,11 @@ function targetsGame() {
     "#go{font:800 15px Orbitron,system-ui,sans-serif;letter-spacing:.2em;color:#fff;background:rgba(10,4,24,.85);border:2px solid var(--c,#22e4ff);border-radius:999px;padding:14px 34px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 24px var(--c,#22e4ff),inset 0 0 14px rgba(255,255,255,.08);text-shadow:0 0 10px var(--c,#22e4ff)}" +
     "#go:active{transform:scale(.96)}" +
     "@media(max-width:520px){#hc{display:none}}";
-  function buildGame(g) {
+  function buildGame(g, opts) {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + "(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -2615,7 +2663,7 @@ function targetsGame() {
         g.builtin ? el("span", { class: "badge", text: "Original" }) : null,
         el("div", { class: "card-body" },
           el("div", { class: "card-title", text: g.title }),
-          el("div", { class: "card-meta" }, el("span", { class: "genre", text: g.genre }), el("span", { text: "by " + (g.creator || "Anonymous") })),
+          el("div", { class: "card-meta" }, el("span", { class: "genre", text: g.genre }), DUO_KEYS.has(g.key) ? el("span", { class: "p2", text: "2P" }) : null, el("span", { text: "by " + (g.creator || "Anonymous") })),
           top ? el("div", { class: "top", text: "Top score " + fmt(top) }) : null,
           el("div", { class: "play-hint", text: "Insert coin ▸" })));
       if (libReady) card.style.animation = "none"; else card.style.animationDelay = Math.min(i * 30, 400) + "ms";
@@ -2881,7 +2929,7 @@ function targetsGame() {
     const b = g.key && g.slot ? myBest(g.key) : 0;
     $("#cab-sub").textContent = `${g.genre || "Test run"} · by ${g.creator || "you"}` + (g.slot ? ` · slot #${pad(g.slot)}` : "") + (b ? ` · your best ${fmt(b)}` : "");
   }
-  async function play(g, codeOverride) {
+  async function play(g, codeOverride, opts) {
     lastFocus = document.activeElement;
     $("#cab-title").textContent = g.title;
     setCabSub(g);
@@ -2889,7 +2937,7 @@ function targetsGame() {
     box.replaceChildren(msgBox("Loading cartridge…"));
     modal.classList.add("open"); modal.setAttribute("aria-hidden", "false");
     $("#close").focus();
-    let code = codeOverride || (g.fn ? buildGame(g) : null), why = "";
+    let code = codeOverride || (g.fn ? buildGame(g, opts) : null), why = "";
     if (!code && g.id) { try { code = (await api(`/submissions/${g.id}/code`)).code; } catch (e) { why = e.message; } }
     if (!modal.classList.contains("open")) return;
     if (!code) { box.replaceChildren(msgBox(why || "This cartridge couldn't be loaded. Try again in a moment.")); return; }
@@ -3031,6 +3079,24 @@ function targetsGame() {
   }
 
   /* ---------- Boot ---------- */
+  function renderDuo() {
+    const grid = $("#duo-grid"); if (!grid) return;
+    grid.replaceChildren(...DUO.map((d) => {
+      const i = BUILTINS.findIndex((b) => b.key === d.key), g = { ...BUILTINS[i], slot: i + 1 };
+      const go = () => play(g, null, { duo: true });
+      return el("article", { class: "duo-card" },
+        el("div", { class: "duo-art", role: "button", tabindex: "0", "aria-label": "Play " + g.title + " with 2 players", onclick: go, onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); go(); } } },
+          art(g), el("span", { class: "duo-tag", text: "2 PLAYERS" })),
+        el("div", { class: "duo-body" },
+          el("h3", { text: g.title }),
+          el("p", { class: "duo-how", text: d.how }),
+          el("div", { class: "duo-ctl" },
+            el("div", { class: "kbd" }, el("b", { text: "Keyboard" }), el("span", { text: d.keys })),
+            el("div", { class: "kbd" }, el("b", { text: "iPad / touch" }), el("span", { text: d.touch }))),
+          el("button", { class: "btn hot sm", type: "button", text: "Play 2 players ▸", onclick: go })));
+    }));
+  }
+  renderDuo();
   function renderAll() { renderLibrary(); renderBoard(); renderQueue(); }
   async function refresh(what) {
     const jobs = [];
@@ -3054,7 +3120,7 @@ function targetsGame() {
 (() => {
   const home = document.getElementById("home"), hub = document.getElementById("hub");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const HUB = ["games", "library", "leaderboards", "submit", "queue"];
+  const HUB = ["games", "library", "two-player", "leaderboards", "submit", "queue"];
   let inHub = false;
   const setHash = (h) => { try { history.pushState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) {} };
   function showHub(target, animate) {
