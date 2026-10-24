@@ -4650,7 +4650,7 @@ function reversiGame() {
 /* ---------- 32 Beat Lanes ---------- */
 function beatGame() {
   const W = 480, H = 600, LN = 4, LW = 100, LX = 40, HITY = 512, BPM = 120, SPB = 60 / BPM, LEAD = 2.05;
-  const COLS = ["#ff2bd6", "#22e4ff", "#b6ff3b", "#ffc23d"], LABEL = ["D", "F", "J", "K"];
+  const COLS = ["#ff2bd6", "#22e4ff", "#b6ff3b", "#ffc23d"], LABEL = ["←", "↓", "↑", "→"];
   const KEYL = { d: 0, f: 1, j: 2, k: 3, ArrowLeft: 0, ArrowDown: 1, ArrowUp: 2, ArrowRight: 3, a: 0, s: 1, w: 2 };
   let notes, nextSub, combo, maxCombo, hp, level, judge, press, stats, lastLane, tvv;
   const travelGoal = () => Math.max(.85, 1.55 - (level - 1) * .1) * (S.practice ? 1.25 : 1), travel = () => tvv;
@@ -4679,7 +4679,7 @@ function beatGame() {
   }
   game({
     title: "Beat Lanes", easy: "slower notes and misses don't hurt", w: W, h: H, color: "#ff2bd6", bpm: BPM,
-    help: ["Hit the notes as they cross the line", "Tap the lanes, or press D F J K (or arrows)", "Perfect timing scores most. Combos multiply", "Misses drain your energy. It speeds up as you go"],
+    help: ["Hit the notes as they cross the line", "Tap the lanes, or press the arrow keys ← ↓ ↑ →", "Perfect timing scores most. Combos multiply", "Misses drain your energy. It speeds up as you go"],
     init() { notes = []; nextSub = 0; combo = 0; maxCombo = 0; hp = 100; level = 1; judge = null; press = [0, 0, 0, 0]; stats = { PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 }; lastLane = -1; tvv = travelGoal(); },
     hud() { return "LEVEL " + level + "  ·  COMBO " + combo + "  ·  x" + Math.min(4, 1 + Math.floor(combo / 10) * .5); },
     summary() { return ["MAX COMBO " + maxCombo + "   PERFECT " + stats.PERFECT + "   MISS " + stats.MISS]; },
@@ -4710,7 +4710,7 @@ function beatGame() {
       const tv = travel();
       for (let k = Math.ceil((S.t - LEAD) / SPB); k < (S.t + tv - LEAD) / SPB + 1; k++) { const y = HITY - ((LEAD + k * SPB) - S.t) / tv * (HITY + 20); x.moveTo(LX, y); x.lineTo(LX + LN * LW, y); } x.stroke();
       glow("#ffffff", 14 + pulse * 14); x.fillStyle = "rgba(255,255,255," + (.6 + pulse * .4) + ")"; x.fillRect(LX, HITY - 2, LN * LW, 4); glow();
-      for (let i = 0; i < LN; i++) { const X = LX + i * LW + LW / 2; x.strokeStyle = ca(COLS[i], .6 + press[i] * 3); x.lineWidth = 3; x.beginPath(); x.arc(X, HITY, 26 + press[i] * 40, 0, 7); x.stroke(); txt(LABEL[i], X, HITY + 50, 16, ca(COLS[i], .8), "center", "d"); }
+      for (let i = 0; i < LN; i++) { const X = LX + i * LW + LW / 2; x.strokeStyle = ca(COLS[i], .6 + press[i] * 3); x.lineWidth = 3; x.beginPath(); x.arc(X, HITY, 26 + press[i] * 40, 0, 7); x.stroke(); txt(LABEL[i], X, HITY + 50, 26, ca(COLS[i], .9), "center"); }
       for (const n of notes) {
         if (n.hit) continue;
         const y = HITY - (n.t - S.t) / tv * (HITY + 20); if (y < -30 || y > H + 30) continue;
