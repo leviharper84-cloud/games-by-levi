@@ -416,6 +416,9 @@ textarea.code {
 .tour-field[hidden] { display: none; }
 .tour-field span { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--a2); font-weight: 700; }
 .tour-field .search { width: 100%; box-sizing: border-box; }
+.tour-lv { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.tour-lv[hidden] { display: none; }
+.tour-lv > span { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--a2); font-weight: 700; margin-right: 6px; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
 .tour-score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; margin-bottom: 18px; }
@@ -1161,7 +1164,7 @@ function SHELL() {
       L.push([G.title.toUpperCase(), 34 * u, G.color, "g"], ["GAMES BY LEVI  //  HI-SCORE " + fmt(S.best), 11 * u, "#8f86b5"], ["", 8 * u]);
       (G.help || []).forEach((h, i) => L.push([h, 13 * u, i % 2 ? "#ff7be6" : "#d8d0f5"]));
       if (G.easy) L.push(["", 4 * u], ["PRACTICE: " + G.easy, 12 * u, "#3dffa8"]);
-      if (G.duo) L.push([window.BOT0 ? "VS BOT: YOU ARE PLAYER 1, THE BOT IS PLAYER 2" : "2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
+      if (G.duo) L.push([window.BOT0 ? "VS " + ["EASY", "MEDIUM", "HARD", "HACKER"][BK()] + " BOT: YOU ARE PLAYER 1, THE BOT IS PLAYER 2" : "2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
       L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && G.duo ? (window.BOT0 ? "▶ TAP OR PRESS SPACE TO PLAY THE BOT" : "▶ TAP OR PRESS SPACE TO START 2 PLAYERS") : G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
     }
     const maxW = G.w - Math.max(14, G.w * .06) * 2 - 12, WL = [];
@@ -1288,7 +1291,7 @@ function SHELL() {
   });
   addEventListener("pointercancel", (e) => { PT.delete(e.pointerId); S.down = PT.size > 0; });
   addEventListener("resize", fit);
-  Object.assign(window, { S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
+  Object.assign(window, { BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
 }
 
 /* ---------- 01 Neon Snake ---------- */
@@ -1348,7 +1351,7 @@ function snakeGame() {
       if (oh && Math.abs(oh.x + o.d.x - nx) + Math.abs(oh.y + o.d.y - ny) === 0) v -= 60;
       if (v > bv) { bv = v; best = [dx, dy]; }
     }
-    if (best && Math.random() > .03) s.nd = { x: best[0], y: best[1] };
+    if (best && Math.random() > [.2, .05, .015, 0][BK()]) s.nd = { x: best[0], y: best[1] };
   }
   function duoDraw() {
     const [fa, fb] = C(duo.food);
@@ -1571,7 +1574,7 @@ function pongGame() {
   function duoUpdate(dt) {
     const k1 = (S.keys.s ? 1 : 0) - (S.keys.w ? 1 : 0) + (S.bot ? (S.keys.ArrowDown ? 1 : 0) - (S.keys.ArrowUp ? 1 : 0) : 0), k2 = (S.keys.ArrowDown ? 1 : 0) - (S.keys.ArrowUp ? 1 : 0), o1 = p, o2 = c;
     if (k1) { p += k1 * 480 * dt; ty = p; } else p += (ty - p) * Math.min(1, dt * 18);
-    if (S.bot) { const tg = b.vx > 0 ? b.y + Math.sin(S.t * 2.1) * 24 : H / 2; c += Math.max(-420 * dt, Math.min(420 * dt, tg - c)); }
+    if (S.bot) { const tg = b.vx > 0 ? b.y + Math.sin(S.t * 2.1) * [44, 24, 14, 3][BK()] : H / 2, bs = [250, 420, 580, 950][BK()]; c += Math.max(-bs * dt, Math.min(bs * dt, tg - c)); }
     else if (k2) { c += k2 * 480 * dt; ty2 = c; } else c += (ty2 - c) * Math.min(1, dt * 18);
     p = clampP(p); c = clampP(c);
     const v1 = (p - o1) / dt, v2 = (c - o2) / dt;
@@ -2020,8 +2023,8 @@ function memoryGame() {
           const hid = cards.map((c, i) => i).filter((i) => !cards[i].up && !cards[i].done), unseen = hid.filter((i) => seen[i] === undefined);
           const rnd = (a) => a[Math.random() * a.length | 0];
           let pick = -1;
-          if (!open.length) { for (const i of hid) { const j = hid.find((q) => q !== i && seen[q] !== undefined && seen[q] === seen[i]); if (j !== undefined && Math.random() < .9) { pick = i; break; } } }
-          else { const v = cards[open[0]].v, j = hid.find((q) => seen[q] === v); if (j !== undefined && Math.random() < .8) pick = j; }
+          if (!open.length) { for (const i of hid) { const j = hid.find((q) => q !== i && seen[q] !== undefined && seen[q] === seen[i]); if (j !== undefined && Math.random() < [.35, .8, .95, 1][BK()]) { pick = i; break; } } }
+          else { const v = cards[open[0]].v, j = hid.find((q) => seen[q] === v); if (j !== undefined && Math.random() < [.4, .8, .95, 1][BK()]) pick = j; }
           if (pick < 0) pick = unseen.length ? rnd(unseen) : rnd(hid);
           if (pick !== undefined && pick >= 0) { const [X, Y] = cell(pick); this.down(X, Y, "bot"); }
         }
@@ -2447,7 +2450,7 @@ function targetsGame() {
         T.push({ k, x: 50 + Math.random() * (W - 100), y: 70 + Math.random() * (H - 120), r: TYPES[k][1] * Math.max(.65, 1 - (stage - 1) * .07), life, age: 0, vx: mv ? Math.cos(a) * vs : 0, vy: mv ? Math.sin(a) * vs : 0, rot: Math.random() * 6 });
         spawn = Math.max(.2, .72 - stage * .08);
       }
-      if (S.bot) for (const t of T.slice()) if (t.side === 1) { if (t.bt === undefined) t.bt = t.k === "b" ? (Math.random() < .08 ? .6 : 99) : (Math.random() < .8 ? .35 + Math.random() * .5 : 99); if (t.age >= t.bt) { t.bt = 99; duoDown(t.x, t.y, true); } }
+      if (S.bot) for (const t of T.slice()) if (t.side === 1) { if (t.bt === undefined) { const bk = BK(); t.bt = t.k === "b" ? (Math.random() < [.2, .08, .03, 0][bk] ? .6 : 99) : (Math.random() < [.5, .8, .92, .99][bk] ? [.7, .35, .25, .14][bk] + Math.random() * [.6, .5, .3, .12][bk] : 99); } if (t.age >= t.bt) { t.bt = 99; duoDown(t.x, t.y, true); } }
       for (const t of T) { t.age += dt; t.x += t.vx * dt; t.y += t.vy * dt; if (t.x < 40 || t.x > W - 40) t.vx = -t.vx; if (t.y < 60 || t.y > H - 40) t.vy = -t.vy; }
       const before = T.length; const expired = T.filter((t) => t.age >= t.life && t.k !== "b");
       T = T.filter((t) => t.age < t.life);
@@ -2791,7 +2794,7 @@ function pingpongGame() {
       if (perfect) { powerFx(p); if (r === 0 && !S.duo) S.score += 20; }
       else if (!swung) pop(p.x, p.y + (r ? 40 : -40), "BLOCK", "#a69cc6");
       else if (q.power > .6) { pop(ball.x, ball.y - 40, "SMASH!", "#ffd66b"); shake(4, .15); }
-      if (r === 0 && S.bot) aiErr = (Math.random() * 2 - 1) * 22;
+      if (r === 0 && S.bot) aiErr = (Math.random() * 2 - 1) * [40, 22, 12, 3][BK()];
       if (r === 0 && !S.duo) { S.score += 5; hits++; aiErr = (Math.random() * 2 - 1) * Math.max(4, 34 - lvl * 4); }
     }
     if (rally % 6 === 0) pop(W / 2, NETY - 30, "RALLY x" + rally, "#ffd66b");
@@ -2814,7 +2817,7 @@ function pingpongGame() {
   game({
     title: "Ping Pong", duo: "P1: ← → move, ↑ swings (bottom). P2: A D move, W swings (top). iPad: drag to move, tap to swing. First to 11.", easy: "slow ball, gentle AI, a bigger swing window, no score limit", w: W, h: H, color: "#22e4ff", bpm: 124,
     help: ["Move with the mouse, a finger or ← / →", "SWING with a tap, click, Space or ↑. No swing = soft block", "Perfect timing = POWER SHOT. Hit off-center to angle it", "It must bounce on the other side. First to 11"],
-    init() { pads = [{ x: W / 2, tx: W / 2, y: PY[0], vx: 0, fl: 0, sw: -1, cd: 0 }, { x: W / 2, tx: W / 2, y: PY[1], vx: 0, fl: 0, sw: -1, cd: 0 }]; sc = [0, 0]; rally = 0; hits = 0; lvl = S.bot ? 4 : 1; aiErr = 0; winner = -1; newBall(0); phase = "serve"; timer = 1.2; },
+    init() { pads = [{ x: W / 2, tx: W / 2, y: PY[0], vx: 0, fl: 0, sw: -1, cd: 0 }, { x: W / 2, tx: W / 2, y: PY[1], vx: 0, fl: 0, sw: -1, cd: 0 }]; sc = [0, 0]; rally = 0; hits = 0; lvl = S.bot ? [1, 4, 7, 12][BK()] : 1; aiErr = 0; winner = -1; newBall(0); phase = "serve"; timer = 1.2; },
     hud() {
       if (S.duo) return "P1 " + sc[0] + " : " + sc[1] + " P2  ·  FIRST TO 11  ·  RALLY " + rally;
       return "YOU " + sc[0] + " : " + sc[1] + " AI  ·  AI LEVEL " + lvl + (S.practice ? "" : "  ·  FIRST TO 11");
@@ -4310,7 +4313,7 @@ function hoopGame() {
     const good = [];
     for (let a = -1.45; a < -.3; a += .03) for (let pw = 420; pw < 980; pw += 12) if (sim(Math.cos(a) * pw, Math.sin(a) * pw)) good.push([a, pw]);
     let [a, pw] = good.length ? good[Math.random() * good.length | 0] : [-.9, 700];
-    if (Math.random() < .42) pw += (Math.random() < .5 ? -1 : 1) * (18 + Math.random() * 40);
+    if (Math.random() < [.7, .42, .25, .08][BK()]) pw += (Math.random() < .5 ? -1 : 1) * (18 + Math.random() * 40);
     launch(Math.cos(a) * pw, Math.sin(a) * pw);
   }
   const botTurn = () => S.bot && duo && duo.shot % 2 === 1;
@@ -4385,7 +4388,7 @@ function penaltyGame() {
     if (!S.duo) { const spread = S.practice ? 0 : Math.min(26, 6 + level * 2.5); tx += (Math.random() - .5) * spread * 2; ty += (Math.random() - .5) * spread; }
     kick = { tx, ty, t: 0, dur: S.duo ? .55 : Math.max(.42, .62 - level * .015) };
     if (S.duo && S.bot) {
-      if (duo.kick % 2 === 0) { const read = Math.random() < .3; keeperChoose(read ? tx + (Math.random() - .5) * 50 : GL + 30 + Math.random() * (GR2 - GL - 60), read ? ty : GT + 40 + Math.random() * 120); keeper.react = .12; }
+      if (duo.kick % 2 === 0) { const read = Math.random() < [.15, .3, .45, .65][BK()]; keeperChoose(read ? tx + (Math.random() - .5) * 50 : GL + 30 + Math.random() * (GR2 - GL - 60), read ? ty : GT + 40 + Math.random() * 120); keeper.react = .12; }
       else { phase = "keep"; aimX = 240; aimY = 200; sfx("blip"); }
       return;
     }
@@ -4453,7 +4456,7 @@ function penaltyGame() {
     },
     update(dt) {
       wob += dt;
-      if (botKicks()) { botT -= dt; if (botT <= 0) { botT = 1.2; shoot(GL + 26 + Math.random() * (GR2 - GL - 52), GT + 22 + Math.random() * (GB - GT - 34)); } } else botT = 1.2;
+      if (botKicks()) { botT -= dt; if (botT <= 0) { botT = 1.2; const k = BK(), m = [100, 40, 26, 0][k]; shoot(k === 3 ? (Math.random() < .5 ? GL + 18 + Math.random() * 40 : GR2 - 18 - Math.random() * 40) : GL + m + Math.random() * (GR2 - GL - 2 * m), k === 3 ? GT + 20 + Math.random() * 40 : GT + 22 + Math.random() * (GB - GT - 34)); } } else botT = 1.2;
       if (phase === "aim" || phase === "kAim" || phase === "keep") {
         const kx = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), ky = (S.keys.ArrowDown || S.keys.s ? 1 : 0) - (S.keys.ArrowUp || S.keys.w ? 1 : 0);
         aimX = Math.max(GL - 30, Math.min(GR2 + 30, aimX + kx * 260 * dt)); aimY = Math.max(GT - 30, Math.min(GB, aimY + ky * 220 * dt));
@@ -4713,7 +4716,7 @@ function c4Game() {
   game({
     title: "Connect Four", duo: "Pass and play: P1 is pink, P2 is gold. Tap a column to drop.", easy: "a sleepy AI that makes lots of mistakes", w: W, h: H, color: "#ff2bd6", bpm: 108,
     help: ["Tap a column to drop your pink disc", "Get 4 in a row: across, down or diagonal", "Keys: ← → pick a column, Space or ↓ drops", "Beat the AI to level up. It thinks harder every level"],
-    init() { level = S.bot ? 3 : 1; cur = 3; startP = 1; newGame(); },
+    init() { level = S.bot ? [1, 3, 5, 7][BK()] : 1; cur = 3; startP = 1; newGame(); },
     hud() { if (S.duo) return "PLAYER " + turn + "'S TURN"; return "LEVEL " + level + "  ·  AI DEPTH " + (S.practice ? 1 : Math.min(7, level + 1)) + "  ·  " + (turn === 1 ? "YOUR TURN" : "AI THINKING"); },
     summary() { return S.duo ? [] : ["BEAT THE AI " + (level - 1) + " TIME" + (level === 2 ? "" : "S")]; },
     tap(px) { const c = Math.floor((px - OX) / Z); if (c < 0 || c >= C) return; cur = c; if (hum()) drop(c); },
@@ -4816,7 +4819,7 @@ function reversiGame() {
   game({
     title: "Reversi", duo: "Pass and play: P1 is cyan, P2 is pink. Tap a glowing dot to move.", easy: "the AI just picks random moves", w: W, h: H, color: "#22e4ff", bpm: 100,
     help: ["Tap a glowing dot to place a cyan disc", "Trap pink discs in a line to flip them to your color", "Most discs when the board is full wins. Corners are gold", "Keys: arrows move, Space places. The AI gets smarter"],
-    init() { level = S.bot ? 2 : 1; cur = [2, 3]; newGame(); },
+    init() { level = S.bot ? [1, 2, 3, 4][BK()] : 1; cur = [2, 3]; newGame(); },
     hud() { const a = count(b, 1), c2 = count(b, 2); return (S.duo ? "P1 " + a + "  ·  " + c2 + " P2  ·  PLAYER " + turn + "'S TURN" : "LEVEL " + level + "  ·  YOU " + a + "  ·  AI " + c2); },
     summary() { return S.duo ? [] : ["BEAT THE AI " + (level - 1) + " TIME" + (level === 2 ? "" : "S")]; },
     tap(px, py) { const c = Math.floor((px - OX) / Z), r = Math.floor((py - OY) / Z); if (c < 0 || r < 0 || c >= N || r >= N) return; cur = [c, r]; if (hum()) doMove(c, r); },
@@ -5196,7 +5199,7 @@ function simonGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + "(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + "(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -5762,7 +5765,8 @@ function simonGame() {
   /* ---------- Tournament ---------- */
   const TOUR_BOT = ["pong", "snake", "memory", "targets", "pingpong", "connect4", "reversi", "hoops", "penalty"];
   const TOUR_KEY = "gbl-tour", ROUNDS = 7;
-  let tour = null, tourMode = "bot";
+  let tour = null, tourMode = "bot", tourLvl = 1;
+  const BOT_LV = ["Easy", "Medium", "Hard", "Hacker"];
   try { tour = JSON.parse(store.get(TOUR_KEY) || "null"); if (tour && !Array.isArray(tour.rounds)) tour = null; } catch { tour = null; }
   const saveTour = () => store.set(TOUR_KEY, JSON.stringify(tour));
   const gameOf = (key) => { const i = BUILTINS.findIndex((b) => b.key === key); return i < 0 ? null : { ...BUILTINS[i], slot: i + 1 }; };
@@ -5770,9 +5774,9 @@ function simonGame() {
   const tourPool = (bot) => (bot ? TOUR_BOT : DUO.map((d) => d.key)).filter((k) => gameOf(k));
   const tally = () => [1, 2].map((p) => tour.rounds.filter((r) => r.w === p).length);
   const nextRound = () => tour.rounds.findIndex((r) => r.w === null);
-  function startTour(bot, names) {
+  function startTour(bot, names, lvl) {
     const pool = shuffled(tourPool(bot));
-    tour = { bot, names, rounds: pool.slice(0, ROUNDS).map((key) => ({ key, w: null })), spare: pool.slice(ROUNDS) };
+    tour = { bot, names, lvl: lvl == null ? 1 : lvl, rounds: pool.slice(0, ROUNDS).map((key) => ({ key, w: null })), spare: pool.slice(ROUNDS) };
     saveTour(); renderTour();
     $("#tournament").scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -5790,7 +5794,7 @@ function simonGame() {
   function playRound() {
     const i = nextRound(); if (i < 0) return;
     const g = gameOf(tour.rounds[i].key); if (!g) return;
-    play(g, null, { duo: true, bot: tour.bot, tour: true, onMatch: (w) => {
+    play(g, null, { duo: true, bot: tour.bot, botLevel: tour.lvl == null ? 1 : tour.lvl, tour: true, onMatch: (w) => {
       finishRound(i, w);
       setTimeout(() => { if (current && current.g.key === g.key) closeModal(); }, 2600);
     } });
@@ -5801,7 +5805,9 @@ function simonGame() {
       const n1 = el("input", { class: "search", id: "t-p1", maxlength: "16", placeholder: "Player 1", value: (typeof me !== "undefined" && me && me.username) || "" });
       const n2 = el("input", { class: "search", id: "t-p2", maxlength: "16", placeholder: "Player 2" });
       const f2 = el("label", { class: "tour-field" }, el("span", { text: "Player 2 name" }), n2);
-      const pick = (mode) => { tourMode = mode; opts.forEach((o) => o.classList.toggle("on", o.dataset.mode === mode)); f2.hidden = mode === "bot"; };
+      const lvBtns = BOT_LV.map((n, i) => el("button", { class: "chip", type: "button", "aria-pressed": String(i === tourLvl), text: n, onclick: () => { tourLvl = i; lvBtns.forEach((b2, j) => b2.setAttribute("aria-pressed", String(j === i))); } }));
+      const lvRow = el("div", { class: "tour-lv" }, el("span", { text: "Bot level" }), ...lvBtns);
+      const pick = (mode) => { tourMode = mode; opts.forEach((o) => o.classList.toggle("on", o.dataset.mode === mode)); f2.hidden = mode === "bot"; lvRow.hidden = mode !== "bot"; };
       const opt = (mode, icon, title, sub) => el("button", { class: "tour-opt", type: "button", "data-mode": mode, onclick: () => pick(mode) },
         el("span", { class: "tour-ico", text: icon }), el("b", { text: title }), el("span", { text: sub }));
       const opts = [opt("bot", "⚙", "VS the bot", "Just you against the computer. " + tourPool(true).length + " games it can play."),
@@ -5809,14 +5815,15 @@ function simonGame() {
       box.replaceChildren(el("div", { class: "panel lit tour-setup" },
         el("h3", { class: "tour-h", text: "Start a tournament" }),
         el("div", { class: "tour-opts" }, ...opts),
+        lvRow,
         el("div", { class: "tour-names" }, el("label", { class: "tour-field" }, el("span", { text: "Player 1 name (you)" }), n1), f2),
         el("ul", { class: "tour-rules" },
           el("li", { text: "7 rounds, each one a different random 2-player game." }),
           el("li", { text: "Win a round to score a point. The most points after 7 rounds wins." }),
           el("li", { text: "Tied at the end? A sudden-death round decides the champion." })),
         el("button", { class: "btn hot", type: "button", text: "Start tournament ▸", onclick: () => {
-          const a = (n1.value.trim() || "Player 1").slice(0, 16), b = tourMode === "bot" ? "Bot" : (n2.value.trim() || "Player 2").slice(0, 16);
-          startTour(tourMode === "bot", [a, b]);
+          const a = (n1.value.trim() || "Player 1").slice(0, 16), b = tourMode === "bot" ? BOT_LV[tourLvl] + " Bot" : (n2.value.trim() || "Player 2").slice(0, 16);
+          startTour(tourMode === "bot", [a, b], tourLvl);
         } })));
       pick(tourMode);
       return;
@@ -5843,7 +5850,7 @@ function simonGame() {
         el("h3", { text: youLost ? "The bot is the champion!" : champ + " is the champion!" }),
         el("p", { text: (youLost ? "So close. Run it back?" : "Won the tournament " + Math.max(a, b) + " to " + Math.min(a, b) + ".") }),
         el("div", { class: "tour-btns" },
-          el("button", { class: "btn hot", type: "button", text: "Rematch ▸", onclick: () => startTour(tour.bot, tour.names) }),
+          el("button", { class: "btn hot", type: "button", text: "Rematch ▸", onclick: () => startTour(tour.bot, tour.names, tour.lvl) }),
           el("button", { class: "btn", type: "button", text: "New tournament", onclick: () => { tour = null; store.set(TOUR_KEY, "null"); renderTour(); } }))));
     } else {
       const g = gameOf(tour.rounds[ni].key), d = DUO.find((q) => q.key === tour.rounds[ni].key);
