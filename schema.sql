@@ -56,3 +56,32 @@ CREATE TABLE IF NOT EXISTS settings (
   data    TEXT    NOT NULL,
   at      INTEGER NOT NULL
 );
+
+-- Favorites, recently played and achievements (JSON per account).
+CREATE TABLE IF NOT EXISTS progress (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  data    TEXT    NOT NULL,
+  at      INTEGER NOT NULL
+);
+
+-- Daily challenge best scores.
+CREATE TABLE IF NOT EXISTS daily (
+  day     TEXT    NOT NULL,
+  user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  game    TEXT    NOT NULL,
+  score   INTEGER NOT NULL,
+  at      INTEGER NOT NULL,
+  PRIMARY KEY (day, user_id)
+);
+
+-- Online rooms for turn-based games.
+CREATE TABLE IF NOT EXISTS rooms (
+  code       TEXT    PRIMARY KEY,
+  game       TEXT    NOT NULL,
+  host_id    INTEGER NOT NULL,
+  guest_id   INTEGER,
+  moves      TEXT    NOT NULL DEFAULT '[]',
+  status     TEXT    NOT NULL DEFAULT 'open',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);

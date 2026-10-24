@@ -42,6 +42,9 @@ const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS submissions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, title TEXT NOT NULL, creator TEXT NOT NULL, genre TEXT NOT NULL, blurb TEXT NOT NULL DEFAULT '', code TEXT NOT NULL, size INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL, approved_at INTEGER)",
   "CREATE INDEX IF NOT EXISTS submissions_by_status ON submissions(status, created_at)",
   "CREATE TABLE IF NOT EXISTS settings (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, data TEXT NOT NULL, at INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS progress (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, data TEXT NOT NULL, at INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS daily (day TEXT NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, score INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (day, user_id))",
+  "CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, game TEXT NOT NULL, host_id INTEGER NOT NULL, guest_id INTEGER, moves TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS rate (key TEXT PRIMARY KEY, count INTEGER NOT NULL, since INTEGER NOT NULL)",
 ];
 let tablesReady = null;
@@ -87,6 +90,16 @@ async function handle(request, env, url) {
 
   if (path === "/api/settings" && method === "GET") return getSettings(env, user);
   if (path === "/api/settings" && method === "PUT") return putSettings(request, env, user);
+
+  if (path === "/api/progress" && method === "GET") return getProgress(env, user);
+  if (path === "/api/progress" && method === "PUT") return putProgress(request, env, user);
+  if (path === "/api/daily" && method === "GET") return getDaily(env, user);
+  if (path === "/api/daily" && method === "POST") return postDaily(request, env, user);
+  if (path === "/api/rooms" && method === "POST") return createRoom(request, env, user);
+  if ((m = path.match(/^\/api\/rooms\/([A-Z]{4})$/)) && method === "GET") return getRoom(env, user, m[1], url);
+  if ((m = path.match(/^\/api\/rooms\/([A-Z]{4})\/join$/)) && method === "POST") return joinRoom(env, user, m[1]);
+  if ((m = path.match(/^\/api\/rooms\/([A-Z]{4})\/move$/)) && method === "POST") return roomMove(request, env, user, m[1]);
+  if ((m = path.match(/^\/api\/rooms\/([A-Z]{4})\/leave$/)) && method === "POST") return leaveRoom(env, user, m[1]);
 
   if (path === "/api/scores" && method === "GET") return getScores(env, user);
   if (path === "/api/scores" && method === "POST") return postScores(request, env, user);
@@ -222,6 +235,110 @@ async function putSettings(request, env, user) {
   const st = cleanSettings(await readJson(request));
   await env.DB.prepare("INSERT INTO settings (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, at = excluded.at").bind(user.id, JSON.stringify(st), Date.now()).run();
   return json({ settings: st });
+}
+
+/* ------------------------------------------------------------------ */
+/* Progress: favorites, recently played, achievements                  */
+/* ------------------------------------------------------------------ */
+
+async function getProgress(env, user) {
+  if (!user) fail(401, "Log in first.");
+  const row = await env.DB.prepare("SELECT data FROM progress WHERE user_id = ?").bind(user.id).first();
+  let data = null; try { data = row ? JSON.parse(row.data) : null; } catch { data = null; }
+  return json({ progress: data });
+}
+async function putProgress(request, env, user) {
+  if (!user) fail(401, "Log in first.");
+  await limit(env, "prog:" + user.id, 120, MIN, "Slow down a little.");
+  const b = await readJson(request), text = JSON.stringify(b.progress && typeof b.progress === "object" ? b.progress : {});
+  if (text.length > 20000) fail(413, "That's too much data.");
+  await env.DB.prepare("INSERT INTO progress (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, at = excluded.at").bind(user.id, text, Date.now()).run();
+  return json({ ok: true });
+}
+
+/* ------------------------------------------------------------------ */
+/* Daily challenge: one game per day (UTC), its own leaderboard        */
+/* ------------------------------------------------------------------ */
+
+const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon"];
+const dayKey = (t = Date.now()) => new Date(t).toISOString().slice(0, 10);
+function dailyGame(day) { let h = 7; for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return DAILY_POOL[h % DAILY_POOL.length]; }
+async function getDaily(env, user) {
+  const day = dayKey(), game = dailyGame(day);
+  const { results } = await env.DB.prepare("SELECT d.user_id, d.score, u.username, u.avatar_i, u.avatar_c FROM daily d JOIN users u ON u.id = d.user_id WHERE d.day = ? ORDER BY d.score DESC, d.at ASC LIMIT 20").bind(day).all();
+  let mine = null;
+  if (user) { const r = await env.DB.prepare("SELECT score FROM daily WHERE day = ? AND user_id = ?").bind(day, user.id).first(); mine = r ? r.score : null; }
+  return json({ day, game, endsAt: Date.parse(day + "T00:00:00Z") + DAY, top: results.map((r) => ({ uid: r.user_id, tag: r.username, av: { i: r.avatar_i, c: r.avatar_c }, s: r.score })), mine });
+}
+async function postDaily(request, env, user) {
+  if (!user) fail(401, "Log in to join the daily challenge.");
+  await limit(env, "daily:" + user.id, 30, MIN, "Slow down a little.");
+  const b = await readJson(request), day = dayKey(), score = Math.floor(Number(b.score));
+  if (b.game !== dailyGame(day)) fail(400, "That isn't today's game.");
+  if (!Number.isFinite(score) || score < 0 || score > MAX_SCORE) fail(400, "That score doesn't look right.");
+  await env.DB.prepare("INSERT INTO daily (day, user_id, game, score, at) VALUES (?, ?, ?, ?, ?) ON CONFLICT (day, user_id) DO UPDATE SET score = excluded.score, at = excluded.at WHERE excluded.score > daily.score").bind(day, user.id, b.game, score, Date.now()).run();
+  return getDaily(env, user);
+}
+
+/* ------------------------------------------------------------------ */
+/* Online rooms for turn-based 2-player games                          */
+/* ------------------------------------------------------------------ */
+
+const ONLINE_GAMES = new Set(["connect4", "reversi", "chess"]);
+async function createRoom(request, env, user) {
+  if (!user) fail(401, "Log in to play online.");
+  await limit(env, "room:" + user.id, 20, 10 * MIN, "You've made a lot of rooms. Try again in a few minutes.");
+  const b = await readJson(request);
+  if (!ONLINE_GAMES.has(b.game)) fail(400, "That game can't be played online yet.");
+  const now = Date.now();
+  await env.DB.prepare("DELETE FROM rooms WHERE updated_at < ?").bind(now - 6 * HOUR).run();
+  const A = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  for (let i = 0; i < 8; i++) {
+    const r = crypto.getRandomValues(new Uint8Array(4)), code = [...r].map((x) => A[x % A.length]).join("");
+    try {
+      await env.DB.prepare("INSERT INTO rooms (code, game, host_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?)").bind(code, b.game, user.id, now, now).run();
+      return json({ code, game: b.game, seat: 1 });
+    } catch (e) { if (!/UNIQUE|PRIMARY/i.test(String(e))) throw e; }
+  }
+  fail(500, "Couldn't make a room. Try again.");
+}
+async function roomFor(env, code) {
+  const r = await env.DB.prepare("SELECT r.*, h.username AS host_name, g.username AS guest_name FROM rooms r JOIN users h ON h.id = r.host_id LEFT JOIN users g ON g.id = r.guest_id WHERE r.code = ?").bind(code).first();
+  if (!r) fail(404, "No room with that code. Check the letters and try again.");
+  return r;
+}
+const seatOf = (r, user) => (user && r.host_id === user.id ? 1 : user && r.guest_id === user.id ? 2 : 0);
+async function getRoom(env, user, code, url) {
+  const r = await roomFor(env, code), since = Math.max(0, Math.floor(Number(url.searchParams.get("since")) || 0));
+  const moves = JSON.parse(r.moves || "[]");
+  return json({ code, game: r.game, status: r.status, seat: seatOf(r, user), host: r.host_name, guest: r.guest_name || null, count: moves.length, moves: moves.slice(since) });
+}
+async function joinRoom(env, user, code) {
+  if (!user) fail(401, "Log in to play online.");
+  const r = await roomFor(env, code);
+  if (r.host_id === user.id) return json({ code, game: r.game, seat: 1 });
+  if (r.guest_id && r.guest_id !== user.id) fail(409, "That room is already full.");
+  if (r.status === "left") fail(410, "That game has ended.");
+  await env.DB.prepare("UPDATE rooms SET guest_id = ?, status = 'playing', updated_at = ? WHERE code = ?").bind(user.id, Date.now(), code).run();
+  return json({ code, game: r.game, seat: 2, host: r.host_name });
+}
+async function roomMove(request, env, user, code) {
+  if (!user) fail(401, "Log in to play online.");
+  await limit(env, "move:" + user.id, 120, MIN, "Slow down a little.");
+  const r = await roomFor(env, code), seat = seatOf(r, user);
+  if (!seat) fail(403, "You're not in this game.");
+  const b = await readJson(request), moves = JSON.parse(r.moves || "[]");
+  if (Number(b.n) !== moves.length) fail(409, "Out of sync. Catching up.");
+  const mv = JSON.stringify(b.move ?? null); if (mv.length > 200) fail(400, "That move is too big.");
+  moves.push({ seat, m: JSON.parse(mv) });
+  const res = await env.DB.prepare("UPDATE rooms SET moves = ?, updated_at = ? WHERE code = ? AND moves = ?").bind(JSON.stringify(moves), Date.now(), code, r.moves).run();
+  if (!res.meta || !res.meta.changes) fail(409, "Out of sync. Catching up.");
+  return json({ count: moves.length });
+}
+async function leaveRoom(env, user, code) {
+  const r = await roomFor(env, code);
+  if (seatOf(r, user)) await env.DB.prepare("UPDATE rooms SET status = 'left', updated_at = ? WHERE code = ?").bind(Date.now(), code).run();
+  return json({ ok: true });
 }
 
 /* ------------------------------------------------------------------ */

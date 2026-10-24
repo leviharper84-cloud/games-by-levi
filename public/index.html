@@ -448,6 +448,58 @@ textarea.code {
 .set-theme.on { border-color: var(--a1); box-shadow: 0 0 16px rgba(var(--a1-rgb), .35); }
 .set-dot { width: 22px; height: 22px; border-radius: 50%; flex: none; }
 .set-theme b { font-size: .86rem; }
+/* daily challenge */
+.daily { display: grid; grid-template-columns: minmax(180px, 260px) 1fr minmax(200px, 280px); gap: 18px; align-items: center; margin-bottom: 22px; padding: 16px; border-radius: 20px; border: 1px solid rgba(255,214,107,.45); background: radial-gradient(120% 140% at 0% 0%, rgba(255,214,107,.12), transparent 60%), var(--panel); box-shadow: 0 0 30px rgba(255,214,107,.12); }
+.daily[hidden] { display: none; }
+.daily-art { position: relative; border-radius: 14px; overflow: hidden; cursor: pointer; }
+.daily-art .screen { aspect-ratio: 16 / 10; }
+.daily-tag { position: absolute; top: 8px; left: 8px; font: 700 .62rem var(--f-mono); letter-spacing: .14em; padding: 3px 9px; border-radius: 999px; color: #1a1200; background: linear-gradient(90deg, #ffd66b, #ff8a1f); box-shadow: 0 0 14px rgba(255,214,107,.7); }
+.daily-body h3 { margin: 0 0 6px; font-family: var(--f-sign); font-weight: 400; font-size: 1.9rem; color: #ffd66b; text-shadow: 0 0 14px rgba(255,214,107,.6); }
+.daily-btns { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-top: 10px; }
+.daily-mine { font: 700 .8rem var(--f-mono); color: #ffd66b; }
+.daily-top { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.daily-top li { display: grid; grid-template-columns: 24px 1fr auto; gap: 8px; align-items: center; padding: 6px 10px; border-radius: 10px; background: rgba(7,4,15,.6); border: 1px solid var(--line); font-size: .86rem; }
+.daily-top li.empty { grid-template-columns: 1fr; color: var(--muted); }
+.daily-top .rk { font: 700 .8rem var(--f-mono); color: #ffd66b; }
+.daily-top .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (max-width: 860px) { .daily { grid-template-columns: 1fr; } }
+/* favorites and recently played */
+.strips { display: grid; gap: 14px; margin-bottom: 20px; }
+.strips[hidden] { display: none; }
+.strip h3 { margin: 0 0 8px; font-size: .78rem; letter-spacing: .18em; text-transform: uppercase; color: var(--a2); }
+.strip-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
+.mini { flex: none; width: 128px; display: grid; gap: 6px; padding: 0 0 8px; border-radius: 12px; overflow: hidden; border: 1px solid var(--line-2); background: var(--panel); color: var(--fg); font: inherit; cursor: pointer; text-align: left; transition: transform .2s var(--ease), border-color .2s; }
+.mini:hover { transform: translateY(-2px); border-color: var(--a1); }
+.mini .screen { aspect-ratio: 16 / 10; }
+.mini .glyph { font-size: 1.4rem; }
+.mini > span { padding: 0 9px; font-size: .78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-btn { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 3; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); background: rgba(7,4,15,.7); color: #fff; font-size: 1.05rem; line-height: 1; cursor: pointer; display: grid; place-items: center; transition: transform .2s, box-shadow .2s; }
+.fav-btn:hover { transform: translateX(-50%) scale(1.12); }
+.fav-btn.on { color: #ff4d8d; border-color: #ff4d8d; box-shadow: 0 0 14px rgba(255,77,141,.7); }
+/* badges */
+.badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
+.badge-tile { display: grid; gap: 4px; justify-items: start; padding: 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); opacity: .55; }
+.badge-tile.on { opacity: 1; border-color: rgba(255,214,107,.55); box-shadow: 0 0 22px rgba(255,214,107,.15); }
+.badge-ico { font-size: 1.9rem; }
+.badge-tile.on .badge-ico { filter: drop-shadow(0 0 10px rgba(255,214,107,.8)); }
+.badge-tile b { font-size: .98rem; }
+.badge-tile small { color: var(--muted); font-size: .8rem; }
+.badge-when { font: 700 .62rem var(--f-mono); letter-spacing: .1em; color: #ffd66b; }
+#badges-count { color: #ffd66b; margin-left: 6px; }
+.ach-pop { position: fixed; left: 50%; top: 18px; z-index: 200; display: flex; gap: 12px; align-items: center; padding: 12px 20px; border-radius: 16px; background: #120b24; border: 1px solid #ffd66b; box-shadow: 0 0 34px rgba(255,214,107,.5); transform: translate(-50%, -140%); transition: transform .5s var(--ease); }
+.ach-pop.show { transform: translate(-50%, 0); }
+.ach-pop .ach-ico { font-size: 2rem; }
+.ach-pop small { display: block; font: 700 .62rem var(--f-mono); letter-spacing: .16em; color: #ffd66b; }
+.ach-pop b { font-size: 1.05rem; }
+/* online */
+.online-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.online-games { display: grid; gap: 10px; margin-top: 12px; }
+.join-row { display: flex; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
+.room-in { width: 140px; font: 800 1.6rem var(--f-mono); letter-spacing: .3em; text-align: center; text-transform: uppercase; }
+.online-wait, .online-note { text-align: center; display: grid; gap: 10px; justify-items: center; grid-column: 1 / -1; }
+.room-code { font: 800 clamp(2.6rem, 10vw, 4.4rem) var(--f-mono); letter-spacing: .3em; color: var(--a2); text-shadow: 0 0 22px rgba(var(--a2-rgb), .8); padding-left: .3em; }
+.online-dots::after { content: ""; animation: dots 1.4s steps(4) infinite; }
+@keyframes dots { 0% { content: ""; } 25% { content: "."; } 50% { content: ".."; } 75% { content: "..."; } }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
@@ -706,6 +758,8 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="tournament">Tournament</button>
       <span aria-hidden="true">·</span>
+      <button class="linkbtn" type="button" data-go="online">Online</button>
+      <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-settings>Settings</button>
       <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="leaderboards">Leaderboards</button>
@@ -733,13 +787,13 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
   <div class="wrap">
     <a class="brand" href="#home" title="Back to the home screen">Games <b>by Levi</b></a>
     <nav class="links" aria-label="Sections">
-      <a href="#home">Home</a>
       <a href="#library">Library</a>
       <a href="#two-player">2 Players</a>
       <a href="#tournament">Tournament</a>
+      <a href="#online">Online</a>
       <a href="#leaderboards">Leaderboards</a>
+      <a href="#badges">Badges</a>
       <a href="#submit">Submit</a>
-      <a href="#queue">Queue</a>
     </nav>
     <div class="themes" role="group" aria-label="Neon color">
       <span>Neon</span>
@@ -763,6 +817,8 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
           <p class="lede">Every game gets its own numbered cabinet. Approved submissions light up the next open slot.</p>
         </div>
       </div>
+      <div class="daily" id="daily" hidden></div>
+      <div class="strips" id="strips" hidden></div>
       <div class="tools">
         <label class="sr" for="q">Search games</label>
         <input class="search" id="q" type="search" placeholder="Search by title or creator" autocomplete="off">
@@ -799,6 +855,19 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     </div>
   </section>
 
+  <section id="online">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">Play across devices</p>
+          <h2>Online</h2>
+          <p class="lede">Play Connect Four, Reversi or Chess against a friend on their own phone, iPad or computer. One of you makes a room, the other types in the code.</p>
+        </div>
+      </div>
+      <div class="online-grid" id="online-box"></div>
+    </div>
+  </section>
+
   <section id="leaderboards">
     <div class="wrap">
       <div class="sec-head">
@@ -829,6 +898,19 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
           <div class="tagrow" id="lb-me"></div>
         </div>
       </div>
+    </div>
+  </section>
+
+  <section id="badges">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">Achievements</p>
+          <h2>Badges</h2>
+          <p class="lede">Unlock badges by exploring the hub, setting big scores, winning tournaments and playing online. <b id="badges-count"></b></p>
+        </div>
+      </div>
+      <div class="badges-grid" id="badges-grid"></div>
     </div>
   </section>
 
@@ -934,7 +1016,9 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#library">Library</a>
       <a href="#two-player">2 Players</a>
       <a href="#tournament">Tournament</a>
+      <a href="#online">Online</a>
       <a href="#leaderboards">Leaderboards</a>
+      <a href="#badges">Badges</a>
       <a href="#submit">Submit a game</a>
       <a href="#queue">Queue</a>
     </nav>
@@ -1080,7 +1164,7 @@ function SHELL() {
   const S = {
     state: "title", score: 0, best: window.BEST0 || 0, t: 0, clock: 0, keys: {}, px: -99, py: -99, down: false,
     overAt: 0, end: "", fresh: false, practice: false, duo: false, cd: 0, newBest: false, shown: 0, parts: [], pops: [], rings: [], banner: null,
-    shakeA: 0, shakeT: 0, flashC: "#ffffff", flashA: 0, sound: 2, paused: false, bot: false,
+    shakeA: 0, shakeT: 0, flashC: "#ffffff", flashA: 0, sound: 2, paused: false, bot: false, online: window.ONLINE0 || 0,
   };
   const DIRS = { ArrowUp: "up", w: "up", ArrowDown: "down", s: "down", ArrowLeft: "left", a: "left", ArrowRight: "right", d: "right" };
   let G = null, last = 0, sx = 0, sy = 0, dpr = 1, hudCache = "";
@@ -1211,7 +1295,7 @@ function SHELL() {
   }
   function start(practice, duo) {
     if (window.TOUR0) { duo = true; practice = false; }
-    S.duo = !!(duo && G.duo); S.practice = !!practice && !S.duo; S.bot = S.duo && !!window.BOT0;
+    S.duo = !!(duo && G.duo); S.practice = !!practice && !S.duo; S.bot = S.duo && !!window.BOT0 && !window.ONLINE0; S.online = S.duo ? (window.ONLINE0 || 0) : 0; RQ.length = 0;
     S.score = 0; S.t = 0; S.keys = {}; S.newBest = false; S.parts = []; S.pops = []; S.rings = []; S.banner = null; S.paused = false;
     G.init(); S.state = "count"; S.cd = 1.2; audio(); sfx("tick");
   }
@@ -1219,6 +1303,7 @@ function SHELL() {
     if (S.state !== "play") return;
     if (S.duo) { const m = /PLAYER (\d) WINS/.exec(text || ""); try { parent.postMessage({ type: "gbl:match", winner: m ? +m[1] : 0 }, "*"); } catch (e) {} }
     if (S.bot && text) text = text.replace("PLAYER 1 WINS", "YOU WIN!").replace("PLAYER 2 WINS", "BOT WINS");
+    if (S.online && text) { const m2 = /PLAYER (\d) WINS/.exec(text); if (m2) text = +m2[1] === S.online ? "YOU WIN!" : "YOU LOSE"; }
     S.state = "over"; S.end = text || "GAME OVER"; S.overAt = performance.now();
     S.score = Math.floor(S.score); S.shown = 0;
     S.newBest = !S.practice && !S.duo && S.score > S.best && S.score > 0; if (S.newBest) S.best = S.score;
@@ -1291,8 +1376,8 @@ function SHELL() {
       L.push([G.title.toUpperCase(), 34 * u, G.color, "g"], ["GAMES BY LEVI  //  HI-SCORE " + fmt(S.best), 11 * u, "#8f86b5"], ["", 8 * u]);
       (G.help || []).forEach((h, i) => L.push([h, 13 * u, i % 2 ? "#ff7be6" : "#d8d0f5"]));
       if (G.easy) L.push(["", 4 * u], ["PRACTICE: " + G.easy, 12 * u, "#3dffa8"]);
-      if (G.duo) L.push([window.BOT0 ? "VS " + ["EASY", "MEDIUM", "HARD", "HACKER"][BK()] + " BOT: YOU ARE PLAYER 1, THE BOT IS PLAYER 2" : "2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
-      L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && G.duo ? (window.BOT0 ? "▶ TAP OR PRESS SPACE TO PLAY THE BOT" : "▶ TAP OR PRESS SPACE TO START 2 PLAYERS") : G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
+      if (G.duo) L.push([window.ONLINE0 ? "ONLINE MATCH: YOU ARE PLAYER " + window.ONLINE0 + (window.ONLINE0 === 1 ? " (YOU GO FIRST)" : "") : window.BOT0 ? "VS " + ["EASY", "MEDIUM", "HARD", "HACKER"][BK()] + " BOT: YOU ARE PLAYER 1, THE BOT IS PLAYER 2" : "2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
+      L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && G.duo ? window.ONLINE0 ? "▶ TAP OR PRESS SPACE TO START THE ONLINE MATCH" : (window.BOT0 ? "▶ TAP OR PRESS SPACE TO PLAY THE BOT" : "▶ TAP OR PRESS SPACE TO START 2 PLAYERS") : G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
     }
     const maxW = G.w - Math.max(14, G.w * .06) * 2 - 12, WL = [];
     for (const l of L) {
@@ -1333,7 +1418,7 @@ function SHELL() {
       const before = Math.ceil(S.cd / .4); S.cd -= dt;
       if (S.cd > 0 && Math.ceil(S.cd / .4) !== before) sfx("tick");
       if (S.cd <= 0) { S.state = "play"; sfx("start"); if (ac) { seqT = ac.currentTime + .05; step = 0; } }
-    } else if (S.state === "play" && dt > 0) { S.t += dt; G.update(dt); }
+    } else if (S.state === "play" && dt > 0) { S.t += dt; if (RQ.length && G.remote && G.remote(RQ[0])) RQ.shift(); G.update(dt); }
     stepFx(dt);
     x.setTransform(dpr, 0, 0, dpr, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = "source-over"; x.shadowBlur = 0;
     x.save();
@@ -1355,7 +1440,7 @@ function SHELL() {
     const showP = menu && !S.paused && !window.TOUR0, showD = showP && !!G.duo, isOver = S.state === "over";
     if (pracBtn.hidden === showP) pracBtn.hidden = !showP;
     if (duoBtn.hidden === showD) duoBtn.hidden = !showD;
-    const label = S.paused ? "▶ RESUME" : isOver ? (S.duo ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? (window.BOT0 ? "▶ START VS BOT" : "▶ START 2 PLAYERS") : "▶ START";
+    const label = S.paused ? "▶ RESUME" : isOver ? (S.duo ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? (window.ONLINE0 ? "▶ START ONLINE MATCH" : window.BOT0 ? "▶ START VS BOT" : "▶ START 2 PLAYERS") : "▶ START";
     if (goBtn.textContent !== label) goBtn.textContent = label;
     const plabel = isOver && S.practice ? "RANKED GAME" : "PRACTICE";
     if (pracBtn.textContent !== plabel) pracBtn.textContent = plabel;
@@ -1400,6 +1485,9 @@ function SHELL() {
   addEventListener("keyup", (e) => { S.keys[keyOf(e)] = false; });
   addEventListener("blur", () => { S.keys = {}; S.down = false; });
   document.addEventListener("visibilitychange", () => { if (document.hidden && S.state === "play" && !S.paused) togglePause(); });
+  const RQ = [];
+  function sendMove(m) { try { parent.postMessage({ type: "gbl:move", move: m }, "*"); } catch (e) {} }
+  addEventListener("message", (e) => { const d = e.data; if (e.source === parent && d && d.type === "gbl:remote") RQ.push(d.move); });
   const PT = new Map();
   addEventListener("pointerdown", (e) => {
     if (!G || (e.target.closest && e.target.closest("button"))) return;
@@ -1422,7 +1510,7 @@ function SHELL() {
   });
   addEventListener("pointercancel", (e) => { PT.delete(e.pointerId); S.down = PT.size > 0; });
   addEventListener("resize", fit);
-  Object.assign(window, { BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
+  Object.assign(window, { sendMove, BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
 }
 
 /* ---------- 01 Neon Snake ---------- */
@@ -4787,7 +4875,8 @@ function c4Game() {
   const W = 480, H = 540, C = 7, R = 6, Z = 62, OX = (W - C * Z) / 2, OY = 120, ORDER = [3, 2, 4, 1, 5, 0, 6];
   const PC = ["", "#ff2bd6", "#ffc23d"];
   let b, hgt, turn, level, anim, winCells, aiT, cur, moves, endT, endMsg, startP;
-  const hum = () => (S.duo && !S.bot) || turn === 1;
+  const hum = () => (S.online ? turn === S.online : (S.duo && !S.bot) || turn === 1);
+  let remoteNow = false;
   const full = () => hgt.every((h) => h >= R);
   function play(c, p) { b[c][hgt[c]] = p; hgt[c]++; }
   function undo(c) { hgt[c]--; b[c][hgt[c]] = 0; }
@@ -4829,6 +4918,7 @@ function c4Game() {
   function newGame() { b = Array.from({ length: C }, () => new Array(R).fill(0)); hgt = new Array(C).fill(0); turn = startP; anim = null; winCells = null; aiT = .6; moves = 0; endT = 0; endMsg = null; }
   function drop(c) {
     if (anim || endT || hgt[c] >= R || c < 0 || c >= C) return false;
+    if (S.online && turn === S.online && !remoteNow) sendMove(c);
     const r = hgt[c]; anim = { c, r, p: turn, y: OY - Z / 2, vy: 0, ty: OY + (R - 1 - r) * Z + Z / 2 }; sfx("blip"); return true;
   }
   function landed() {
@@ -4845,10 +4935,11 @@ function c4Game() {
     turn = 3 - p; aiT = .45;
   }
   game({
+    remote(c) { if (anim || endT || turn === S.online) return false; remoteNow = true; drop(c); remoteNow = false; return true; },
     title: "Connect Four", duo: "Pass and play: P1 is pink, P2 is gold. Tap a column to drop.", easy: "a sleepy AI that makes lots of mistakes", w: W, h: H, color: "#ff2bd6", bpm: 108,
     help: ["Tap a column to drop your pink disc", "Get 4 in a row: across, down or diagonal", "Keys: ← → pick a column, Space or ↓ drops", "Beat the AI to level up. It thinks harder every level"],
     init() { level = S.bot ? [1, 3, 5, 7][BK()] : 1; cur = 3; startP = 1; newGame(); },
-    hud() { if (S.duo) return "PLAYER " + turn + "'S TURN"; return "LEVEL " + level + "  ·  AI DEPTH " + (S.practice ? 1 : Math.min(7, level + 1)) + "  ·  " + (turn === 1 ? "YOUR TURN" : "AI THINKING"); },
+    hud() { if (S.online) return turn === S.online ? "YOUR TURN" : "FRIEND'S TURN"; if (S.duo) return "PLAYER " + turn + "'S TURN"; return "LEVEL " + level + "  ·  AI DEPTH " + (S.practice ? 1 : Math.min(7, level + 1)) + "  ·  " + (turn === 1 ? "YOUR TURN" : "AI THINKING"); },
     summary() { return S.duo ? [] : ["BEAT THE AI " + (level - 1) + " TIME" + (level === 2 ? "" : "S")]; },
     tap(px) { const c = Math.floor((px - OX) / Z); if (c < 0 || c >= C) return; cur = c; if (hum()) drop(c); },
     move(px) { const c = Math.floor((px - OX) / Z); if (c >= 0 && c < C) cur = c; },
@@ -4906,7 +4997,8 @@ function reversiGame() {
   }
   function movesFor(bd, p) { const m = []; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const f = flipsFor(bd, c, r, p); if (f.length) m.push([c, r, f]); } return m; }
   function apply(bd, c, r, p, f) { const nb = bd.map((row) => row.slice()); nb[r][c] = p; for (const [a, bb] of f) nb[bb][a] = p; return nb; }
-  const hum = () => (S.duo && !S.bot) || turn === 1;
+  const hum = () => (S.online ? turn === S.online : (S.duo && !S.bot) || turn === 1);
+  let remoteNow = false;
   const count = (bd, p) => bd.reduce((s, row) => s + row.filter((v) => v === p).length, 0);
   function evalB(bd, p) { let s = 0; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { if (bd[r][c] === p) s += WT[r][c]; else if (bd[r][c] === 3 - p) s -= WT[r][c]; } return s + (movesFor(bd, p).length - movesFor(bd, 3 - p).length) * 4; }
   function nm(bd, depth, alpha, beta, p) {
@@ -4932,6 +5024,7 @@ function reversiGame() {
   function doMove(c, r) {
     if (endT) return false;
     const f = flipsFor(b, c, r, turn); if (!f.length) { sfx("bad"); return false; }
+    if (S.online && turn === S.online && !remoteNow) sendMove([c, r]);
     b = apply(b, c, r, turn, f); lastMove = [c, r];
     f.forEach(([a, bb], i) => { flipT[a + "," + bb] = S.clock + i * .04; }); flipT[c + "," + r] = S.clock;
     burst(OX + c * Z + Z / 2, OY + r * Z + Z / 2, PC[turn], 8 + f.length * 2, 160, .4); sfx(f.length >= 4 ? "score" : "pop");
@@ -4948,10 +5041,11 @@ function reversiGame() {
     endT = 2.2; sfx(a > c2 || S.duo ? "level" : "bad");
   }
   game({
+    remote(m) { if (endT || turn === S.online) return false; remoteNow = true; doMove(m[0], m[1]); remoteNow = false; return true; },
     title: "Reversi", duo: "Pass and play: P1 is cyan, P2 is pink. Tap a glowing dot to move.", easy: "the AI just picks random moves", w: W, h: H, color: "#22e4ff", bpm: 100,
     help: ["Tap a glowing dot to place a cyan disc", "Trap pink discs in a line to flip them to your color", "Most discs when the board is full wins. Corners are gold", "Keys: arrows move, Space places. The AI gets smarter"],
     init() { level = S.bot ? [1, 2, 3, 4][BK()] : 1; cur = [2, 3]; newGame(); },
-    hud() { const a = count(b, 1), c2 = count(b, 2); return (S.duo ? "P1 " + a + "  ·  " + c2 + " P2  ·  PLAYER " + turn + "'S TURN" : "LEVEL " + level + "  ·  YOU " + a + "  ·  AI " + c2); },
+    hud() { const a = count(b, 1), c2 = count(b, 2); if (S.online) return "YOU " + (S.online === 1 ? a : c2) + "  ·  FRIEND " + (S.online === 1 ? c2 : a) + "  ·  " + (turn === S.online ? "YOUR TURN" : "FRIEND'S TURN"); return (S.duo ? "P1 " + a + "  ·  " + c2 + " P2  ·  PLAYER " + turn + "'S TURN" : "LEVEL " + level + "  ·  YOU " + a + "  ·  AI " + c2); },
     summary() { return S.duo ? [] : ["BEAT THE AI " + (level - 1) + " TIME" + (level === 2 ? "" : "S")]; },
     tap(px, py) { const c = Math.floor((px - OX) / Z), r = Math.floor((py - OY) / Z); if (c < 0 || r < 0 || c >= N || r >= N) return; cur = [c, r]; if (hum()) doMove(c, r); },
     turn(dir, k) { if (!k) return; const v = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir]; cur = [Math.max(0, Math.min(N - 1, cur[0] + v[0])), Math.max(0, Math.min(N - 1, cur[1] + v[1]))]; sfx("tick"); },
@@ -5288,8 +5382,10 @@ function chessGame() {
     }
     return best;
   }
-  const humanTurn = () => (S.duo && !S.bot) || white;
+  const humanTurn = () => (S.online ? (white ? 1 : 2) === S.online : (S.duo && !S.bot) || white);
+  let remoteNow = false;
   function doMove(m) {
+    if (S.online && (white ? 1 : 2) === S.online && !remoteNow) sendMove({ f: m.f, t: m.t });
     const p = b[m.f], cap = m.ep ? (white ? "p" : "P") : b[m.t];
     anim = { p, f: m.f, t: m.t, k: 0 };
     make(m); plies++; last = m; sel = -1; moves = [];
@@ -5325,11 +5421,12 @@ function chessGame() {
   }
   const sqAt = (px, py) => { const c = Math.floor((px - OX) / Z), r = Math.floor((py - OY) / Z); return on(r, c) ? r * 8 + c : -1; };
   game({
+    remote(mv) { if (anim || endT || (white ? 1 : 2) === S.online) return false; const m = legal(white).find((q) => q.f === mv.f && q.t === mv.t); if (m) { remoteNow = true; doMove(m); remoteNow = false; } return true; },
     title: "Neon Chess", duo: "pass and play. Player 1 is cyan (moves first), Player 2 is pink.", easy: "a beginner AI that makes lots of mistakes", w: W, h: H, color: "#22e4ff", bpm: 92,
     help: ["Tap a piece, then tap a glowing dot to move", "Keys: arrows move the cursor, Space selects and moves", "You are cyan. Checkmate the pink king to win", "Win and the AI levels up. It thinks deeper each time"],
     init() { level = 1; cur = 52; reset(); },
     hud() {
-      const t = endT ? "" : (S.duo && !S.bot ? "PLAYER " + (white ? 1 : 2) + "'S MOVE" : white ? "YOUR MOVE" : "AI THINKING...") + (!endT && inCheck(white) ? "  ·  CHECK!" : "");
+      const t = endT ? "" : S.online ? ((white ? 1 : 2) === S.online ? "YOUR MOVE" : "FRIEND'S MOVE") : (S.duo && !S.bot ? "PLAYER " + (white ? 1 : 2) + "'S MOVE" : white ? "YOUR MOVE" : "AI THINKING...") + (!endT && inCheck(white) ? "  ·  CHECK!" : "");
       return (S.duo ? "" : "LEVEL " + level + "  ·  ") + t;
     },
     summary() { return S.duo ? [] : ["BEAT THE AI " + (level - 1) + " TIME" + (level === 2 ? "" : "S")]; },
@@ -5348,7 +5445,7 @@ function chessGame() {
         }
         return;
       }
-      if (!humanTurn() && !anim) { aiT -= dt; if (aiT <= 0) { const m = aiMove(); if (m) doMove(m); } }
+      if (!humanTurn() && !anim && !S.online) { aiT -= dt; if (aiT <= 0) { const m = aiMove(); if (m) doMove(m); } }
     },
     draw() {
       techBg("#22e4ff");
@@ -5384,10 +5481,10 @@ function chessGame() {
       if (S.state === "play" && humanTurn()) { x.strokeStyle = "rgba(255,255,255,.55)"; x.lineWidth = 2; x.strokeRect(OX + (cur & 7) * Z + 2, OY + (cur >> 3) * Z + 2, Z - 4, Z - 4); }
       x.font = "22px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'DejaVu Sans', serif"; x.textAlign = "left";
       const lost = (arr, y, col) => { x.font = "22px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'DejaVu Sans', serif"; x.textAlign = "left"; x.textBaseline = "middle"; arr.slice().sort((a, c) => VAL[c.toLowerCase()] - VAL[a.toLowerCase()]).forEach((p, k) => { x.fillStyle = ca(col, .75); x.fillText(GLY[p.toLowerCase()] + VS, OX + k * 18, y); }); };
-      const nB = S.duo && !S.bot ? "PLAYER 2" : S.bot ? "BOT" : "AI", nW = S.duo && !S.bot ? "PLAYER 1" : "YOU";
+      const nB = S.online ? (S.online === 2 ? "YOU" : "FRIEND") : S.duo && !S.bot ? "PLAYER 2" : S.bot ? "BOT" : "AI", nW = S.online ? (S.online === 1 ? "YOU" : "FRIEND") : S.duo && !S.bot ? "PLAYER 1" : "YOU";
       txt(nB, W - OX, 30, 13, BC, "right", "d"); lost(killed.w, 32, WC);
       txt(nW, W - OX, OY + 8 * Z + 34, 13, WC, "right", "d"); x.font = "22px 'Apple Symbols', 'Segoe UI Symbol', 'Noto Sans Symbols 2', 'DejaVu Sans', serif"; x.textAlign = "left"; lost(killed.b, OY + 8 * Z + 36, BC);
-      if (!white && !humanTurn() && !endT && S.state === "play") { const k = Math.floor(S.clock * 3) % 4; txt("THINKING" + ".".repeat(k), W / 2, 30, 12, BC, "center"); }
+      if (!white && !humanTurn() && !endT && !S.online && S.state === "play") { const k = Math.floor(S.clock * 3) % 4; txt("THINKING" + ".".repeat(k), W / 2, 30, 12, BC, "center"); }
       if (endMsg && endT > 0) { x.fillStyle = "rgba(4,2,10,.72)"; x.fillRect(0, OY + 4 * Z - 44, W, 88); glow("#ffd66b", 20); txt(endMsg[0], W / 2, OY + 4 * Z - 14, 26, "#ffd66b", "center", "d"); glow(); txt(endMsg[1], W / 2, OY + 4 * Z + 22, 15, "#ffffff", "center", "d"); }
     },
   });
@@ -5765,7 +5862,7 @@ function guessGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + "window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + "window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -5910,6 +6007,7 @@ function guessGame() {
         art(g),
         el("span", { class: "slotno", text: "#" + pad(g.slot) }),
         g.builtin ? el("span", { class: "badge", text: "Original" }) : null,
+        g.builtin ? el("button", { class: "fav-btn" + (isFav(g.key) ? " on" : ""), type: "button", "aria-pressed": String(isFav(g.key)), "aria-label": "Favorite " + g.title, text: isFav(g.key) ? "♥" : "♡", onclick: (e) => { e.stopPropagation(); toggleFav(g.key); }, onkeydown: (e) => e.stopPropagation() }) : null,
         el("div", { class: "card-body" },
           el("div", { class: "card-title", text: g.title }),
           el("div", { class: "card-meta" }, el("span", { class: "genre", text: g.genre }), DUO_KEYS.has(g.key) ? el("span", { class: "p2", text: "2P" }) : null, el("span", { text: "by " + (g.creator || "Anonymous") })),
@@ -6017,6 +6115,7 @@ function guessGame() {
     postScores({ [key]: s }).then((r) => { if (r && r.improved && r.improved.includes(key)) toast(`New best! ${fmt(s)} is on the leaderboard`); });
   }
   function syncGuest() {
+    try { renderOnline(); } catch {}
     if (!me || !Object.keys(guestBest).length) return;
     const map = guestBest; guestBest = {}; store.set("gbl-guest", "{}");
     postScores(map).then((r) => { if (r && r.improved && r.improved.length) toast(`Posted ${r.improved.length} score${r.improved.length > 1 ? "s" : ""} you set while logged out`); });
@@ -6084,7 +6183,7 @@ function guessGame() {
         e.preventDefault();
         if (!u.value.trim() || !p.value) return say("Enter your username and password.", "err");
         go.disabled = true; say("Logging in…");
-        try { const r = await api("/login", { method: "POST", body: { username: u.value, password: p.value } }); me = r.user; closeAcct(); toast("Welcome back, " + me.username); welcome(); loadSettings(); }
+        try { const r = await api("/login", { method: "POST", body: { username: u.value, password: p.value } }); me = r.user; closeAcct(); toast("Welcome back, " + me.username); welcome(); loadSettings(); loadProg(); loadDaily(); }
         catch (ex) { say(ex.message, "err"); p.value = ""; p.focus(); }
         finally { go.disabled = false; }
       });
@@ -6163,7 +6262,7 @@ function guessGame() {
           me = r.user; toast("Profile saved"); await refresh("scores"); renderAcctModal("profile");
         } else {
           const r = await api("/signup", { method: "POST", body: { username: name, password: p.value, av } });
-          me = r.user; closeAcct(); toast(`Welcome to the hub, ${me.username}!`); welcome(); loadSettings();
+          me = r.user; closeAcct(); toast(`Welcome to the hub, ${me.username}!`); welcome(); loadSettings(); loadProg(); loadDaily();
         }
       } catch (ex) { say(ex.message, "err"); }
       finally { save.disabled = false; }
@@ -6195,11 +6294,13 @@ function guessGame() {
     frame.srcdoc = code;
     frame.addEventListener("load", () => { try { frame.focus(); } catch {} });
     box.replaceChildren(frame);
-    current = { g, frame, ranked: !!(g.slot && !codeOverride) && !(opts && opts.duo), onMatch: opts && opts.onMatch };
+    current = { g, frame, ranked: !!(g.slot && !codeOverride) && !(opts && opts.duo), onMatch: opts && opts.onMatch, onMove: opts && opts.onMove, onClose: opts && opts.onClose, daily: !!(opts && opts.daily) };
+    if (window.gblOnPlay) window.gblOnPlay(g, opts || {});
   }
   function closeModal() {
     modal.classList.remove("open"); modal.setAttribute("aria-hidden", "true");
     document.documentElement.classList.remove("playing");
+    if (current && current.onClose) { try { current.onClose(); } catch {} }
     current = null;
     setTimeout(() => { if (!modal.classList.contains("open")) box.replaceChildren(); }, 300);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
@@ -6215,10 +6316,12 @@ function guessGame() {
   addEventListener("message", (e) => {
     if (!current || e.source !== current.frame.contentWindow) return;
     const d = e.data;
-    if (d && d.type === "gbl:match") { if (current.onMatch) { const f = current.onMatch; current.onMatch = null; f(d.winner | 0); } return; }
+    if (d && d.type === "gbl:move") { if (current.onMove) current.onMove(d.move); return; }
+    if (d && d.type === "gbl:match") { if (window.gblOnMatch) window.gblOnMatch(current, d.winner | 0); if (current.onMatch) { const f = current.onMatch; current.onMatch = null; f(d.winner | 0); } return; }
     if (!d || d.type !== "gbl:score") return;
     const s = Math.floor(Number(d.score));
     if (!Number.isFinite(s) || s < 0 || s > 1e7) return;
+    if (window.gblOnScore) window.gblOnScore(current, s);
     if (!current.ranked) { toast(`Test run score: ${fmt(s)}`); return; }
     saveScore(current.g.key, s);
     setCabSub(current.g);
@@ -6329,6 +6432,225 @@ function guessGame() {
         acts);
     }));
   }
+
+  const XR = {
+    can: () => !!me,
+    loadProg: async () => (await api("/progress")).progress,
+    saveProg: (p) => api("/progress", { method: "PUT", body: { progress: p } }),
+    daily: () => api("/daily"),
+    postDaily: (game, score) => api("/daily", { method: "POST", body: { game, score } }),
+    online: true,
+    login: () => openAcct("login"),
+  };
+  /* ---------- Progress: favorites, recently played, achievements ---------- */
+  const EMPTY_PROG = () => ({ favs: [], recent: [], played: {}, ach: {}, stats: {} });
+  var prog = EMPTY_PROG();
+  try { const p0 = JSON.parse(store.get("gbl-prog") || "null"); if (p0 && typeof p0 === "object") prog = { ...EMPTY_PROG(), ...p0 }; } catch {}
+  const uniq = (a) => [...new Set(a)];
+  function mergeProg(a, b) {
+    const out = EMPTY_PROG();
+    out.favs = uniq([...(b.favs || []), ...(a.favs || [])]).slice(0, 60);
+    out.recent = uniq([...(a.recent || []), ...(b.recent || [])]).slice(0, 12);
+    for (const src of [a.played || {}, b.played || {}]) for (const [k, v] of Object.entries(src)) out.played[k] = Math.max(out.played[k] || 0, +v || 0);
+    for (const src of [a.ach || {}, b.ach || {}]) for (const [k, v] of Object.entries(src)) out.ach[k] = Math.min(out.ach[k] || Infinity, +v || Date.now());
+    for (const src of [a.stats || {}, b.stats || {}]) for (const [k, v] of Object.entries(src)) {
+      if (Array.isArray(v)) out.stats[k] = uniq([...(out.stats[k] || []), ...v]).slice(-60);
+      else out.stats[k] = Math.max(out.stats[k] || 0, +v || 0);
+    }
+    return out;
+  }
+  let progTimer = null;
+  function saveProg() {
+    store.set("gbl-prog", JSON.stringify(prog));
+    if (!XR.can()) return;
+    clearTimeout(progTimer); progTimer = setTimeout(() => XR.saveProg(prog).catch(() => {}), 1500);
+  }
+  async function loadProg() {
+    if (!XR.can()) return;
+    try { const r = await XR.loadProg(); if (r && typeof r === "object") prog = mergeProg(prog, r); saveProg(); renderExtras(); checkAch(true); } catch {}
+  }
+  const stat = (k) => (prog && prog.stats && +prog.stats[k]) || 0;
+  const isFav = (k) => !!(prog && prog.favs.includes(k));
+  function toggleFav(k) {
+    if (isFav(k)) { prog.favs = prog.favs.filter((q) => q !== k); toast("Removed from favorites"); }
+    else { prog.favs = [k, ...prog.favs]; toast("Added to favorites ♥"); }
+    saveProg(); renderStrips(); renderLibrary(); checkAch();
+  }
+  const ACH = [
+    ["first", "🕹️", "Insert Coin", "Play your first game", (c) => c.total >= 1],
+    ["explorer", "🧭", "Explorer", "Play 10 different games", (c) => c.distinct >= 10],
+    ["genres", "🎨", "Genre Hopper", "Play a game from every genre", (c) => c.genres >= 8],
+    ["complete", "🌌", "Completionist", "Play every game in the hub", (c) => c.distinct >= BUILTINS.length],
+    ["marathon", "🏃", "Marathon", "Play 50 games", (c) => c.total >= 50],
+    ["legend", "👑", "Arcade Legend", "Play 250 games", (c) => c.total >= 250],
+    ["k1", "⭐", "Four Digits", "Score 1,000 or more in any game", (c) => c.max >= 1000],
+    ["k10", "🌟", "Five Digits", "Score 10,000 or more in any game", (c) => c.max >= 10000],
+    ["k50", "💫", "High Roller", "Score 50,000 or more in any game", (c) => c.max >= 50000],
+    ["champ", "🏆", "Champion", "Win a tournament against the bot", (c) => c.tourWins >= 1],
+    ["hard", "🤖", "Bot Crusher", "Win a tournament on Hard or Hacker", (c) => c.tourHard >= 1],
+    ["hacker", "💀", "Hacker Slayer", "Win a tournament on Hacker", (c) => c.tourHacker >= 1],
+    ["friend", "🤝", "Friendly Rivals", "Finish a tournament against a friend", (c) => c.tourFriend >= 1],
+    ["daily", "📅", "Daily Player", "Play the daily challenge", (c) => c.dailyDays >= 1],
+    ["daily7", "🔥", "On Fire", "Play the daily challenge on 7 different days", (c) => c.dailyDays >= 7],
+    ["fav", "💖", "Heart Eyes", "Favorite a game", (c) => c.favs >= 1],
+    ["online", "🌐", "Connected", "Finish an online match", (c) => c.online >= 1],
+    ["online5", "📡", "Network Legend", "Win 5 online matches", (c) => c.onlineWins >= 5],
+  ];
+  function achCtx() {
+    const keys = Object.keys(prog.played).filter((k) => BUILTINS.some((b) => b.key === k));
+    return {
+      distinct: keys.length, total: Object.values(prog.played).reduce((a, b) => a + (+b || 0), 0),
+      genres: new Set(keys.map((k) => BUILTINS.find((b) => b.key === k).genre)).size,
+      max: stat("maxScore"), tourWins: stat("tourWins"), tourHard: stat("tourHard"), tourHacker: stat("tourHacker"), tourFriend: stat("tourFriend"),
+      dailyDays: (prog.stats.dailyDays || []).length, favs: prog.favs.length, online: stat("online"), onlineWins: stat("onlineWins"),
+    };
+  }
+  function achToast(a) {
+    const n = el("div", { class: "ach-pop", role: "status" }, el("span", { class: "ach-ico", text: a[1] }), el("div", {}, el("small", { text: "ACHIEVEMENT UNLOCKED" }), el("b", { text: a[2] })));
+    document.body.append(n); requestAnimationFrame(() => n.classList.add("show"));
+    setTimeout(() => { n.classList.remove("show"); setTimeout(() => n.remove(), 500); }, 3600);
+  }
+  function checkAch(silent) {
+    const c = achCtx(), fresh = [];
+    for (const a of ACH) if (!prog.ach[a[0]] && a[4](c)) { prog.ach[a[0]] = Date.now(); fresh.push(a); }
+    if (fresh.length) { saveProg(); renderBadges(); if (!silent) fresh.forEach((a, i) => setTimeout(() => achToast(a), 600 + i * 3800)); }
+  }
+  function renderBadges() {
+    const box = $("#badges-grid"); if (!box) return;
+    const got = ACH.filter((a) => prog.ach[a[0]]).length;
+    $("#badges-count").textContent = got + " / " + ACH.length + " unlocked";
+    box.replaceChildren(...ACH.map((a) => {
+      const on = !!prog.ach[a[0]];
+      return el("div", { class: "badge-tile" + (on ? " on" : "") },
+        el("span", { class: "badge-ico", text: on ? a[1] : "🔒" }),
+        el("b", { text: a[2] }), el("small", { text: a[3] }),
+        on ? el("span", { class: "badge-when", text: "Unlocked " + new Date(prog.ach[a[0]]).toLocaleDateString() }) : null);
+    }));
+  }
+  function miniCard(key) {
+    const i = BUILTINS.findIndex((b) => b.key === key); if (i < 0) return null;
+    const g = { ...BUILTINS[i], slot: i + 1 };
+    return el("button", { class: "mini", type: "button", "aria-label": "Play " + g.title, onclick: () => play(g) }, art(g), el("span", { text: g.title }));
+  }
+  function renderStrips() {
+    const box = $("#strips"); if (!box) return;
+    const rows = [];
+    const favs = prog.favs.map(miniCard).filter(Boolean), rec = prog.recent.map(miniCard).filter(Boolean);
+    if (favs.length) rows.push(el("div", { class: "strip" }, el("h3", { text: "♥ Your favorites" }), el("div", { class: "strip-row" }, ...favs)));
+    if (rec.length) rows.push(el("div", { class: "strip" }, el("h3", { text: "⟲ Recently played" }), el("div", { class: "strip-row" }, ...rec)));
+    box.replaceChildren(...rows); box.hidden = !rows.length;
+  }
+
+  /* ---------- Daily challenge ---------- */
+  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon"];
+  function dailyGameFor(day) { let h = 7; for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return DAILY_POOL[h % DAILY_POOL.length]; }
+  let daily = null;
+  async function loadDaily() { try { daily = await XR.daily(); } catch { const day = new Date().toISOString().slice(0, 10); daily = { day, game: dailyGameFor(day), endsAt: Date.parse(day + "T00:00:00Z") + 864e5, top: [], mine: null }; } renderDaily(); }
+  function renderDaily() {
+    const box = $("#daily"); if (!box || !daily) return;
+    const i = BUILTINS.findIndex((b) => b.key === daily.game); if (i < 0) { box.hidden = true; return; }
+    const g = { ...BUILTINS[i], slot: i + 1 }, left = Math.max(0, daily.endsAt - Date.now()), h = Math.floor(left / 3600000), m = Math.floor(left / 60000) % 60;
+    const go = () => play(g, null, { daily: true });
+    box.hidden = false;
+    box.replaceChildren(
+      el("div", { class: "daily-art", role: "button", tabindex: "0", "aria-label": "Play the daily challenge", onclick: go }, art(g), el("span", { class: "daily-tag", text: "DAILY CHALLENGE" })),
+      el("div", { class: "daily-body" },
+        el("p", { class: "eyebrow", text: "Today's game · new one in " + h + "h " + m + "m" }),
+        el("h3", { text: g.title }),
+        el("p", { class: "duo-how", text: "Everyone plays the same game today. Post your best run to top the daily leaderboard." }),
+        el("div", { class: "daily-btns" }, el("button", { class: "btn hot", type: "button", text: "Play today's challenge ▸", onclick: go }),
+          daily.mine != null ? el("span", { class: "daily-mine", text: "Your best today: " + fmt(daily.mine) }) : null)),
+      el("ol", { class: "daily-top" }, ...(daily.top.length ? daily.top.slice(0, 5).map((r, k) => el("li", {}, el("span", { class: "rk", text: String(k + 1) }), el("span", { class: "nm", text: r.tag || "Player" }), el("b", { text: fmt(r.s) })))
+        : [el("li", { class: "empty" }, el("span", { text: "No scores yet today. Be the first!" }))])));
+  }
+  setInterval(() => { if (!document.hidden) { if (daily && Date.now() > daily.endsAt) loadDaily(); else renderDaily(); } }, 30000);
+
+  /* ---------- Online 2-player (turn-based games) ---------- */
+  const ONLINE = [["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"]];
+  let room = null, waitTimer = null;
+  function renderOnline() {
+    const box = $("#online-box"); if (!box) return;
+    if (!XR.online) { box.replaceChildren(el("div", { class: "panel lit online-note" }, el("p", { text: "Online play works on the main site:" }), el("a", { class: "btn hot", href: "https://gbl.leviharper84.workers.dev/#online", target: "_blank", rel: "noopener", text: "gbl.leviharper84.workers.dev ▸" }))); return; }
+    if (!XR.can()) { box.replaceChildren(el("div", { class: "panel lit online-note" }, el("p", { text: "Log in to play your friends on their own devices. You both need an account." }), el("button", { class: "btn hot", type: "button", text: "Log in", onclick: () => XR.login() }))); return; }
+    if (room) {
+      box.replaceChildren(el("div", { class: "panel lit online-wait" },
+        el("p", { class: "eyebrow", text: "Room ready · " + (ONLINE.find((o) => o[0] === room.game) || ["", ""])[1] }),
+        el("div", { class: "room-code", text: room.code }),
+        el("p", { text: "Tell your friend this code. They open Online on their device and type it in." }),
+        el("p", { class: "online-dots", text: "Waiting for your friend to join" }),
+        el("button", { class: "btn", type: "button", text: "Cancel", onclick: () => { clearTimeout(waitTimer); api("/rooms/" + room.code + "/leave", { method: "POST", body: {} }).catch(() => {}); room = null; renderOnline(); } })));
+      return;
+    }
+    const code = el("input", { class: "search room-in", maxlength: "4", placeholder: "ABCD", autocapitalize: "characters", autocomplete: "off", spellcheck: "false", "aria-label": "Room code" });
+    code.addEventListener("input", () => { code.value = code.value.toUpperCase().replace(/[^A-Z]/g, "").slice(0, 4); });
+    const join = async () => {
+      if (code.value.length !== 4) return toast("Room codes are 4 letters");
+      try { const r = await api("/rooms/" + code.value + "/join", { method: "POST", body: {} }); startOnline(r.code, r.game, r.seat); } catch (e) { toast(e.message); }
+    };
+    code.addEventListener("keydown", (e) => { if (e.key === "Enter") join(); });
+    box.replaceChildren(
+      el("div", { class: "panel lit" }, el("h3", { class: "tour-h", text: "Start a game" }), el("p", { class: "duo-how", text: "Pick a game and you'll get a code to share." }),
+        el("div", { class: "online-games" }, ...ONLINE.map(([k, t]) => el("button", { class: "tour-opt", type: "button", onclick: () => createRoom(k) }, el("b", { text: t }), el("span", { text: "Create a room ▸" }))))),
+      el("div", { class: "panel lit" }, el("h3", { class: "tour-h", text: "Join a friend" }), el("p", { class: "duo-how", text: "Type the 4-letter code your friend sees." }),
+        el("div", { class: "join-row" }, code, el("button", { class: "btn hot", type: "button", text: "Join ▸", onclick: join }))));
+  }
+  async function createRoom(game) {
+    try {
+      const r = await api("/rooms", { method: "POST", body: { game } });
+      room = { code: r.code, game }; renderOnline();
+      const wait = async () => {
+        if (!room || room.code !== r.code) return;
+        try { const s2 = await api("/rooms/" + r.code); if (s2.guest) { const c = room.code; room = null; renderOnline(); toast(s2.guest + " joined!"); startOnline(c, game, 1); return; } } catch {}
+        waitTimer = setTimeout(wait, 2000);
+      };
+      waitTimer = setTimeout(wait, 1500);
+    } catch (e) { toast(e.message); }
+  }
+  function startOnline(code, game, seat) {
+    const g = gameOf(game); if (!g) return;
+    let n = 0, alive = true, timer = null, leftShown = false;
+    const poll = async () => {
+      if (!alive) return;
+      try {
+        const r = await api("/rooms/" + code + "?since=" + n);
+        for (const mv of r.moves) { n++; if (mv.seat !== seat && current && current.frame) current.frame.contentWindow.postMessage({ type: "gbl:remote", move: mv.m }, "*"); }
+        if (r.status === "left" && !leftShown) { leftShown = true; toast("Your friend left the game"); }
+      } catch {}
+      timer = setTimeout(poll, 1000);
+    };
+    play(g, null, {
+      duo: true, online: seat,
+      onMove: async (m) => { try { await api("/rooms/" + code + "/move", { method: "POST", body: { n, move: m } }); } catch (e) { toast(e.message); } },
+      onMatch: (w) => { prog.stats.online = stat("online") + 1; if (w === seat) prog.stats.onlineWins = stat("onlineWins") + 1; saveProg(); checkAch(); },
+      onClose: () => { alive = false; clearTimeout(timer); api("/rooms/" + code + "/leave", { method: "POST", body: {} }).catch(() => {}); },
+    });
+    toast("You are Player " + seat + (seat === 1 ? ". You go first!" : ". Your friend goes first."));
+    poll();
+  }
+
+  /* ---------- Hooks from games and tournaments ---------- */
+  window.gblOnPlay = (g, opts) => {
+    if (!g || !g.key || !BUILTINS.some((b) => b.key === g.key)) return;
+    prog.recent = [g.key, ...prog.recent.filter((k) => k !== g.key)].slice(0, 12);
+    prog.played[g.key] = (prog.played[g.key] || 0) + 1;
+    saveProg(); renderStrips(); checkAch();
+  };
+  window.gblOnScore = (cur, s) => {
+    prog.stats.maxScore = Math.max(stat("maxScore"), s);
+    if (cur && cur.daily && daily && cur.g.key === daily.game) {
+      const day = daily.day; prog.stats.dailyDays = uniq([...(prog.stats.dailyDays || []), day]).slice(-60);
+      if (XR.can()) XR.postDaily(daily.game, s).then((d) => { if (d) { daily = d; renderDaily(); } else loadDaily(); }).catch(() => {});
+      else toast("Log in to put your score on the daily leaderboard");
+    }
+    saveProg(); checkAch();
+  };
+  window.gblOnTourEnd = (t) => {
+    const a = t.rounds.filter((r) => r.w === 1).length, b = t.rounds.filter((r) => r.w === 2).length;
+    if (t.bot) { if (a > b) { prog.stats.tourWins = stat("tourWins") + 1; if ((t.lvl || 0) >= 2) prog.stats.tourHard = stat("tourHard") + 1; if (t.lvl === 3) prog.stats.tourHacker = stat("tourHacker") + 1; } }
+    else prog.stats.tourFriend = stat("tourFriend") + 1;
+    saveProg(); checkAch();
+  };
+  function renderExtras() { renderStrips(); renderBadges(); renderOnline(); renderDaily(); }
 
   const SET_REMOTE = {
     can: () => !!me,
@@ -6452,6 +6774,7 @@ function guessGame() {
       if (a === b) { const key = tour.spare.shift() || shuffled(tourPool(tour.bot))[0]; tour.rounds.push({ key, w: null, sudden: true }); }
     }
     saveTour();
+    if (nextRound() < 0 && window.gblOnTourEnd) window.gblOnTourEnd(tour);
     toast(w ? tour.names[w - 1] + " wins round " + (i + 1) + "!" : "Round " + (i + 1) + " is a draw");
     renderTour();
   }
@@ -6555,6 +6878,7 @@ function guessGame() {
   }
   renderDuo();
   renderTour();
+  renderExtras(); loadDaily();
   function renderAll() { renderLibrary(); renderBoard(); renderQueue(); }
   async function refresh(what) {
     const jobs = [];
@@ -6567,7 +6891,7 @@ function guessGame() {
   renderAll();
   (async () => {
     try { me = (await api("/me")).user; online = true; } catch { online = false; }
-    if (me) loadSettings();
+    if (me) { loadSettings(); loadProg(); }
     await refresh();
     syncGuest();
     setInterval(() => { if (!document.hidden) refresh(); }, 30000);
@@ -6579,7 +6903,7 @@ function guessGame() {
 (() => {
   const home = document.getElementById("home"), hub = document.getElementById("hub");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const HUB = ["games", "library", "two-player", "tournament", "leaderboards", "submit", "queue"];
+  const HUB = ["games", "library", "two-player", "tournament", "online", "leaderboards", "badges", "submit", "queue"];
   let inHub = false;
   const setHash = (h) => { try { history.pushState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) {} };
   function showHub(target, animate) {
