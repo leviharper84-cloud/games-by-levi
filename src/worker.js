@@ -4,7 +4,7 @@
  * with accounts, leaderboards and game submissions stored in a D1 database.
  */
 
-const BUILTIN_GAMES = new Set(["snake", "bricks", "pong", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "pingpong", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "connect4", "reversi", "beat", "simon", "chess"]);
+const BUILTIN_GAMES = new Set(["snake", "bricks", "pong", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "pingpong", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "connect4", "reversi", "beat", "simon", "chess", "guesswho"]);
 const GENRES = new Set(["Arcade", "Action", "Puzzle", "Racing", "Platformer", "Sports", "Strategy", "Other"]);
 const USER_RE = /^[A-Za-z0-9 _.\-]{3,16}$/;
 const MAX_CODE_BYTES = 200 * 1024;
@@ -208,7 +208,8 @@ function cleanSettings(b) {
   const music = MUSIC_STYLES.has(b && b.music) ? b.music : "synth";
   const pct = (x, d) => { const n = Math.round(Number(x)); return Number.isFinite(n) ? Math.max(0, Math.min(100, n)) : d; };
   const flag = (x) => x !== false;
-  return { music, mvol: pct(b && b.mvol, 80), svol: pct(b && b.svol, 80), shake: flag(b && b.shake), flash: flag(b && b.flash), crt: flag(b && b.crt) };
+  const theme = ["synthwave", "toxic", "sunset", "ice", "matrix", "gold", "blood", "galaxy"].includes(b && b.theme) ? b.theme : "synthwave";
+  return { music, mvol: pct(b && b.mvol, 80), svol: pct(b && b.svol, 80), shake: flag(b && b.shake), flash: flag(b && b.flash), crt: flag(b && b.crt), glow: flag(b && b.glow), theme };
 }
 async function getSettings(env, user) {
   if (!user) fail(401, "Log in first.");

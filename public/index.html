@@ -63,6 +63,10 @@ img { max-width: 100%; }
 :root[data-neon="toxic"]  { --a1: #b6ff3b; --a2: #a35bff; --a1-rgb: 182, 255, 59;  --a2-rgb: 163, 91, 255; }
 :root[data-neon="sunset"] { --a1: #ff8a1f; --a2: #ff2e88; --a1-rgb: 255, 138, 31;  --a2-rgb: 255, 46, 136; }
 :root[data-neon="ice"]    { --a1: #6af7ff; --a2: #6b7dff; --a1-rgb: 106, 247, 255; --a2-rgb: 107, 125, 255; }
+:root[data-neon="matrix"] { --a1: #3dff6e; --a2: #00b3ff; --a1-rgb: 61, 255, 110;  --a2-rgb: 0, 179, 255; }
+:root[data-neon="gold"]   { --a1: #ffc23d; --a2: #ff6b3d; --a1-rgb: 255, 194, 61;  --a2-rgb: 255, 107, 61; }
+:root[data-neon="blood"]  { --a1: #ff2e4d; --a2: #a020ff; --a1-rgb: 255, 46, 77;   --a2-rgb: 160, 32, 255; }
+:root[data-neon="galaxy"] { --a1: #a35bff; --a2: #ff7be6; --a1-rgb: 163, 91, 255;  --a2-rgb: 255, 123, 230; }
 
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -439,6 +443,11 @@ textarea.code {
 .set-tog input:focus-visible + .set-sw { outline: 2px solid var(--a2); outline-offset: 2px; }
 .set-tl { display: grid; gap: 2px; }
 .set-tl small { color: var(--muted); font-size: .8rem; }
+.set-themes { display: grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap: 8px; }
+.set-theme { display: flex; align-items: center; gap: 10px; padding: 9px 12px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(7,4,15,.6); color: var(--fg); font: inherit; cursor: pointer; }
+.set-theme.on { border-color: var(--a1); box-shadow: 0 0 16px rgba(var(--a1-rgb), .35); }
+.set-dot { width: 22px; height: 22px; border-radius: 50%; flex: none; }
+.set-theme b { font-size: .86rem; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
@@ -707,7 +716,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <div class="meter" aria-label="Library progress">
       <div class="meter-top">
         <span class="meter-label">Cabinets lit</span>
-        <span class="meter-num"><b id="lit-count">34</b> / 1000</span>
+        <span class="meter-num"><b id="lit-count">35</b> / 1000</span>
       </div>
       <div class="ticks" id="ticks"></div>
     </div>
@@ -929,7 +938,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#submit">Submit a game</a>
       <a href="#queue">Queue</a>
     </nav>
-    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">34</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
+    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">35</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
   </div>
 </footer>
 </div>
@@ -1331,7 +1340,7 @@ function SHELL() {
     if (S.shakeA) { const k = S.shakeA * Math.min(1, S.shakeT * 4); x.translate((Math.random() * 2 - 1) * k, (Math.random() * 2 - 1) * k); }
     G.draw(x); x.restore(); glow(); x.globalAlpha = 1; x.globalCompositeOperation = "source-over";
     x.save(); if (S.shakeA) { const k = S.shakeA * Math.min(1, S.shakeT * 4) * .5; x.translate((Math.random() * 2 - 1) * k, (Math.random() * 2 - 1) * k); } drawFx(); x.restore();
-    bloom();
+    if (SET0.glow !== false) bloom();
     x.setTransform(dpr, 0, 0, dpr, 0, 0);
     if (S.flashA > 0) { x.fillStyle = ca(S.flashC, S.flashA * .55); x.fillRect(0, 0, G.w, G.h); }
     drawBanner(); corners();
@@ -5384,6 +5393,193 @@ function chessGame() {
   });
 }
 
+/* ---------- 35 Guess Who ---------- */
+function guessGame() {
+  const W = 520, H = 660, COLS = 6, ROWS = 4, CW = 80, CH = 100, OX = 20, OY = 64;
+  const NAMES = ["ZIP", "NOVA", "BLIP", "PIXEL", "GLITCH", "ROXY", "BOLT", "FIZZ", "MOCHI", "JAX", "KIKI", "ORBIT", "BYTE", "LUNA", "TANK", "WIGGLE", "SPARK", "DOT", "REX", "YUKI", "FLUX", "BEAN", "COMET", "ECHO"];
+  const COLORS = [["pink", "#ff2bd6"], ["blue", "#22e4ff"], ["green", "#b6ff3b"], ["gold", "#ffc23d"]];
+  const CHARS = (() => {
+    let seed = 7; const rnd = () => (seed = (seed * 16807) % 2147483647) / 2147483647;
+    const seen = new Set(), out = [];
+    while (out.length < 24) {
+      const c = { color: out.length % 4, shape: rnd() < .5 ? "round" : "square", eyes: 1 + Math.floor(rnd() * 3), hat: ["none", "cap", "crown", "antenna"][Math.floor(rnd() * 4)], glasses: rnd() < .4, mouth: ["smile", "frown", "open"][Math.floor(rnd() * 3)] };
+      const k = JSON.stringify(c); if (seen.has(k)) continue; seen.add(k); c.name = NAMES[out.length]; out.push(c);
+    }
+    return out;
+  })();
+  const QS = [
+    ...COLORS.map(([n], i) => ({ q: "Is it " + n + "?", t: (c) => c.color === i })),
+    { q: "Is its head round?", t: (c) => c.shape === "round" }, { q: "Is its head square?", t: (c) => c.shape === "square" },
+    { q: "Does it have 1 eye?", t: (c) => c.eyes === 1 }, { q: "Does it have 2 eyes?", t: (c) => c.eyes === 2 }, { q: "Does it have 3 eyes?", t: (c) => c.eyes === 3 },
+    { q: "Is it wearing a cap?", t: (c) => c.hat === "cap" }, { q: "Is it wearing a crown?", t: (c) => c.hat === "crown" }, { q: "Does it have an antenna?", t: (c) => c.hat === "antenna" }, { q: "Is its head bare (no hat)?", t: (c) => c.hat === "none" },
+    { q: "Is it wearing glasses?", t: (c) => c.glasses },
+    { q: "Is it smiling?", t: (c) => c.mouth === "smile" }, { q: "Is it frowning?", t: (c) => c.mouth === "frown" }, { q: "Is its mouth open?", t: (c) => c.mouth === "open" },
+  ];
+  let mine, theirs, up, botUp, turn, phase, msg, asked, botAsked, level, cur, qScroll, waitT, flipT, endMsg, duoTurn, guessMode, pick;
+  function deal() {
+    theirs = Math.random() * 24 | 0; do { mine = Math.random() * 24 | 0; } while (mine === theirs);
+    if (S.duo && !S.bot) mine = -1;
+    up = CHARS.map(() => true); botUp = CHARS.map(() => true); flipT = CHARS.map(() => -9);
+    turn = 0; duoTurn = 0; phase = "turn"; msg = S.duo ? ["Player 1 goes first. Ask a question or make a guess.", "#22e4ff"] : ["Your turn! Ask a question or make a guess.", "#22e4ff"];
+    asked = 0; botAsked = 0; waitT = 0; endMsg = null; guessMode = false; pick = -1; cur = 0;
+  }
+  const botK = () => (S.bot ? BK() : S.practice ? 0 : Math.min(3, level - 1));
+  const who = () => (S.duo && !S.bot ? "PLAYER " + (duoTurn + 1) : "YOU");
+  function ask(i) {
+    if (phase !== "ask") return;
+    const Q = QS[i], yes = Q.t(CHARS[theirs]);
+    asked++; let n = 0;
+    CHARS.forEach((c, k) => { if (up[k] && Q.t(c) !== yes) { up[k] = false; flipT[k] = S.clock + n * .05; n++; } });
+    msg = [Q.q + "   " + (yes ? "YES!" : "NO!") + (n ? "   " + n + " flipped down" : "   (nothing new)"), yes ? "#3dffa8" : "#ff7be6"];
+    sfx(yes ? "score" : "blip"); phase = "after"; waitT = 1.3;
+  }
+  function guess(k) {
+    if (phase !== "guess" || !up[k]) return;
+    if (k === theirs) {
+      const X = OX + (k % COLS) * CW + CW / 2, Y = OY + Math.floor(k / COLS) * CH + CH / 2;
+      burst(X, Y, "#ffd66b", 50, 300, 1); ring(X, Y, "#ffd66b", 10, 120, .6); flash("#ffd66b", .3); sfx("level");
+      if (S.duo && !S.bot) { endMsg = ["IT WAS " + CHARS[k].name + "!", "PLAYER " + (duoTurn + 1) + " WINS"]; }
+      else if (S.bot) endMsg = ["IT WAS " + CHARS[k].name + "!", "PLAYER 1 WINS"];
+      else { const pts = 300 + level * 100 + Math.max(0, 10 - asked) * 40; S.score += pts; endMsg = ["IT WAS " + CHARS[k].name + "!", "YOU WIN  +" + pts]; }
+      phase = "end"; waitT = 2.6; return;
+    }
+    up[k] = false; flipT[k] = S.clock; sfx("bad"); shake(6, .25);
+    if (!S.duo && !S.practice) { endMsg = ["WRONG GUESS", "IT WAS " + CHARS[theirs].name + " · BOT WINS"]; phase = "end"; waitT = 2.8; return; }
+    msg = ["Nope, not " + CHARS[k].name + ".", "#ff4d6d"]; phase = "after"; waitT = 1.2;
+  }
+  function botTurn() {
+    const cand = CHARS.map((c, k) => k).filter((k) => botUp[k]), k2 = botK();
+    if (cand.length === 1 || (k2 === 3 && cand.length === 2 && Math.random() < .5)) {
+      const g = cand[Math.random() * cand.length | 0];
+      if (g === mine) { endMsg = ["THE BOT GUESSED " + CHARS[g].name, S.bot ? "PLAYER 2 WINS" : "BOT WINS"]; phase = "end"; waitT = 2.8; sfx("bad"); return; }
+      botUp[g] = false; msg = ["The bot guessed " + CHARS[g].name + "... WRONG!", "#3dffa8"]; phase = "after"; waitT = 1.4; return;
+    }
+    const splits = QS.map((Q, i) => { const y = cand.filter((k) => Q.t(CHARS[k])).length; return { i, y, d: Math.abs(y - cand.length / 2) }; }).filter((o) => o.y > 0 && o.y < cand.length);
+    let pickQ;
+    if (k2 >= 2) { splits.sort((a, b) => a.d - b.d); pickQ = splits[0]; }
+    else if (k2 === 1) { splits.sort((a, b) => a.d - b.d); pickQ = splits[Math.random() * Math.min(4, splits.length) | 0]; }
+    else pickQ = splits[Math.random() * splits.length | 0];
+    if (!pickQ) { phase = "after"; waitT = .5; return; }
+    const Q = QS[pickQ.i], yes = Q.t(CHARS[mine]); botAsked++;
+    CHARS.forEach((c, k) => { if (botUp[k] && Q.t(c) !== yes) botUp[k] = false; });
+    msg = ["BOT ASKS: " + Q.q + "  " + (yes ? "YES" : "NO") + "  ·  bot has " + botUp.filter(Boolean).length + " left", "#ff2bd6"];
+    sfx("tick"); phase = "after"; waitT = 1.6;
+  }
+  function nextTurn() {
+    if (S.duo && !S.bot) { duoTurn = 1 - duoTurn; turn = 0; phase = "turn"; msg = ["Player " + (duoTurn + 1) + "'s turn. Ask or guess.", duoTurn ? "#ff2bd6" : "#22e4ff"]; return; }
+    if (turn === 0) { turn = 1; phase = "bot"; waitT = .9; msg = ["The bot is thinking...", "#ff2bd6"]; }
+    else { turn = 0; phase = "turn"; msg = ["Your turn! Ask a question or make a guess.", "#22e4ff"]; }
+  }
+  /* buttons */
+  const BY = OY + ROWS * CH + 14, BTN = { ask: [OX, BY, 230, 50], guess: [W - OX - 230, BY, 230, 50] };
+  const inB = (b, px, py) => px >= b[0] && px <= b[0] + b[2] && py >= b[1] && py <= b[1] + b[3];
+  const QW = 236, QH = 34, QX = (W - QW * 2 - 8) / 2, QY = 92;
+  const qRect = (i) => [QX + (i % 2) * (QW + 8), QY + Math.floor(i / 2) * (QH + 6), QW, QH];
+  function drawFace(c, X, Y, sc, alpha) {
+    const col = COLORS[c.color][1];
+    x.save(); x.translate(X, Y); x.scale(sc, sc); x.globalAlpha = alpha;
+    glow(col, 12); x.fillStyle = ca(col, .3); x.strokeStyle = col; x.lineWidth = 2.5;
+    x.beginPath(); if (c.shape === "round") x.arc(0, 4, 24, 0, 7); else rr(-23, -19, 46, 46, 8); x.fill(); x.stroke(); glow();
+    const ex = c.eyes === 1 ? [0] : c.eyes === 2 ? [-9, 9] : [-12, 0, 12];
+    for (const e of ex) { x.fillStyle = "#fff"; x.beginPath(); x.arc(e, -2, 5, 0, 7); x.fill(); x.fillStyle = "#05030c"; x.beginPath(); x.arc(e + 1, -1, 2.4, 0, 7); x.fill(); }
+    if (c.glasses) { x.strokeStyle = "#ffffff"; x.lineWidth = 1.6; x.beginPath(); for (const e of ex) { x.moveTo(e + 7, -2); x.arc(e, -2, 7, 0, 7); } x.moveTo(ex[0] - 7, -2); x.lineTo(-24, -5); x.moveTo(ex[ex.length - 1] + 7, -2); x.lineTo(24, -5); x.stroke(); }
+    x.strokeStyle = "#ffffff"; x.lineWidth = 2; x.beginPath();
+    if (c.mouth === "smile") x.arc(0, 10, 8, .2, Math.PI - .2); else if (c.mouth === "frown") x.arc(0, 20, 8, Math.PI + .3, -.3); else { x.ellipse(0, 14, 5, 4, 0, 0, 7); }
+    x.stroke();
+    if (c.hat === "cap") { x.fillStyle = "#ff4d6d"; x.beginPath(); x.arc(0, -16, 18, Math.PI, 0); x.fill(); x.fillRect(0, -18, 26, 4); }
+    else if (c.hat === "crown") { glow("#ffd66b", 10); x.fillStyle = "#ffd66b"; x.beginPath(); x.moveTo(-15, -18); x.lineTo(-15, -32); x.lineTo(-7, -24); x.lineTo(0, -36); x.lineTo(7, -24); x.lineTo(15, -32); x.lineTo(15, -18); x.closePath(); x.fill(); glow(); }
+    else if (c.hat === "antenna") { x.strokeStyle = col; x.lineWidth = 2; x.beginPath(); x.moveTo(0, c.shape === "round" ? -20 : -19); x.lineTo(0, -34); x.stroke(); glow("#ffffff", 10); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(0, -36, 4, 0, 7); x.fill(); glow(); }
+    x.restore();
+  }
+  game({
+    title: "Guess Who", duo: "One secret mystery bot. Take turns asking questions. First to guess it right wins.", easy: "a forgetful bot, and wrong guesses just flip that card", w: W, h: H, color: "#ff7be6", bpm: 100,
+    help: ["The bot picked a secret character. Find out who it is!", "Ask yes/no questions. Wrong cards flip down by themselves", "Tap GUESS, then tap a card. A wrong guess loses", "Beat the bot before it guesses yours (shown bottom left)"],
+    init() { level = 1; qScroll = 0; deal(); },
+    hud() { return (S.duo && !S.bot ? "PLAYER " + (duoTurn + 1) + "'S TURN" : "LEVEL " + level + "  ·  QUESTIONS " + asked + "  ·  BOT HAS " + botUp.filter(Boolean).length + " LEFT"); },
+    summary() { return S.duo ? [] : ["BEAT THE BOT " + (level - 1) + " TIME" + (level === 2 ? "" : "S")]; },
+    tap(px, py) {
+      if (phase === "ask") {
+        for (let i = 0; i < QS.length; i++) if (inB(qRect(i), px, py)) return ask(i);
+        if (py > QY + Math.ceil(QS.length / 2) * (QH + 6) + 4) { phase = "turn"; sfx("tick"); }
+        return;
+      }
+      if (phase === "guess") {
+        const c = Math.floor((px - OX) / CW), r = Math.floor((py - OY) / CH);
+        if (c >= 0 && c < COLS && r >= 0 && r < ROWS) return guess(r * COLS + c);
+        if (inB(BTN.guess, px, py)) { phase = "turn"; sfx("tick"); }
+        return;
+      }
+      if (phase !== "turn") return;
+      if (inB(BTN.ask, px, py)) { phase = "ask"; cur = 0; sfx("blip"); }
+      else if (inB(BTN.guess, px, py)) { phase = "guess"; cur = up.indexOf(true); sfx("blip"); }
+    },
+    turn(dir, k) {
+      if (!k) return;
+      const v = { up: -1, down: 1, left: -1, right: 1 }[dir];
+      if (phase === "ask") { const step = dir === "up" || dir === "down" ? 2 : 1; cur = Math.max(0, Math.min(QS.length - 1, cur + v * step)); }
+      else { const step = dir === "up" || dir === "down" ? COLS : 1; cur = Math.max(0, Math.min(23, cur + v * step)); }
+      sfx("tick");
+    },
+    key(k, rep) {
+      if (rep) return;
+      if (phase === "turn" && (k === "q" || k === "a")) { phase = "ask"; cur = 0; }
+      else if (phase === "turn" && k === "g") { phase = "guess"; cur = up.indexOf(true); }
+      else if (k === " " || k === "Enter") { if (phase === "ask") ask(cur); else if (phase === "guess") guess(cur); else if (phase === "turn") { phase = "ask"; cur = 0; } }
+      else if (k === "Escape" || k === "x") { if (phase === "ask" || phase === "guess") phase = "turn"; }
+    },
+    update(dt) {
+      if (phase === "bot") { waitT -= dt; if (waitT <= 0) botTurn(); return; }
+      if (phase === "after") { waitT -= dt; if (waitT <= 0) nextTurn(); return; }
+      if (phase === "end") {
+        waitT -= dt;
+        if (waitT <= 0) {
+          const w = endMsg[1];
+          if (S.duo) return over(/PLAYER (\d) WINS/.test(w) ? w.match(/PLAYER \d WINS/)[0] : w);
+          if (/BOT WINS/.test(w)) return over("BOT WINS");
+          level++; banner("LEVEL " + level + " · SMARTER BOT", "#ff7be6"); deal();
+        }
+      }
+    },
+    draw() {
+      techBg("#ff7be6");
+      for (let k = 0; k < 24; k++) {
+        const c = CHARS[k], X = OX + (k % COLS) * CW, Y = OY + Math.floor(k / COLS) * CH;
+        const t = Math.min(1, Math.max(0, (S.clock - flipT[k]) / .3)), down = !up[k], f = down ? Math.abs(Math.cos(t * Math.PI)) : 1, showBack = down && t > .5;
+        x.save(); x.translate(X + CW / 2, Y + CH / 2); x.scale(1, Math.max(.04, f)); x.translate(-(X + CW / 2), -(Y + CH / 2));
+        if (showBack) { x.fillStyle = "rgba(30,14,48,.95)"; x.strokeStyle = "rgba(255,123,230,.25)"; x.lineWidth = 1.5; rr(X + 4, Y + 4, CW - 8, CH - 8, 10); x.fill(); x.stroke(); x.strokeStyle = "rgba(255,123,230,.25)"; x.beginPath(); x.moveTo(X + 22, Y + 30); x.lineTo(X + CW - 22, Y + CH - 30); x.moveTo(X + CW - 22, Y + 30); x.lineTo(X + 22, Y + CH - 30); x.stroke(); }
+        else {
+          const hl = (phase === "guess" && up[k]);
+          x.fillStyle = "rgba(14,8,30,.92)"; x.strokeStyle = hl ? "#ffd66b" : ca(COLORS[c.color][1], .5); x.lineWidth = hl ? 2.5 : 1.5; rr(X + 4, Y + 4, CW - 8, CH - 8, 10); x.fill(); x.stroke();
+          drawFace(c, X + CW / 2, Y + 42, .95, 1);
+          txt(c.name, X + CW / 2, Y + CH - 16, 11, "#ffffff", "center", "d");
+        }
+        x.restore();
+        if (S.state === "play" && (phase === "guess") && k === cur) { x.strokeStyle = "#ffffff"; x.lineWidth = 2; rr(X + 2, Y + 2, CW - 4, CH - 4, 12); x.stroke(); }
+      }
+      const btn = (b, label, on, col) => { glow(col, on ? 14 : 0); x.fillStyle = on ? ca(col, .2) : "rgba(255,255,255,.04)"; x.strokeStyle = on ? col : "rgba(255,255,255,.2)"; x.lineWidth = 2; rr(b[0], b[1], b[2], b[3], 14); x.fill(); x.stroke(); glow(); txt(label, b[0] + b[2] / 2, b[1] + b[3] / 2 + 1, 15, on ? "#ffffff" : "#8f86b5", "center", "d"); };
+      const my = phase === "turn" || phase === "guess";
+      btn(BTN.ask, "? ASK A QUESTION", phase === "turn", "#22e4ff");
+      btn(BTN.guess, phase === "guess" ? "✕ CANCEL GUESS" : "★ MAKE A GUESS", my, "#ffd66b");
+      x.fillStyle = "rgba(4,2,10,.6)"; rr(OX, BY + 62, W - OX * 2, 38, 10); x.fill();
+      if (msg) { x.font = "400 13px 'Share Tech Mono', monospace"; let t = msg[0]; while (x.measureText(t).width > W - OX * 2 - 20 && t.length > 4) t = t.slice(0, -2); txt(t === msg[0] ? t : t + "…", W / 2, BY + 81, 13, msg[1], "center"); }
+      if (!S.duo || S.bot) {
+        if (mine >= 0) { x.fillStyle = "rgba(14,8,30,.92)"; x.strokeStyle = "#22e4ff"; x.lineWidth = 2; rr(OX, BY + 108, 150, 66, 10); x.fill(); x.stroke(); drawFace(CHARS[mine], OX + 36, BY + 142, .7, 1); txt("YOUR SECRET", OX + 98, BY + 128, 10, "#8fe8ff", "center"); txt(CHARS[mine].name, OX + 98, BY + 150, 14, "#ffffff", "center", "d"); }
+        const left = botUp.filter(Boolean).length; txt("BOT'S BOARD", W - OX - 80, BY + 124, 10, "#ff7be6", "center");
+        for (let k = 0; k < 24; k++) { x.fillStyle = botUp[k] ? "#ff2bd6" : "rgba(255,255,255,.12)"; x.fillRect(W - OX - 150 + (k % 8) * 18, BY + 136 + Math.floor(k / 8) * 12, 14, 8); }
+        txt(left + " LEFT", W - OX - 80, BY + 180, 11, "#ff7be6", "center", "d");
+      } else txt("MYSTERY BOT: ???", W / 2, BY + 140, 18, "#ff7be6", "center", "d");
+      if (phase === "guess") { txt("TAP THE CARD YOU THINK IT IS", W / 2, OY - 26, 14, "#ffd66b", "center", "d"); }
+      if (phase === "ask") {
+        x.fillStyle = "rgba(4,2,10,.93)"; x.fillRect(0, 0, W, H);
+        txt("PICK A QUESTION", W / 2, 56, 20, "#22e4ff", "center", "d");
+        QS.forEach((Q, i) => { const [qx, qy, qw, qh] = qRect(i), hi = i === cur; x.fillStyle = hi ? "rgba(34,228,255,.22)" : "rgba(255,255,255,.05)"; x.strokeStyle = hi ? "#22e4ff" : "rgba(34,228,255,.35)"; x.lineWidth = 1.5; rr(qx, qy, qw, qh, 9); x.fill(); x.stroke(); txt(Q.q, qx + qw / 2, qy + qh / 2 + 1, 12, "#ffffff", "center"); });
+        txt("tap outside the list to go back", W / 2, QY + Math.ceil(QS.length / 2) * (QH + 6) + 24, 12, "#8f86b5", "center");
+      }
+      if (endMsg && phase === "end") { x.fillStyle = "rgba(4,2,10,.8)"; x.fillRect(0, H / 2 - 60, W, 120); const win = !/BOT WINS|PLAYER 2 WINS/.test(endMsg[1]) || (S.duo && !S.bot); glow(win ? "#ffd66b" : "#ff4d6d", 20); txt(endMsg[0], W / 2, H / 2 - 18, 26, win ? "#ffd66b" : "#ff4d6d", "center", "d"); glow(); txt(endMsg[1], W / 2, H / 2 + 22, 15, "#ffffff", "center", "d"); }
+    },
+  });
+}
+
 /* ====================================================================
    The hub
    ==================================================================== */
@@ -5535,6 +5731,7 @@ function chessGame() {
     { key: "beat", title: "Beat Lanes", genre: "Other", fn: beatGame },
     { key: "simon", title: "Simon Glow", genre: "Other", fn: simonGame },
     { key: "chess", title: "Neon Chess", genre: "Strategy", fn: chessGame },
+    { key: "guesswho", title: "Guess Who", genre: "Puzzle", fn: guessGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -5544,6 +5741,7 @@ function chessGame() {
     { key: "targets", how: "Split screen with the same targets on both sides. Best score in 30 seconds wins.", keys: "Best on a touch screen", touch: "P1 taps the left half, P2 the right" },
     { key: "pingpong", how: "Real table tennis: the ball has to bounce on the other side. First to 11.", keys: "P1 ← → move, ↑ swing  ·  P2 A D move, W swing", touch: "Drag to move and tap to swing, each on your own half" },
     { key: "golf", how: "9 random holes from 50 courses. Take turns. Fewest total strokes wins.", keys: "Drag to aim and shoot, or arrows + Space", touch: "Pass the iPad between turns" },
+    { key: "guesswho", how: "One mystery character. Take turns asking yes/no questions. First correct guess wins.", keys: "Q asks, G guesses, arrows + Space pick", touch: "Tap ASK or GUESS, then pass the iPad" },
     { key: "chess", how: "Full chess with castling, en passant and promotion. Checkmate the other king.", keys: "Arrows move, Space picks and moves", touch: "Tap a piece, tap a dot, then pass the iPad" },
     { key: "connect4", how: "Classic Connect Four. Drop discs and get 4 in a row first.", keys: "← → pick a column, Space drops", touch: "Tap a column, then pass the iPad" },
     { key: "reversi", how: "Flip your rival's discs by trapping them. Most discs at the end wins.", keys: "Arrows move, Space places", touch: "Tap a glowing dot, then pass the iPad" },
@@ -5567,7 +5765,7 @@ function chessGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + "window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + "window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -5796,7 +5994,7 @@ function chessGame() {
     const t = document.getElementById("ticker"); if (!t) return;
     const items = [];
     for (const g of libraryGames()) { const e = entries(g.key)[0]; if (e) items.push([g.title, nameOf(e), fmt(e.s)]); }
-    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["34 games", "ready to play", "Insert coin"]];
+    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["35 games", "ready to play", "Insert coin"]];
     let half = []; while (half.length < 8) half = half.concat(one);
     const make = () => half.map(([g, n, v]) => el("span", { class: "tick-item" }, el("b", { text: g }), el("span", { text: n }), el("em", { text: v })));
     t.replaceChildren(...make(), ...make());
@@ -6147,14 +6345,17 @@ function chessGame() {
     ["rock", "Arcade Rock", "Power chords and a stomping beat."],
     ["off", "No music", "Just the sound effects."],
   ];
-  let settings = { music: "synth", mvol: 80, svol: 80, shake: true, flash: true, crt: true };
+  let settings = { music: "synth", mvol: 80, svol: 80, shake: true, flash: true, crt: true, glow: true, theme: store.get("gbl-neon") || "synthwave" };
+  const THEMES = [["synthwave", "Synthwave", "#ff2bd6", "#22e4ff"], ["toxic", "Toxic", "#b6ff3b", "#a35bff"], ["sunset", "Sunset", "#ff8a1f", "#ff2e88"], ["ice", "Ice", "#6af7ff", "#6b7dff"],
+    ["matrix", "Matrix", "#3dff6e", "#00b3ff"], ["gold", "Gold Rush", "#ffc23d", "#ff6b3d"], ["blood", "Blood Moon", "#ff2e4d", "#a020ff"], ["galaxy", "Galaxy", "#a35bff", "#ff7be6"]];
+  document.querySelectorAll(".swatch").forEach((b2) => b2.addEventListener("click", () => { settings.theme = b2.dataset.neon; saveSettings(); }));
   try { const s0 = JSON.parse(store.get("gbl-settings") || "null"); if (s0 && typeof s0 === "object") settings = { ...settings, ...s0 }; } catch {}
   let setTimer = null;
   async function loadSettings() {
     if (!SET_REMOTE.can()) return;
     try {
       const s1 = await SET_REMOTE.load();
-      if (s1 && typeof s1 === "object") { settings = { ...settings, ...s1 }; store.set("gbl-settings", JSON.stringify(settings)); if (sm.classList.contains("open")) renderSettings(); }
+      if (s1 && typeof s1 === "object") { settings = { ...settings, ...s1 }; if (settings.theme) applyNeon(settings.theme); store.set("gbl-settings", JSON.stringify(settings)); if (sm.classList.contains("open")) renderSettings(); }
       else SET_REMOTE.save(settings).catch(() => {});
     } catch {}
   }
@@ -6206,11 +6407,15 @@ function chessGame() {
       el("div", { class: "set-grid" }, ...cards),
       el("div", { class: "set-vol" }, el("span", { text: "Music volume" }), vol, volTxt),
       slider("svol", "Sound effects"),
+      el("p", { class: "eyebrow set-h2", text: "Color theme" }),
+      el("div", { class: "set-themes" }, ...THEMES.map(([id, name, c1, c2]) => el("button", { class: "set-theme" + (settings.theme === id ? " on" : ""), type: "button", "aria-pressed": String(settings.theme === id), onclick: () => { settings.theme = id; applyNeon(id); saveSettings(); renderSettings(); } },
+        el("span", { class: "set-dot", style: "background:linear-gradient(135deg," + c1 + " 50%," + c2 + " 50%);box-shadow:0 0 12px " + c1 }), el("b", { text: name })))),
       el("p", { class: "eyebrow set-h2", text: "Screen" }),
       el("div", { class: "set-togs" },
         toggle("shake", "Screen shake", "The screen rumbles on big hits"),
         toggle("flash", "Flashes", "Bright flashes and glitch effects"),
-        toggle("crt", "Retro scanlines", "Old-school TV lines over the games")),
+        toggle("crt", "Retro scanlines", "Old-school TV lines over the games"),
+        toggle("glow", "Game glow", "The neon bloom. Turn off for smoother play on older iPads")),
       el("p", { class: "set-note", text: SET_REMOTE.can() ? "✓ Saved to your account, so it follows you to any device." : "Saved on this device. Log in to save it to your account." }),
       el("p", { class: "set-note", text: "Tip: in any game, the ♪ button or the M key switches between all sound, effects only and silent." }));
   }
@@ -6222,7 +6427,7 @@ function chessGame() {
   document.querySelectorAll("[data-settings]").forEach((b2) => b2.addEventListener("click", openSettings));
 
   /* ---------- Tournament ---------- */
-  const TOUR_BOT = ["pong", "snake", "memory", "targets", "pingpong", "connect4", "reversi", "hoops", "penalty", "chess"];
+  const TOUR_BOT = ["pong", "snake", "memory", "targets", "pingpong", "connect4", "reversi", "hoops", "penalty", "chess", "guesswho"];
   const TOUR_KEY = "gbl-tour", ROUNDS = 7;
   let tour = null, tourMode = "bot", tourLvl = 1;
   const BOT_LV = ["Easy", "Medium", "Hard", "Hacker"];
