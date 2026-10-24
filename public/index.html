@@ -419,6 +419,16 @@ textarea.code {
 .tour-lv { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .tour-lv[hidden] { display: none; }
 .tour-lv > span { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--a2); font-weight: 700; margin-right: 6px; }
+.set-cab { max-width: 620px; }
+.set-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 10px; margin-bottom: 16px; }
+.set-opt { position: relative; }
+.set-listen { margin-top: 6px; font: 700 .7rem var(--f-mono); letter-spacing: .12em; color: var(--a2); padding: 4px 10px; border: 1px solid rgba(var(--a2-rgb), .45); border-radius: 999px; }
+.set-listen:hover { background: rgba(var(--a2-rgb), .12); }
+.set-vol { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+.set-vol span { font-size: .72rem; letter-spacing: .18em; text-transform: uppercase; color: var(--a2); font-weight: 700; }
+.set-range { flex: 1; min-width: 160px; accent-color: var(--a1); }
+.set-note { color: var(--muted); font-size: .86rem; margin: 6px 0 0; }
+.set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
 .tour-score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; margin-bottom: 18px; }
@@ -667,6 +677,8 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="tournament">Tournament</button>
       <span aria-hidden="true">·</span>
+      <button class="linkbtn" type="button" data-settings>Settings</button>
+      <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="leaderboards">Leaderboards</button>
       <span aria-hidden="true">·</span>
       <button class="linkbtn" type="button" data-go="submit">Submit a game</button>
@@ -707,6 +719,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <button class="swatch" data-neon="sunset" aria-label="Sunset orange and magenta" style="--c1:#ff8a1f;background:linear-gradient(135deg,#ff8a1f 50%,#ff2e88 50%)"></button>
       <button class="swatch" data-neon="ice" aria-label="Ice cyan and blue" style="--c1:#6af7ff;background:linear-gradient(135deg,#6af7ff 50%,#6b7dff 50%)"></button>
     </div>
+    <button class="btn sm set-btn" type="button" data-settings aria-label="Settings" title="Settings">⚙</button>
     <div class="acct-slot" id="acct"><button class="btn sm" type="button" disabled>Log in</button></div>
   </div>
 </header>
@@ -928,9 +941,100 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
   </div>
 </div>
 
+<div class="modal" id="set-modal" role="dialog" aria-modal="true" aria-labelledby="set-title" aria-hidden="true">
+  <div class="cabinet acct set-cab">
+    <div class="cab-bar">
+      <div class="cab-title" id="set-title">⚙ Settings</div>
+      <div class="sp"><button class="btn sm" type="button" id="set-close">Close</button></div>
+    </div>
+    <div class="acct-body" id="set-body"></div>
+  </div>
+</div>
+
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+/* ====================================================================
+   Music styles. Shared by every game and by the Settings preview.
+   ==================================================================== */
+function musicLib(ac, out) {
+  const nbuf = ac.createBuffer(1, ac.sampleRate * .5, ac.sampleRate), nd = nbuf.getChannelData(0);
+  for (let i = 0; i < nd.length; i++) nd[i] = Math.random() * 2 - 1;
+  const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  function v(f1, f2, dur, type, vol, t, lp) {
+    const o = ac.createOscillator(), g = ac.createGain();
+    o.type = type; o.frequency.setValueAtTime(f1, t); if (f2 !== f1) o.frequency.exponentialRampToValueAtTime(Math.max(20, f2), t + dur);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + Math.min(.02, dur / 4)); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    let n = o; if (lp) { const fl = ac.createBiquadFilter(); fl.type = "lowpass"; fl.frequency.value = lp; o.connect(fl); n = fl; }
+    n.connect(g); g.connect(out); o.start(t); o.stop(t + dur + .05);
+  }
+  function pad(f, dur, vol, t, type) {
+    const o = ac.createOscillator(), g = ac.createGain(), fl = ac.createBiquadFilter();
+    o.type = type || "triangle"; o.frequency.value = f; fl.type = "lowpass"; fl.frequency.value = 1200;
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + dur * .35); g.gain.linearRampToValueAtTime(.0001, t + dur);
+    o.connect(fl); fl.connect(g); g.connect(out); o.start(t); o.stop(t + dur + .05);
+  }
+  function hiss(dur, vol, freq, t) {
+    const s = ac.createBufferSource(), fl = ac.createBiquadFilter(), g = ac.createGain();
+    s.buffer = nbuf; fl.type = "bandpass"; fl.frequency.value = freq; fl.Q.value = .8;
+    g.gain.setValueAtTime(vol, t); g.gain.exponentialRampToValueAtTime(.0001, t + dur);
+    s.connect(fl); fl.connect(g); g.connect(out); s.start(t); s.stop(t + dur);
+  }
+  const kick = (t, vol) => v(150, 45, .18, "sine", vol || .32, t);
+  const T = {
+    synth(step, t, spb) {
+      const s = step % 16, root = [45, 41, 48, 43][Math.floor(step / 16) % 4], ARP = [0, 7, 12, 15, 12, 7, 3, 7];
+      if (s % 2 === 0) v(mtof(root), mtof(root), spb * 1.7, "sawtooth", .055, t, 520 + 300 * Math.sin(step / 9));
+      if (s % 4 === 0) kick(t);
+      if (s % 4 === 2) hiss(.04, .06, 8000, t);
+      if (s === 4 || s === 12) hiss(.12, .1, 1800, t);
+      if (s % 2 === 1) { const f = mtof(root + 24 + ARP[(step >> 1) % 8]); v(f, f, spb * .8, "square", .018, t, 2600); }
+    },
+    chip(step, t, spb) {
+      const s = step % 16, bar = Math.floor(step / 16) % 4, root = [48, 53, 55, 52][bar];
+      const MEL = [0, 4, 7, 12, 7, 4, 9, 7, 0, 4, 7, 11, 12, 11, 7, 4];
+      if (s % 2 === 0) { const f = mtof(root - 12 + (s % 4 ? 7 : 0)); v(f, f, spb * 1.6, "triangle", .12, t); }
+      if (s % 2 === 1 || bar === 3) { const f = mtof(root + 12 + MEL[(s + bar * 3) % 16]); v(f, f, spb * .9, "square", .035, t); }
+      if (s % 4 === 0) hiss(.05, .12, 1200, t);
+      if (s % 2 === 1) hiss(.02, .04, 9000, t);
+      if (s === 14 && bar === 3) v(mtof(root + 24), mtof(root + 36), spb * 2, "square", .03, t);
+    },
+    chill(step, t, spb) {
+      const s = step % 16, bar = Math.floor(step / 16) % 4, ch = [[57, 60, 64, 67], [53, 57, 60, 64], [55, 59, 62, 65], [52, 55, 59, 62]][bar];
+      if (s === 0) ch.forEach((n) => pad(mtof(n), spb * 16, .03, t));
+      if (s === 0 || s === 10) kick(t, .22);
+      if (s === 4 || s === 12) hiss(.08, .05, 2400, t);
+      if (s % 2 === 0) hiss(.025, .018, 7000, t + (s % 4 ? spb * .18 : 0));
+      if ([2, 7, 11, 14].includes(s)) { const n = ch[(s * 3 + bar) % 4] + 12; v(mtof(n), mtof(n), spb * 3, "sine", .05, t); }
+      if (s === 0 || s === 8) v(mtof(ch[0] - 24), mtof(ch[0] - 24), spb * 6, "sine", .14, t);
+    },
+    hyper(step, t, spb) {
+      const s = step % 16, root = [38, 38, 41, 36][Math.floor(step / 16) % 4];
+      if (s === 0 || s === 10) kick(t, .36);
+      if (s === 4 || s === 12) { hiss(.14, .16, 1600, t); v(220, 120, .08, "triangle", .08, t); }
+      hiss(.02, s % 2 ? .03 : .05, 9500, t);
+      if (s % 2 === 0) { const f = mtof(root + (s % 8 === 6 ? 12 : 0)); v(f, f * .98, spb * 1.8, "sawtooth", .07, t, 380 + 260 * Math.sin(step / 5)); }
+      if (s % 8 === 3) { const f = mtof(root + 31); v(f, f, spb * 2, "square", .02, t, 3200); }
+    },
+    space(step, t, spb) {
+      const s = step % 16, bar = Math.floor(step / 16) % 4, roots = [45, 43, 41, 43];
+      if (s === 0) { [0, 7, 12, 16].forEach((d) => pad(mtof(roots[bar] + d), spb * 18, .025, t, "sine")); pad(mtof(roots[bar] - 12), spb * 18, .05, t, "sine"); }
+      const PENT = [0, 3, 5, 7, 10];
+      if ((s === 3 || s === 9 || s === 13) && ((step * 7) % 5) < 3) { const n = roots[bar] + 24 + PENT[(step * 3) % 5]; v(mtof(n), mtof(n), spb * 8, "sine", .035, t); v(mtof(n + 12), mtof(n + 12), spb * 4, "sine", .01, t); }
+      if (s === 0 && bar % 2 === 0) v(80, 40, .6, "sine", .12, t);
+    },
+    rock(step, t, spb) {
+      const s = step % 16, root = [40, 40, 43, 45][Math.floor(step / 16) % 4];
+      if (s === 0 || s === 6 || s === 8) kick(t, .34);
+      if (s === 4 || s === 12) hiss(.16, .17, 1500, t);
+      if (s % 2 === 0) hiss(.03, .04, 7500, t);
+      if (s % 2 === 0) { for (const d of [0, 7, 12]) { const f = mtof(root + d); v(f, f, spb * 1.5, "sawtooth", .03, t, 1100); } }
+      if (s === 14) { const f = mtof(root + 24 + 3); v(f, mtof(root + 24), spb * 2, "square", .025, t, 2400); }
+    },
+  };
+  return (track, step, t, spb) => { const fn = T[track] || T.synth; fn(step, t, spb); };
+}
+
 /* ====================================================================
    Game engine: shared by every built-in game. It runs inside the
    sandboxed game window, never in the hub itself.
@@ -1047,21 +1151,13 @@ function SHELL() {
     merge: (v) => { const f = 220 * Math.pow(2, Math.log2(v || 4) / 3); voice(f, f * 1.5, .1, "triangle", .14); },
   };
   function sfx(n, v) { if (!ac || S.sound < 1) return; try { SFX[n](v); } catch (e) {} }
-  const PROG = [45, 41, 48, 43], ARP = [0, 7, 12, 15, 12, 7, 3, 7];
-  const mtof = (m) => 440 * Math.pow(2, (m - 69) / 12);
+  const MUS = window.MUSIC0 || "synth"; let mplay = null;
   function music() {
-    if (!ac || S.sound < 2 || S.state !== "play" || S.paused) return;
+    if (!ac || S.sound < 2 || S.state !== "play" || S.paused || MUS === "off") return;
+    if (!mplay) { const mg = ac.createGain(); mg.gain.value = window.MVOL0 == null ? .8 : window.MVOL0; mg.connect(master); mplay = musicLib(ac, mg); }
     const spb = 60 / (G.bpm || 116) / 4;
     if (seqT < ac.currentTime - .2) seqT = ac.currentTime + .03;
-    while (seqT < ac.currentTime + .15) {
-      const s = step % 16, root = PROG[Math.floor(step / 16) % 4];
-      if (s % 2 === 0) voice(mtof(root), mtof(root), spb * 1.7, "sawtooth", .055, seqT, 520 + 300 * Math.sin(step / 9));
-      if (s % 4 === 0) voice(150, 45, .18, "sine", .32, seqT);
-      if (s % 4 === 2) hiss(.04, .06, 8000, seqT);
-      if (s === 4 || s === 12) hiss(.12, .1, 1800, seqT);
-      if (s % 2 === 1) { const f = mtof(root + 24 + ARP[(step >> 1) % 8]); voice(f, f, spb * .8, "square", .018, seqT, 2600); }
-      seqT += spb; step++;
-    }
+    while (seqT < ac.currentTime + .15) { mplay(MUS, step, seqT, spb); seqT += spb; step++; }
   }
 
   /* ----- lifecycle ----- */
@@ -5445,7 +5541,7 @@ function chessGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + "(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + "window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -5764,7 +5860,7 @@ function chessGame() {
         e.preventDefault();
         if (!u.value.trim() || !p.value) return say("Enter your username and password.", "err");
         go.disabled = true; say("Logging in…");
-        try { const r = await api("/login", { method: "POST", body: { username: u.value, password: p.value } }); me = r.user; closeAcct(); toast("Welcome back, " + me.username); welcome(); }
+        try { const r = await api("/login", { method: "POST", body: { username: u.value, password: p.value } }); me = r.user; closeAcct(); toast("Welcome back, " + me.username); welcome(); loadSettings(); }
         catch (ex) { say(ex.message, "err"); p.value = ""; p.focus(); }
         finally { go.disabled = false; }
       });
@@ -5843,7 +5939,7 @@ function chessGame() {
           me = r.user; toast("Profile saved"); await refresh("scores"); renderAcctModal("profile");
         } else {
           const r = await api("/signup", { method: "POST", body: { username: name, password: p.value, av } });
-          me = r.user; closeAcct(); toast(`Welcome to the hub, ${me.username}!`); welcome();
+          me = r.user; closeAcct(); toast(`Welcome to the hub, ${me.username}!`); welcome(); loadSettings();
         }
       } catch (ex) { say(ex.message, "err"); }
       finally { save.disabled = false; }
@@ -6008,6 +6104,81 @@ function chessGame() {
     }));
   }
 
+  const SET_REMOTE = {
+    can: () => !!me,
+    load: async () => (await api("/settings")).settings,
+    save: (st) => api("/settings", { method: "PUT", body: st }),
+  };
+  /* ---------- Settings (music) ---------- */
+  const STYLES = [
+    ["synth", "Synthwave", "The classic neon sound: pulsing bass and arpeggios."],
+    ["chip", "Chiptune", "Bouncy 8-bit tunes, like an old game console."],
+    ["chill", "Lo-fi Chill", "Soft chords and a lazy beat. Great for puzzles."],
+    ["hyper", "Hyper Drive", "Fast drum and bass. Maximum energy."],
+    ["space", "Deep Space", "Floating pads and twinkly bells."],
+    ["rock", "Arcade Rock", "Power chords and a stomping beat."],
+    ["off", "No music", "Just the sound effects."],
+  ];
+  let settings = { music: "synth", mvol: 80 };
+  try { const s0 = JSON.parse(store.get("gbl-settings") || "null"); if (s0 && typeof s0 === "object") settings = { ...settings, ...s0 }; } catch {}
+  let setTimer = null;
+  async function loadSettings() {
+    if (!SET_REMOTE.can()) return;
+    try {
+      const s1 = await SET_REMOTE.load();
+      if (s1 && typeof s1 === "object") { settings = { ...settings, ...s1 }; store.set("gbl-settings", JSON.stringify(settings)); if (sm.classList.contains("open")) renderSettings(); }
+      else SET_REMOTE.save(settings).catch(() => {});
+    } catch {}
+  }
+  function saveSettings() {
+    store.set("gbl-settings", JSON.stringify(settings));
+    if (!SET_REMOTE.can()) return;
+    clearTimeout(setTimer);
+    setTimer = setTimeout(() => SET_REMOTE.save(settings).catch(() => toast("Couldn't save to your account. Saved on this device.")), 500);
+  }
+  let prev = null;
+  function stopPreview() {
+    if (!prev) return;
+    const p = prev; prev = null; clearInterval(p.timer);
+    try { p.gain.gain.setTargetAtTime(0, p.ac.currentTime, .06); setTimeout(() => p.ac.close().catch(() => {}), 400); } catch {}
+    document.querySelectorAll(".set-listen").forEach((b2) => { b2.textContent = "▶ Listen"; });
+  }
+  function preview(id, btn) {
+    const same = prev && prev.id === id; stopPreview(); if (same || id === "off") return;
+    try {
+      const ac = new (window.AudioContext || window.webkitAudioContext)(), gain = ac.createGain();
+      gain.gain.value = .5 * settings.mvol / 100; gain.connect(ac.destination);
+      const playStep = musicLib(ac, gain), spb = 60 / 118 / 4; let step = 0, t = ac.currentTime + .08;
+      const timer = setInterval(() => { while (t < ac.currentTime + .2) { playStep(id, step++, t, spb); t += spb; } if (step > 128) stopPreview(); }, 50);
+      prev = { ac, gain, timer, id }; if (btn) btn.textContent = "■ Stop";
+    } catch { toast("Sound isn't available here"); }
+  }
+  const sm = $("#set-modal"), sbody = $("#set-body");
+  let setFocus = null;
+  function renderSettings() {
+    const cards = STYLES.map(([id, name, sub]) => {
+      const on = settings.music === id;
+      const listen = id === "off" ? null : el("span", { class: "set-listen", role: "button", tabindex: "0", text: prev && prev.id === id ? "■ Stop" : "▶ Listen", onclick: (e) => { e.stopPropagation(); preview(id, e.currentTarget); }, onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); preview(id, e.currentTarget); } } });
+      return el("button", { class: "tour-opt set-opt" + (on ? " on" : ""), type: "button", "aria-pressed": String(on), onclick: () => { settings.music = id; saveSettings(); renderSettings(); toast(name + " selected"); } },
+        el("b", { text: (on ? "✓ " : "") + name }), el("span", { text: sub }), listen);
+    });
+    const vol = el("input", { type: "range", min: "0", max: "100", step: "5", value: String(settings.mvol), class: "set-range", "aria-label": "Music volume" });
+    const volTxt = el("b", { text: settings.mvol + "%" });
+    vol.addEventListener("input", () => { settings.mvol = +vol.value; volTxt.textContent = vol.value + "%"; if (prev) prev.gain.gain.value = .5 * settings.mvol / 100; saveSettings(); });
+    sbody.replaceChildren(
+      el("p", { class: "eyebrow", text: "Game music" }),
+      el("div", { class: "set-grid" }, ...cards),
+      el("div", { class: "set-vol" }, el("span", { text: "Music volume" }), vol, volTxt),
+      el("p", { class: "set-note", text: SET_REMOTE.can() ? "✓ Saved to your account, so it follows you to any device." : "Saved on this device. Log in to save it to your account." }),
+      el("p", { class: "set-note", text: "Tip: in any game, the ♪ button or the M key switches between all sound, effects only and silent." }));
+  }
+  function openSettings() { setFocus = document.activeElement; renderSettings(); loadSettings(); sm.classList.add("open"); sm.setAttribute("aria-hidden", "false"); $("#set-close").focus(); }
+  function closeSettings() { stopPreview(); sm.classList.remove("open"); sm.setAttribute("aria-hidden", "true"); if (setFocus && setFocus.focus) setFocus.focus(); }
+  $("#set-close").addEventListener("click", closeSettings);
+  sm.addEventListener("click", (e) => { if (e.target === sm) closeSettings(); });
+  addEventListener("keydown", (e) => { if (e.key === "Escape" && sm.classList.contains("open")) closeSettings(); });
+  document.querySelectorAll("[data-settings]").forEach((b2) => b2.addEventListener("click", openSettings));
+
   /* ---------- Tournament ---------- */
   const TOUR_BOT = ["pong", "snake", "memory", "targets", "pingpong", "connect4", "reversi", "hoops", "penalty", "chess"];
   const TOUR_KEY = "gbl-tour", ROUNDS = 7;
@@ -6149,6 +6320,7 @@ function chessGame() {
   renderAll();
   (async () => {
     try { me = (await api("/me")).user; online = true; } catch { online = false; }
+    if (me) loadSettings();
     await refresh();
     syncGuest();
     setInterval(() => { if (!document.hidden) refresh(); }, 30000);

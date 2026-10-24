@@ -49,3 +49,10 @@ CREATE TABLE IF NOT EXISTS rate (
   count INTEGER NOT NULL,
   since INTEGER NOT NULL
 );
+
+-- Per-account settings (music style and volume) stored as JSON.
+CREATE TABLE IF NOT EXISTS settings (
+  user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+  data    TEXT    NOT NULL,
+  at      INTEGER NOT NULL
+);

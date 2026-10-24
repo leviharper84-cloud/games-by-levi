@@ -41,6 +41,7 @@ const SCHEMA = [
   "CREATE INDEX IF NOT EXISTS scores_by_game ON scores(game, score DESC, at ASC)",
   "CREATE TABLE IF NOT EXISTS submissions (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, title TEXT NOT NULL, creator TEXT NOT NULL, genre TEXT NOT NULL, blurb TEXT NOT NULL DEFAULT '', code TEXT NOT NULL, size INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'pending', created_at INTEGER NOT NULL, approved_at INTEGER)",
   "CREATE INDEX IF NOT EXISTS submissions_by_status ON submissions(status, created_at)",
+  "CREATE TABLE IF NOT EXISTS settings (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, data TEXT NOT NULL, at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS rate (key TEXT PRIMARY KEY, count INTEGER NOT NULL, since INTEGER NOT NULL)",
 ];
 let tablesReady = null;
@@ -83,6 +84,9 @@ async function handle(request, env, url) {
   if (path === "/api/signup" && method === "POST") return signup(request, env);
   if (path === "/api/login" && method === "POST") return login(request, env);
   if (path === "/api/logout" && method === "POST") return logout(request, env);
+
+  if (path === "/api/settings" && method === "GET") return getSettings(env, user);
+  if (path === "/api/settings" && method === "PUT") return putSettings(request, env, user);
 
   if (path === "/api/scores" && method === "GET") return getScores(env, user);
   if (path === "/api/scores" && method === "POST") return postScores(request, env, user);
@@ -193,6 +197,29 @@ async function updateMe(request, env, user) {
   }
   const row = await env.DB.prepare("SELECT * FROM users WHERE id = ?").bind(user.id).first();
   return json({ user: publicUser(row, env) });
+}
+
+/* ------------------------------------------------------------------ */
+/* Settings (music style and volume), saved per account                */
+/* ------------------------------------------------------------------ */
+
+const MUSIC_STYLES = new Set(["synth", "chip", "chill", "hyper", "space", "rock", "off"]);
+function cleanSettings(b) {
+  const music = MUSIC_STYLES.has(b && b.music) ? b.music : "synth";
+  const v = Math.round(Number(b && b.mvol));
+  return { music, mvol: Number.isFinite(v) ? Math.max(0, Math.min(100, v)) : 80 };
+}
+async function getSettings(env, user) {
+  if (!user) fail(401, "Log in first.");
+  const row = await env.DB.prepare("SELECT data FROM settings WHERE user_id = ?").bind(user.id).first();
+  let data = null; try { data = row ? JSON.parse(row.data) : null; } catch { data = null; }
+  return json({ settings: data ? cleanSettings(data) : null });
+}
+async function putSettings(request, env, user) {
+  if (!user) fail(401, "Log in first.");
+  const st = cleanSettings(await readJson(request));
+  await env.DB.prepare("INSERT INTO settings (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, at = excluded.at").bind(user.id, JSON.stringify(st), Date.now()).run();
+  return json({ settings: st });
 }
 
 /* ------------------------------------------------------------------ */
