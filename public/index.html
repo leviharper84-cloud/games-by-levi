@@ -556,6 +556,8 @@ textarea.code {
 .event-banner[hidden] { display: none; }
 .arena-live { color: #3dffa8; font: 700 .78rem var(--f-mono); }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
+.tour-x2 { position: absolute; top: 8px; right: 8px; z-index: 2; font: 800 .72rem var(--f-mono); padding: 2px 8px; border-radius: 999px; color: #1a1200; background: #ffd66b; box-shadow: 0 0 12px rgba(255,214,107,.8); }
+.tour-duel { position: absolute; bottom: 8px; left: 8px; z-index: 2; font: 700 .58rem var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border-radius: 999px; color: #05030c; background: #3dffa8; }
 .tour-rules { margin: 0; padding-left: 20px; color: var(--muted); display: grid; gap: 4px; font-size: .92rem; }
 .tour-setup > .btn { justify-self: start; }
 .tour-score { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 14px; margin-bottom: 18px; }
@@ -910,7 +912,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
         <div>
           <p class="eyebrow">7 rounds. 1 champion.</p>
           <h2>Tournament</h2>
-          <p class="lede">Seven random 2-player games, back to back. Play a friend on one screen or take on the bot. Win the most rounds to take the trophy.</p>
+          <p class="lede">Seven rounds of head-to-head games and score duels, different every time. Play a friend on one screen or take on the bot. Win the most points to take the trophy.</p>
         </div>
       </div>
       <div id="tour"></div>
@@ -6723,7 +6725,7 @@ function slitherGame() {
     frame.srcdoc = code;
     frame.addEventListener("load", () => { try { frame.focus(); } catch {} });
     box.replaceChildren(frame);
-    current = { g, frame, ranked: !!(g.slot && !codeOverride) && !(opts && opts.duo), onMatch: opts && opts.onMatch, onMove: opts && opts.onMove, onClose: opts && opts.onClose, daily: !!(opts && opts.daily) };
+    current = { g, frame, ranked: !!(g.slot && !codeOverride) && !(opts && opts.duo), onScore: opts && opts.onScore, onMatch: opts && opts.onMatch, onMove: opts && opts.onMove, onClose: opts && opts.onClose, daily: !!(opts && opts.daily) };
     if (window.gblOnPlay) window.gblOnPlay(g, opts || {});
   }
   function closeModal() {
@@ -6752,6 +6754,7 @@ function slitherGame() {
     const s = Math.floor(Number(d.score));
     if (!Number.isFinite(s) || s < 0 || s > 1e7) return;
     if (window.gblOnScore) window.gblOnScore(current, s);
+    if (current.onScore) { const f = current.onScore; current.onScore = null; f(s); }
     if (!current.ranked) { toast(`Test run score: ${fmt(s)}`); return; }
     saveScore(current.g.key, s);
     setCabSub(current.g);
@@ -7388,11 +7391,23 @@ function slitherGame() {
   const gameOf = (key) => { const i = BUILTINS.findIndex((b) => b.key === key); return i < 0 ? null : { ...BUILTINS[i], slot: i + 1 }; };
   const shuffled = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
   const tourPool = (bot) => (bot ? TOUR_BOT : DUO.map((d) => d.key)).filter((k) => gameOf(k));
-  const tally = () => [1, 2].map((p) => tour.rounds.filter((r) => r.w === p).length);
+  const tally = () => [1, 2].map((p) => tour.rounds.filter((r) => r.w === p).reduce((t, r) => t + (r.mult || 1), 0));
+  const duelPool = () => BUILTINS.map((b) => b.key).filter((k) => !DUO_KEYS.has(k));
   const nextRound = () => tour.rounds.findIndex((r) => r.w === null);
   function startTour(bot, names, lvl) {
-    const pool = shuffled(tourPool(bot));
-    tour = { bot, names, lvl: lvl == null ? 1 : lvl, rounds: pool.slice(0, ROUNDS).map((key) => ({ key, w: null })), spare: pool.slice(ROUNDS) };
+    let last = []; try { last = JSON.parse(store.get("gbl-tour-last") || "[]"); } catch {}
+    const fresh = (arr) => { const a2 = shuffled(arr); return [...a2.filter((k) => !last.includes(k)), ...a2.filter((k) => last.includes(k))]; };
+    const heads = fresh(tourPool(bot)), duels = fresh(duelPool()), nHead = 3 + Math.floor(Math.random() * 3);
+    const lv = lvl == null ? 1 : lvl, mk = (key, duel) => {
+      const r = { key, w: null, duel: !!duel };
+      if (duel && bot) { const base = Math.max(typeof myBest === "function" ? myBest(key) || 0 : 0, typeof topScore === "function" ? topScore(key) || 0 : 0); r.bt = base > 0 ? Math.max(1, Math.round(base * [.3, .5, .7, .92][lv] * (.85 + Math.random() * .3))) : 40 * (lv + 1); }
+      return r;
+    };
+    const rounds = shuffled([...heads.slice(0, nHead).map((k) => mk(k, false)), ...duels.slice(0, ROUNDS - nHead).map((k) => mk(k, true))]);
+    if (Math.random() < .6) rounds[Math.floor(Math.random() * (ROUNDS - 1))].mult = 2;
+    rounds[ROUNDS - 1].mult = 2;
+    store.set("gbl-tour-last", JSON.stringify(rounds.map((r) => r.key)));
+    tour = { bot, names, lvl: lv, rounds, spare: [...heads.slice(nHead), ...duels.slice(ROUNDS - nHead)] };
     saveTour(); renderTour();
     $("#tournament").scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -7401,7 +7416,7 @@ function slitherGame() {
     tour.rounds[i].w = w;
     if (nextRound() < 0) {
       const [a, b] = tally();
-      if (a === b) { const key = tour.spare.shift() || shuffled(tourPool(tour.bot))[0]; tour.rounds.push({ key, w: null, sudden: true }); }
+      if (a === b) { const key = tour.spare.find((k) => DUO_KEYS.has(k)) || shuffled(tourPool(tour.bot))[0]; tour.spare = tour.spare.filter((k) => k !== key); tour.rounds.push({ key, w: null, sudden: true }); }
     }
     saveTour();
     if (nextRound() < 0 && window.gblOnTourEnd) window.gblOnTourEnd(tour);
@@ -7411,6 +7426,19 @@ function slitherGame() {
   function playRound() {
     const i = nextRound(); if (i < 0) return;
     const g = gameOf(tour.rounds[i].key); if (!g) return;
+    const r = tour.rounds[i];
+    if (r.duel) {
+      const who = tour.bot || r.s1 == null ? 1 : 2;
+      play(g, null, { tour: true, onScore: (sc) => {
+        if (who === 1) r.s1 = sc; else r.s2 = sc;
+        saveTour();
+        if (tour.bot) finishRound(i, sc > r.bt ? 1 : sc < r.bt ? 2 : 0);
+        else if (who === 1) { toast(tour.names[0] + " scored " + fmt(sc) + ". " + tour.names[1] + "'s turn!"); renderTour(); }
+        else finishRound(i, r.s1 > r.s2 ? 1 : r.s1 < r.s2 ? 2 : 0);
+        setTimeout(() => { if (current && current.g.key === g.key) closeModal(); }, 2600);
+      } });
+      return;
+    }
     play(g, null, { duo: true, bot: tour.bot, botLevel: tour.lvl == null ? 1 : tour.lvl, tour: true, onMatch: (w) => {
       finishRound(i, w);
       setTimeout(() => { if (current && current.g.key === g.key) closeModal(); }, 2600);
@@ -7435,8 +7463,8 @@ function slitherGame() {
         lvRow,
         el("div", { class: "tour-names" }, el("label", { class: "tour-field" }, el("span", { text: "Player 1 name (you)" }), n1), f2),
         el("ul", { class: "tour-rules" },
-          el("li", { text: "7 rounds, each one a different random 2-player game." }),
-          el("li", { text: "Win a round to score a point. The most points after 7 rounds wins." }),
+          el("li", { text: "7 rounds, different every time: head-to-head games plus score duels in any game." }),
+          el("li", { text: "Win a round to score a point. Some rounds are worth double, and the final round always is." }),
           el("li", { text: "Tied at the end? A sudden-death round decides the champion." })),
         el("button", { class: "btn hot", type: "button", text: "Start tournament ▸", onclick: () => {
           const a = (n1.value.trim() || "Player 1").slice(0, 16), b = tourMode === "bot" ? BOT_LV[tourLvl] + " Bot" : (n2.value.trim() || "Player 2").slice(0, 16);
@@ -7452,9 +7480,9 @@ function slitherGame() {
       el("div", { class: "tour-pl tp2" + (done && b > a ? " champ" : "") }, el("b", { text: String(b) }), el("span", { text: tour.names[1] })));
     const cards = tour.rounds.map((r, i) => {
       const g = gameOf(r.key) || { title: r.key, genre: "" }, now = i === ni;
-      const status = r.w === null ? (now ? "UP NEXT" : "LOCKED") : r.w === 0 ? "DRAW" : tour.names[r.w - 1] + " WON";
+      const status = r.w === null ? (now ? "UP NEXT" : "LOCKED") : (r.w === 0 ? "DRAW" : tour.names[r.w - 1] + " WON") + (r.duel && r.s1 != null ? " · " + fmt(r.s1) + "–" + fmt(tour.bot ? r.bt : r.s2 || 0) : "");
       const card = el("article", { class: "tour-card" + (now ? " now" : "") + (r.w === 1 ? " w1" : r.w === 2 ? " w2" : r.w === 0 ? " draw" : "") + (r.w === null && !now ? " locked" : "") },
-        el("div", { class: "tour-art" }, art(g), el("span", { class: "tour-num", text: r.sudden ? "SUDDEN DEATH" : "ROUND " + (i + 1) })),
+        el("div", { class: "tour-art" }, art(g), el("span", { class: "tour-num", text: r.sudden ? "SUDDEN DEATH" : "ROUND " + (i + 1) }), r.mult > 1 ? el("span", { class: "tour-x2", text: "×2" }) : null, r.duel ? el("span", { class: "tour-duel", text: "SCORE DUEL" }) : null),
         el("div", { class: "tour-body" }, el("h4", { text: g.title }), el("span", { class: "tour-status", text: status })));
       if (now) card.addEventListener("click", playRound);
       return card;
@@ -7470,12 +7498,13 @@ function slitherGame() {
           el("button", { class: "btn hot", type: "button", text: "Rematch ▸", onclick: () => startTour(tour.bot, tour.names, tour.lvl) }),
           el("button", { class: "btn", type: "button", text: "New tournament", onclick: () => { tour = null; store.set(TOUR_KEY, "null"); renderTour(); } }))));
     } else {
-      const g = gameOf(tour.rounds[ni].key), d = DUO.find((q) => q.key === tour.rounds[ni].key);
+      const rn = tour.rounds[ni], g = gameOf(rn.key), d = rn.duel ? null : DUO.find((q) => q.key === rn.key);
+      const duelTxt = rn.duel ? (tour.bot ? "Score duel! Play one run. Beat the bot's score of " + fmt(rn.bt) + " to win the round." : rn.s1 == null ? "Score duel! " + tour.names[0] + " plays one run first, then " + tour.names[1] + " tries to beat it." : tour.names[1] + ", your turn! Beat " + fmt(rn.s1) + " to win the round.") : "";
       parts.push(el("div", { class: "panel lit tour-next" },
         el("div", { class: "tour-next-txt" },
-          el("p", { class: "eyebrow", text: (tour.rounds[ni].sudden ? "Sudden death" : "Round " + (ni + 1)) + (tour.bot ? " · vs the bot" : "") }),
+          el("p", { class: "eyebrow", text: (rn.sudden ? "Sudden death" : "Round " + (ni + 1)) + (tour.bot ? " · vs the bot" : "") + (rn.mult > 1 ? " · DOUBLE POINTS!" : "") }),
           el("h3", { text: g.title }),
-          el("p", { class: "duo-how", text: d ? d.how : "" }),
+          el("p", { class: "duo-how", text: rn.duel ? duelTxt : d ? d.how : "" }),
           d ? el("div", { class: "duo-ctl" },
             el("div", { class: "kbd" }, el("b", { text: "Keyboard" }), el("span", { text: tour.bot ? "You are Player 1. " + d.keys.split("·")[0].trim() : d.keys })),
             el("div", { class: "kbd" }, el("b", { text: "iPad / touch" }), el("span", { text: tour.bot ? "You are Player 1, the bot plays Player 2" : d.touch }))) : null),
