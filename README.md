@@ -2,7 +2,7 @@
 
 The ultimate gaming hub: 36 neon games, player accounts, leaderboards, and a place for people to submit their own games.
 
-- **48 games** across 8 genres, each with practice mode and difficulty that ramps up
+- **53 games** across 8 genres, each with practice mode and difficulty that ramps up
 - **2-player modes** on one screen, and **tournaments** of 7 random games against a friend or a bot (Easy, Medium, Hard or Hacker)
 - **Settings** for music style, volume and screen effects, saved to each player's account
 - **Live site:** <https://gbl.leviharper84.workers.dev>. Every push to `main` on GitHub deploys automatically through Cloudflare Workers Builds.
