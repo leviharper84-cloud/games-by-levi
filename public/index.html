@@ -625,6 +625,17 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .adm-score span { flex: 1; }
 .btn.danger { border-color: #ff4d6d; color: #ff4d6d; }
 .card-stars { font: 700 .72rem var(--f-mono); color: #ffd66b; letter-spacing: .06em; text-shadow: 0 0 8px rgba(255,214,107,.5); }
+.road { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 52vh; overflow-y: auto; padding: 2px; }
+.road-step { display: grid; gap: 4px; align-content: start; padding: 10px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); font-size: .72rem; }
+.road-step b { font: 800 .9rem var(--f-mono); color: #9a90c0; }
+.road-step small { color: var(--muted); min-height: 2.4em; }
+.road-step.big { border-color: rgba(163,91,255,.6); }
+.road-step.can { border-color: #ffd66b; box-shadow: 0 0 18px rgba(255,214,107,.35); }
+.road-step.can b { color: #ffd66b; }
+.road-step.got { opacity: .5; }
+.road-step.got b { color: #3dffa8; }
+.road-st { font-size: .9rem; }
+.shop-item.locked { opacity: .6; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-x2 { position: absolute; top: 8px; right: 8px; z-index: 2; font: 800 .72rem var(--f-mono); padding: 2px 8px; border-radius: 999px; color: #1a1200; background: #ffd66b; box-shadow: 0 0 12px rgba(255,214,107,.8); }
 .tour-duel { position: absolute; bottom: 8px; left: 8px; z-index: 2; font: 700 .58rem var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border-radius: 999px; color: #05030c; background: #3dffa8; }
@@ -8339,7 +8350,7 @@ function bowlGame() {
   }
 
   /* ---------- Daily challenge ---------- */
-  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon"];
+  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling"];
   function dailyGameFor(day) { let h = 7; for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return DAILY_POOL[h % DAILY_POOL.length]; }
   let daily = null;
   async function loadDaily() { try { daily = await XR.daily(); } catch { const day = new Date().toISOString().slice(0, 10); daily = { day, game: dailyGameFor(day), endsAt: Date.parse(day + "T00:00:00Z") + 864e5, top: [], mine: null }; } renderDaily(); }
@@ -8511,6 +8522,12 @@ function bowlGame() {
     ["t-brain", "title", "Big Brain", 180, "#a35bff", "Show off the title Big Brain", "$"],
     ["t-legend", "title", "Legend", 20, "#ffd66b", "Show off the title Legend", "d"],
     ["t-hacker", "title", "Hacker", 40, "#00ff88", "Show off the title Hacker", "d"],
+    ["t-lv5", "title", "Up-and-Comer", 5, "#b6ff3b", "Reach level 5 on the Level Road", "lv"],
+    ["t-lv10", "title", "Arcade Ace", 10, "#22e4ff", "Reach level 10 on the Level Road", "lv"],
+    ["t-lv20", "title", "Neon Knight", 20, "#ff2bd6", "Reach level 20 on the Level Road", "lv"],
+    ["t-lv30", "title", "Pixel Master", 30, "#a35bff", "Reach level 30 on the Level Road", "lv"],
+    ["t-lv40", "title", "Hub Hero", 40, "#ff8a1f", "Reach level 40 on the Level Road", "lv"],
+    ["t-lv50", "title", "Living Legend 👑", 50, "linear-gradient(90deg,#ffd66b,#ff2bd6,#22e4ff)", "Reach level 50 on the Level Road", "lv"],
     ["t-goat", "title", "The GOAT 🐐", 100, "linear-gradient(90deg,#ffd66b,#ffffff,#9ff3ff)", "The best title in the hub", "d"],
     ["fx-fire", "fx", "Fire Sparks", 60, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Fiery explosions in all games", "$"],
     ["fx-diamond", "fx", "Diamond Sparks", 10, "linear-gradient(90deg,#ffffff,#9ff3ff,#ffd0f6)", "Sparkling diamond explosions in all games", "d"],
@@ -8585,6 +8602,30 @@ function bowlGame() {
   }
   const bonusDue = () => !!((window.GCFG || {}).gift && !stat("gift_" + window.GCFG.gift.id)) || !loginInfo().claimed || Date.now() - stat("chestAt") >= CHEST_MS || !!(window.gblBadgeDue && window.gblBadgeDue());
   const rewLab = (r) => [r[0] ? fmt(r[0]) + " ⚡" : "", r[1] ? "$" + r[1] : "", r[2] ? r[2] + " 💎" : ""].filter(Boolean).join(" + ");
+  /* Level Road: a reward for every level up to 50 */
+  const roadRew = (lv) => { const t = SHOP.find((it) => it[6] === "lv" && it[3] === lv); return { c: 40 * lv, d: lv % 5 === 0 ? lv * 2 : 0, g: lv % 10 === 0 ? lv / 5 : 0, title: t ? t[0] : null, tname: t ? t[2] : null }; };
+  const roadDue = () => { const L = levelOf(xpOf()); for (let v = 2; v <= Math.min(50, L); v++) if (!stat("lr_" + v)) return true; return false; };
+  function roadTab() {
+    const L = levelOf(xpOf()), cards = [];
+    for (let v = 2; v <= 50; v++) {
+      const r = roadRew(v), got = !!stat("lr_" + v), can = v <= L && !got;
+      const lab = [fmt(r.c) + " ⚡", r.d ? "$" + r.d : "", r.g ? r.g + " 💎" : "", r.tname ? "🏷 " + r.tname : ""].filter(Boolean).join(" + ");
+      cards.push(el("div", { class: "road-step" + (got ? " got" : can ? " can" : "") + (r.title ? " big" : "") },
+        el("b", { text: "LV " + v }), el("small", { text: lab }),
+        can ? el("button", { class: "btn sm hot", type: "button", text: "Claim", onclick: () => {
+          if (stat("lr_" + v) || levelOf(xpOf()) < v) return; prog.stats["lr_" + v] = 1;
+          if (r.title) prog.owned = [...new Set([...(prog.owned || []), r.title])];
+          addCoinsNoXp(r.c); if (r.d) giveCash(r.d, null, true); if (r.g) giveGems(r.g, null, true);
+          coinPop("🛣 Level " + v + " reward: " + lab, true); if (window.gblConfetti) window.gblConfetti(r.title ? 200 : 80); saveProg(); renderRewards(); } })
+          : el("span", { class: "road-st", text: got ? "✓" : "🔒" })));
+    }
+    const box = el("div", { class: "road" }, ...cards);
+    setTimeout(() => { const t = box.querySelector(".can") || box.querySelector(".road-step:not(.got)"); if (t && t.scrollIntoView) t.scrollIntoView({ block: "nearest", inline: "center" }); }, 50);
+    const nCan = box.querySelectorAll(".road-step.can").length;
+    return el("div", { class: "bonus" }, el("p", { class: "eyebrow set-h2", text: "🛣 Level Road · you are level " + L }),
+      nCan > 1 ? el("button", { class: "btn hot", type: "button", text: "Claim all " + nCan + " rewards ▸", onclick: () => box.querySelectorAll(".road-step.can button").forEach((b2) => b2.click()) }) : null, box,
+      el("p", { class: "set-note", text: "Every level has a reward. Special titles at levels 5, 10, 20, 30, 40 and 50 can only be earned here!" }));
+  }
   function bonusTab() {
     const li = loginInfo(), idx = (li.streak - 1) % 7, gone = Date.now() - stat("chestAt"), chestOk = gone >= CHEST_MS, left = CHEST_MS - gone;
     const gf = (window.GCFG || {}).gift;
@@ -8618,7 +8659,7 @@ function bowlGame() {
     else if (k === "boost") { prog.stats.boostUntil = Math.max(Date.now(), stat("boostUntil")) + 30 * 60000; saveProg(); coinPop("⚡ 2× COINS for 30 minutes! Go play!", true); confetti(100); }
     else if (k === "again") { prog.stats.spinGrant = stat("spinGrant") + 1; saveProg(); coinPop("🎡 Lucky! Spin again!", true); }
     else if (k === "skin") {
-      const owned = new Set(prog.owned || []), free = SHOP.filter((it) => !owned.has(it[0]) && !it[6] && it[3] <= 600 && it[0] !== "sl-pumpkin");
+      const owned = new Set(prog.owned || []), free = SHOP.filter((it) => !owned.has(it[0]) && !it[6] && it[3] <= 600 && it[0] !== "sl-pumpkin" && it[6] !== "lv");
       if (!free.length) { giveCoins(250, "(you own them all!)"); return; }
       const it = free[Math.floor(Math.random() * free.length)]; prog.owned = [...owned, it[0]]; saveProg(); coinPop("🎁 FREE SKIN: " + it[2] + "! Equip it in the shop", true); confetti(160);
     }
@@ -8662,7 +8703,7 @@ function bowlGame() {
     document.querySelectorAll("[data-wallet]").forEach((b2) => {
       const xp = xpOf(), lv = levelOf(xp), k = Math.min(1, (xp - xpFor(lv)) / Math.max(1, xpFor(lv + 1) - xpFor(lv)));
       b2.replaceChildren(el("span", { class: "w-coins", text: "⚡ " + fmt(coins()) }), el("span", { class: "w-cash", text: "$" + fmt(cash()) }), el("span", { class: "w-gems", text: "💎 " + fmt(gems()) }), el("span", { class: "w-lv", text: "LV " + lv }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(k * 100) + "%" })));
-      const due = (prog.missions && prog.missions.list || []).some((m) => m.done && !m.claimed) || (Date.now() - (stat("spinAt") || 0) >= SPIN_MS) || stat("spinGrant") > stat("spinUsed") || bonusDue();
+      const due = (prog.missions && prog.missions.list || []).some((m) => m.done && !m.claimed) || (Date.now() - (stat("spinAt") || 0) >= SPIN_MS) || stat("spinGrant") > stat("spinUsed") || bonusDue() || roadDue();
       b2.classList.toggle("due", due);
     });
     if (window.gblCheckAch) setTimeout(window.gblCheckAch, 0);
@@ -8720,13 +8761,15 @@ function bowlGame() {
       el("div", { class: "rew-money" }, el("div", { class: "rew-coins", text: "⚡ " + fmt(coins()) }), el("div", { class: "rew-cash", text: "$" + fmt(cash()) }), el("div", { class: "rew-gems", text: "💎 " + fmt(gems()) })));
     const tt = (prog.equip || {}).title && SHOP.find((it) => it[0] === prog.equip.title);
     if (tt) head.firstChild.append(el("span", { class: "rew-title", style: "--tc:" + (tt[4].startsWith("#") ? tt[4] : "#ffd66b"), text: "🏷 " + tt[2] }));
-    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["bonus", "🎁 Bonus"], ["spin", "🎡 Daily spin"], ["shop", "🛒 Shop"]].map(([id, t]) => el("button", { class: "chip" + ((id === "bonus" && bonusDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { rtab = id; renderRewards(); } })));
+    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["bonus", "🎁 Bonus"], ["road", "🛣 Levels"], ["spin", "🎡 Daily spin"], ["shop", "🛒 Shop"]].map(([id, t]) => el("button", { class: "chip" + ((id === "bonus" && bonusDue()) || (id === "road" && roadDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { rtab = id; renderRewards(); } })));
     let body;
     if (rtab === "missions") {
       body = el("div", { class: "rew-list" }, ...missions().map((m) => el("div", { class: "mission" + (m.done ? " done" : "") },
         el("div", { class: "m-txt" }, el("b", { text: m.text }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(Math.min(1, m.have / m.need) * 100) + "%" })), el("small", { text: (m.kind === "score" ? "best " + fmt(Math.min(m.have, m.need)) + " / " + fmt(m.need) : Math.min(m.have, m.need) + " / " + m.need) })),
         m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (m.done ? " hot" : ""), type: "button", disabled: !m.done, text: "Claim " + m.reward + " ⚡ + $5", onclick: () => { m.claimed = true; giveCash(5, null, true); giveCoins(m.reward, "mission!  +$5"); if (window.gblConfetti) window.gblConfetti(90); renderRewards(); } }))),
         el("p", { class: "set-note", text: "New missions every day. Coins and dollars come from every game you finish. Check the Bonus tab for free stuff!" }));
+    } else if (rtab === "road") {
+      body = roadTab();
     } else if (rtab === "bonus") {
       body = bonusTab();
     } else if (rtab === "spin") {
@@ -8759,6 +8802,7 @@ function bowlGame() {
             el("button", { class: "btn sm", type: "button", disabled: !eq[gk], text: !eq[gk] ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: null }; saveProg(); renderRewards(); } })),
           ...SHOP.filter((it) => it[1] === gk && (it[0] !== "sl-pumpkin" || Date.now() < Date.parse("2026-11-01T00:00:00Z") || (prog.owned || []).includes(it[0]))).map(([id, , name, price0, col, sub, cur]) => {
             const price = cost(price0), has = owned.has(id), on = eq[gk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = cur === "d" ? " gem" : cur === "$" ? " cash" : "";
+            if (cur === "lv" && !has) return el("div", { class: "shop-item locked" }, el("span", { class: "sw ttl", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
             if (gk === "boost") return el("div", { class: "shop-item" + tag }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
               el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); renderRewards(); } }));
             return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (gk === "title" ? " ttl" : ""), style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
@@ -8856,7 +8900,7 @@ function bowlGame() {
         el("div", { class: "adm-row" }, el("span", { class: "adm-k", text: "⚡" }), ic, el("span", { class: "adm-k", text: "$" }), id2, el("span", { class: "adm-k", text: "💎" }), ig, el("span", { class: "adm-k", text: "XP" }), ix,
           el("button", { class: "btn sm hot", type: "button", text: "Save money", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { coins: +ic.value || 0, cash: +id2.value || 0, gems: +ig.value || 0, xp: +ix.value || 0 } }, "Saved ✓")) })),
         el("div", { class: "adm-row wrapr" },
-          el("button", { class: "btn sm", type: "button", text: "🎁 Give every shop item", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { giveItems: SHOP.filter((it) => it[1] !== "boost").map((it) => it[0]) } }, "Gave everything ✓")) }),
+          el("button", { class: "btn sm", type: "button", text: "🎁 Give every shop item", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { giveItems: SHOP.filter((it) => it[1] !== "boost" && it[6] !== "lv").map((it) => it[0]) } }, "Gave everything ✓")) }),
           el("button", { class: "btn sm", type: "button", text: "Take all items", onclick: async () => { if (confirm("Take away all of " + u.username + "'s shop items?")) redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { takeItems: true } }, "Items removed")); } }),
           el("button", { class: "btn sm", type: "button", text: "Reset progress", onclick: async () => { if (confirm("Reset ALL of " + u.username + "'s progress (coins, levels, badges, items)?")) redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "progress" } }, "Progress reset")); } }),
           el("button", { class: "btn sm", type: "button", text: "Delete all scores", onclick: async () => { if (confirm("Delete every high score " + u.username + " has?")) { redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "scores" } }, "Scores deleted")); refresh("scores"); } } }),
