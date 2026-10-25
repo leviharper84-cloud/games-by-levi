@@ -943,7 +943,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <div class="meter" aria-label="Library progress">
       <div class="meter-top">
         <span class="meter-label">Cabinets lit</span>
-        <span class="meter-num"><b id="lit-count">59</b> / 1000</span>
+        <span class="meter-num"><b id="lit-count">60</b> / 1000</span>
       </div>
       <div class="ticks" id="ticks"></div>
     </div>
@@ -1214,7 +1214,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#submit">Submit a game</a>
       <a href="#queue">Queue</a>
     </nav>
-    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">59</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
+    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">60</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
   </div>
 </footer>
 </div>
@@ -6989,7 +6989,18 @@ function clashGame() {
     p.q = [best];
     const [dx, dy] = DV[best]; if (p.ammo > 0 && Math.random() < [.02, .05, .1, .2][L]) { let blocked = false; for (let i = 2; i < 6; i++) if (!free(p.c + dx * i, p.r + dy * i)) blocked = true; if (blocked) fire(1); }
   }
-  function turnP(i, d) { const p = P[i]; if (!p || p.dead) return; const last = p.q.length ? p.q[p.q.length - 1] : p.d, v = DV[d], cv = DV[last]; if (v[0] === -cv[0] && v[1] === -cv[1]) return; if (d !== last && p.q.length < 3) p.q.push(d); }
+  function turnP(i, d) {
+    const p = P[i]; if (!p || p.dead) return; const last = p.q.length ? p.q[p.q.length - 1] : p.d, v = DV[d], cv = DV[last];
+    if (v[0] === -cv[0] && v[1] === -cv[1]) {
+      // Going backwards = a quick U-turn: hop one lane sideways (to the roomier free side), then head back.
+      if (p.q.length) return;
+      const sides = Object.keys(DV).filter((k) => DV[k][0] === cv[1] || DV[k][0] === -cv[1]).filter((k) => DV[k][0] * cv[0] + DV[k][1] * cv[1] === 0);
+      let best = null, bs = -1; for (const k of sides) { const nc = p.c + DV[k][0], nr = p.r + DV[k][1]; if (free(nc, nr)) { const sc = room(nc, nr, 80); if (sc > bs) { bs = sc; best = k; } } }
+      if (best) { p.q.push(best, d); sfx("blip"); }
+      return;
+    }
+    if (d !== last && p.q.length < 3) p.q.push(d);
+  }
   function fire(i) { const p = P[i]; if (!p || p.dead || p.ammo <= 0 || wait > 0 || S.state !== "play") return; p.ammo--; const [dx, dy] = DV[p.d]; pulses.push({ x: p.c + dx * 2, y: p.r + dy * 2, dx, dy, o: i }); sfx("laser"); }
   function blast(c, r) { for (let a = -3; a <= 3; a++) for (let b = -3; b <= 3; b++) if (a * a + b * b <= 10) { const cc = c + a, rr2 = r + b; if (cc >= 0 && cc < CW && rr2 >= 0 && rr2 < CH && !P.some((p) => p.c === cc && p.r === rr2)) grid[rr2 * CW + cc] = 0; } burst(c * Z + Z / 2, r * Z + Z / 2, "#ffd66b", 30, 220, .5, 3); ring(c * Z + Z / 2, r * Z + Z / 2, "#ffd66b", 4, 40, .4); sfx("boom"); shake(4, .2); }
   function endRound(w) {
@@ -7015,7 +7026,7 @@ function clashGame() {
   game({
     title: "Arena Clash", w: W, h: H, color: "#22e4ff", bpm: 150, easy: "a slow, sleepy CPU and unlimited lives",
     duo: "P1 steers with W A S D and fires with F. P2 steers with the arrows and fires with Enter. First to 3 rounds.",
-    help: ["Light-cycle battle! You leave a glowing wall behind you", "Don't crash into any wall. Make your rival crash!", "Arrows or swipe to turn. Space, F or tap to fire a pulse", "Pulses blast holes in walls (3 per round)"],
+    help: ["Light-cycle battle! You leave a glowing wall behind you", "Don't crash into any wall. Make your rival crash!", "Arrows or swipe to turn. Go backwards to do a U-turn!", "Space, F or tap fires a pulse that blasts holes in walls (3 per round)"],
     init() { wins = [0, 0]; lives = 3; lvl = 1; roundN = 0; newRound(); wait = 0; },
     hud() { return (S.duo ? "P1 " + wins[0] + " : " + wins[1] + " P2  ·  FIRST TO 3" : "ROUND " + lvl + "  ·  LIVES " + (S.practice ? "∞" : "◆".repeat(Math.max(0, lives)))) + "  ·  PULSES " + P[0].ammo + (S.duo ? " / " + P[1].ammo : ""); },
     turn(d, k, sx) {
@@ -7987,6 +7998,223 @@ function solitaireGame() {
   });
 }
 
+/* ---------- 60 Neon Fighters ---------- */
+function fighterGame() {
+  const W = 800, H = 450, GY = 360, GRAV = 2200;
+  const CHARS = [
+    { name: "VOLT", c: "#22e4ff", spd: 260, pw: 1, sp: "dash", desc: "Fast. Special: lightning dash" },
+    { name: "BLAZE", c: "#ff8a1f", spd: 220, pw: 1.1, sp: "fire", desc: "Special: fireball" },
+    { name: "FROST", c: "#9ff3ff", spd: 215, pw: 1, sp: "ice", desc: "Special: freezing ice ball" },
+    { name: "TITAN", c: "#a35bff", spd: 175, pw: 1.35, sp: "quake", desc: "Strong. Special: ground quake" },
+  ];
+  let F, phase, sel, roundN, wins, timer, shots, lvl, cpuWins, hold, msgT, quake;
+  const twoHuman = () => S.duo && !S.bot;
+  const cpuLv = () => S.duo ? BK() : Math.min(3, Math.floor((lvl - 1) / 2));
+  function mkF(i, ch) { return { i, ch, x: i ? W - 220 : 220, y: GY, vx: 0, vy: 0, face: i ? -1 : 1, hp: 100, en: 0, st: "idle", t: 0, cd: 0, hitT: 0, slow: 0, combo: 0, hitDone: false, ai: { t: 0, plan: null } }; }
+  function newRound() { F = [mkF(0, sel[0]), mkF(1, sel[1])]; shots = []; timer = 60; phase = "intro"; msgT = 1.6; quake = 0; banner("ROUND " + roundN + "  ·  FIGHT!", "#ffd66b"); sfx("start"); }
+  function startMatch() { wins = [0, 0]; roundN = 1; newRound(); }
+  // ----- controls -----
+  const KEYS = [{ l: ["a"], r: ["d"], u: ["w"], dn: ["s"], p: ["f"], k: ["g"], s: ["h"] }, { l: ["ArrowLeft"], r: ["ArrowRight"], u: ["ArrowUp"], dn: ["ArrowDown"], p: ["k"], k: ["l"], s: [";", "Enter", "/"] }];
+  const SOLOK = { l: ["a", "ArrowLeft"], r: ["d", "ArrowRight"], u: ["w", "ArrowUp", " "], dn: ["s", "ArrowDown"], p: ["f", "j", "z"], k: ["g", "k", "x"], s: ["h", "l", "c"] };
+  function btnsFor() {
+    const B = [], mk = (pi, a, X, Y, r, label, c) => B.push({ pi, a, x: X, y: Y, r, label, c });
+    if (twoHuman()) {
+      mk(0, "l", 46, 396, 30, "◀", "#22e4ff"); mk(0, "r", 116, 396, 30, "▶", "#22e4ff"); mk(0, "u", 81, 334, 26, "▲", "#22e4ff"); mk(0, "p", 196, 404, 26, "P", "#ffd66b"); mk(0, "k", 256, 384, 26, "K", "#ff8a1f"); mk(0, "s", 226, 334, 24, "★", "#ff2bd6");
+      mk(1, "l", W - 116, 396, 30, "◀", "#ff2bd6"); mk(1, "r", W - 46, 396, 30, "▶", "#ff2bd6"); mk(1, "u", W - 81, 334, 26, "▲", "#ff2bd6"); mk(1, "p", W - 256, 384, 26, "P", "#ffd66b"); mk(1, "k", W - 196, 404, 26, "K", "#ff8a1f"); mk(1, "s", W - 226, 334, 24, "★", "#ff2bd6");
+    } else {
+      mk(0, "l", 56, 390, 36, "◀", "#22e4ff"); mk(0, "r", 144, 390, 36, "▶", "#22e4ff"); mk(0, "u", 100, 318, 30, "▲", "#22e4ff");
+      mk(0, "p", W - 200, 400, 32, "PUNCH", "#ffd66b"); mk(0, "k", W - 120, 372, 32, "KICK", "#ff8a1f"); mk(0, "s", W - 60, 300, 30, "SPECIAL", "#ff2bd6"); mk(0, "dn", W - 210, 318, 24, "BLOCK", "#3dffa8");
+    }
+    return B;
+  }
+  const inp = (i) => {
+    const m = twoHuman() ? KEYS[i] : SOLOK, k = (a) => m[a].some((q) => S.keys[q]) || hold.some((h) => h.pi === i && h.a === a);
+    return { l: k("l"), r: k("r"), u: k("u"), dn: k("dn"), p: k("p"), k: k("k"), s: k("s") };
+  };
+  const edge = [{}, {}];
+  // ----- fighting -----
+  const busy = (f) => ["punch", "kick", "special", "hit", "ko", "win"].includes(f.st);
+  function attack(f, kind) {
+    if (busy(f) || f.cd > 0 || phase !== "fight") return;
+    const ch = CHARS[f.ch];
+    if (kind === "s") {
+      if (f.en < 50) { pop(f.x, f.y - 120, "NEED ENERGY", "#9a90c0"); return; }
+      f.en -= 50; f.st = "special"; f.t = 0; f.hitDone = false; sfx("power"); flash(ch.c, .15);
+      if (ch.sp === "fire" || ch.sp === "ice") shots.push({ x: f.x + f.face * 40, y: f.y - 70, vx: f.face * 520, o: f.i, kind: ch.sp, c: ch.sp === "fire" ? "#ff8a1f" : "#9ff3ff", life: 2 });
+      if (ch.sp === "dash") { f.vx = f.face * 900; }
+      if (ch.sp === "quake" && f.y >= GY) { quake = .5; shake(12, .5); const o = F[1 - f.i]; if (o.y >= GY - 2 && Math.abs(o.x - f.x) < 330) hurt(o, f, 16, 380, true); }
+      return;
+    }
+    f.st = kind === "p" ? "punch" : "kick"; f.t = 0; f.hitDone = false; sfx("laser", kind === "p" ? .5 : .35);
+  }
+  function hurt(o, f, dmg, kb, unblockable) {
+    const blocking = o.st === "block" && !unblockable;
+    const d = Math.round(dmg * CHARS[f.ch].pw * (blocking ? .15 : 1));
+    o.hp = Math.max(0, o.hp - d); f.en = Math.min(100, f.en + (blocking ? 4 : 12)); o.en = Math.min(100, o.en + 5);
+    const dir = Math.sign(o.x - f.x) || f.face; o.vx = dir * kb * (blocking ? .5 : 1);
+    if (!blocking) { o.st = "hit"; o.t = 0; o.hitT = .3; f.combo++; if (f.combo >= 3) pop((o.x + f.x) / 2, o.y - 150, f.combo + " HIT COMBO!", "#ffd66b"); }
+    else sfx("tick");
+    if (!S.duo && f.i === 0) S.score += d * 10 * (1 + Math.floor(f.combo / 3));
+    burst(o.x - dir * 10, o.y - 80, blocking ? "#3dffa8" : CHARS[f.ch].c, blocking ? 8 : 20, 260, .4, 3); sfx(blocking ? "tick" : "hit"); shake(blocking ? 2 : 6, .15);
+    if (o.hp <= 0) ko(o, f);
+  }
+  function ko(o, f) {
+    o.st = "ko"; o.t = 0; f.st = "win"; f.t = 0; phase = "ko"; msgT = 2.2; wins[f.i]++; sfx("boom"); flash("#ffffff", .5); shake(14, .6);
+    banner(f.hp === 100 ? "PERFECT!" : "K.O.!", "#ff4d6d");
+    if (!S.duo && f.i === 0) S.score += 500 + (f.hp === 100 ? 1000 : 0) + Math.floor(timer) * 10;
+  }
+  function timeUp() { const a = F[0].hp, b = F[1].hp; const w = a === b ? -1 : a > b ? 0 : 1; phase = "ko"; msgT = 2.2; if (w >= 0) { wins[w]++; F[w].st = "win"; F[1 - w].st = "ko"; if (!S.duo && w === 0) S.score += 300; } banner("TIME!", "#ffd66b"); }
+  function afterRound() {
+    if (wins[0] >= 2 || wins[1] >= 2) {
+      const w = wins[0] >= 2 ? 0 : 1;
+      if (S.duo) return over("PLAYER " + (w + 1) + " WINS");
+      if (w === 1) return over(CHARS[sel[1]].name + " WINS");
+      lvl++; cpuWins++; S.score += 1000 * lvl; banner("YOU BEAT " + CHARS[sel[1]].name + "!  NEXT FIGHTER", "#3dffa8"); sfx("level");
+      let n; do { n = Math.random() * 4 | 0; } while (n === sel[1]); sel[1] = n; startMatch(); return;
+    }
+    roundN++; newRound();
+  }
+  function cpu(f, o, dt) {
+    const L = S.practice && !S.duo ? 0 : cpuLv(), d = Math.abs(o.x - f.x), A = f.ai; A.t -= dt;
+    const out = { l: false, r: false, u: false, dn: false, p: false, k: false, s: false };
+    const toward = o.x > f.x ? "r" : "l", away = toward === "r" ? "l" : "r";
+    if ((o.st === "punch" || o.st === "kick" || o.st === "special") && d < 140 && Math.random() < [.08, .3, .55, .8][L]) { out.dn = true; out[away] = true; return out; }
+    if (shots.some((s0) => s0.o !== f.i && Math.abs(s0.x - f.x) < 160) && Math.random() < [.05, .3, .6, .9][L]) { if (Math.random() < .5) out.u = true; else { out.dn = true; out[away] = true; } return out; }
+    if (A.t <= 0) { A.t = [.7, .45, .3, .18][L] * (.6 + Math.random() * .8); A.plan = d > 110 ? (f.en >= 50 && Math.random() < .35 ? "s" : "go") : (Math.random() < .55 ? "p" : Math.random() < .7 ? "k" : "back"); if (Math.random() < .08) A.plan = "jump"; }
+    if (A.plan === "go") out[toward] = true;
+    else if (A.plan === "back") out[away] = true;
+    else if (A.plan === "jump") { out.u = true; out[toward] = true; A.plan = "go"; }
+    else if (A.plan === "p" || A.plan === "k" || A.plan === "s") { out[A.plan] = true; A.plan = "wait"; }
+    return out;
+  }
+  function stepF(f, o, c, dt) {
+    const ch = CHARS[f.ch], sp = ch.spd * (f.slow > 0 ? .55 : 1);
+    f.t += dt; f.cd = Math.max(0, f.cd - dt); f.slow = Math.max(0, f.slow - dt);
+    if (f.st !== "hit" && f.st !== "ko" && f.st !== "win") f.face = o.x > f.x ? 1 : -1;
+    const ed = edge[f.i];
+    if (phase === "fight" && !busy(f)) {
+      const back = f.face > 0 ? c.l : c.r;
+      if (c.p && !ed.p) attack(f, "p"); else if (c.k && !ed.k) attack(f, "k"); else if (c.s && !ed.s) attack(f, "s");
+    }
+    if (phase === "fight" && !busy(f)) {
+      const back = f.face > 0 ? c.l : c.r, onG = f.y >= GY;
+      if (onG && c.u && !ed.u) { f.vy = -820; f.st = "jump"; sfx("jump", .5); }
+      if (onG && (c.dn || (back && Math.abs(o.x - f.x) < 170 && busy(o)))) { f.st = "block"; f.vx = back ? -f.face * sp * .4 : 0; }
+      else if (onG) { const mv = (c.r ? 1 : 0) - (c.l ? 1 : 0); f.vx = mv * sp * (back ? .7 : 1); f.st = mv ? "walk" : "idle"; }
+      else { const mv = (c.r ? 1 : 0) - (c.l ? 1 : 0); f.vx += mv * sp * 2 * dt; f.vx = Math.max(-sp, Math.min(sp, f.vx)); }
+    }
+    Object.assign(ed, c);
+    if (f.st === "punch" || f.st === "kick") {
+      const hitAt = f.st === "punch" ? .08 : .14, endAt = f.st === "punch" ? .25 : .38, reach = f.st === "punch" ? 78 : 96;
+      if (!f.hitDone && f.t >= hitAt) { f.hitDone = true; const dx = (o.x - f.x) * f.face; if (dx > 0 && dx < reach && Math.abs(o.y - f.y) < 90 && o.st !== "ko") hurt(o, f, f.st === "punch" ? 6 : 10, f.st === "punch" ? 160 : 300); else f.combo = 0; }
+      if (f.t >= endAt) { f.st = "idle"; f.cd = .08; }
+      if (f.y >= GY) f.vx *= .8;
+    }
+    if (f.st === "special") { if (CHARS[f.ch].sp === "dash") { const dx = (o.x - f.x) * f.face; if (!f.hitDone && dx > 0 && dx < 70 && o.st !== "ko") { f.hitDone = true; hurt(o, f, 14, 420); } } if (f.t > .45) { f.st = "idle"; f.cd = .2; f.vx = 0; } }
+    if (f.st === "hit") { f.hitT -= dt; f.vx *= .9; if (f.hitT <= 0) { f.st = "idle"; o.combo = 0; } }
+    f.vy += GRAV * dt; f.x += f.vx * dt; f.y += f.vy * dt;
+    if (f.y >= GY) { f.y = GY; f.vy = 0; if (f.st === "jump") f.st = "idle"; }
+    f.x = Math.max(40, Math.min(W - 40, f.x));
+    if (f.st === "ko" || f.st === "win") f.vx *= .9;
+  }
+  function pushApart() { const a = F[0], b = F[1], dx = b.x - a.x; if (Math.abs(dx) < 50 && Math.abs(a.y - b.y) < 80) { const p = (50 - Math.abs(dx)) / 2 * (Math.sign(dx) || 1); a.x -= p; b.x += p; } }
+  // ----- drawing -----
+  function drawF(f) {
+    const ch = CHARS[f.ch], c = f.st === "hit" ? "#ffffff" : ch.c, s = f.face, X = f.x, Y = f.y, cr = f.st === "block" ? 18 : 0;
+    x.save(); x.translate(X, Y); x.scale(s, 1);
+    x.fillStyle = "rgba(0,0,0,.4)"; x.beginPath(); x.ellipse(0, 0 - (Y - GY) * 0, 34, 7, 0, 0, 7); x.fill();
+    if (f.st === "ko") { x.rotate(-1.4 * Math.min(1, f.t * 3)); }
+    glow(c, 16); x.strokeStyle = c; x.lineWidth = 7; x.lineCap = "round"; x.lineJoin = "round";
+    const bob = f.st === "idle" ? Math.sin(S.clock * 6) * 2 : 0, walk = f.st === "walk" ? Math.sin(S.clock * 14) * 14 : 0;
+    const hip = [0, -62 + cr + bob], neck = [4, -112 + cr * 1.6 + bob];
+    x.beginPath(); x.moveTo(hip[0], hip[1]); x.lineTo(neck[0], neck[1]); x.stroke();
+    // legs
+    let lf = [-14 + walk, 0], rf = [16 - walk, 0];
+    if (f.st === "kick") { const k = Math.min(1, f.t / .14); rf = [20 + 70 * k, -60 * k]; }
+    if (f.y < GY) { lf = [-14, -30]; rf = [18, -26]; }
+    if (f.st === "block") { lf = [-22, 0]; rf = [22, 0]; }
+    x.beginPath(); x.moveTo(hip[0], hip[1]); x.lineTo((hip[0] + lf[0]) / 2 - 4, (hip[1] + lf[1]) / 2 + 2); x.lineTo(lf[0], lf[1]); x.moveTo(hip[0], hip[1]); x.lineTo((hip[0] + rf[0]) / 2 + 6, (hip[1] + rf[1]) / 2); x.lineTo(rf[0], rf[1]); x.stroke();
+    // arms
+    const sh = [neck[0], neck[1] + 12];
+    let fa = [30, sh[1] + 16], ba = [-14, sh[1] + 26];
+    if (f.st === "punch") { const k = Math.min(1, f.t / .08); fa = [30 + 50 * k, sh[1] + 4]; }
+    if (f.st === "block") { fa = [24, sh[1] - 12]; ba = [18, sh[1] - 2]; }
+    if (f.st === "special") { fa = [56, sh[1] + 2]; ba = [50, sh[1] + 10]; }
+    if (f.st === "win") { fa = [20, sh[1] - 40]; ba = [-14, sh[1] - 38]; }
+    x.beginPath(); x.moveTo(sh[0], sh[1]); x.lineTo(fa[0], fa[1]); x.moveTo(sh[0], sh[1]); x.lineTo(ba[0], ba[1]); x.stroke();
+    x.fillStyle = c; x.beginPath(); x.arc(fa[0], fa[1], 7, 0, 7); x.fill();
+    x.beginPath(); x.arc(neck[0] + 2, neck[1] - 14, 15, 0, 7); x.fill();
+    x.fillStyle = "#04020c"; x.fillRect(neck[0] + 4, neck[1] - 18, 9, 3);
+    x.strokeStyle = f.i ? "#ff2bd6" : "#ffffff"; x.lineWidth = 3; x.beginPath(); x.moveTo(neck[0] - 12, neck[1] - 18); x.lineTo(neck[0] - 26, neck[1] - 10 + Math.sin(S.clock * 9) * 3); x.stroke();
+    glow(); x.restore();
+    if (f.st === "special" && CHARS[f.ch].sp === "dash") { x.strokeStyle = ca("#22e4ff", .5); x.lineWidth = 3; for (let i = 0; i < 4; i++) { x.beginPath(); x.moveTo(X - s * (30 + i * 20), Y - 40 - i * 15); x.lineTo(X - s * (70 + i * 20), Y - 40 - i * 15); x.stroke(); } }
+  }
+  function bar(X, w, v, c, flip) { x.fillStyle = "rgba(255,255,255,.12)"; x.fillRect(X, 18, w, 18); x.fillStyle = v > 30 ? c : "#ff4d6d"; const vw = w * v / 100; x.fillRect(flip ? X + w - vw : X, 18, vw, 18); x.strokeStyle = c; x.lineWidth = 2; x.strokeRect(X, 18, w, 18); }
+  game({
+    title: "Neon Fighters", w: W, h: H, color: "#ff2bd6", bpm: 150, easy: "a sleepy CPU fighter",
+    duo: "2 PLAYERS: P1 = W A S D + F punch, G kick, H special. P2 = arrows + K punch, L kick, Enter special. On iPad each player uses the buttons on their side.",
+    help: ["Street fighting in neon! Pick your fighter", "Move ◀ ▶, jump ▲, hold BLOCK (or walk away) to block", "PUNCH is fast, KICK is strong. Hits fill your energy", "Full energy bar = SPECIAL MOVE! Win 2 rounds to win"],
+    init() { this._p1 = false; hold = []; sel = [0, 1]; lvl = 1; cpuWins = 0; phase = "select"; F = null; shots = []; },
+    hud() {
+      if (phase === "select") return "PICK YOUR FIGHTER";
+      return (S.duo ? "P1 " : "YOU ") + wins[0] + " : " + wins[1] + (twoHuman() ? " P2" : " CPU") + "  ·  ROUND " + roundN + (S.duo ? "" : "  ·  OPPONENT " + (cpuWins + 1));
+    },
+    down(px, py, id) {
+      if (phase === "select") {
+        for (let i = 0; i < 4; i++) { const X = 130 + i * 180; if (Math.abs(px - X) < 80 && py > 120 && py < 330) {
+          if (twoHuman()) { if (!this._p1) { sel[0] = i; this._p1 = true; sfx("blip"); return; } sel[1] = i; this._p1 = false; sfx("start"); startMatch(); return; }
+          sel[0] = i; let n; do { n = Math.random() * 4 | 0; } while (n === i); sel[1] = n; sfx("start"); startMatch(); return; } }
+        return;
+      }
+      for (const b of btnsFor()) if (Math.hypot(px - b.x, py - b.y) < b.r + 12) { hold.push({ id, pi: b.pi, a: b.a }); return; }
+    },
+    move(px, py, id) { if (phase === "select") return; const h = hold.find((q) => q.id === id); if (!h) return; for (const b of btnsFor()) if (b.pi === h.pi && Math.hypot(px - b.x, py - b.y) < b.r + 8 && (b.a === "l" || b.a === "r") && (h.a === "l" || h.a === "r")) h.a = b.a; },
+    up(px, py, id) { hold = hold.filter((q) => q.id !== id); },
+    key(k, rep) {
+      if (rep || phase !== "select") return;
+      const m = twoHuman() ? KEYS[this._p1 ? 1 : 0] : SOLOK, who = twoHuman() && this._p1 ? 1 : 0;
+      if (m.l.includes(k)) { sel[who] = (sel[who] + 3) % 4; sfx("tick"); }
+      if (m.r.includes(k)) { sel[who] = (sel[who] + 1) % 4; sfx("tick"); }
+      if (m.p.includes(k) || k === " " || k === "Enter") { if (twoHuman() && !this._p1) { this._p1 = true; sfx("blip"); return; } if (!twoHuman()) { let n; do { n = Math.random() * 4 | 0; } while (n === sel[0]); sel[1] = n; } this._p1 = false; sfx("start"); startMatch(); }
+    },
+    update(dt) {
+      if (phase === "select") return;
+      if (phase === "intro") { msgT -= dt; if (msgT <= 0) phase = "fight"; }
+      if (phase === "ko") { msgT -= dt; if (msgT <= 0) return afterRound(); }
+      if (phase === "fight") { timer -= dt; if (timer <= 0) { timer = 0; timeUp(); } }
+      const c0 = inp(0), c1 = twoHuman() ? inp(1) : cpu(F[1], F[0], dt);
+      stepF(F[0], F[1], c0, dt); stepF(F[1], F[0], c1, dt); pushApart();
+      quake = Math.max(0, quake - dt);
+      for (const s0 of shots) { s0.x += s0.vx * dt; s0.life -= dt; const o = F[1 - s0.o]; const crouch = o.st === "block" && o.y >= GY; if (!s0.done && Math.abs(s0.x - o.x) < 30 && Math.abs(s0.y - (o.y - 70)) < 60 && o.st !== "ko") { s0.done = true; hurt(o, F[s0.o], 14, 260); if (s0.kind === "ice" && o.st !== "block") o.slow = 2; burst(s0.x, s0.y, s0.c, 24, 260, .5, 3); } }
+      shots = shots.filter((s0) => !s0.done && s0.life > 0 && s0.x > -40 && s0.x < W + 40);
+    },
+    draw() {
+      const sky = x.createLinearGradient(0, 0, 0, GY); sky.addColorStop(0, "#08021a"); sky.addColorStop(1, "#3a0b45"); x.fillStyle = sky; x.fillRect(0, 0, W, H);
+      x.fillStyle = "#10052a"; for (let i = 0; i < 14; i++) { const bw = 50 + (i * 37) % 40, bh = 80 + (i * 53) % 140, bx = i * 60 - 10; x.fillRect(bx, GY - bh, bw, bh); x.fillStyle = "rgba(255,43,214,.35)"; for (let wy = GY - bh + 10; wy < GY - 10; wy += 16) for (let wx = bx + 6; wx < bx + bw - 6; wx += 12) if ((wx * 7 + wy * 3 + i) % 5 === 0) x.fillRect(wx, wy, 5, 7); x.fillStyle = "#10052a"; }
+      const fl = x.createLinearGradient(0, GY, 0, H); fl.addColorStop(0, "#2a0f45"); fl.addColorStop(1, "#06020e"); x.fillStyle = fl; x.fillRect(0, GY, W, H - GY);
+      glow("#ff2bd6", 12); x.strokeStyle = "#ff2bd6"; x.lineWidth = 2; x.beginPath(); x.moveTo(0, GY); x.lineTo(W, GY); x.stroke(); glow();
+      x.strokeStyle = "rgba(255,43,214,.2)"; x.lineWidth = 1; for (let i = -10; i <= 10; i++) { x.beginPath(); x.moveTo(W / 2 + i * 40, GY); x.lineTo(W / 2 + i * 120, H); x.stroke(); }
+      if (phase === "select") {
+        txt(twoHuman() ? (this && this._p1 ? "PLAYER 2: PICK YOUR FIGHTER" : "PLAYER 1: PICK YOUR FIGHTER") : "PICK YOUR FIGHTER", W / 2, 80, 26, "#ffd66b", "center", "d");
+        CHARS.forEach((ch, i) => { const X = 130 + i * 180, on0 = sel[0] === i, on1 = twoHuman() && sel[1] === i; glow(ch.c, on0 || on1 ? 22 : 6); x.strokeStyle = on0 ? "#ffffff" : on1 ? "#ff2bd6" : ch.c; x.lineWidth = on0 || on1 ? 4 : 2; rr(X - 75, 120, 150, 210, 14); x.stroke(); glow(); x.fillStyle = ca(ch.c, .12); rr(X - 75, 120, 150, 210, 14); x.fill();
+          const fake = { i: 0, ch: i, x: X, y: 290, face: 1, st: "idle", t: 0 }; drawF(fake); txt(ch.name, X, 312, 18, ch.c, "center", "d"); txt(ch.desc, X, 346, 10, "#d8d0f5", "center"); });
+        txt("TAP A FIGHTER" + (twoHuman() ? " (PLAYER 1 FIRST, THEN PLAYER 2)" : "") + "  ·  OR ◀ ▶ AND PUNCH", W / 2, 400, 13, "#9a90c0", "center");
+        return;
+      }
+      for (const s0 of shots) { glow(s0.c, 22); x.fillStyle = s0.c; x.beginPath(); x.arc(s0.x, s0.y, 14 + Math.sin(S.clock * 30) * 2, 0, 7); x.fill(); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(s0.x, s0.y, 6, 0, 7); x.fill(); glow(); }
+      if (quake > 0) { x.fillStyle = "rgba(163,91,255," + quake + ")"; x.fillRect(0, GY - 6, W, 12); }
+      drawF(F[0]); drawF(F[1]);
+      bar(20, 320, F[0].hp, CHARS[F[0].ch].c, false); bar(W - 340, 320, F[1].hp, CHARS[F[1].ch].c, true);
+      x.fillStyle = "#ffd66b"; x.fillRect(20, 40, 320 * F[0].en / 100, 5); x.fillRect(W - 20 - 320 * F[1].en / 100, 40, 320 * F[1].en / 100, 5);
+      if (F[0].en >= 50) txt("★ SPECIAL READY", 20, 80, 11, "#ffd66b", "left"); if (F[1].en >= 50) txt("SPECIAL READY ★", W - 20, 80, 11, "#ffd66b", "right");
+      txt(CHARS[F[0].ch].name + (S.duo ? "  P1" : "  (YOU)"), 20, 60, 13, CHARS[F[0].ch].c, "left", "d"); txt((twoHuman() ? "P2  " : "CPU  ") + CHARS[F[1].ch].name, W - 20, 60, 13, CHARS[F[1].ch].c, "right", "d");
+      txt(String(Math.ceil(timer)), W / 2, 30, 26, timer < 10 ? "#ff4d6d" : "#ffffff", "center", "d");
+      [0, 1].forEach((pi) => { for (let i = 0; i < 2; i++) { x.fillStyle = wins[pi] > i ? "#ffd66b" : "rgba(255,255,255,.2)"; x.beginPath(); x.arc(pi ? W - 360 - i * 16 : 360 + i * 16, 27, 6, 0, 7); x.fill(); } });
+      if (matchMedia("(pointer: coarse)").matches || hold.length) for (const b of btnsFor()) { const on = hold.some((h) => h.pi === b.pi && h.a === b.a); x.globalAlpha = on ? .9 : .45; x.strokeStyle = b.c; x.lineWidth = 2.5; x.fillStyle = on ? ca(b.c, .4) : "rgba(10,4,24,.5)"; x.beginPath(); x.arc(b.x, b.y, b.r, 0, 7); x.fill(); x.stroke(); txt(b.label, b.x, b.y + 1, b.label.length > 2 ? 9 : 16, b.c, "center", "d"); x.globalAlpha = 1; }
+    },
+  });
+}
+
 /* ====================================================================
    The hub
    ==================================================================== */
@@ -8163,6 +8391,7 @@ function solitaireGame() {
     { key: "ttt", title: "Neon Tic-Tac-Toe", genre: "Strategy", fn: tttGame },
     { key: "dots", title: "Dots & Boxes", genre: "Strategy", fn: dotsGame },
     { key: "solitaire", title: "Neon Solitaire", genre: "Puzzle", fn: solitaireGame },
+    { key: "fighters", title: "Neon Fighters", genre: "Action", fn: fighterGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -8177,6 +8406,7 @@ function solitaireGame() {
     { key: "connect4", how: "Classic Connect Four. Drop discs and get 4 in a row first.", keys: "← → pick a column, Space drops", touch: "Tap a column, then pass the iPad" },
     { key: "reversi", how: "Flip your rival's discs by trapping them. Most discs at the end wins.", keys: "Arrows move, Space places", touch: "Tap a glowing dot, then pass the iPad" },
     { key: "hoops", how: "Same shooting spots for both players, 5 shots each. Most points wins.", keys: "Arrows aim, Space shoots", touch: "Drag back and let go, then pass the iPad" },
+    { key: "fighters", how: "Street fighting! Pick a fighter each, then punch, kick, block and fire specials. Win 2 rounds to win.", keys: "P1 W A S D + F G H  ·  P2 arrows + K L Enter", touch: "Each player uses the buttons on their side" },
     { key: "ttt", how: "Classic tic-tac-toe. Get 3 in a row to win.", keys: "Tap a square, or 1-9", touch: "Tap a square, then pass the iPad" },
     { key: "dots", how: "Take turns drawing lines. Close a box to score it and go again. Most boxes wins.", keys: "Tap between two dots", touch: "Tap a line, then pass the iPad" },
     { key: "airhockey", how: "Real air hockey on one screen. Each player drags their own paddle. First to 7 goals wins.", keys: "P1 W A S D  ·  P2 arrow keys", touch: "Each player drags on their own half" },
@@ -8433,7 +8663,7 @@ function solitaireGame() {
     const t = document.getElementById("ticker"); if (!t) return;
     const items = [];
     for (const g of libraryGames()) { const e = entries(g.key)[0]; if (e) items.push([g.title, nameOf(e), fmt(e.s)]); }
-    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["59 games", "ready to play", "Insert coin"]];
+    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["60 games", "ready to play", "Insert coin"]];
     let half = []; while (half.length < 8) half = half.concat(one);
     const make = () => half.map(([g, n, v]) => el("span", { class: "tick-item" }, el("b", { text: g }), el("span", { text: n }), el("em", { text: v })));
     t.replaceChildren(...make(), ...make());
@@ -8881,7 +9111,7 @@ function solitaireGame() {
     ["star10", "⭐", "Rising Star", "Earn 10 stars", (c) => c.stars >= 10],
     ["star50", "🌟", "Superstar", "Earn 50 stars", (c) => c.stars >= 50],
     ["star100", "💫", "Star Collector", "Earn 100 stars", (c) => c.stars >= 100],
-    ["starall", "🌠", "Galaxy Brain", "Earn every star in the hub", (c) => c.stars >= 177],
+    ["starall", "🌠", "Galaxy Brain", "Earn every star in the hub", (c) => c.stars >= 180],
   ];
   const BTIER = { star100: 3, starall: 3, star50: 2, complete: 3, legend: 3, k50: 3, hacker: 3, collector: 3, lv25: 3, online5: 2, daily7: 2, marathon: 2, k10: 2, hard: 2, streak7: 2, diamond: 2, explorer: 2, champ: 2, spinner: 2 };
   const badgeRew = (id) => { const t = BTIER[id] || 1; return [[100, 10, 1], [250, 25, 3], [500, 50, 10]][t - 1]; };
@@ -8941,7 +9171,7 @@ function solitaireGame() {
   }
 
   /* ---------- Daily challenge ---------- */
-  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling", "merge", "colordash", "blades", "solitaire"];
+  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling", "merge", "colordash", "blades", "solitaire", "fighters"];
   function dailyGameFor(day) { let h = 7; for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return DAILY_POOL[h % DAILY_POOL.length]; }
   let daily = null;
   async function loadDaily() { try { daily = await XR.daily(); } catch { const day = new Date().toISOString().slice(0, 10); daily = { day, game: dailyGameFor(day), endsAt: Date.parse(day + "T00:00:00Z") + 864e5, top: [], mine: null }; } renderDaily(); }
@@ -9191,7 +9421,7 @@ function solitaireGame() {
     ["vd-gold", "void", "Gold Fighter", 60, "#ffd66b", "A golden ship for the space shooter", "$"],
   ];
   /* ---------- Stars: three score goals for every game ---------- */
-  const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800] };
+  const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
   const starsOf = (k) => { const t = STARS[k]; if (!t) return 0; const b = starBest(k); return t.filter((v) => b >= v).length; };
   const totalStars = () => Object.keys(STARS).reduce((a, k) => a + starsOf(k), 0);
