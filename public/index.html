@@ -1316,7 +1316,7 @@ function SHELL() {
   try { document.fonts.load("800 20px Orbitron"); document.fonts.load("20px 'Share Tech Mono'"); } catch (e) {}
   const S = {
     state: "title", score: 0, best: window.BEST0 || 0, t: 0, clock: 0, keys: {}, px: -99, py: -99, down: false,
-    overAt: 0, end: "", fresh: false, practice: false, duo: false, cd: 0, newBest: false, shown: 0, parts: [], pops: [], rings: [], banner: null,
+    overAt: -1e9, end: "", fresh: false, practice: false, duo: false, cd: 0, newBest: false, shown: 0, parts: [], pops: [], rings: [], banner: null,
     shakeA: 0, shakeT: 0, flashC: "#ffffff", flashA: 0, sound: 2, paused: false, bot: false, online: window.ONLINE0 || 0,
   };
   const DIRS = { ArrowUp: "up", w: "up", ArrowDown: "down", s: "down", ArrowLeft: "left", a: "left", ArrowRight: "right", d: "right" };
@@ -1618,13 +1618,15 @@ function SHELL() {
   /* ----- input ----- */
   function local(e) { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * G.w / r.width, (e.clientY - r.top) * G.h / r.height]; }
   const keyOf = (e) => (e.key.length === 1 ? e.key.toLowerCase() : e.key);
-  sndBtn.addEventListener("click", (e) => { e.stopPropagation(); cycleSound(); });
+  // Buttons fire when the finger lifts (iPad can drop the click event), or on click for mouse.
+  const onTap = (btn, fn) => { if (!btn) return; let tt = 0; btn.addEventListener("touchend", (e) => { e.preventDefault(); tt = Date.now(); fn(e); }, { passive: false }); btn.addEventListener("click", (e) => { if (Date.now() - tt < 600) { e.stopPropagation(); return; } fn(e); }); };
+  onTap(sndBtn, (e) => { e.stopPropagation(); cycleSound(); });
   const duoDefault = () => !!(window.DUO0 && G && G.duo);
   const again = () => (S.state === "over" ? [S.practice, S.duo] : [false, duoDefault()]);
-  goBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (S.paused) togglePause(); else if (canStart()) start(...again()); });
-  if (contBtn) contBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, false, true); });
-  pracBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (canStart()) start(!(S.state === "over" && S.practice), false); });
-  duoBtn.addEventListener("click", (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, !(S.state === "over" ? S.duo : duoDefault())); });
+  onTap(goBtn, (e) => { e.stopPropagation(); audio(); if (S.paused) togglePause(); else if (canStart()) start(...again()); });
+  if (contBtn) onTap(contBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, false, true); });
+  onTap(pracBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(!(S.state === "over" && S.practice), false); });
+  onTap(duoBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, !(S.state === "over" ? S.duo : duoDefault())); });
   addEventListener("touchstart", (e) => {
     if (!G || (e.target.closest && e.target.closest("button"))) return;
     audio();
@@ -1635,7 +1637,7 @@ function SHELL() {
   addEventListener("touchstart", noScroll, { passive: false });
   addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
   addEventListener("gesturestart", (e) => e.preventDefault());
-  pzBtn.addEventListener("click", (e) => { e.stopPropagation(); togglePause(); });
+  onTap(pzBtn, (e) => { e.stopPropagation(); togglePause(); });
   addEventListener("keydown", (e) => {
     const k = keyOf(e);
     if (k.startsWith("Arrow") || k === " ") e.preventDefault();
@@ -1678,6 +1680,7 @@ function SHELL() {
   });
   addEventListener("pointercancel", (e) => { PT.delete(e.pointerId); S.down = PT.size > 0; });
   addEventListener("resize", fit);
+  window.__gs = { G: () => G, start };
   Object.assign(window, { saveGame, sendMove, BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
 }
 
@@ -6256,6 +6259,7 @@ function orbitGame() {
       if (S.keys[" "]) { const dx = sh.x - CX, dy = sh.y - CY, d = Math.hypot(dx, dy) || 1; ax += dx / d; ay += dy / d; }
       if (S.down) { const dx = S.px - sh.x, dy = S.py - sh.y, d = Math.hypot(dx, dy); if (d > 8) { ax += dx / d; ay += dy / d; } }
       const am = Math.hypot(ax, ay); thrust = am > .01 && (fuel > 0 || S.practice);
+      if (!thrust) fuel = Math.min(100, fuel + dt * 2.5);
       if (thrust) {
         ax /= am; ay /= am; sh.ang = Math.atan2(ay, ax); if (!S.practice) fuel = Math.max(0, fuel - dt * 8);
         if (Math.random() < .7) burst(sh.x - ax * 11, sh.y - ay * 11, Math.random() < .5 ? "#ff8a1f" : "#ffd66b", 1, 140, .35, 3, Math.atan2(-ay, -ax), .5);
@@ -6310,6 +6314,7 @@ function orbitGame() {
         glow(); x.restore();
         if (S.down && S.state === "play") { x.strokeStyle = "rgba(255,255,255,.18)"; x.setLineDash([4, 6]); x.beginPath(); x.moveTo(sh.x, sh.y); x.lineTo(S.px, S.py); x.stroke(); x.setLineDash([]); }
       }
+      if (sh.dead <= 0 && (sh.x < 0 || sh.x > W || sh.y < 0 || sh.y > H)) { const ex = Math.max(16, Math.min(W - 16, sh.x)), ey = Math.max(16, Math.min(H - 16, sh.y)), a = Math.atan2(sh.y - ey, sh.x - ex); x.save(); x.translate(ex, ey); x.rotate(a); glow("#22e4ff", 14); x.fillStyle = "#22e4ff"; x.beginPath(); x.moveTo(10, 0); x.lineTo(-8, -8); x.lineTo(-8, 8); x.closePath(); x.fill(); glow(); x.restore(); }
       x.fillStyle = "rgba(255,255,255,.12)"; x.fillRect(16, H - 20, W - 32, 6); x.fillStyle = fuel > 25 ? "#ffd66b" : "#ff4d6d"; x.fillRect(16, H - 20, (W - 32) * fuel / 100, 6);
     },
   });
@@ -6562,7 +6567,7 @@ function bitGame() {
   game({
     title: "Bit Shift", w: W, h: H, color: "#3dffa8", bpm: 124, easy: "the stack rises very slowly", repeat: true,
     help: ["Rows of 0s and 1s rise from the bottom", "Swipe a row left/right (or ↑↓ pick, ← → shift)", "Make a row MATCH the row next to it to clear both", "All 1s or all 0s clears too. Don't hit the top!"],
-    init() { rows = []; sel = 0; lvl = 1; cleared = 0; combo = 0; riseMax = S.practice ? 12 : 5.5; riseT = riseMax; for (let i = 0; i < 4; i++) newRow(); sel = 0; },
+    init() { rows = []; sel = 0; lvl = 1; cleared = 0; combo = 0; riseMax = S.practice ? 12 : 5.5; riseT = riseMax; for (let i = 0; i < 4; i++) { let r; do { r = rnd(); } while (rows.length && same(r, rows[0])); rows.unshift(r); } sel = 0; },
     hud() { return "LEVEL " + lvl + "  ·  ROWS " + rows.length + "/" + R + "  ·  NEXT ROW " + Math.ceil(riseT) + "s"; },
     turn(d, k) {
       if (k == null) return;
@@ -6668,8 +6673,8 @@ function overdriveGame() {
       curve += (curveGoal - curve) * Math.min(1, dt * .8); bgX += curve * sp * dt * .02;
       if (pos >= nextAt) spawnRow();
       for (let i = obs.length - 1; i >= 0; i--) {
-        const o = obs[i], rel = o.z - pos;
-        if (rel < ZK * 1.15 && rel > ZK * .7 && !o.done && Math.abs(lx - o.l) < .5) {
+        const o = obs[i], rel = o.z - pos, prev = o.prev == null ? rel : o.prev; o.prev = rel;
+        if (prev >= ZK * .85 && rel < ZK * 1.15 && !o.done && Math.abs(lx - o.l) < .5) {
           o.done = true;
           if (o.k === "orb") { S.score += 50; sp = Math.min(maxSp() + 150, sp + 120); pop(W / 2, H - 90, "+50 BOOST", "#ffd66b"); sfx("power"); burst(W / 2, H - 60, "#ffd66b", 20, 200, .5, 3); obs.splice(i, 1); continue; }
           if (inv <= 0) { if (!S.practice) lives--; inv = 1.2; sp *= .45; shake(12, .45); flash("#ff4d6d", .35); sfx("boom"); burst(W / 2, H - 60, "#ff2bd6", 36, 300, .7, 3); if (lives <= 0) return over("WIPED OUT"); }
@@ -6760,7 +6765,7 @@ function squashGame() {
 /* ---------- 45 Neon Curling ---------- */
 function curlGame() {
   const W = 400, H = 680, HX = 200, HYc = 140, SX = 200, SY = 610, SR = 13, RINGS = [[12, 10], [32, 5], [52, 3], [74, 1]];
-  let stones, cur, phase, aim, pow, drag, sweep, end, thrown, blockers, endPts;
+  let stones, cur, phase, aim, pow, drag, sweep, end, thrown, blockers, endPts, doneT = 0;
   const ENDS = 3, PER = 5;
   const ptsOf = (s) => { const d = Math.hypot(s.x - HX, s.y - HYc); for (const [r, p] of RINGS) if (d <= r + SR * .5) return p; return 0; };
   function newEnd() {
@@ -6794,6 +6799,7 @@ function curlGame() {
         const ka = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), kp = (S.keys.ArrowUp || S.keys.w ? 1 : 0) - (S.keys.ArrowDown || S.keys.s ? 1 : 0);
         aim = Math.max(-.5, Math.min(.5, aim + ka * dt * .8)); pow = Math.max(.05, Math.min(1, pow + kp * dt * .6)); return;
       }
+      if (phase === "done") { doneT -= dt; if (doneT <= 0) settle(); return; }
       if (phase === "slide") {
         const ks = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
         if (ks && sweep > 0) { cur.vx += ks * 260 * dt; sweep -= 40 * dt; }
@@ -6809,7 +6815,7 @@ function curlGame() {
           if (d > 0 && d < SR * 2) { const nx = dx / d, ny = dy / d, rv = (a.vx - c.vx) * nx + (a.vy - c.vy) * ny; if (rv > 0) { a.vx -= rv * nx; a.vy -= rv * ny; c.vx += rv * nx; c.vy += rv * ny; sfx("hit"); burst((a.x + c.x) / 2, (a.y + c.y) / 2, "#ffffff", 8, 120, .3, 2); } const o = (SR * 2 - d) / 2; a.x -= nx * o; a.y -= ny * o; c.x += nx * o; c.y += ny * o; }
         }
         for (let i = stones.length - 1; i >= 0; i--) if (stones[i].out) { burst(stones[i].x, stones[i].y, "#ff4d6d", 12, 140, .4, 2); stones.splice(i, 1); }
-        if (!moving) { const p = ptsOf(cur); if (p) { pop(cur.x, cur.y - 22, "+" + p, "#ffd66b"); sfx("score"); } if (thrown >= PER) { phase = "done"; setTimeout(() => { if (S.state === "play") settle(); }, 700); } else ready(); }
+        if (!moving) { const p = ptsOf(cur); if (p) { pop(cur.x, cur.y - 22, "+" + p, "#ffd66b"); sfx("score"); } if (thrown >= PER) { phase = "done"; doneT = .8; } else ready(); }
       }
     },
     draw() {
