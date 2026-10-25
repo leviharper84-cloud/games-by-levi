@@ -511,6 +511,11 @@ textarea.code {
 .w-bar.big { width: 100%; height: 9px; display: block; margin: 6px 0 4px; }
 .coin-pop { position: fixed; left: 50%; bottom: 26px; z-index: 210; padding: 10px 18px; border-radius: 999px; background: #120b24; border: 1px solid #ffd66b; color: #ffd66b; font: 700 .9rem var(--f-mono); box-shadow: 0 0 24px rgba(255,214,107,.45); transform: translate(-50%, 160%); transition: transform .45s var(--ease); white-space: nowrap; }
 .coin-pop.big { font-size: 1.05rem; padding: 13px 22px; }
+.coin-pop, .ach-pop { pointer-events: none; }
+html.playing .coin-pop { bottom: auto; top: 8px; transform: translate(-50%, -180%); max-width: calc(100vw - 32px); text-align: center; }
+html.playing .coin-pop.show { transform: translate(-50%, 0); }
+html.playing .ach-pop { top: auto; bottom: 14px; transform: translate(-50%, 160%); }
+html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .coin-pop.show { transform: translate(-50%, 0); }
 .rew-head { display: flex; gap: 16px; align-items: center; justify-content: space-between; margin-bottom: 12px; }
 .rew-lv { flex: 1; min-width: 0; }
@@ -824,6 +829,12 @@ textarea.code {
 .frame-box { position: relative; background: #000; aspect-ratio: 16 / 10; max-width: 100%; max-height: calc(100vh - 140px); width: 100%; }
 .frame-box iframe { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; background: #000; }
 .frame-box:fullscreen { aspect-ratio: auto; max-height: none; }
+#modal.big { padding: 0; }
+#modal.big .cabinet { position: fixed; inset: 0; width: 100vw; height: 100vh; height: 100dvh; max-width: none; max-height: none; border-radius: 0; border-width: 0; display: flex; flex-direction: column; }
+#modal.big .cab-bar { padding: 4px 8px; justify-content: flex-end; }
+#modal.big .cab-bar > div:first-child { display: none; }
+#modal.big .frame-box { flex: 1; aspect-ratio: auto; max-height: none; min-height: 0; }
+#modal.big .cab-foot { display: none; }
 #modal { touch-action: none; overscroll-behavior: contain; }
 html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 @media (pointer: coarse), (max-width: 900px) {
@@ -6591,7 +6602,7 @@ function bitGame() {
         x.save(); x.beginPath(); x.rect(X0, y, C * Z, Z); x.clip();
         for (let k = -1; k <= C; k++) {
           const v = r.b[((k % C) + C) % C], X = X0 + k * Z + r.off, c = v ? "#22e4ff" : "#ff2bd6";
-          x.fillStyle = ca(c, .12); x.fillRect(X + 4, y + 5, Z - 8, Z - 10); glow(c, 12); txt(String(v), X + Z / 2, y + Z / 2 + 1, 26, c, "center", "d"); glow();
+          x.fillStyle = ca(c, .1); x.fillRect(X + 4, y + 5, Z - 8, Z - 10); glow(c, 10); x.strokeStyle = c; x.lineWidth = 4; x.beginPath(); if (v) { x.moveTo(X + Z / 2 - 6, y + 16); x.lineTo(X + Z / 2 + 1, y + 11); x.lineTo(X + Z / 2 + 1, y + Z - 11); } else x.ellipse(X + Z / 2, y + Z / 2, 9, 14, 0, 0, 7); x.stroke(); glow();
         }
         x.restore();
         if (match && !isSel) { x.fillStyle = "rgba(255,214,107,.5)"; x.fillRect(X0 + C * Z + 10, y + Z / 2 - 2, 6, 4); }
@@ -6859,7 +6870,7 @@ function tugGame() {
     title: "Pulse Tug", w: W, h: H, color: "#ff2bd6", bpm: 160, easy: "a very sleepy CPU",
     duo: "P1 mashes W, P2 mashes ↑ (or each tap your own side). Pull the pulse to your side. Best of 3.",
     help: ["Tug of war! MASH to pull the energy ball your way", "W, Space or tap to pull (P2 uses ↑ or the right side)", "Your light flashes GREEN = super strong pulls", "RED = weak pulls. Time your mashing!"],
-    init() { wins = [0, 0]; round = 1; lvl = 1; flashP = [0, 0]; botT = 0; newRound(); },
+    init() { wins = [0, 0]; round = 1; lvl = 1; flashP = [0, 0]; botT = 0; newRound(); roundT = 0; },
     hud() { return S.duo ? "P1 " + wins[0] + " : " + wins[1] + " P2  ·  FIRST TO 2" : "LEVEL " + lvl + "  ·  ROUNDS YOU " + wins[0] + " : " + wins[1] + " CPU"; },
     key(k, rep) { if (rep) return; if (k === "w" || ((!S.duo || S.bot) && (k === " " || k === "ArrowUp"))) press(0); else if (S.duo && !S.bot && k === "ArrowUp") press(1); },
     down(mx) { if (S.duo && !S.bot && mx >= W / 2) press(1); else press(0); },
@@ -6949,7 +6960,7 @@ function clashGame() {
     title: "Arena Clash", w: W, h: H, color: "#22e4ff", bpm: 150, easy: "a slow, sleepy CPU and unlimited lives",
     duo: "P1 steers with W A S D and fires with F. P2 steers with the arrows and fires with Enter. First to 3 rounds.",
     help: ["Light-cycle battle! You leave a glowing wall behind you", "Don't crash into any wall. Make your rival crash!", "Arrows or swipe to turn. Space, F or tap to fire a pulse", "Pulses blast holes in walls (3 per round)"],
-    init() { wins = [0, 0]; lives = 3; lvl = 1; roundN = 0; newRound(); },
+    init() { wins = [0, 0]; lives = 3; lvl = 1; roundN = 0; newRound(); wait = 0; },
     hud() { return (S.duo ? "P1 " + wins[0] + " : " + wins[1] + " P2  ·  FIRST TO 3" : "ROUND " + lvl + "  ·  LIVES " + (S.practice ? "∞" : "◆".repeat(Math.max(0, lives)))) + "  ·  PULSES " + P[0].ammo + (S.duo ? " / " + P[1].ammo : ""); },
     turn(d, k, sx) {
       const solo = !S.duo || S.bot;
@@ -7013,7 +7024,7 @@ function thiefGame() {
   game({
     title: "Grid Thief", w: W, h: H, color: "#22e4ff", bpm: 140, easy: "a very slow CPU",
     duo: "P1 moves with W A S D, P2 with the arrows (or swipe on your own half). Paint the most tiles in 30 seconds!",
-    help: ["Walk over tiles to paint them your color", "Step on your rival's color to STEAL it", "Grab a paint bomb to paint a big square", "Own the most of the board when time runs out!"],
+    help: ["Swipe or use the arrow keys to move", "Walk over tiles to paint them your color", "Step on your rival's color to STEAL it", "Grab a paint bomb to paint a big square", "Own the most of the board when time runs out!"],
     init() { wins = [0, 0]; lvl = 1; newRound(); },
     hud() { return (S.duo ? "P1 " : "YOU ") + count(0) + "  ·  " + Math.ceil(timeLeft) + "s  ·  " + count(1) + (S.duo && !S.bot ? " P2" : " CPU") + (S.duo ? "" : "  ·  LEVEL " + lvl); },
     turn(d, k, sx) {
@@ -7689,14 +7700,19 @@ function thiefGame() {
     current = null;
     setTimeout(() => { if (!modal.classList.contains("open")) box.replaceChildren(); }, 300);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+    modal.classList.remove("big"); $("#fs").textContent = "Fullscreen";
     if (lastFocus && lastFocus.focus) lastFocus.focus();
   }
   $("#close").addEventListener("click", closeModal);
   modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
   addEventListener("keydown", (e) => { if (e.key === "Escape" && modal.classList.contains("open")) closeModal(); });
+  // Real fullscreen where the browser allows it; otherwise a "big screen" mode that fills the window.
+  const bigScreen = (on) => { modal.classList.toggle("big", on); $("#fs").textContent = on ? "Exit big screen" : "Fullscreen"; };
   $("#fs").addEventListener("click", () => {
-    if (box.requestFullscreen) box.requestFullscreen().catch(() => toast("Fullscreen isn't available here"));
-    else toast("Fullscreen isn't available here");
+    if (modal.classList.contains("big")) return bigScreen(false);
+    const req = box.requestFullscreen || box.webkitRequestFullscreen;
+    if (!req) return bigScreen(true);
+    try { const r = req.call(box); if (r && r.catch) r.catch(() => bigScreen(true)); } catch { bigScreen(true); }
   });
   addEventListener("message", (e) => {
     if (!current || e.source !== current.frame.contentWindow) return;
@@ -8253,9 +8269,14 @@ function thiefGame() {
     if (after > before) { prog.stats.coins += 50; prog.stats.gems = gems() + 1; setTimeout(() => { coinPop("LEVEL UP! You're level " + after + "  ·  +50 ⚡  +1 💎", true); if (window.gblConfetti) window.gblConfetti(160); }, 1400); }
     saveProg(); renderWallet();
   }
-  function coinPop(t, big) {
-    const n = el("div", { class: "coin-pop" + (big ? " big" : ""), text: t }); document.body.append(n);
-    requestAnimationFrame(() => n.classList.add("show")); setTimeout(() => { n.classList.remove("show"); setTimeout(() => n.remove(), 500); }, big ? 3200 : 2200);
+  // One pop-up at a time, so they never pile on top of each other.
+  const popQ = []; let popBusy = false;
+  function coinPop(t, big) { if (popQ.length >= 4) popQ.shift(); popQ.push([t, big]); if (!popBusy) nextPop(); }
+  function nextPop() {
+    const it = popQ.shift(); if (!it) { popBusy = false; return; } popBusy = true;
+    const n = el("div", { class: "coin-pop" + (it[1] ? " big" : ""), text: it[0] }); document.body.append(n);
+    requestAnimationFrame(() => requestAnimationFrame(() => n.classList.add("show")));
+    setTimeout(() => { n.classList.remove("show"); setTimeout(() => { n.remove(); nextPop(); }, 380); }, it[1] ? 2400 : 1600);
   }
   var renderWallet = function () {
     document.querySelectorAll("[data-wallet]").forEach((b2) => {
