@@ -636,6 +636,19 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .road-step.got b { color: #3dffa8; }
 .road-st { font-size: .9rem; }
 .shop-item.locked { opacity: .6; }
+.pet { position: fixed; left: 14px; bottom: 14px; z-index: 90; display: flex; align-items: flex-end; gap: 8px; pointer-events: none; }
+.pet[hidden], html.playing .pet { display: none; }
+.pet-face { pointer-events: auto; font-size: 2.6rem; line-height: 1; width: 64px; height: 64px; border-radius: 50%; border: 2px solid rgba(255,214,107,.6); background: radial-gradient(circle at 40% 35%, rgba(255,255,255,.18), rgba(18,11,36,.95)); box-shadow: 0 0 22px rgba(255,214,107,.35); cursor: pointer; animation: petBob 2.4s ease-in-out infinite; }
+.pet.hungry .pet-face { border-color: #ff2bd6; box-shadow: 0 0 26px rgba(255,43,214,.6); }
+.pet-face.jump { animation: petJump .5s ease; }
+@keyframes petBob { 50% { transform: translateY(-6px); } }
+@keyframes petJump { 30% { transform: translateY(-26px) rotate(-10deg) scale(1.15); } 60% { transform: translateY(0) rotate(8deg); } }
+.pet-tag { display: grid; padding: 6px 10px; border-radius: 12px; background: rgba(18,11,36,.9); border: 1px solid var(--line); font-size: .72rem; }
+.pet-tag small { color: var(--muted); }
+.pet-bub { position: absolute; left: 6px; bottom: 76px; white-space: nowrap; padding: 8px 12px; border-radius: 14px 14px 14px 4px; background: #fff; color: #12081f; font-weight: 700; font-size: .85rem; }
+.pet-bub[hidden] { display: none; }
+.sw.petsw { display: grid; place-items: center; font-size: 1.4rem; }
+@media (max-width: 700px) { .pet-tag { display: none; } .pet-face { width: 54px; height: 54px; font-size: 2.1rem; } }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-x2 { position: absolute; top: 8px; right: 8px; z-index: 2; font: 800 .72rem var(--f-mono); padding: 2px 8px; border-radius: 999px; color: #1a1200; background: #ffd66b; box-shadow: 0 0 12px rgba(255,214,107,.8); }
 .tour-duel { position: absolute; bottom: 8px; left: 8px; z-index: 2; font: 700 .58rem var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border-radius: 999px; color: #05030c; background: #3dffa8; }
@@ -6565,7 +6578,7 @@ function bitGame() {
     else if (rows.length > 2 && r < .7) { const src = rows[Math.random() * rows.length | 0]; row = { b: rot(src.b, 1 + (Math.random() * (C - 1) | 0)), off: 0, fl: 0 }; }
     else row = rnd();
     rows.unshift(row); sel = Math.min(rows.length - 1, sel + 1);
-    if (rows.length > R) return over("STACK OVERFLOW");
+    if (rows.length > R) { if (!S.practice) return over("STACK OVERFLOW"); rows.pop(); sel = Math.min(sel, rows.length - 1); pop(W / 2, Y0 + 10, "TOP ROW REMOVED", "#ff4d6d"); }
     check();
   }
   function rowY(i) { return Y0 + (R - 1 - i) * Z; }
@@ -8522,6 +8535,12 @@ function bowlGame() {
     ["t-brain", "title", "Big Brain", 180, "#a35bff", "Show off the title Big Brain", "$"],
     ["t-legend", "title", "Legend", 20, "#ffd66b", "Show off the title Legend", "d"],
     ["t-hacker", "title", "Hacker", 40, "#00ff88", "Show off the title Hacker", "d"],
+    ["pet-cat", "pet", "Neon Cat", 30, "#ff2bd6", "A purring pixel kitty", "$"],
+    ["pet-dog", "pet", "Laser Pup", 30, "#22e4ff", "A loyal glowing puppy", "$"],
+    ["pet-fox", "pet", "Glitch Fox", 60, "#ff8a1f", "A sneaky speedy fox", "$"],
+    ["pet-bot", "pet", "Mini Bot", 6, "#3dffa8", "A tiny helper robot", "d"],
+    ["pet-uni", "pet", "Rainbow Unicorn", 15, "linear-gradient(90deg,#ff2bd6,#ffd66b,#22e4ff)", "Magical and sparkly", "d"],
+    ["pet-dragon", "pet", "Neon Dragon", 30, "linear-gradient(90deg,#a35bff,#ff2bd6)", "The coolest pet in the hub", "d"],
     ["t-lv5", "title", "Up-and-Comer", 5, "#b6ff3b", "Reach level 5 on the Level Road", "lv"],
     ["t-lv10", "title", "Arcade Ace", 10, "#22e4ff", "Reach level 10 on the Level Road", "lv"],
     ["t-lv20", "title", "Neon Knight", 20, "#ff2bd6", "Reach level 20 on the Level Road", "lv"],
@@ -8572,9 +8591,29 @@ function bowlGame() {
       saveProg(); setTimeout(() => { window.gblGive(c, d, gm, "★".repeat(after) + "☆".repeat(3 - after) + "  " + g.title + "!"); renderLibrary(); }, 1800);
     }
   }
+  /* ---------- Pets: they live in the corner, level up as you play and give bonus coins ---------- */
+  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉" };
+  const PET_TALK = ["Let's play!", "You're awesome!", "Beat your high score!", "I'm hungry...", "*happy noises*", "Go go go!", "Best friends!", "Try a new game!"];
+  const petLv = (id) => Math.min(10, Math.floor(Math.sqrt(stat("px_" + id) / 3)) + 1);
+  const petBonus = () => { const id = (prog.equip || {}).pet; return id && (prog.owned || []).includes(id) ? petLv(id) * .02 : 0; };
+  let petMsg = null; const petEl = el("div", { class: "pet", hidden: true }); document.body.append(petEl);
+  var renderPet = function () {
+    const id = (prog.equip || {}).pet; if (!id || !PET_EMO[id] || !(prog.owned || []).includes(id)) { petEl.hidden = true; return; }
+    const it = SHOP.find((q) => q[0] === id), lv = petLv(id), fed = prog.stats.petFed === todayKey();
+    petEl.hidden = false;
+    const bub = el("div", { class: "pet-bub", hidden: !(petMsg && petMsg.until > Date.now()), text: petMsg ? petMsg.t : "" });
+    const face = el("button", { class: "pet-face", type: "button", "aria-label": "Pet " + it[2], text: PET_EMO[id], onclick: () => {
+      face.classList.remove("jump"); void face.offsetWidth; face.classList.add("jump"); sfxHub();
+      if (prog.stats.petFed !== todayKey()) { prog.stats.petFed = todayKey(); const c = 20 * lv; petMsg = { t: "Yum! Here's " + c + " ⚡ for you!", until: Date.now() + 2400 }; addCoinsNoXp(c); saveProg(); if (window.gblConfetti) window.gblConfetti(50); }
+      else petMsg = { t: PET_TALK[Math.random() * PET_TALK.length | 0], until: Date.now() + 2200 };
+      renderPet(); const f2 = petEl.querySelector(".pet-face"); if (f2) f2.classList.add("jump"); clearTimeout(petEl._t); petEl._t = setTimeout(renderPet, 2500);
+    } });
+    petEl.replaceChildren(bub, face, el("div", { class: "pet-tag" }, el("b", { text: it[2] }), el("small", { text: "LV " + lv + " · +" + Math.round(petBonus() * 100) + "% coins" + (fed ? "" : " · tap to feed!") })));
+    petEl.classList.toggle("hungry", !fed);
+  };
   const cost = (n) => Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
-  const SHOP_GROUPS = [["boost", "🚀 Boosts", ""], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
+  const SHOP_GROUPS = [["boost", "🚀 Boosts", ""], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
   const SPIN_MS = 24 * 3600 * 1000;
   // [label, color, weight, prize, description]
   const WHEEL = [["50", "#22e4ff", 20, "c50", "50 coins"], ["2×", "#ff2bd6", 11, "boost", "2× coins for 30 min"], ["$20", "#b6ff3b", 13, "cash20", "20 dollars"], ["?", "#ffc23d", 15, "mystery", "Mystery box (maybe 💎!)"], ["SKIN", "#a35bff", 9, "skin", "A free skin"], ["AGAIN", "#3dffa8", 10, "again", "Spin again"], ["777", "#ff4d6d", 3, "jackpot", "Jackpot: 777 coins + 3 💎"], ["200", "#ff8a1f", 9, "c200", "200 coins"]];
@@ -8707,6 +8746,7 @@ function bowlGame() {
       b2.classList.toggle("due", due);
     });
     if (window.gblCheckAch) setTimeout(window.gblCheckAch, 0);
+    if (typeof renderPet === "function") renderPet();
   };
   /* missions */
   function seeded(seed) { let h = 2166136261; for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0) / 4294967296; }
@@ -8739,7 +8779,8 @@ function bowlGame() {
   /* hooks */
   window.gblReward = (cur, s) => {
     if (!cur || !cur.g || !BUILTINS.some((b) => b.key === cur.g.key)) return;
-    const wk = new Date().getDay() % 6 === 0, bst = stat("boostUntil") > Date.now(), n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1) * (bst ? 2 : 1), cm = (window.GCFG || {}).coinMult, n2 = Math.round(n * (cm == null ? 1 : cm));
+    const wk = new Date().getDay() % 6 === 0, bst = stat("boostUntil") > Date.now(), n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1) * (bst ? 2 : 1), cm = (window.GCFG || {}).coinMult, n2 = Math.round(n * (cm == null ? 1 : cm) * (1 + petBonus()));
+    if ((prog.equip || {}).pet) { const pk = "px_" + prog.equip.pet, lv0 = petLv(prog.equip.pet); prog.stats[pk] = stat(pk) + 1; if (petLv(prog.equip.pet) > lv0) setTimeout(() => { coinPop(PET_EMO[prog.equip.pet] + " Your pet grew to level " + petLv(prog.equip.pet) + "!", true); renderPet(); }, 3000); }
     const dl = (1 + Math.min(4, Math.floor(Math.log10(Math.max(1, s))))) * (bst ? 2 : 1);
     const prevBest = typeof myBest === "function" ? myBest(cur.g.key) || 0 : 0;
     giveCash(dl, null, true);
@@ -8805,7 +8846,7 @@ function bowlGame() {
             if (cur === "lv" && !has) return el("div", { class: "shop-item locked" }, el("span", { class: "sw ttl", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
             if (gk === "boost") return el("div", { class: "shop-item" + tag }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
               el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); renderRewards(); } }));
-            return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (gk === "title" ? " ttl" : ""), style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
+            return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (gk === "title" ? " ttl" : gk === "pet" ? " petsw" : ""), style: "background:" + col, text: gk === "pet" ? PET_EMO[id] : null }), el("b", { text: name }), el("small", { text: sub }),
               has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: id }; saveProg(); toast(name + " equipped"); renderRewards(); } })
                 : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...owned, id]; prog.equip = { ...eq, [gk]: id }; saveProg(); renderWallet(); sfxHub(); toast("Unlocked " + name + "!"); if (window.gblConfetti) window.gblConfetti(70); renderRewards(); } }));
           })))));
