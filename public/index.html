@@ -3600,22 +3600,27 @@ function missileGame() {
   const W = 520, H = 560, GY = 510;
   const stars = Array.from({ length: 70 }, () => [Math.random() * W, Math.random() * (GY - 60), Math.random() * 1.4 + .3]);
   let cities, inc, outs, booms, wave, ammo, left, spawnT, cx, cy, gap;
-  function startWave() { ammo = S.practice ? Infinity : 18 + wave * 2; left = 6 + wave * 3; spawnT = 1.2; gap = 0; }
+  function startWave() { ammo = S.practice ? Infinity : 24 + wave * 3; left = 6 + wave * 3; spawnT = 1.2; gap = 0; }
   function spawn(px, py, tgt) {
     const alive = cities.filter((c) => c.alive);
     const t = tgt !== undefined ? tgt : (alive.length && Math.random() < .8 ? alive[Math.random() * alive.length | 0].x : 60 + Math.random() * (W - 120));
-    const sp = (42 + wave * 7) * (S.practice ? .55 : 1);
+    const sp = (30 + wave * 6) * (S.practice ? .55 : 1);
     inc.push({ sx: px, sy: py, x: px, y: py, tx: t, sp, mirv: tgt === undefined && wave >= 3 && Math.random() < Math.min(.35, .08 * wave) });
   }
   function fire(px, py) {
     if (ammo <= 0) { sfx("bad"); pop(W / 2, GY - 40, "NO AMMO", "#ff4d6d"); return; }
     ammo--; py = Math.min(py, GY - 30);
+    // Aim help: if you tap near a missile, aim where it will be when the shot gets there.
+    let best = null, bd = 55;
+    for (const m of inc) { const tt = Math.hypot(px - W / 2, py - GY) / SHOT + .15, dx = m.tx - m.x, dy = GY - m.y, d = Math.hypot(dx, dy) || 1, fx0 = m.x + dx / d * m.sp * tt, fy0 = m.y + dy / d * m.sp * tt, dd = Math.min(Math.hypot(fx0 - px, fy0 - py), Math.hypot(m.x - px, m.y - py)); if (dd < bd) { bd = dd; best = [fx0, Math.min(fy0, GY - 30)]; } }
+    if (best) { px = best[0]; py = best[1]; }
     outs.push({ x: W / 2, y: GY - 18, tx: px, ty: py }); sfx("laser");
   }
+  const SHOT = 1100;
   function boom(px, py, max, c) { booms.push({ x: px, y: py, r: 0, max, t: 0, c }); }
   game({
     title: "Missile Defense", easy: "unlimited ammo, slower missiles", w: W, h: H, color: "#ff4d6d", bpm: 120,
-    help: ["Click or tap where interceptors should explode", "Keyboard: arrows move the crosshair, Space fires", "Blasts destroy every missile they touch", "Protect your cities. Waves get bigger and faster"],
+    help: ["Tap near a missile. Your shot aims for you and explodes!", "Keyboard: arrows move the crosshair, Space fires", "Blasts destroy every missile they touch", "Protect your cities. Waves get bigger and faster"],
     init() { cities = [60, 130, 200, 320, 390, 460].map((px) => ({ x: px, alive: true })); inc = []; outs = []; booms = []; wave = 1; cx = W / 2; cy = H / 2; startWave(); },
     hud() { return "WAVE " + wave + "  ·  CITIES " + cities.filter((c) => c.alive).length + "  ·  AMMO " + (S.practice ? "∞" : ammo); },
     summary() { return ["REACHED WAVE " + wave]; },
@@ -3626,17 +3631,17 @@ function missileGame() {
       const kx = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), ky = (S.keys.ArrowDown || S.keys.s ? 1 : 0) - (S.keys.ArrowUp || S.keys.w ? 1 : 0);
       cx = Math.max(10, Math.min(W - 10, cx + kx * 380 * dt)); cy = Math.max(10, Math.min(GY - 30, cy + ky * 380 * dt));
       for (const o of outs) {
-        const dx = o.tx - o.x, dy = o.ty - o.y, d = Math.hypot(dx, dy), st = 640 * dt;
-        if (d <= st) { o.done = true; boom(o.tx, o.ty, 46, "#22e4ff"); sfx("pop"); } else { o.x += dx / d * st; o.y += dy / d * st; }
+        const dx = o.tx - o.x, dy = o.ty - o.y, d = Math.hypot(dx, dy), st = SHOT * dt;
+        if (d <= st) { o.done = true; boom(o.tx, o.ty, 70, "#22e4ff"); sfx("pop"); } else { o.x += dx / d * st; o.y += dy / d * st; }
       }
       outs = outs.filter((o) => !o.done);
-      for (const b of booms) { b.t += dt; b.r = b.max * Math.sin(Math.min(1, b.t / .9) * Math.PI); }
-      booms = booms.filter((b) => b.t < .9);
+      for (const b of booms) { b.t += dt; b.r = b.max * (b.t < .25 ? b.t / .25 : b.t < .95 ? 1 : Math.max(0, 1 - (b.t - .95) / .35)); }
+      booms = booms.filter((b) => b.t < 1.3);
       for (const m of inc) {
         const dx = m.tx - m.x, dy = GY - m.y, d = Math.hypot(dx, dy) || 1;
         m.x += dx / d * m.sp * dt; m.y += dy / d * m.sp * dt;
         if (m.mirv && m.y > 190) { m.mirv = false; m.dead = true; for (let i = 0; i < 3; i++) spawn(m.x, m.y); burst(m.x, m.y, "#ffc23d", 10, 120, .4); }
-        for (const b of booms) if (!m.dead && Math.hypot(m.x - b.x, m.y - b.y) < b.r) { m.dead = true; S.score += 25; pop(m.x, m.y - 12, "+25", "#ffd66b"); boom(m.x, m.y, 26, "#ffc23d"); burst(m.x, m.y, "#ff8a1f", 12, 180, .4); }
+        for (const b of booms) if (!m.dead && Math.hypot(m.x - b.x, m.y - b.y) < b.r + 5) { m.dead = true; S.score += 25; pop(m.x, m.y - 12, "+25", "#ffd66b"); boom(m.x, m.y, 40, "#ffc23d"); burst(m.x, m.y, "#ff8a1f", 12, 180, .4); }
         if (!m.dead && m.y >= GY - 2) {
           m.dead = true; boom(m.x, GY - 6, 30, "#ff4d6d"); shake(7, .3); sfx("boom");
           const c = cities.find((ct) => ct.alive && Math.abs(ct.x - m.x) < 28);
@@ -3670,8 +3675,8 @@ function missileGame() {
       glow("#22e4ff", 14); x.fillStyle = "#22e4ff"; x.beginPath(); x.moveTo(W / 2 - 18, GY); x.lineTo(W / 2, GY - 22); x.lineTo(W / 2 + 18, GY); x.closePath(); x.fill(); glow();
       for (const m of inc) {
         const g = x.createLinearGradient(m.sx, m.sy, m.x, m.y); g.addColorStop(0, "rgba(255,77,109,0)"); g.addColorStop(1, "rgba(255,77,109,.9)");
-        x.strokeStyle = g; x.lineWidth = 2; x.beginPath(); x.moveTo(m.sx, m.sy); x.lineTo(m.x, m.y); x.stroke();
-        glow("#ffd66b", 12); x.fillStyle = "#fff"; x.fillRect(m.x - 2, m.y - 2, 4, 4); glow();
+        x.strokeStyle = g; x.lineWidth = 3; x.beginPath(); x.moveTo(m.sx, m.sy); x.lineTo(m.x, m.y); x.stroke();
+        glow("#ffd66b", 16); x.fillStyle = "#fff"; x.beginPath(); x.arc(m.x, m.y, 4.5, 0, 7); x.fill(); x.strokeStyle = "rgba(255,214,107,.5)"; x.lineWidth = 1.5; x.beginPath(); x.arc(m.x, m.y, 10 + Math.sin(S.clock * 8) * 2, 0, 7); x.stroke(); glow();
       }
       for (const o of outs) {
         x.strokeStyle = "rgba(34,228,255,.7)"; x.lineWidth = 1.5; x.beginPath(); x.moveTo(W / 2, GY - 18); x.lineTo(o.x, o.y); x.stroke();
