@@ -205,7 +205,7 @@ async function updateMe(request, env, user) {
       checkName(username);
       const lc = username.toLowerCase();
       if (isAdmin(user, env)) fail(400, "The admin account keeps its name.");
-      if (lc === adminName(env)) fail(409, `"${username}" is taken. Try another name.`);
+      if (isAdminName(lc, env)) fail(409, `"${username}" is taken. Try another name.`);
       const other = await env.DB.prepare("SELECT id FROM users WHERE username_lc = ?").bind(lc).first();
       if (other && other.id !== user.id) fail(409, `"${username}" is taken. Try another name.`);
       sets.push("username = ?", "username_lc = ?"); vals.push(username, lc);
@@ -555,8 +555,10 @@ async function limit(env, key, max, windowMs, message) {
   await env.DB.prepare("UPDATE rate SET count = count + 1 WHERE key = ?").bind(key).run();
 }
 
-const adminName = (env) => String(env.ADMIN_USERNAME || "").trim().toLowerCase();
-const isAdmin = (u, env) => !!(u && adminName(env) && u.username_lc === adminName(env));
+// ADMIN_USERNAME can list several owner names, separated by commas.
+const adminNames = (env) => String(env.ADMIN_USERNAME || "").split(",").map((n) => n.trim().toLowerCase()).filter(Boolean);
+const isAdminName = (name, env) => adminNames(env).includes(String(name || "").toLowerCase());
+const isAdmin = (u, env) => !!(u && isAdminName(u.username_lc, env));
 const publicUser = (u, env) => (u ? { id: u.id, username: u.username, av: { i: u.avatar_i, c: u.avatar_c }, joined: u.created_at, admin: isAdmin(u, env) } : null);
 const cleanName = (v) => String(v || "").trim().replace(/\s+/g, " ");
 const clientIp = (request) => request.headers.get("cf-connecting-ip") || "local";
@@ -737,7 +739,7 @@ async function adminUsers(env, url) {
     FROM users u LEFT JOIN progress p ON p.user_id = u.id
     WHERE u.username_lc LIKE ? ORDER BY COALESCE(p.at, u.created_at) DESC LIMIT 300
   `).bind(q).all();
-  return json({ users: results.map((r) => ({ id: r.id, username: r.username, joined: r.created_at, av: { i: r.avatar_i, c: r.avatar_c }, lastSeen: r.at || r.created_at, scores: r.nscores, admin: r.username.toLowerCase() === adminName(env), ...progSummary(r.data) })) });
+  return json({ users: results.map((r) => ({ id: r.id, username: r.username, joined: r.created_at, av: { i: r.avatar_i, c: r.avatar_c }, lastSeen: r.at || r.created_at, scores: r.nscores, admin: isAdminName(r.username, env), ...progSummary(r.data) })) });
 }
 async function adminUser(env, id) {
   const u = await env.DB.prepare("SELECT id, username, created_at, avatar_i, avatar_c FROM users WHERE id = ?").bind(id).first();
@@ -745,7 +747,7 @@ async function adminUser(env, id) {
   const p = await env.DB.prepare("SELECT data, at FROM progress WHERE user_id = ?").bind(id).first();
   const { results } = await env.DB.prepare("SELECT game, score, at FROM scores WHERE user_id = ? ORDER BY score DESC").bind(id).all();
   let data = null; try { data = p ? JSON.parse(p.data) : null; } catch {}
-  return json({ user: { id: u.id, username: u.username, joined: u.created_at, av: { i: u.avatar_i, c: u.avatar_c }, admin: u.username.toLowerCase() === adminName(env) }, progress: data, summary: progSummary(p && p.data), lastSeen: p ? p.at : null, scores: results });
+  return json({ user: { id: u.id, username: u.username, joined: u.created_at, av: { i: u.avatar_i, c: u.avatar_c }, admin: isAdminName(u.username, env) }, progress: data, summary: progSummary(p && p.data), lastSeen: p ? p.at : null, scores: results });
 }
 async function adminEditUser(request, env, me, id) {
   const b = await readJson(request);
@@ -753,9 +755,9 @@ async function adminEditUser(request, env, me, id) {
   if (!u) fail(404, "That player doesn't exist.");
   if (b.username != null) {
     const name = cleanName(b.username); checkName(name);
-    if (u.username_lc === adminName(env) && name.toLowerCase() !== adminName(env)) fail(400, "The admin account keeps its name.");
+    if (isAdminName(u.username_lc, env) && name.toLowerCase() !== u.username_lc) fail(400, "The admin account keeps its name.");
     const lc = name.toLowerCase();
-    if (lc !== u.username_lc && (lc === adminName(env) || await env.DB.prepare("SELECT 1 FROM users WHERE username_lc = ?").bind(lc).first())) fail(409, `"${name}" is taken.`);
+    if (lc !== u.username_lc && (isAdminName(lc, env) || await env.DB.prepare("SELECT 1 FROM users WHERE username_lc = ?").bind(lc).first())) fail(409, `"${name}" is taken.`);
     await env.DB.prepare("UPDATE users SET username = ?, username_lc = ? WHERE id = ?").bind(name, lc, id).run();
   }
   const keys = ["coins", "cash", "gems", "xp"].filter((k) => b[k] != null);
