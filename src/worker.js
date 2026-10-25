@@ -51,6 +51,7 @@ const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, game TEXT NOT NULL, host_id INTEGER NOT NULL, guest_id INTEGER, moves TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS rate (key TEXT PRIMARY KEY, count INTEGER NOT NULL, since INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS likes (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, PRIMARY KEY (user_id, game))",
 ];
 let tablesReady = null;
 function ensureTables(env) {
@@ -110,6 +111,8 @@ async function handle(request, env, url) {
   if (path === "/api/scores" && method === "POST") return postScores(request, env, user);
 
   if (path === "/api/config" && method === "GET") return getConfig(env);
+  if (path === "/api/likes" && method === "GET") return getLikes(env, user);
+  if (path === "/api/likes" && method === "POST") return postLike(request, env, user);
   if (path.startsWith("/api/admin/")) {
     if (!isAdmin(user, env)) fail(403, "Only the admin can do that.");
     if (path === "/api/admin/config" && method === "PUT") return putConfig(request, env);
@@ -773,7 +776,7 @@ async function adminDeleteUser(env, me, id) {
   if (id === me.id) fail(400, "You can't delete your own admin account.");
   const u = await env.DB.prepare("SELECT username_lc FROM users WHERE id = ?").bind(id).first();
   if (!u) fail(404, "That player doesn't exist.");
-  await env.DB.batch(["sessions", "scores", "progress", "settings", "daily", "submissions"].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(id))
+  await env.DB.batch(["sessions", "scores", "progress", "settings", "daily", "submissions", "likes"].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(id))
     .concat([env.DB.prepare("DELETE FROM users WHERE id = ?").bind(id)]));
   return json({ ok: true });
 }
@@ -783,4 +786,26 @@ async function adminDeleteScores(request, env) {
   if (b.user) await env.DB.prepare("DELETE FROM scores WHERE game = ? AND user_id = ?").bind(game, +b.user).run();
   else await env.DB.prepare("DELETE FROM scores WHERE game = ?").bind(game).run();
   return json({ ok: true });
+}
+
+/* ------------------------------------------------------------------ */
+/* Likes: the hearts players give games                                */
+/* ------------------------------------------------------------------ */
+
+async function getLikes(env, user) {
+  const { results } = await env.DB.prepare("SELECT game, COUNT(*) AS n FROM likes GROUP BY game").all();
+  const counts = {}; for (const r of results) counts[r.game] = r.n;
+  let mine = [];
+  if (user) mine = (await env.DB.prepare("SELECT game FROM likes WHERE user_id = ?").bind(user.id).all()).results.map((r) => r.game);
+  return json({ counts, mine });
+}
+async function postLike(request, env, user) {
+  if (!user) fail(401, "Log in to heart games.");
+  await limit(env, "like:" + user.id, 60, MIN, "Slow down a little.");
+  const b = await readJson(request), game = String(b.game || "");
+  if (!BUILTIN_GAMES.has(game)) fail(400, "Unknown game.");
+  if (b.on) await env.DB.prepare("INSERT OR IGNORE INTO likes (user_id, game) VALUES (?, ?)").bind(user.id, game).run();
+  else await env.DB.prepare("DELETE FROM likes WHERE user_id = ? AND game = ?").bind(user.id, game).run();
+  const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM likes WHERE game = ?").bind(game).first();
+  return json({ game, n: r.n });
 }

@@ -651,6 +651,7 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 @media (max-width: 700px) { .pet-tag { display: none; } .pet-face { width: 54px; height: 54px; font-size: 2.1rem; } }
 .duel-sel { flex: 1; min-width: 0; }
 .duel-card .btn + .btn { margin-top: 8px; }
+.like-n { font: 700 .66rem var(--f-mono); color: #ff7be6; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-x2 { position: absolute; top: 8px; right: 8px; z-index: 2; font: 800 .72rem var(--f-mono); padding: 2px 8px; border-radius: 999px; color: #1a1200; background: #ffd66b; box-shadow: 0 0 12px rgba(255,214,107,.8); }
 .tour-duel { position: absolute; bottom: 8px; left: 8px; z-index: 2; font: 700 .58rem var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border-radius: 999px; color: #05030c; background: #3dffa8; }
@@ -7789,7 +7790,7 @@ function bowlGame() {
         g.builtin ? el("button", { class: "fav-btn" + (isFav(g.key) ? " on" : ""), type: "button", "aria-pressed": String(isFav(g.key)), "aria-label": "Favorite " + g.title, text: isFav(g.key) ? "♥" : "♡", onclick: (e) => { e.stopPropagation(); toggleFav(g.key); }, onkeydown: (e) => e.stopPropagation() }) : null,
         el("div", { class: "card-body" },
           el("div", { class: "card-title", text: g.title }),
-          el("div", { class: "card-meta" }, el("span", { class: "genre", text: g.genre }), DUO_KEYS.has(g.key) ? el("span", { class: "p2", text: "2P" }) : null, prog && prog.saves && prog.saves[g.key] ? el("span", { class: "saved-pill", text: "SAVED" }) : null, el("span", { text: "by " + (g.creator || "Anonymous") })),
+          el("div", { class: "card-meta" }, el("span", { class: "genre", text: g.genre }), DUO_KEYS.has(g.key) ? el("span", { class: "p2", text: "2P" }) : null, typeof LIKES !== "undefined" && LIKES.counts[g.key] ? el("span", { class: "like-n", title: LIKES.counts[g.key] + " players love this", text: "♥ " + LIKES.counts[g.key] }) : null, prog && prog.saves && prog.saves[g.key] ? el("span", { class: "saved-pill", text: "SAVED" }) : null, el("span", { text: "by " + (g.creator || "Anonymous") })),
           top ? el("div", { class: "top", text: "Top score " + fmt(top) }) : null,
           g.builtin && window.gblStars ? (() => { const n = window.gblStars(g.key), info = window.gblStarInfo(g.key); return info ? el("div", { class: "card-stars", title: n < 3 ? "Next star at " + fmt(info.goals[n]) : "All 3 stars!", text: "★".repeat(n) + "☆".repeat(3 - n) + (n < 3 ? "  next " + fmt(info.goals[n]) : "  MAX") }) : null; })() : null,
           el("div", { class: "play-hint", text: "Insert coin ▸" })));
@@ -7964,7 +7965,7 @@ function bowlGame() {
         e.preventDefault();
         if (!u.value.trim() || !p.value) return say("Enter your username and password.", "err");
         go.disabled = true; say("Logging in…");
-        try { const r = await api("/login", { method: "POST", body: { username: u.value, password: p.value } }); me = r.user; closeAcct(); toast("Welcome back, " + me.username); welcome(); loadSettings(); loadProg(); loadDaily(); }
+        try { const r = await api("/login", { method: "POST", body: { username: u.value, password: p.value } }); me = r.user; closeAcct(); toast("Welcome back, " + me.username); welcome(); loadSettings(); loadProg(); loadDaily(); if (window.gblLoadLikes) window.gblLoadLikes(); }
         catch (ex) { say(ex.message, "err"); p.value = ""; p.focus(); }
         finally { go.disabled = false; }
       });
@@ -8043,7 +8044,7 @@ function bowlGame() {
           me = r.user; toast("Profile saved"); await refresh("scores"); renderAcctModal("profile");
         } else {
           const r = await api("/signup", { method: "POST", body: { username: name, password: p.value, av } });
-          me = r.user; closeAcct(); toast(`Welcome to the hub, ${me.username}!`); welcome(); loadSettings(); loadProg(); loadDaily();
+          me = r.user; closeAcct(); toast(`Welcome to the hub, ${me.username}!`); welcome(); loadSettings(); loadProg(); loadDaily(); if (window.gblLoadLikes) window.gblLoadLikes();
         }
       } catch (ex) { say(ex.message, "err"); }
       finally { save.disabled = false; }
@@ -8272,10 +8273,22 @@ function bowlGame() {
   }
   const stat = (k) => (prog && prog.stats && +prog.stats[k]) || 0;
   const isFav = (k) => !!(prog && prog.favs.includes(k));
+  // Hearts: your favorites, and (when logged in) a public count of how many players love each game.
+  var LIKES = { counts: {}, mine: [] };
+  function loadLikes() {
+    if (!XR.online) return;
+    api("/likes").then((r) => {
+      LIKES = { counts: r.counts || {}, mine: r.mine || [] };
+      if (me) { const miss = (prog.favs || []).filter((k) => BUILTINS.some((b2) => b2.key === k) && !LIKES.mine.includes(k)).slice(0, 20); miss.forEach((k) => api("/likes", { method: "POST", body: { game: k, on: true } }).then((x2) => { LIKES.counts[k] = x2.n; LIKES.mine.push(k); renderLibrary(); renderStrips(); }).catch(() => {})); }
+      renderLibrary(); renderStrips();
+    }).catch(() => {});
+  }
+  window.gblLoadLikes = loadLikes;
   function toggleFav(k) {
     if (isFav(k)) { prog.favs = prog.favs.filter((q) => q !== k); toast("Removed from favorites"); }
     else { prog.favs = [k, ...prog.favs]; toast("Added to favorites ♥"); }
     saveProg(); renderStrips(); renderLibrary(); checkAch();
+    if (XR.online && me && BUILTINS.some((b2) => b2.key === k)) api("/likes", { method: "POST", body: { game: k, on: isFav(k) } }).then((r) => { LIKES.counts[k] = r.n; LIKES.mine = isFav(k) ? [...new Set([...LIKES.mine, k])] : LIKES.mine.filter((q) => q !== k); renderLibrary(); renderStrips(); }).catch(() => {});
   }
   const ACH = [
     ["first", "🕹️", "Insert Coin", "Play your first game", (c) => c.total >= 1],
@@ -8361,6 +8374,8 @@ function bowlGame() {
     const favs = prog.favs.map(miniCard).filter(Boolean), rec = prog.recent.map(miniCard).filter(Boolean);
     if (favs.length) rows.push(el("div", { class: "strip" }, el("h3", { text: "♥ Your favorites" }), el("div", { class: "strip-row" }, ...favs)));
     if (rec.length) rows.push(el("div", { class: "strip" }, el("h3", { text: "⟲ Recently played" }), el("div", { class: "strip-row" }, ...rec)));
+    const loved = Object.entries((typeof LIKES !== "undefined" && LIKES.counts) || {}).filter(([k, n]) => n > 0 && BUILTINS.some((b2) => b2.key === k)).sort((a, b2) => b2[1] - a[1]).slice(0, 10).map(([k]) => miniCard(k)).filter(Boolean);
+    if (loved.length) rows.push(el("div", { class: "strip" }, el("h3", { text: "🔥 Most loved by players" }), el("div", { class: "strip-row" }, ...loved)));
     box.replaceChildren(...rows); box.hidden = !rows.length;
   }
 
@@ -9304,7 +9319,7 @@ function bowlGame() {
   renderAll();
   (async () => {
     try { me = (await api("/me")).user; online = true; } catch { online = false; }
-    if (me) { loadSettings(); loadProg(); }
+    if (window.gblLoadLikes) window.gblLoadLikes(); if (me) { loadSettings(); loadProg(); }
     await refresh();
     syncGuest();
     setInterval(() => { if (!document.hidden) refresh(); }, 30000);
