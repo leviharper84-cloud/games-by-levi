@@ -935,7 +935,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <div class="meter" aria-label="Library progress">
       <div class="meter-top">
         <span class="meter-label">Cabinets lit</span>
-        <span class="meter-num"><b id="lit-count">53</b> / 1000</span>
+        <span class="meter-num"><b id="lit-count">58</b> / 1000</span>
       </div>
       <div class="ticks" id="ticks"></div>
     </div>
@@ -1206,7 +1206,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#submit">Submit a game</a>
       <a href="#queue">Queue</a>
     </nav>
-    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">53</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
+    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">58</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
   </div>
 </footer>
 </div>
@@ -7437,6 +7437,312 @@ function bowlGame() {
   });
 }
 
+/* ---------- 54 Neon Merge ---------- */
+function mergeGame() {
+  const W = 400, H = 660, L = 26, Rw = W - 26, FL = 630, TOP = 155;
+  const RAD = [14, 19, 25, 31, 38, 46, 54, 63, 72, 82, 92], COL = ["#ff2bd6", "#ff8a1f", "#ffd66b", "#b6ff3b", "#3dffa8", "#22e4ff", "#6b7dff", "#a35bff", "#ff7be6", "#ffffff", "#ffd700"];
+  let balls, curT, nextT, aimX, cool, danger, best;
+  const pick = () => Math.random() * Math.min(5, 2 + Math.floor(best / 2)) | 0;
+  function dropBall() {
+    if (cool > 0) return; const r = RAD[curT];
+    balls.push({ x: Math.max(L + r, Math.min(Rw - r, aimX)), y: TOP - 40, vx: 0, vy: 0, t: curT, age: 0 });
+    curT = nextT; nextT = pick(); cool = .45; sfx("blip");
+  }
+  game({
+    title: "Neon Merge", w: W, h: H, color: "#ff2bd6", bpm: 100, easy: "the jar never overflows",
+    help: ["Drag to aim, let go (or tap) to drop a ball", "Two balls of the same color MERGE into a bigger one", "Keep merging to make the giant golden ball!", "Don't let the balls stack over the red line"],
+    init() { balls = []; best = 0; curT = pick(); nextT = pick(); aimX = W / 2; cool = 0; danger = 0; },
+    hud() { return "BIGGEST " + (best + 1) + "/11  ·  NEXT"; },
+    down(px) { aimX = px; }, move(px) { if (S.down) aimX = px; }, up(px) { aimX = px; dropBall(); },
+    key(k, rep) { if ((k === " " || k === "Enter" || k === "ArrowDown") && !rep) dropBall(); },
+    update(dt) {
+      cool = Math.max(0, cool - dt);
+      const k = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0); aimX = Math.max(L, Math.min(Rw, aimX + k * 300 * dt));
+      const n = 6, h = dt / n;
+      for (let s = 0; s < n; s++) {
+        for (const b of balls) { b.vy += 1300 * h; b.x += b.vx * h; b.y += b.vy * h; b.age += h; const r = RAD[b.t];
+          if (b.x < L + r) { b.x = L + r; b.vx = Math.abs(b.vx) * .3; } if (b.x > Rw - r) { b.x = Rw - r; b.vx = -Math.abs(b.vx) * .3; }
+          if (b.y > FL - r) { b.y = FL - r; b.vy = -Math.abs(b.vy) * .2; b.vx *= .92; } }
+        for (let it = 0; it < 5; it++) for (let i = 0; i < balls.length; i++) for (let j = i + 1; j < balls.length; j++) {
+          const a = balls[i], c = balls[j]; if (a.dead || c.dead) continue;
+          const dx = c.x - a.x, dy = c.y - a.y, d = Math.hypot(dx, dy) || .01, rs = RAD[a.t] + RAD[c.t];
+          if (d >= rs + (a.t === c.t ? 3 : 0)) continue;
+          if (a.t === c.t && a.t < 10) {
+            a.dead = c.dead = true; const t = a.t + 1, mx = (a.x + c.x) / 2, my = (a.y + c.y) / 2;
+            balls.push({ x: mx, y: my, vx: (a.vx + c.vx) / 2, vy: Math.min(a.vy, c.vy) - 120, t, age: 1 });
+            const pts = (t + 1) * (t + 1) * 3; S.score += pts; pop(mx, my - 20, "+" + pts, COL[t]); burst(mx, my, COL[t], 16 + t * 3, 200, .5, 3); ring(mx, my, COL[t], RAD[t] * .5, RAD[t] * 1.4, .4); sfx("merge", 1 + t * .05);
+            if (t > best) { best = t; if (t >= 6) { banner(t === 10 ? "GOLDEN BALL!!!" : "WOW! SIZE " + (t + 1), COL[t]); sfx("level"); } }
+            continue;
+          }
+          if (d >= rs) continue;
+          const nx = dx / d, ny = dy / d, o = (rs - d), ma = RAD[a.t] ** 2, mc = RAD[c.t] ** 2, ta = mc / (ma + mc), tc = ma / (ma + mc);
+          a.x -= nx * o * ta; a.y -= ny * o * ta; c.x += nx * o * tc; c.y += ny * o * tc;
+          const rv = (c.vx - a.vx) * nx + (c.vy - a.vy) * ny; if (rv < 0) { const imp = rv * .6; a.vx += nx * imp * ta * 2; a.vy += ny * imp * ta * 2; c.vx -= nx * imp * tc * 2; c.vy -= ny * imp * tc * 2; }
+        }
+        balls = balls.filter((b) => !b.dead);
+      }
+      for (const b of balls) { b.vx *= Math.pow(.985, dt * 60); const v = Math.hypot(b.vx, b.vy); if (v > 900) { b.vx *= 900 / v; b.vy *= 900 / v; } }
+      const over1 = balls.some((b) => b.age > 2 && b.y - RAD[b.t] < TOP);
+      if (over1 && !S.practice) { danger += dt; if (danger > 2.2) return over("THE JAR OVERFLOWED"); } else danger = Math.max(0, danger - dt * 2);
+      if (S.practice && over1) balls = balls.filter((b) => !(b.age > 2 && b.y - RAD[b.t] < TOP));
+    },
+    draw() {
+      techBg("#ff2bd6");
+      x.fillStyle = "rgba(255,255,255,.03)"; x.fillRect(L, TOP - 50, Rw - L, FL - TOP + 50);
+      glow("#ff2bd6", 12); x.strokeStyle = "#ff2bd6"; x.lineWidth = 3; x.beginPath(); x.moveTo(L, TOP - 50); x.lineTo(L, FL); x.lineTo(Rw, FL); x.lineTo(Rw, TOP - 50); x.stroke(); glow();
+      x.strokeStyle = danger > 0 ? "rgba(255,77,109," + (.5 + .5 * Math.sin(S.clock * 14)) + ")" : "rgba(255,77,109,.35)"; x.setLineDash([8, 6]); x.lineWidth = 2; x.beginPath(); x.moveTo(L, TOP); x.lineTo(Rw, TOP); x.stroke(); x.setLineDash([]);
+      if (cool <= 0 && S.state === "play") { const r = RAD[curT], X = Math.max(L + r, Math.min(Rw - r, aimX)); x.strokeStyle = "rgba(255,255,255,.18)"; x.beginPath(); x.moveTo(X, TOP - 40); x.lineTo(X, FL); x.stroke(); glow(COL[curT], 14); x.fillStyle = ca(COL[curT], .5); x.strokeStyle = COL[curT]; x.lineWidth = 2.5; x.beginPath(); x.arc(X, TOP - 40 - 30 + 30, r, 0, 7); x.fill(); x.stroke(); glow(); }
+      for (const b of balls) { const r = RAD[b.t], c = COL[b.t]; glow(c, 14); const g = x.createRadialGradient(b.x - r * .3, b.y - r * .3, r * .1, b.x, b.y, r); g.addColorStop(0, "rgba(255,255,255,.55)"); g.addColorStop(.35, ca(c, .55)); g.addColorStop(1, ca(c, .2)); x.fillStyle = g; x.strokeStyle = c; x.lineWidth = 2.5; x.beginPath(); x.arc(b.x, b.y, r, 0, 7); x.fill(); x.stroke(); glow(); if (r > 24) txt(String(b.t + 1), b.x, b.y + 1, Math.min(26, r * .6), "#ffffff", "center", "d"); }
+      const nr = Math.min(16, RAD[nextT]); txt("NEXT", W - 52, 30, 11, "#9a90c0", "center"); glow(COL[nextT], 10); x.fillStyle = ca(COL[nextT], .6); x.beginPath(); x.arc(W - 52, 58, nr, 0, 7); x.fill(); glow();
+      for (let t = 0; t <= 10; t++) { x.fillStyle = t <= best ? COL[t] : "rgba(255,255,255,.12)"; x.beginPath(); x.arc(30 + t * 18, 40, 6, 0, 7); x.fill(); }
+    },
+  });
+}
+
+/* ---------- 55 Color Dash ---------- */
+function colorGame() {
+  const W = 400, H = 640, BR = 10, CS = ["#ff2bd6", "#22e4ff", "#ffd66b", "#a35bff"];
+  let ball, obs, cam, nextY, passed, col, dead, go;
+  function addObs() {
+    const k = passed < 3 ? 0 : Math.random() * 4 | 0, y = nextY;
+    if (k === 0 || k === 3) obs.push({ k: "ring", y, R: k === 3 ? 70 : 90, a: Math.random() * 6.28, sp: (Math.random() < .5 ? -1 : 1) * (1.4 + Math.min(1.6, passed * .05)), th: 14 });
+    else if (k === 1) obs.push({ k: "bar", y, off: Math.random() * W, sp: (Math.random() < .5 ? -1 : 1) * (80 + Math.min(120, passed * 4)) });
+    else obs.push({ k: "cross", y, a: Math.random() * 6.28, sp: (Math.random() < .5 ? -1 : 1) * (1.6 + Math.min(1.4, passed * .04)), x: W / 2 + (Math.random() < .5 ? -48 : 48) });
+    obs.push({ k: "star", y: y - 150, got: false });
+    obs.push({ k: "switch", y: y - 230, got: false });
+    nextY -= 340;
+  }
+  function die() { if (dead) return; dead = 1; burst(ball.x, ball.y - cam, CS[col], 40, 300, .8, 3); shake(10, .4); sfx("boom"); flash(CS[col], .3); }
+  const segAt = (ang) => (((Math.floor(((ang % 6.283) + 6.283) % 6.283 / (Math.PI / 2))) % 4) + 4) % 4;
+  game({
+    title: "Color Dash", w: W, h: H, color: "#22e4ff", bpm: 128, easy: "slow spinning and you can't fall",
+    help: ["Tap (or Space) to bounce your ball up", "You can only pass through YOUR color", "Touch a rainbow switch to change color", "Grab stars for points. Don't fall!"],
+    init() { go = false; ball = { x: W / 2, y: 520, vy: 0 }; obs = []; cam = 0; nextY = 300; passed = 0; col = 0; dead = 0; for (let i = 0; i < 3; i++) addObs(); },
+    hud() { return "STARS " + Math.floor(S.score); },
+    down() { if (!dead) { go = true; ball.vy = -430; sfx("jump", .6); } },
+    key(k, rep) { if ((k === " " || k === "ArrowUp" || k === "w") && !rep) this.down(); },
+    update(dt) {
+      if (dead) { dead -= dt; if (dead <= 0) return over(Math.floor(S.score) + " STARS"); return; }
+      const slow = S.practice ? .5 : 1;
+      if (!go) return;
+      ball.vy += 1250 * dt; ball.y += ball.vy * dt;
+      if (ball.y - cam < H * .45) cam = ball.y - H * .45;
+      if (ball.y - cam > H + 20) { if (S.practice) { ball.y = cam + H - 30; ball.vy = -500; } else return die(); }
+      while (nextY > cam - 700) addObs();
+      for (const o of obs) {
+        if (o.k === "ring" || o.k === "cross") o.a += o.sp * slow * dt; if (o.k === "bar") o.off = (o.off + o.sp * slow * dt + W * 10) % W;
+        const dy = ball.y - o.y;
+        if (o.k === "ring") { const d = Math.abs(dy); if (d > o.R - o.th / 2 - BR && d < o.R + o.th / 2 + BR) { const ang = (dy > 0 ? Math.PI / 2 : -Math.PI / 2) - o.a; if (segAt(ang) !== col) return die(); } if (!o.pass && ball.y < o.y - o.R) { o.pass = true; passed++; } }
+        if (o.k === "bar" && Math.abs(dy) < 7 + BR) { const segW = W / 4, idx = Math.floor((((ball.x - o.off) % W) + W) % W / segW); if (idx !== col) return die(); }
+        if (o.k === "bar" && !o.pass && ball.y < o.y - 10) { o.pass = true; passed++; }
+        if (o.k === "cross") { for (let i = 0; i < 4; i++) { const a = o.a + i * Math.PI / 2; for (let t = 10; t <= 80; t += 10) { const px = o.x + Math.cos(a) * t, py = o.y + Math.sin(a) * t; if (Math.hypot(px - ball.x, py - ball.y) < BR + 6 && i !== col) return die(); } } if (!o.pass && ball.y < o.y - 85) { o.pass = true; passed++; } }
+        if (o.k === "star" && !o.got && Math.hypot(ball.x - W / 2, dy) < BR + 14) { o.got = true; S.score++; sfx("score"); burst(W / 2, o.y - cam, "#ffffff", 14, 160, .4, 2); pop(W / 2, o.y - cam - 20, "+1", "#ffffff"); }
+        if (o.k === "switch" && !o.got && Math.hypot(ball.x - W / 2, dy) < BR + 14) { o.got = true; let n; do { n = Math.random() * 4 | 0; } while (n === col); col = n; sfx("power"); ring(W / 2, o.y - cam, CS[col], 6, 40, .4); }
+      }
+      obs = obs.filter((o) => o.y - cam < H + 200);
+    },
+    draw() {
+      bg("#06030f");
+      for (const o of obs) {
+        const Y = o.y - cam; if (Y < -200 || Y > H + 200) continue;
+        if (o.k === "ring") for (let i = 0; i < 4; i++) { glow(CS[i], 12); x.strokeStyle = CS[i]; x.lineWidth = o.th; x.beginPath(); x.arc(W / 2, Y, o.R, o.a + i * Math.PI / 2 + .02, o.a + (i + 1) * Math.PI / 2 - .02); x.stroke(); glow(); }
+        if (o.k === "bar") for (let i = -1; i < 4; i++) { const X = ((o.off + i * W / 4) % W + W) % W; glow(CS[(i + 4) % 4], 10); x.fillStyle = CS[(i + 4) % 4]; x.fillRect(X, Y - 7, W / 4 - 2, 14); if (X + W / 4 > W) x.fillRect(X - W, Y - 7, W / 4 - 2, 14); glow(); }
+        if (o.k === "cross") for (let i = 0; i < 4; i++) { const a = o.a + i * Math.PI / 2; glow(CS[i], 12); x.strokeStyle = CS[i]; x.lineWidth = 12; x.lineCap = "round"; x.beginPath(); x.moveTo(o.x + Math.cos(a) * 8, Y + Math.sin(a) * 8); x.lineTo(o.x + Math.cos(a) * 80, Y + Math.sin(a) * 80); x.stroke(); x.lineCap = "butt"; glow(); }
+        if (o.k === "star" && !o.got) { glow("#ffffff", 14); x.fillStyle = "#ffffff"; x.beginPath(); for (let i = 0; i < 10; i++) { const r = i % 2 ? 6 : 14, a = i / 10 * 6.283 - Math.PI / 2 + S.clock; i ? x.lineTo(W / 2 + Math.cos(a) * r, Y + Math.sin(a) * r) : x.moveTo(W / 2 + Math.cos(a) * r, Y + Math.sin(a) * r); } x.closePath(); x.fill(); glow(); }
+        if (o.k === "switch" && !o.got) for (let i = 0; i < 4; i++) { x.fillStyle = CS[i]; x.beginPath(); x.moveTo(W / 2, Y); x.arc(W / 2, Y, 12, i * Math.PI / 2 + S.clock * 3, (i + 1) * Math.PI / 2 + S.clock * 3); x.fill(); }
+      }
+      if (!dead) { glow(CS[col], 20); x.fillStyle = CS[col]; x.beginPath(); x.arc(ball.x, ball.y - cam, BR, 0, 7); x.fill(); glow(); }
+      if (!go && S.state === "play") txt("TAP TO BOUNCE!", W / 2, H - 50, 16, "#ffffff", "center", "d");
+    },
+  });
+}
+
+/* ---------- 56 Blade Spin ---------- */
+function knifeGame() {
+  const W = 400, H = 640, CX = 200, CY = 230, LR = 82, KL = 60;
+  let rot, sp, spT, stuck, apples, flying, left, lvl, fail, brk;
+  function newLog() {
+    left = Math.min(12, 5 + lvl); stuck = []; apples = []; flying = null; fail = 0; brk = 0;
+    const pre = Math.min(4, Math.floor(lvl / 2)); for (let i = 0; i < pre; i++) stuck.push(Math.random() * 6.283);
+    if (Math.random() < .7) apples.push(Math.random() * 6.283);
+    sp = (lvl % 5 === 0 ? 3 : 1.6 + lvl * .12) * (Math.random() < .5 ? -1 : 1); spT = 1 + Math.random() * 2;
+    if (lvl % 5 === 0) banner("BOSS LOG!", "#ff4d6d");
+  }
+  const angDiff = (a, b) => { let d = ((a - b) % 6.283 + 6.283) % 6.283; return Math.min(d, 6.283 - d); };
+  function throwK() { if (flying || fail || brk || left <= 0) return; flying = { y: H - 90 }; left--; sfx("laser", .6); }
+  game({
+    title: "Blade Spin", w: W, h: H, color: "#ff8a1f", bpm: 132, easy: "blades that bounce off don't end the game",
+    help: ["Tap (or Space) to throw a blade into the spinning log", "Don't hit a blade that's already stuck in it!", "Hit the apples for bonus points", "Every 5th log is a crazy BOSS"],
+    init() { lvl = 1; rot = 0; newLog(); },
+    hud() { return "LOG " + lvl + "  ·  BLADES LEFT " + left; },
+    down() { throwK(); },
+    key(k, rep) { if ((k === " " || k === "ArrowUp" || k === "Enter") && !rep) throwK(); },
+    update(dt) {
+      const slow = S.practice ? .6 : 1;
+      spT -= dt; if (spT <= 0) { spT = .8 + Math.random() * 2.2; if (lvl > 2 || lvl % 5 === 0) sp = (Math.random() < .5 ? -1 : 1) * (1 + Math.random() * (1.2 + lvl * .15)) * (lvl % 5 === 0 ? 1.5 : 1); }
+      rot += sp * slow * dt;
+      if (brk) { brk -= dt; if (brk <= 0) { lvl++; newLog(); } return; }
+      if (fail) { fail -= dt; if (fail <= 0) { if (S.practice) { fail = 0; return; } return over("BLADE CLASH!"); } return; }
+      if (flying) {
+        flying.y -= 2400 * dt;
+        if (flying.y <= CY + LR) {
+          const a = Math.PI / 2 - rot;
+          if (stuck.some((s) => angDiff(s, a) < .2)) { fail = .9; flying = null; sfx("bad"); shake(10, .4); flash("#ff4d6d", .3); burst(CX, CY + LR, "#ffffff", 20, 260, .5, 3); if (S.practice) { fail = .4; left++; } return; }
+          stuck.push(a); flying = null; S.score += 1; sfx("hit"); shake(3, .1); burst(CX, CY + LR, "#ffd66b", 10, 160, .3, 2, Math.PI / 2, 1.5);
+          for (let i = apples.length - 1; i >= 0; i--) if (angDiff(apples[i], a) < .3) { apples.splice(i, 1); S.score += 5; pop(CX, CY + LR + 30, "+5 APPLE", "#ff4d6d"); sfx("score"); }
+          if (left <= 0) { brk = 1; S.score += 10 * lvl; banner("LOG SMASHED!  +" + 10 * lvl, "#ffd66b"); sfx("level"); for (let i = 0; i < 8; i++) burst(CX + Math.cos(i) * 40, CY + Math.sin(i) * 40, "#c47a2c", 10, 260, .8, 4); }
+        }
+      }
+    },
+    draw() {
+      techBg("#ff8a1f");
+      if (!brk || brk > .8) {
+        x.save(); x.translate(CX, CY); x.rotate(rot);
+        for (const s of stuck) { x.save(); x.rotate(s); glow("#e6fdff", 8); x.fillStyle = "#c9d6ff"; x.fillRect(LR - 6, -3, KL * .7, 6); x.fillStyle = "#ff8a1f"; x.fillRect(LR - 6 + KL * .7, -5, KL * .35, 10); glow(); x.restore(); }
+        for (const a of apples) { x.save(); x.rotate(a); glow("#ff4d6d", 12); x.fillStyle = "#ff4d6d"; x.beginPath(); x.arc(LR + 12, 0, 11, 0, 7); x.fill(); glow(); x.restore(); }
+        const g = x.createRadialGradient(0, 0, 10, 0, 0, LR); g.addColorStop(0, "#5a3415"); g.addColorStop(1, "#2a1606"); glow(lvl % 5 === 0 ? "#ff4d6d" : "#ff8a1f", 22); x.fillStyle = g; x.beginPath(); x.arc(0, 0, LR, 0, 7); x.fill(); glow();
+        x.strokeStyle = "rgba(255,190,120,.25)"; x.lineWidth = 2; for (const r of [20, 40, 60]) { x.beginPath(); x.arc(0, 0, r, 0, 7); x.stroke(); }
+        x.restore();
+      }
+      if (flying) { glow("#e6fdff", 10); x.fillStyle = "#c9d6ff"; x.fillRect(CX - 3, flying.y, 6, KL * .7); x.fillStyle = "#ff8a1f"; x.fillRect(CX - 5, flying.y + KL * .7, 10, KL * .35); glow(); }
+      if (!flying && !fail && left > 0) { x.fillStyle = "#c9d6ff"; x.fillRect(CX - 3, H - 90, 6, KL * .7); x.fillStyle = "#ff8a1f"; x.fillRect(CX - 5, H - 90 + KL * .7, 10, KL * .35); }
+      for (let i = 0; i < left; i++) { x.fillStyle = "rgba(201,214,255,.8)"; x.fillRect(20, H - 40 - i * 22, 16, 5); }
+    },
+  });
+}
+
+/* ---------- 57 Neon Tic-Tac-Toe ---------- */
+function tttGame() {
+  const W = 420, H = 520, Z = 110, OX = (W - 3 * Z) / 2, OY = 110, LINES = [[0, 1, 2], [3, 4, 5], [6, 7, 8], [0, 3, 6], [1, 4, 7], [2, 5, 8], [0, 4, 8], [2, 4, 6]];
+  const PC = ["", "#22e4ff", "#ff2bd6"];
+  let b, turn, level, aiT, endT, endMsg, win, cur, startP, anims;
+  let remoteNow = false;
+  const hum = () => (S.online ? turn === S.online : (S.duo && !S.bot) || turn === 1);
+  const winner = (bb) => { for (const l of LINES) if (bb[l[0]] && bb[l[0]] === bb[l[1]] && bb[l[1]] === bb[l[2]]) return l; return null; };
+  function mm(bb, p, me) { const w = winner(bb); if (w) return bb[w[0]] === me ? 10 : -10; if (bb.every((v) => v)) return 0; let best = p === me ? -99 : 99; for (let i = 0; i < 9; i++) if (!bb[i]) { bb[i] = p; const v = mm(bb, 3 - p, me) * .9; bb[i] = 0; best = p === me ? Math.max(best, v) : Math.min(best, v); } return best; }
+  function aiMove() {
+    const free = b.map((v, i) => (v ? -1 : i)).filter((i) => i >= 0), err = S.practice ? .6 : S.duo ? [.5, .25, .08, 0][BK()] : Math.max(0, .45 - level * .1);
+    if (Math.random() < err) return free[Math.random() * free.length | 0];
+    let bi = free[0], bv = -99; for (const i of free) { b[i] = 2; const v = mm(b, 1, 2) + Math.random() * .1; b[i] = 0; if (v > bv) { bv = v; bi = i; } } return bi;
+  }
+  function newGame() { b = new Array(9).fill(0); turn = startP; aiT = .6; endT = 0; endMsg = null; win = null; anims = []; }
+  function place(i) {
+    if (endT || b[i] || i < 0 || i > 8) return false;
+    if (S.online && turn === S.online && !remoteNow) sendMove(i);
+    b[i] = turn; anims.push({ i, t: 0 }); sfx("blip");
+    const w = winner(b);
+    if (w) { win = w; const p = turn; w.forEach((k) => burst(OX + (k % 3) * Z + Z / 2, OY + Math.floor(k / 3) * Z + Z / 2, PC[p], 14, 200, .6)); flash(PC[p], .25);
+      if (S.duo) { endMsg = "PLAYER " + p + " WINS"; sfx("level"); }
+      else if (p === 1) { const pts = 100 * level; S.score += pts; endMsg = "YOU WIN  +" + pts; sfx("level"); }
+      else { endMsg = "AI WINS"; sfx("bad"); }
+      endT = 1.6; return true; }
+    if (b.every((v) => v)) { endMsg = "DRAW"; endT = 1.4; S.score += S.duo ? 0 : 20; sfx("bad"); return true; }
+    turn = 3 - turn; aiT = .5; return true;
+  }
+  game({
+    remote(i) { if (endT || turn === S.online) return false; remoteNow = true; place(i); remoteNow = false; return true; },
+    load(d) { level = d.level || 1; newGame(); },
+    title: "Neon Tic-Tac-Toe", duo: "Pass and play: P1 is cyan X, P2 is pink O. Get 3 in a row!", easy: "a silly AI", w: W, h: H, color: "#22e4ff", bpm: 96,
+    help: ["Tap a square to place your X", "Get 3 in a row to win: across, down or diagonal", "Keys: 1-9 or arrows + Space", "Beat the AI to level up. It gets smarter. A draw keeps you going"],
+    init() { level = 1; cur = 4; startP = 1; newGame(); },
+    hud() { if (S.online) return turn === S.online ? "YOUR TURN" : "FRIEND'S TURN"; if (S.duo) return "PLAYER " + turn + "'S TURN"; return "LEVEL " + level + "  ·  " + (turn === 1 ? "YOUR TURN" : "AI THINKING..."); },
+    tap(px, py) { const c = Math.floor((px - OX) / Z), r = Math.floor((py - OY) / Z); if (c < 0 || c > 2 || r < 0 || r > 2) return; cur = r * 3 + c; if (hum()) place(cur); },
+    turn(d, k) { if (!k) return; const c = cur % 3, r = Math.floor(cur / 3); cur = Math.max(0, Math.min(2, r + (d === "down") - (d === "up"))) * 3 + Math.max(0, Math.min(2, c + (d === "right") - (d === "left"))); sfx("tick"); },
+    key(k, rep) { if (rep) return; if ((k === " " || k === "Enter") && hum()) place(cur); const n = parseInt(k, 10); if (n >= 1 && n <= 9 && hum()) { const map = [6, 7, 8, 3, 4, 5, 0, 1, 2]; cur = map[n - 1]; place(cur); } },
+    update(dt) {
+      for (const a of anims) a.t = Math.min(1, a.t + dt * 5);
+      if (endT > 0) { endT -= dt; if (endT <= 0) {
+        if (S.duo) return over(endMsg === "DRAW" ? "IT'S A DRAW" : endMsg);
+        if (endMsg === "AI WINS") return over("AI WINS");
+        if (endMsg !== "DRAW") { level++; banner("LEVEL " + level + " · SMARTER AI", "#22e4ff"); saveGame({ level, label: "LEVEL " + level }); }
+        startP = 3 - startP; newGame(); } return; }
+      if ((!S.duo || S.bot) && turn === 2) { aiT -= dt; if (aiT <= 0) place(aiMove()); }
+    },
+    draw() {
+      techBg("#22e4ff");
+      glow("#a35bff", 14); x.strokeStyle = "#a35bff"; x.lineWidth = 5; x.lineCap = "round";
+      for (let i = 1; i < 3; i++) { x.beginPath(); x.moveTo(OX + i * Z, OY + 8); x.lineTo(OX + i * Z, OY + 3 * Z - 8); x.moveTo(OX + 8, OY + i * Z); x.lineTo(OX + 3 * Z - 8, OY + i * Z); x.stroke(); }
+      glow();
+      b.forEach((v, i) => { if (!v) return; const a = anims.find((q) => q.i === i), k = a ? a.t : 1, X = OX + (i % 3) * Z + Z / 2, Y = OY + Math.floor(i / 3) * Z + Z / 2, s = 30 * k; glow(PC[v], 18); x.strokeStyle = PC[v]; x.lineWidth = 9; x.beginPath(); if (v === 1) { x.moveTo(X - s, Y - s); x.lineTo(X + s, Y + s); x.moveTo(X + s, Y - s); x.lineTo(X - s, Y + s); } else x.arc(X, Y, s, 0, 7 * k); x.stroke(); glow(); });
+      x.lineCap = "butt";
+      if (win) { const [p0, , p2] = win; glow("#ffffff", 20); x.strokeStyle = "#ffffff"; x.lineWidth = 6; x.beginPath(); x.moveTo(OX + (p0 % 3) * Z + Z / 2, OY + Math.floor(p0 / 3) * Z + Z / 2); x.lineTo(OX + (p2 % 3) * Z + Z / 2, OY + Math.floor(p2 / 3) * Z + Z / 2); x.stroke(); glow(); }
+      if (hum() && !endT && S.state === "play") { x.strokeStyle = "rgba(255,255,255,.3)"; x.setLineDash([5, 5]); x.lineWidth = 2; x.strokeRect(OX + (cur % 3) * Z + 6, OY + Math.floor(cur / 3) * Z + 6, Z - 12, Z - 12); x.setLineDash([]); }
+      txt(S.duo ? (S.online ? (turn === S.online ? "YOUR TURN" : "WAITING FOR FRIEND") : "PLAYER " + turn) : turn === 1 ? "YOUR TURN" : "AI", W / 2, 60, 20, PC[turn], "center", "d");
+    },
+  });
+}
+
+/* ---------- 58 Dots & Boxes ---------- */
+function dotsGame() {
+  const N = 5, W = 460, H = 560, Z = 90, OX = (W - (N - 1) * Z) / 2, OY = 130;
+  const PC = ["", "#22e4ff", "#ff2bd6"];
+  const LN = []; for (let r = 0; r < N; r++) for (let c = 0; c < N - 1; c++) LN.push({ h: true, r, c }); for (let r = 0; r < N - 1; r++) for (let c = 0; c < N; c++) LN.push({ h: false, r, c });
+  let lines, boxes, turn, sc, level, aiT, endT, endMsg, cur, startP, lastL;
+  let remoteNow = false;
+  const hum = () => (S.online ? turn === S.online : (S.duo && !S.bot) || turn === 1);
+  const li = (h, r, c) => LN.findIndex((l) => l.h === h && l.r === r && l.c === c);
+  const sides = (br, bc) => [li(true, br, bc), li(true, br + 1, bc), li(false, br, bc), li(false, br, bc + 1)];
+  const cnt = (br, bc, L) => sides(br, bc).filter((i) => (L || lines)[i]).length;
+  const boxesOf = (i) => { const l = LN[i], out = []; if (l.h) { if (l.r > 0) out.push([l.r - 1, l.c]); if (l.r < N - 1) out.push([l.r, l.c]); } else { if (l.c > 0) out.push([l.r, l.c - 1]); if (l.c < N - 1) out.push([l.r, l.c]); } return out; };
+  function aiMove() {
+    const free = LN.map((_, i) => (lines[i] ? -1 : i)).filter((i) => i >= 0);
+    const L = S.duo ? BK() : Math.min(3, level - 1), err = S.practice ? .6 : [.35, .15, .05, 0][L];
+    if (Math.random() < err) return free[Math.random() * free.length | 0];
+    const takes = free.filter((i) => boxesOf(i).some(([r, c]) => cnt(r, c) === 3)); if (takes.length) return takes[0];
+    const safe = free.filter((i) => boxesOf(i).every(([r, c]) => cnt(r, c) < 2)); if (safe.length) return safe[Math.random() * safe.length | 0];
+    let best = free[0], bv = 99;
+    for (const i of free) { lines[i] = 1; let give = 0; const seen = new Set(), stack = boxesOf(i).filter(([r, c]) => cnt(r, c) === 3); while (stack.length) { const [r, c] = stack.pop(), k = r * 9 + c; if (seen.has(k)) continue; seen.add(k); give++; } lines[i] = 0; if (give < bv) { bv = give; best = i; } }
+    return best;
+  }
+  function newGame() { lines = new Array(LN.length).fill(0); boxes = new Array((N - 1) * (N - 1)).fill(0); turn = startP; sc = [0, 0, 0]; aiT = .6; endT = 0; endMsg = null; lastL = -1; }
+  function draw1(i) {
+    if (endT || i < 0 || lines[i]) return false;
+    if (S.online && turn === S.online && !remoteNow) sendMove(i);
+    lines[i] = turn; lastL = i; sfx("blip");
+    let got = 0;
+    for (const [r, c] of boxesOf(i)) if (cnt(r, c) === 4 && !boxes[r * (N - 1) + c]) { boxes[r * (N - 1) + c] = turn; sc[turn]++; got++; burst(OX + c * Z + Z / 2, OY + r * Z + Z / 2, PC[turn], 14, 160, .4, 2); }
+    if (got) { sfx("score"); if (!S.duo && turn === 1) S.score += 10 * got * level; }
+    if (sc[1] + sc[2] === boxes.length) {
+      const w = sc[1] > sc[2] ? 1 : sc[2] > sc[1] ? 2 : 0;
+      if (S.duo) endMsg = w ? "PLAYER " + w + " WINS" : "DRAW"; else if (w === 1) { S.score += 100 * level; endMsg = "YOU WIN"; } else endMsg = w === 2 ? "AI WINS" : "DRAW";
+      endT = 1.6; sfx(w === 1 || S.duo ? "level" : "bad"); return true;
+    }
+    if (!got) turn = 3 - turn; aiT = .45; return true;
+  }
+  function nearest(px, py) {
+    let bi = -1, bd = 34;
+    LN.forEach((l, i) => { if (lines[i]) return; const x0 = OX + l.c * Z, y0 = OY + l.r * Z, x1 = x0 + (l.h ? Z : 0), y1 = y0 + (l.h ? 0 : Z); const t = Math.max(0, Math.min(1, ((px - x0) * (x1 - x0) + (py - y0) * (y1 - y0)) / (Z * Z))), d = Math.hypot(px - (x0 + (x1 - x0) * t), py - (y0 + (y1 - y0) * t)); if (d < bd) { bd = d; bi = i; } });
+    return bi;
+  }
+  game({
+    remote(i) { if (endT || turn === S.online) return false; remoteNow = true; draw1(i); remoteNow = false; return true; },
+    load(d) { level = d.level || 1; newGame(); },
+    title: "Dots & Boxes", duo: "Pass and play: take turns drawing lines. Finish a box to score it and go again!", easy: "a sleepy AI", w: W, h: H, color: "#a35bff", bpm: 100,
+    help: ["Tap between two dots to draw a line", "Close the 4th side of a box to win it AND go again", "Careful: don't draw the 3rd side of a box!", "Most boxes wins. Keys: arrows pick a line, Space draws"],
+    init() { level = 1; cur = 0; startP = 1; newGame(); },
+    hud() { const t = S.online ? (turn === S.online ? "YOUR TURN" : "FRIEND'S TURN") : S.duo ? "PLAYER " + turn + "'S TURN" : turn === 1 ? "YOUR TURN" : "AI THINKING"; return (S.duo ? "P1 " : "YOU ") + sc[1] + " : " + sc[2] + (S.duo ? " P2" : " AI") + "  ·  " + t + (S.duo ? "" : "  ·  LEVEL " + level); },
+    tap(px, py) { const i = nearest(px, py); if (i >= 0) { cur = i; if (hum()) draw1(i); } },
+    turn(d, k) { if (!k) return; const step = d === "right" || d === "down" ? 1 : -1; let n = cur; for (let t = 0; t < LN.length; t++) { n = (n + step + LN.length) % LN.length; if (!lines[n]) break; } cur = n; sfx("tick"); },
+    key(k, rep) { if (!rep && (k === " " || k === "Enter") && hum()) draw1(cur); },
+    update(dt) {
+      if (endT > 0) { endT -= dt; if (endT <= 0) {
+        if (S.duo) return over(endMsg === "DRAW" ? "IT'S A DRAW" : endMsg);
+        if (endMsg === "AI WINS") return over("AI WINS " + sc[2] + " : " + sc[1]);
+        if (endMsg === "YOU WIN") { level++; banner("LEVEL " + level + " · SMARTER AI", "#a35bff"); saveGame({ level, label: "LEVEL " + level }); }
+        startP = 3 - startP; newGame(); } return; }
+      if ((!S.duo || S.bot) && turn === 2) { aiT -= dt; if (aiT <= 0) draw1(aiMove()); }
+    },
+    draw() {
+      techBg("#a35bff");
+      boxes.forEach((v, k) => { if (!v) return; const r = Math.floor(k / (N - 1)), c = k % (N - 1); x.fillStyle = ca(PC[v], .25); x.fillRect(OX + c * Z + 6, OY + r * Z + 6, Z - 12, Z - 12); txt(v === 1 ? (S.duo ? "1" : "★") : (S.duo ? "2" : "●"), OX + c * Z + Z / 2, OY + r * Z + Z / 2 + 1, 26, PC[v], "center", "d"); });
+      LN.forEach((l, i) => { const x0 = OX + l.c * Z, y0 = OY + l.r * Z, x1 = x0 + (l.h ? Z : 0), y1 = y0 + (l.h ? 0 : Z); if (lines[i]) { glow(PC[lines[i]], i === lastL ? 22 : 10); x.strokeStyle = PC[lines[i]]; x.lineWidth = 7; } else if (i === cur && hum()) { x.strokeStyle = "rgba(255,255,255,.35)"; x.lineWidth = 5; } else { x.strokeStyle = "rgba(255,255,255,.07)"; x.lineWidth = 5; } x.lineCap = "round"; x.beginPath(); x.moveTo(x0, y0); x.lineTo(x1, y1); x.stroke(); glow(); });
+      x.lineCap = "butt";
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { glow("#ffffff", 10); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(OX + c * Z, OY + r * Z, 7, 0, 7); x.fill(); glow(); }
+      txt((S.duo ? "P1 " : "YOU ") + sc[1], W * .25, 60, 22, PC[1], "center", "d"); txt(sc[2] + (S.duo ? " P2" : " AI"), W * .75, 60, 22, PC[2], "center", "d");
+    },
+  });
+}
+
 /* ====================================================================
    The hub
    ==================================================================== */
@@ -7607,6 +7913,11 @@ function bowlGame() {
     { key: "airhockey", title: "Air Hockey", genre: "Sports", fn: hockeyGame },
     { key: "whack", title: "Whack-a-Bot", genre: "Action", fn: whackGame },
     { key: "bowling", title: "Neon Bowling", genre: "Sports", fn: bowlGame },
+    { key: "merge", title: "Neon Merge", genre: "Puzzle", fn: mergeGame },
+    { key: "colordash", title: "Color Dash", genre: "Arcade", fn: colorGame },
+    { key: "blades", title: "Blade Spin", genre: "Arcade", fn: knifeGame },
+    { key: "ttt", title: "Neon Tic-Tac-Toe", genre: "Strategy", fn: tttGame },
+    { key: "dots", title: "Dots & Boxes", genre: "Strategy", fn: dotsGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -7621,6 +7932,8 @@ function bowlGame() {
     { key: "connect4", how: "Classic Connect Four. Drop discs and get 4 in a row first.", keys: "← → pick a column, Space drops", touch: "Tap a column, then pass the iPad" },
     { key: "reversi", how: "Flip your rival's discs by trapping them. Most discs at the end wins.", keys: "Arrows move, Space places", touch: "Tap a glowing dot, then pass the iPad" },
     { key: "hoops", how: "Same shooting spots for both players, 5 shots each. Most points wins.", keys: "Arrows aim, Space shoots", touch: "Drag back and let go, then pass the iPad" },
+    { key: "ttt", how: "Classic tic-tac-toe. Get 3 in a row to win.", keys: "Tap a square, or 1-9", touch: "Tap a square, then pass the iPad" },
+    { key: "dots", how: "Take turns drawing lines. Close a box to score it and go again. Most boxes wins.", keys: "Tap between two dots", touch: "Tap a line, then pass the iPad" },
     { key: "airhockey", how: "Real air hockey on one screen. Each player drags their own paddle. First to 7 goals wins.", keys: "P1 W A S D  ·  P2 arrow keys", touch: "Each player drags on their own half" },
     { key: "tug", how: "Tug of war! Mash to pull the energy ball to your side. Mash when your light is GREEN for super pulls. Best of 3.", keys: "P1 mashes W  ·  P2 mashes ↑", touch: "Each player taps their own half" },
     { key: "clash", how: "Light cycles with laser pulses. Make your rival crash into a wall. Pulses blast holes in walls. First to 3.", keys: "P1 W A S D + F fires  ·  P2 arrows + Enter fires", touch: "Swipe your half to turn, tap to fire" },
@@ -7875,7 +8188,7 @@ function bowlGame() {
     const t = document.getElementById("ticker"); if (!t) return;
     const items = [];
     for (const g of libraryGames()) { const e = entries(g.key)[0]; if (e) items.push([g.title, nameOf(e), fmt(e.s)]); }
-    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["53 games", "ready to play", "Insert coin"]];
+    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["58 games", "ready to play", "Insert coin"]];
     let half = []; while (half.length < 8) half = half.concat(one);
     const make = () => half.map(([g, n, v]) => el("span", { class: "tick-item" }, el("b", { text: g }), el("span", { text: n }), el("em", { text: v })));
     t.replaceChildren(...make(), ...make());
@@ -8323,7 +8636,7 @@ function bowlGame() {
     ["star10", "⭐", "Rising Star", "Earn 10 stars", (c) => c.stars >= 10],
     ["star50", "🌟", "Superstar", "Earn 50 stars", (c) => c.stars >= 50],
     ["star100", "💫", "Star Collector", "Earn 100 stars", (c) => c.stars >= 100],
-    ["starall", "🌠", "Galaxy Brain", "Earn every star in the hub", (c) => c.stars >= 159],
+    ["starall", "🌠", "Galaxy Brain", "Earn every star in the hub", (c) => c.stars >= 174],
   ];
   const BTIER = { star100: 3, starall: 3, star50: 2, complete: 3, legend: 3, k50: 3, hacker: 3, collector: 3, lv25: 3, online5: 2, daily7: 2, marathon: 2, k10: 2, hard: 2, streak7: 2, diamond: 2, explorer: 2, champ: 2, spinner: 2 };
   const badgeRew = (id) => { const t = BTIER[id] || 1; return [[100, 10, 1], [250, 25, 3], [500, 50, 10]][t - 1]; };
@@ -8383,7 +8696,7 @@ function bowlGame() {
   }
 
   /* ---------- Daily challenge ---------- */
-  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling"];
+  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling", "merge", "colordash", "blades"];
   function dailyGameFor(day) { let h = 7; for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return DAILY_POOL[h % DAILY_POOL.length]; }
   let daily = null;
   async function loadDaily() { try { daily = await XR.daily(); } catch { const day = new Date().toISOString().slice(0, 10); daily = { day, game: dailyGameFor(day), endsAt: Date.parse(day + "T00:00:00Z") + 864e5, top: [], mine: null }; } renderDaily(); }
@@ -8407,7 +8720,7 @@ function bowlGame() {
   setInterval(() => { if (!document.hidden) { if (daily && Date.now() > daily.endsAt) loadDaily(); else renderDaily(); } }, 30000);
 
   /* ---------- Online 2-player (turn-based games) ---------- */
-  const ONLINE = [["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"], ["penalty", "Penalty Kick"], ["memory", "Memory Grid"], ["guesswho", "Guess Who"]];
+  const ONLINE = [["ttt", "Tic-Tac-Toe"], ["dots", "Dots & Boxes"], ["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"], ["penalty", "Penalty Kick"], ["memory", "Memory Grid"], ["guesswho", "Guess Who"]];
   let room = null, waitTimer = null;
   function renderOnline() {
     const box = $("#online-box"); if (!box) return;
@@ -8633,7 +8946,7 @@ function bowlGame() {
     ["vd-gold", "void", "Gold Fighter", 60, "#ffd66b", "A golden ship for the space shooter", "$"],
   ];
   /* ---------- Stars: three score goals for every game ---------- */
-  const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220] };
+  const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
   const starsOf = (k) => { const t = STARS[k]; if (!t) return 0; const b = starBest(k); return t.filter((v) => b >= v).length; };
   const totalStars = () => Object.keys(STARS).reduce((a, k) => a + starsOf(k), 0);
