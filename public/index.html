@@ -555,6 +555,40 @@ textarea.code {
 .event-banner { margin-bottom: 12px; padding: 10px 16px; border-radius: 14px; text-align: center; font: 800 .8rem var(--f-mono); letter-spacing: .1em; color: #ffd8b0; background: linear-gradient(90deg, rgba(255,138,31,.25), rgba(163,91,255,.25)); border: 1px solid #ff8a1f; box-shadow: 0 0 22px rgba(255,138,31,.35); }
 .event-banner[hidden] { display: none; }
 .arena-live { color: #3dffa8; font: 700 .78rem var(--f-mono); }
+.prize-key { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 14px; font-size: .8rem; color: var(--muted); width: 100%; max-width: 360px; }
+.prize-key span { display: flex; gap: 6px; align-items: center; }
+.prize-key i { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.boost-on { color: #ffd66b !important; font-weight: 700; }
+.shop-chips { margin: 4px 0 6px; }
+.shop-chips .chip { font-size: .7rem; }
+.w-cash { color: #3dffa8; }
+.w-gems { color: #9ff3ff; }
+@media (max-width: 700px) { .w-cash, .w-gems { display: none; } }
+.rew-money { display: grid; gap: 2px; justify-items: end; }
+.rew-cash { font: 800 1.15rem var(--f-mono); color: #3dffa8; text-shadow: 0 0 12px rgba(61,255,168,.5); }
+.rew-gems { font: 800 1.15rem var(--f-mono); color: #9ff3ff; text-shadow: 0 0 12px rgba(159,243,255,.6); }
+.rew-title { display: inline-block; margin-top: 4px; font: 700 .78rem var(--f-mono); color: var(--tc); border: 1px solid var(--tc); border-radius: 999px; padding: 2px 10px; box-shadow: 0 0 12px color-mix(in srgb, var(--tc) 40%, transparent); }
+.rew-tabs .chip.dot { position: relative; }
+.rew-tabs .chip.dot::after { content: ""; position: absolute; top: 2px; right: 4px; width: 8px; height: 8px; border-radius: 50%; background: #ff2e4d; box-shadow: 0 0 8px #ff2e4d; }
+.shop-item.gem { border-color: rgba(159,243,255,.45); }
+.shop-item.cash { border-color: rgba(61,255,168,.4); }
+.sw.ttl { border-radius: 6px; }
+.bonus { display: grid; gap: 10px; }
+.login-row { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 5px; }
+.login-day { display: grid; gap: 3px; text-align: center; padding: 8px 3px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); font-size: .68rem; }
+.login-day small { color: var(--muted); font: 700 .6rem var(--f-mono); }
+.login-day.got { opacity: .45; }
+.login-day.got b::before { content: "✓ "; color: #3dffa8; }
+.login-day.now { border-color: #ffd66b; box-shadow: 0 0 16px rgba(255,214,107,.45); }
+.chest-box { display: flex; gap: 14px; align-items: center; }
+.chest { font-size: 2.6rem; filter: grayscale(.7); }
+.chest.ready { filter: drop-shadow(0 0 14px #ffd66b); animation: chestBob 1s ease-in-out infinite; }
+@keyframes chestBob { 50% { transform: translateY(-5px) rotate(-6deg); } }
+.bank { display: grid; gap: 6px; }
+.bank-row { display: flex; justify-content: space-between; align-items: center; gap: 10px; padding: 8px 12px; border-radius: 12px; border: 1px solid var(--line); background: var(--panel); font-family: var(--f-mono); font-size: .85rem; }
+.badge-rew { font: 700 .7rem var(--f-mono); color: #ffd66b; opacity: .85; }
+.badge-rew.done { color: #3dffa8; }
+.badge-claim { margin-top: 4px; font-size: .68rem; box-shadow: 0 0 18px rgba(255,43,214,.6); }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-x2 { position: absolute; top: 8px; right: 8px; z-index: 2; font: 800 .72rem var(--f-mono); padding: 2px 8px; border-radius: 999px; color: #1a1200; background: #ffd66b; box-shadow: 0 0 12px rgba(255,214,107,.8); }
 .tour-duel { position: absolute; bottom: 8px; left: 8px; z-index: 2; font: 700 .58rem var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border-radius: 999px; color: #05030c; background: #3dffa8; }
@@ -1280,11 +1314,13 @@ function SHELL() {
     x.fillStyle = "rgba(40,230,255,.75)"; x.fillText(s, X + j, Y + (j > 2 ? 1 : 0));
     x.globalCompositeOperation = "source-over"; glow(c, 22); x.fillStyle = "#ffffff"; x.fillText(s, X, Y); glow(); x.restore();
   }
+  const SKN = window.SKIN0 || {};
+  const FXC = { "fx-rainbow": () => "hsl(" + Math.floor(Math.random() * 360) + ",100%,62%)", "fx-gold": () => ["#ffd66b", "#ffc23d", "#fff3c4"][Math.random() * 3 | 0], "fx-ice": () => ["#bff6ff", "#6af7ff", "#ffffff"][Math.random() * 3 | 0], "fx-diamond": () => ["#ffffff", "#e6fdff", "#9ff3ff", "#ffd0f6"][Math.random() * 4 | 0], "fx-fire": () => ["#ff2e4d", "#ff8a1f", "#ffd66b"][Math.random() * 3 | 0] }[SKN.fx];
   function burst(X, Y, c, n, sp, life, size, ang, spread, g) {
     n = n || 14; sp = sp || 200; life = life || .6; size = size || 3;
     for (let i = 0; i < n; i++) {
       const a = ang === undefined ? Math.random() * 6.283 : ang + (Math.random() - .5) * (spread || 1), v = sp * (.3 + Math.random() * .7);
-      S.parts.push({ x: X, y: Y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, l: life * (.6 + Math.random() * .4), m: life, c, s: size * (.6 + Math.random() * .8), g: g || 0 });
+      S.parts.push({ x: X, y: Y, vx: Math.cos(a) * v, vy: Math.sin(a) * v, l: life * (.6 + Math.random() * .4), m: life, c: FXC ? FXC() : c, s: size * (.6 + Math.random() * .8), g: g || 0 });
     }
     if (S.parts.length > 900) S.parts.splice(0, S.parts.length - 900);
   }
@@ -1364,6 +1400,9 @@ function SHELL() {
   function game(def) {
     G = def; setup();
     cv.style.borderColor = G.color + "66"; cv.style.boxShadow = "0 0 40px " + G.color + "40";
+    if (SKN.frame === "fr-fire") { cv.style.borderColor = "#ff8a1f"; cv.style.boxShadow = "0 0 50px rgba(255,80,30,.75), inset 0 0 0 2px #ff2e4d"; }
+    if (SKN.frame === "fr-gold") { cv.style.borderColor = "#ffd66b"; cv.style.boxShadow = "0 0 46px rgba(255,214,107,.7), inset 0 0 0 2px #ffd66b"; }
+    const FL = { "fl-noir": "grayscale(1) contrast(1.25)", "fl-sunset": "sepia(.45) saturate(1.7) hue-rotate(-18deg)", "fl-flip": "invert(1) hue-rotate(180deg)", "fl-neon": "saturate(1.9) contrast(1.12)", "fl-matrix": "grayscale(1) sepia(1) hue-rotate(70deg) saturate(3)", "fl-dream": "hue-rotate(95deg) saturate(1.4)" }[SKN.filter]; if (FL) cv.style.filter = FL;
     if (G.cursor) cv.style.cursor = G.cursor;
     document.documentElement.style.setProperty("--c", G.color);
     fit(); G.init(); requestAnimationFrame(loop);
@@ -1515,6 +1554,8 @@ function SHELL() {
     if (S.paused && S.state === "count") { x.fillStyle = "rgba(3,2,10,.7)"; x.fillRect(0, 0, G.w, G.h); glitchText("PAUSED", G.w / 2, G.h / 2, 36, G.color); }
     x.setTransform(1, 0, 0, 1, 0, 0); if (SET0.crt !== false) x.drawImage(ov, 0, 0);
     hud(); music();
+    if (SKN.frame === "fr-diamond") { const k = .5 + .5 * Math.sin(S.clock * 3); cv.style.borderColor = "rgba(230,253,255," + (.6 + .4 * k) + ")"; cv.style.boxShadow = "0 0 " + (30 + 30 * k) + "px rgba(159,243,255,.75), inset 0 0 0 2px #ffffff"; }
+    if (SKN.frame === "fr-rainbow") { const h = Math.floor(S.clock * 90) % 360; cv.style.borderColor = "hsl(" + h + ",100%,60%)"; cv.style.boxShadow = "0 0 46px hsla(" + h + ",100%,60%,.6)"; }
     const menu = (S.state === "title" || (S.state === "over" && !window.TOUR0)) && performance.now() - S.overAt > 700;
     const showGo = S.paused || menu;
     if (btns.hidden === showGo) btns.hidden = !showGo;
@@ -1850,8 +1891,9 @@ function bricksGame() {
         x.globalAlpha = 1; glow("#ffffff", 18); x.fillStyle = "#fff"; x.beginPath(); x.arc(b.x, b.y, 7, 0, 7); x.fill(); glow();
       }
       const pl = pad.x - pad.w / 2, pg = x.createLinearGradient(pl, 0, pl + pad.w, 0);
-      pg.addColorStop(0, "#a35bff"); pg.addColorStop(.5, "#22e4ff"); pg.addColorStop(1, "#a35bff");
-      glow("#22e4ff", 18); x.fillStyle = pg; rr(pl, pad.y - 6, pad.w, 12, 6); x.fill(); glow();
+      const PK = { "bk-fire": ["#ff2e4d", "#ffd66b"], "bk-lime": ["#3dffa8", "#b6ff3b"], "bk-gold": ["#ff8a1f", "#ffd66b"], "bk-diamond": ["#9ff3ff", "#ffffff"] }[(window.SKIN0 || {}).bricks] || ["#a35bff", "#22e4ff"];
+      pg.addColorStop(0, PK[0]); pg.addColorStop(.5, PK[1]); pg.addColorStop(1, PK[0]);
+      glow(PK[1], 18); x.fillStyle = pg; rr(pl, pad.y - 6, pad.w, 12, 6); x.fill(); glow();
       x.fillStyle = "rgba(255,255,255,.8)"; x.fillRect(pad.x - pad.w * .3, pad.y - 1, pad.w * .6, 2);
       if (fx.laser > 0) { x.fillStyle = "#ff8a1f"; x.fillRect(pl + 3, pad.y - 12, 6, 6); x.fillRect(pl + pad.w - 9, pad.y - 12, 6, 6); }
       let yy = H - 14;
@@ -2096,7 +2138,8 @@ function blasterGame() {
       if (S.state !== "over" || lives > 0) {
         if (inv <= 0 || Math.floor(S.clock * 12) % 2) {
           x.save(); x.translate(sh.x, sh.y); x.scale(1 - Math.abs(bank) * .3, 1);
-          glow("#22e4ff", 20); x.strokeStyle = "#22e4ff"; x.fillStyle = "rgba(34,228,255,.16)"; x.lineWidth = 2.5; x.beginPath();
+          const BC2 = { "bl-pink": "#ff2bd6", "bl-gold": "#ffd66b", "bl-lime": "#b6ff3b" }[(window.SKIN0 || {}).blaster] || "#22e4ff";
+          glow(BC2, 20); x.strokeStyle = BC2; x.fillStyle = ca(BC2, .16); x.lineWidth = 2.5; x.beginPath();
           [[0, -22], [7, -6], [17, 10], [6, 8], [0, 14], [-6, 8], [-17, 10], [-7, -6]].forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b)));
           x.closePath(); x.fill(); x.stroke(); glow(); x.fillStyle = "#ffffff"; x.beginPath(); x.ellipse(0, -6, 2.5, 5, 0, 0, 7); x.fill(); x.restore();
         }
@@ -2176,9 +2219,10 @@ function flapGame() {
       for (const o of orbs) { x.save(); x.translate(o.x, o.y); x.rotate(S.clock * 3); glow("#b6ff3b", 16); x.strokeStyle = "#b6ff3b"; x.lineWidth = 2; x.beginPath(); x.arc(0, 0, 11, 0, 4.5); x.stroke(); x.fillStyle = "#b6ff3b"; x.beginPath(); x.arc(0, 0, 5, 0, 7); x.fill(); glow(); x.restore(); }
       if (S.state !== "over") {
         x.save(); x.translate(BX, b.y); x.rotate(Math.max(-.5, Math.min(1.1, b.v / 600)));
-        glow("#ff8a1f", 22); x.fillStyle = "#ff8a1f"; x.beginPath(); x.arc(0, 0, 12, 0, 7); x.fill();
+        const FS = { "fp-blue": ["#22e4ff", "#b6ff3b"], "fp-pink": ["#ff2bd6", "#ffd0f6"], "fp-gold": ["#ffd66b", "#ffffff"] }[(window.SKIN0 || {}).flap] || ["#ff8a1f", "#ffc23d"];
+        glow(FS[0], 22); x.fillStyle = FS[0]; x.beginPath(); x.arc(0, 0, 12, 0, 7); x.fill();
         const wing = Math.sin(S.clock * 30) * (b.v < 0 ? 8 : 3);
-        x.fillStyle = "#ffc23d"; x.beginPath(); x.moveTo(-4, 0); x.lineTo(-16, -6 - wing); x.lineTo(-12, 4); x.closePath(); x.fill(); glow();
+        x.fillStyle = FS[1]; x.beginPath(); x.moveTo(-4, 0); x.lineTo(-16, -6 - wing); x.lineTo(-12, 4); x.closePath(); x.fill(); glow();
         x.fillStyle = "#fff"; x.beginPath(); x.arc(5, -3, 4, 0, 7); x.fill(); x.fillStyle = "#05030c"; x.beginPath(); x.arc(6, -3, 2, 0, 7); x.fill(); x.restore();
       }
     },
@@ -2461,7 +2505,8 @@ function runnerGame() {
       if (S.state !== "over") {
         trail.forEach(([ty, tr], i) => { x.save(); x.globalAlpha = (i / trail.length) * .25; x.translate(PX + 13 - (trail.length - i) * 6, GY - ty - 13); x.rotate(tr); x.fillStyle = "#22e4ff"; x.fillRect(-13, -13, 26, 26); x.restore(); });
         x.save(); x.translate(PX + 13, GY - p.y - 13); x.rotate(rot);
-        glow("#22e4ff", 20); x.fillStyle = "#22e4ff"; rr(-13, -13, 26, 26, 4); x.fill(); glow();
+        const RC = { "rn-pink": "#ff2bd6", "rn-lime": "#b6ff3b", "rn-gold": "#ffd66b", "rn-rainbow": "hsl(" + Math.floor(S.clock * 120) % 360 + ",100%,60%)" }[(window.SKIN0 || {}).runner] || "#22e4ff";
+        glow(RC, 20); x.fillStyle = RC; rr(-13, -13, 26, 26, 4); x.fill(); glow();
         x.fillStyle = "#04020a"; x.fillRect(-7, -7, 14, 14); x.fillStyle = "#ffffff"; x.fillRect(-3, -3, 6, 6); x.restore();
       }
     },
@@ -2569,7 +2614,7 @@ function racerGame() {
       }
       const sorted = cars.slice().sort((a, b) => b.z - a.z), [psx, psy, ps] = proj(px, ZP);
       for (const c of sorted) if (c.z >= ZP) { const [a, b, s] = proj(c.l, c.z); car(a, b, s, c.c); }
-      if (S.state !== "over") car(psx, psy, ps, "#22e4ff", true);
+      if (S.state !== "over") car(psx, psy, ps, ({ "rc-pink": "#ff2bd6", "rc-lime": "#b6ff3b", "rc-gold": "#ffd66b", "rc-rainbow": "hsl(" + Math.floor(S.clock * 120) % 360 + ",100%,60%)" })[(window.SKIN0 || {}).racer] || "#22e4ff", true);
       for (const c of sorted) if (c.z < ZP) { const [a, b, s] = proj(c.l, c.z); car(a, b, s, c.c); }
       if (boost > 0 || nearT > 0) {
         x.strokeStyle = boost > 0 ? "rgba(34,228,255,.35)" : "rgba(255,214,107,.3)"; x.lineWidth = 1; x.beginPath();
@@ -3017,7 +3062,7 @@ function golfGame() {
       }
       if (phase !== "sunk") {
         x.fillStyle = "rgba(0,0,0,.45)"; x.beginPath(); x.ellipse(b.x + 3, b.y + 4, BR, BR * .7, 0, 0, 7); x.fill();
-        glow(COLS[player], 16); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(b.x, b.y, BR, 0, 7); x.fill(); glow();
+        glow(COLS[player], 16); const gsk = (window.SKIN0 || {}).golf; x.fillStyle = S.duo || !gsk ? "#ffffff" : gsk === "gf-rainbow" ? "hsl(" + Math.floor(S.clock * 120) % 360 + ",100%,65%)" : gsk === "gf-gold" ? "#ffd66b" : "#ff7be6"; x.beginPath(); x.arc(b.x, b.y, BR, 0, 7); x.fill(); glow();
         x.strokeStyle = COLS[player]; x.lineWidth = 2; x.beginPath(); x.arc(b.x, b.y, BR, 0, 7); x.stroke();
       }
       if (phase === "aim" && S.state === "play") {
@@ -3276,7 +3321,8 @@ function voidGame() {
       }
       glow("#ffd66b", 10); x.fillStyle = "#ffd66b"; for (const b of bul) { x.beginPath(); x.arc(b.x, b.y, 2.5, 0, 7); x.fill(); } glow();
       if (inv <= 0 || Math.floor(S.clock * 12) % 2) {
-        x.save(); x.translate(sh.x, sh.y); x.rotate(sh.a); glow("#22e4ff", 18); x.strokeStyle = "#22e4ff"; x.fillStyle = "rgba(34,228,255,.15)"; x.lineWidth = 2.5;
+        x.save(); x.translate(sh.x, sh.y); x.rotate(sh.a); const VC = { "vd-pink": "#ff2bd6", "vd-lime": "#b6ff3b", "vd-gold": "#ffd66b" }[(window.SKIN0 || {}).void] || "#22e4ff";
+        glow(VC, 18); x.strokeStyle = VC; x.fillStyle = ca(VC, .15); x.lineWidth = 2.5;
         x.beginPath(); x.moveTo(16, 0); x.lineTo(-11, -10); x.lineTo(-6, 0); x.lineTo(-11, 10); x.closePath(); x.fill(); x.stroke(); glow(); x.restore();
       }
     },
@@ -4221,7 +4267,7 @@ function driftGame() {
       x.restore();
       for (const s of skid) { x.fillStyle = "rgba(191,239,255," + (s.l / 3 * .35) + ")"; x.fillRect(s.x - 2, s.y - 2, 4, 4); }
       for (const o of ai) drawCar(o.x, o.y, o.a, o.c, false);
-      drawCar(me.x, me.y, me.a, "#22e4ff", true);
+      drawCar(me.x, me.y, me.a, ({ "dr-pink": "#ff2bd6", "dr-lime": "#b6ff3b", "dr-gold": "#ffd66b" })[(window.SKIN0 || {}).drift] || "#22e4ff", true);
       if (driftShow > 0 && driftPts > 3) txt("DRIFT " + Math.floor(driftPts), me.x, me.y - 22, 12, "#ff2bd6", "center", "d");
       if (raceT < 1.2 && S.state === "play") { glow("#3dffa8", 20); txt("GO!", W / 2, H / 2, 54, "#3dffa8", "center", "d"); glow(); }
       if (me.done && S.state === "play") txt("FINISHED  ·  NEXT RACE COMING UP", W / 2, H / 2 + 50, 13, "#d8d0f5");
@@ -4324,7 +4370,8 @@ function hopGame() {
       if (rescue <= 0 || Math.floor(S.clock * 12) % 2) {
         const sq = Math.max(-.25, Math.min(.25, pl.vy / 3000));
         x.save(); x.translate(pl.x, pl.y - 14); x.scale(1 - sq, 1 + sq);
-        glow("#b6ff3b", 18); x.fillStyle = "rgba(182,255,59,.3)"; x.strokeStyle = "#b6ff3b"; x.lineWidth = 2.5; rr(-13, -14, 26, 28, 9); x.fill(); x.stroke(); glow();
+        const HC = { "hp-pink": "#ff2bd6", "hp-cyan": "#22e4ff", "hp-gold": "#ffd66b" }[(window.SKIN0 || {}).hop] || "#b6ff3b";
+        glow(HC, 18); x.fillStyle = ca(HC, .3); x.strokeStyle = HC; x.lineWidth = 2.5; rr(-13, -14, 26, 28, 9); x.fill(); x.stroke(); glow();
         x.fillStyle = "#ffffff"; x.fillRect(pl.face * 3 - 6, -6, 5, 6); x.fillRect(pl.face * 3 + 2, -6, 5, 6);
         x.fillStyle = "#05030c"; x.fillRect(pl.face * 3 - 4 + pl.face, -4, 2, 3); x.fillRect(pl.face * 3 + 4 + pl.face, -4, 2, 3);
         x.restore();
@@ -4681,7 +4728,7 @@ function hoopGame() {
       const fire = !S.duo && streak >= 3;
       if (fire && ball.live) burst(ball.x, ball.y, Math.random() < .5 ? "#ff8a1f" : "#ffd66b", 2, 60, .4, 4);
       x.save(); x.translate(ball.x, ball.y); x.rotate(ball.rot); glow(fire ? "#ff4d6d" : "#ff8a1f", fire ? 24 : 14);
-      x.fillStyle = "#ff8a1f"; x.beginPath(); x.arc(0, 0, BR, 0, 7); x.fill(); glow();
+      const hsk = (window.SKIN0 || {}).hoops; x.fillStyle = hsk === "hb-rainbow" ? "hsl(" + Math.floor(S.clock * 140) % 360 + ",100%,58%)" : hsk === "hb-gold" ? "#ffd66b" : hsk === "hb-blue" ? "#22e4ff" : "#ff8a1f"; x.beginPath(); x.arc(0, 0, BR, 0, 7); x.fill(); glow();
       x.strokeStyle = "#3a1500"; x.lineWidth = 1.5; x.beginPath(); x.moveTo(-BR, 0); x.lineTo(BR, 0); x.moveTo(0, -BR); x.lineTo(0, BR); x.arc(0, 0, BR * .6, -1, 1); x.stroke(); x.restore();
       if (S.duo && S.state === "play") txt((duo.shot % 2 ? (S.bot ? "BOT" : "PLAYER 2") : (S.bot ? "YOU ARE" : "PLAYER 1")) + " SHOOTING", 20, 26, 13, duo.shot % 2 ? "#ff2bd6" : "#22e4ff", "left", "d");
     },
@@ -6915,6 +6962,8 @@ function slitherGame() {
       else if (Array.isArray(v)) out.stats[k] = uniq([...(out.stats[k] || []), ...v]).slice(-60);
       else out.stats[k] = Math.max(out.stats[k] || 0, +v || 0);
     }
+    const nw = (+((a.stats || {}).wAt) || 0) >= (+((b.stats || {}).wAt) || 0) ? a : b;
+    if (nw.stats && nw.stats.wAt) for (const k of ["coins", "cash", "gems"]) out.stats[k] = +nw.stats[k] || 0;
     out.owned = uniq([...(a.owned || []), ...(b.owned || [])]); out.equip = { ...(b.equip || {}), ...(a.equip || {}) };
     const td = new Date().toISOString().slice(0, 10); out.missions = (a.missions && a.missions.day === td) ? a.missions : (b.missions && b.missions.day === td) ? b.missions : a.missions || b.missions || null;
     for (const src of [b.saves || {}, a.saves || {}]) for (const [k, v] of Object.entries(src)) if (v && typeof v === "object" && (!out.saves[k] || (v.at || 0) > (out.saves[k].at || 0))) out.saves[k] = v;
@@ -6962,10 +7011,24 @@ function slitherGame() {
     ["fav", "💖", "Heart Eyes", "Favorite a game", (c) => c.favs >= 1],
     ["online", "🌐", "Connected", "Finish an online match", (c) => c.online >= 1],
     ["online5", "📡", "Network Legend", "Win 5 online matches", (c) => c.onlineWins >= 5],
+    ["rich", "💰", "Money Bags", "Have 1,000 coins at once", (c) => c.coins >= 1000],
+    ["cash", "💵", "Big Bucks", "Have $100 at once", (c) => c.cash >= 100],
+    ["diamond", "💎", "Diamond Hands", "Have 10 diamonds at once", (c) => c.gems >= 10],
+    ["shopper", "🛍️", "Shopper", "Own 5 shop items", (c) => c.owned >= 5],
+    ["collector", "🧳", "Collector", "Own 20 shop items", (c) => c.owned >= 20],
+    ["lv10", "🔟", "Double Digits", "Reach level 10", (c) => c.lv >= 10],
+    ["lv25", "🚀", "Sky High", "Reach level 25", (c) => c.lv >= 25],
+    ["spinner", "🎡", "Spinner", "Spin the wheel 10 times", (c) => c.spins >= 10],
+    ["streak7", "📆", "Week Warrior", "Reach a 7-day login streak", (c) => c.streak >= 7],
   ];
+  const BTIER = { complete: 3, legend: 3, k50: 3, hacker: 3, collector: 3, lv25: 3, online5: 2, daily7: 2, marathon: 2, k10: 2, hard: 2, streak7: 2, diamond: 2, explorer: 2, champ: 2, spinner: 2 };
+  const badgeRew = (id) => { const t = BTIER[id] || 1; return [[100, 10, 1], [250, 25, 3], [500, 50, 10]][t - 1]; };
+  window.gblBadgeDue = () => ACH.some((a) => prog.ach[a[0]] && !stat("bc_" + a[0]));
+  window.gblCheckAch = () => checkAch();
   function achCtx() {
     const keys = Object.keys(prog.played).filter((k) => BUILTINS.some((b) => b.key === k));
     return {
+      ...(window.gblRewCtx ? window.gblRewCtx() : {}),
       distinct: keys.length, total: Object.values(prog.played).reduce((a, b) => a + (+b || 0), 0),
       genres: new Set(keys.map((k) => BUILTINS.find((b) => b.key === k).genre)).size,
       max: stat("maxScore"), tourWins: stat("tourWins"), tourHard: stat("tourHard"), tourHacker: stat("tourHacker"), tourFriend: stat("tourFriend"),
@@ -6991,7 +7054,11 @@ function slitherGame() {
       return el("div", { class: "badge-tile" + (on ? " on" : "") },
         el("span", { class: "badge-ico", text: on ? a[1] : "🔒" }),
         el("b", { text: a[2] }), el("small", { text: a[3] }),
-        on ? el("span", { class: "badge-when", text: "Unlocked " + new Date(prog.ach[a[0]]).toLocaleDateString() }) : null);
+        on ? el("span", { class: "badge-when", text: "Unlocked " + new Date(prog.ach[a[0]]).toLocaleDateString() }) : null,
+        (() => { const r = badgeRew(a[0]), lab = "🎁 " + fmt(r[0]) + " ⚡ + $" + r[1] + " + " + r[2] + " 💎";
+          if (!on) return el("span", { class: "badge-rew", text: lab });
+          if (stat("bc_" + a[0])) return el("span", { class: "badge-rew done", text: "✓ Reward claimed" });
+          return el("button", { class: "btn sm hot badge-claim", type: "button", text: "Claim " + lab, onclick: () => { if (stat("bc_" + a[0])) return; prog.stats["bc_" + a[0]] = 1; saveProg(); if (window.gblGive) window.gblGive(r[0], r[1], r[2], a[2] + " badge!"); renderBadges(); } }); })());
     }));
   }
   function miniCard(key) {
@@ -7126,7 +7193,7 @@ function slitherGame() {
   };
   window.gblOnTourEnd = (t) => {
     const a = t.rounds.filter((r) => r.w === 1).length, b = t.rounds.filter((r) => r.w === 2).length;
-    if (t.bot) { if (a > b) { if (window.gblWinCoins) window.gblWinCoins(150 + (t.lvl || 0) * 75, "tournament win!"); prog.stats.tourWins = stat("tourWins") + 1; if ((t.lvl || 0) >= 2) prog.stats.tourHard = stat("tourHard") + 1; if (t.lvl === 3) prog.stats.tourHacker = stat("tourHacker") + 1; } }
+    if (t.bot) { if (a > b) { if (window.gblWinCoins) window.gblWinCoins(150 + (t.lvl || 0) * 75, "tournament win!"); prog.stats.tourWins = stat("tourWins") + 1; if ((t.lvl || 0) >= 2) prog.stats.tourHard = stat("tourHard") + 1; if (t.lvl === 3) prog.stats.tourHacker = stat("tourHacker") + 1; if ((t.lvl || 0) >= 2 && window.gblGive) setTimeout(() => window.gblGive(0, 0, t.lvl, "tough tournament win!"), 2600); } }
     else prog.stats.tourFriend = stat("tourFriend") + 1;
     saveProg(); checkAch();
   };
@@ -7146,18 +7213,156 @@ function slitherGame() {
     ["sn-fire", "snake", "Inferno", 220, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Neon Snake on fire"],
     ["sn-ghost", "snake", "Ghost", 260, "rgba(255,255,255,.5)", "See-through spooky snake"],
     ["sn-rainbow", "snake", "Rainbow", 400, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow Neon Snake"],
+    ["fx-ice", "fx", "Ice Sparks", 150, "linear-gradient(90deg,#bff6ff,#6af7ff)", "Every explosion turns icy blue, in all games"],
+    ["fx-gold", "fx", "Gold Sparks", 180, "linear-gradient(90deg,#ffd66b,#ffc23d)", "Golden sparks in all games"],
+    ["fx-rainbow", "fx", "Rainbow Sparks", 250, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow explosions in all games"],
+    ["fr-gold", "frame", "Gold Frame", 200, "#ffd66b", "A shining gold border around every game"],
+    ["fr-rainbow", "frame", "Rainbow Frame", 350, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-cycling border around every game"],
+    ["fl-noir", "filter", "Noir", 120, "linear-gradient(90deg,#222,#ddd)", "Black-and-white movie look"],
+    ["fl-sunset", "filter", "Sunset", 150, "linear-gradient(90deg,#ff8a1f,#ff2e88)", "Warm golden-hour colors"],
+    ["fl-flip", "filter", "Upside-Down Colors", 200, "linear-gradient(90deg,#00d4ff,#ff2bd6)", "Flip every color. Weird and fun!"],
+    ["fp-blue", "flap", "Blue Jay", 100, "#22e4ff", "A blue bird for Neon Flap"],
+    ["fp-pink", "flap", "Flamingo", 120, "#ff2bd6", "A pink bird for Neon Flap"],
+    ["fp-gold", "flap", "Golden Bird", 200, "#ffd66b", "A golden bird for Neon Flap"],
+    ["bl-lime", "blaster", "Toxic Ship", 120, "#b6ff3b", "A lime ship for Star Blaster"],
+    ["bl-pink", "blaster", "Pink Viper", 120, "#ff2bd6", "A pink ship for Star Blaster"],
+    ["bl-gold", "blaster", "Gold Falcon", 220, "#ffd66b", "A golden ship for Star Blaster"],
+    ["hp-pink", "hop", "Bubblegum", 100, "#ff2bd6", "A pink blob for Sky Hop"],
+    ["hp-cyan", "hop", "Frost", 100, "#22e4ff", "A blue blob for Sky Hop"],
+    ["hp-gold", "hop", "Golden", 200, "#ffd66b", "A golden blob for Sky Hop"],
+    ["gf-pink", "golf", "Pink Ball", 80, "#ff7be6", "A pink ball for Mini Golf"],
+    ["gf-gold", "golf", "Gold Ball", 150, "#ffd66b", "A golden ball for Mini Golf"],
+    ["gf-rainbow", "golf", "Rainbow Ball", 250, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing ball for Mini Golf"],
+    ["hb-blue", "hoops", "Ice Ball", 100, "#22e4ff", "A blue basketball for Hoop Shot"],
+    ["hb-gold", "hoops", "Gold Ball", 180, "#ffd66b", "A golden basketball for Hoop Shot"],
+    ["hb-rainbow", "hoops", "Rainbow Ball", 300, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing basketball for Hoop Shot"],
+    ["b-2x", "boost", "2× Coins (1 hour)", 25, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "Double coins from every game for 1 hour", "$"],
+    ["b-spin", "boost", "Extra Spin", 15, "conic-gradient(#22e4ff,#ff2bd6,#b6ff3b,#ffc23d,#22e4ff)", "One more spin on the wheel right now", "$"],
+    ["b-box", "boost", "Mystery Box", 10, "linear-gradient(135deg,#a35bff,#ff2bd6)", "Coins, dollars or diamonds inside!", "$"],
+    ["b-xp", "boost", "XP Potion", 2, "linear-gradient(135deg,#3dffa8,#22e4ff)", "+400 XP to level up faster", "d"],
+    ["b-mega", "boost", "Mega Chest", 5, "linear-gradient(135deg,#9ff3ff,#ffffff)", "1,000 coins and $50", "d"],
+    ["t-rookie", "title", "Rookie", 5, "#3dffa8", "Show off the title Rookie", "$"],
+    ["t-pro", "title", "Pro Gamer", 30, "#22e4ff", "Show off the title Pro Gamer", "$"],
+    ["t-snake", "title", "Snake King", 40, "#b6ff3b", "Show off the title Snake King", "$"],
+    ["t-speed", "title", "Speed Demon", 50, "#ff4d6d", "Show off the title Speed Demon", "$"],
+    ["t-brain", "title", "Big Brain", 60, "#a35bff", "Show off the title Big Brain", "$"],
+    ["t-legend", "title", "Legend", 10, "#ffd66b", "Show off the title Legend", "d"],
+    ["t-hacker", "title", "Hacker", 20, "#00ff88", "Show off the title Hacker", "d"],
+    ["t-goat", "title", "The GOAT 🐐", 50, "linear-gradient(90deg,#ffd66b,#ffffff,#9ff3ff)", "The best title in the hub", "d"],
+    ["fx-fire", "fx", "Fire Sparks", 20, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Fiery explosions in all games", "$"],
+    ["fx-diamond", "fx", "Diamond Sparks", 5, "linear-gradient(90deg,#ffffff,#9ff3ff,#ffd0f6)", "Sparkling diamond explosions in all games", "d"],
+    ["fr-fire", "frame", "Fire Frame", 35, "linear-gradient(90deg,#ff2e4d,#ff8a1f)", "A blazing border around every game", "$"],
+    ["fr-diamond", "frame", "Diamond Frame", 8, "linear-gradient(90deg,#ffffff,#9ff3ff)", "A twinkling diamond border", "d"],
+    ["fl-neon", "filter", "Super Neon", 15, "linear-gradient(90deg,#ff00e1,#00fff0)", "Extra bright and colorful", "$"],
+    ["fl-matrix", "filter", "Matrix", 25, "linear-gradient(90deg,#002b12,#00ff88)", "Green hacker vision", "$"],
+    ["fl-dream", "filter", "Dream World", 30, "linear-gradient(90deg,#3dffa8,#a35bff)", "Colors from another world", "$"],
+    ["bk-fire", "bricks", "Fire Paddle", 100, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "A fiery paddle for Neon Bricks"],
+    ["bk-lime", "bricks", "Toxic Paddle", 100, "linear-gradient(90deg,#3dffa8,#b6ff3b)", "A green paddle for Neon Bricks"],
+    ["bk-gold", "bricks", "Gold Paddle", 20, "linear-gradient(90deg,#ff8a1f,#ffd66b)", "A golden paddle for Neon Bricks", "$"],
+    ["bk-diamond", "bricks", "Diamond Paddle", 4, "linear-gradient(90deg,#9ff3ff,#ffffff)", "A diamond paddle for Neon Bricks", "d"],
+    ["rn-pink", "runner", "Pink Cube", 80, "#ff2bd6", "A pink cube for the runner"],
+    ["rn-lime", "runner", "Lime Cube", 80, "#b6ff3b", "A lime cube for the runner"],
+    ["rn-gold", "runner", "Gold Cube", 15, "#ffd66b", "A golden cube for the runner", "$"],
+    ["rn-rainbow", "runner", "Rainbow Cube", 3, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing cube", "d"],
+    ["rc-pink", "racer", "Pink Racer", 120, "#ff2bd6", "A pink car for the racer"],
+    ["rc-lime", "racer", "Lime Racer", 120, "#b6ff3b", "A lime car for the racer"],
+    ["rc-gold", "racer", "Gold Racer", 25, "#ffd66b", "A golden car for the racer", "$"],
+    ["rc-rainbow", "racer", "Rainbow Racer", 4, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing car", "d"],
+    ["dr-pink", "drift", "Pink Drifter", 100, "#ff2bd6", "A pink car for the drift game"],
+    ["dr-lime", "drift", "Lime Drifter", 100, "#b6ff3b", "A lime car for the drift game"],
+    ["dr-gold", "drift", "Gold Drifter", 20, "#ffd66b", "A golden car for the drift game", "$"],
+    ["vd-pink", "void", "Pink Fighter", 100, "#ff2bd6", "A pink ship for the space shooter"],
+    ["vd-lime", "void", "Lime Fighter", 100, "#b6ff3b", "A lime ship for the space shooter"],
+    ["vd-gold", "void", "Gold Fighter", 20, "#ffd66b", "A golden ship for the space shooter", "$"],
   ];
-  const WHEEL = [[10, "#22e4ff"], [25, "#ff2bd6"], [50, "#b6ff3b"], [15, "#ffc23d"], [100, "#a35bff"], [30, "#3dffa8"], [200, "#ff4d6d"], [20, "#ff8a1f"]];
+  const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
+  const SHOP_GROUPS = [["boost", "🚀 Boosts", ""], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
+  const SPIN_MS = 24 * 3600 * 1000;
+  // [label, color, weight, prize, description]
+  const WHEEL = [["50", "#22e4ff", 20, "c50", "50 coins"], ["2×", "#ff2bd6", 11, "boost", "2× coins for 30 min"], ["$20", "#b6ff3b", 13, "cash20", "20 dollars"], ["?", "#ffc23d", 15, "mystery", "Mystery box (maybe 💎!)"], ["SKIN", "#a35bff", 9, "skin", "A free skin"], ["AGAIN", "#3dffa8", 10, "again", "Spin again"], ["777", "#ff4d6d", 3, "jackpot", "Jackpot: 777 coins + 3 💎"], ["200", "#ff8a1f", 9, "c200", "200 coins"]];
+  function mysteryBox() {
+    const r = Math.random();
+    if (r < .15) window.gblGive(0, 0, 1 + Math.floor(Math.random() * 3), "from the mystery box!");
+    else if (r < .5) window.gblGive(0, 5 + Math.floor(Math.random() * 26), 0, "from the mystery box!");
+    else window.gblGive([60, 90, 150, 250, 400][Math.floor(Math.random() * 5)], 0, 0, "from the mystery box!");
+  }
+  function useBoost(id) {
+    if (id === "b-2x") { prog.stats.boostUntil = Math.max(Date.now(), stat("boostUntil")) + 60 * 60000; saveProg(); coinPop("⚡ 2× COINS for 1 hour! Go play!", true); confetti(100); }
+    else if (id === "b-spin") { prog.stats.spinGrant = stat("spinGrant") + 1; saveProg(); coinPop("🎡 Extra spin ready! Open the Daily spin tab", true); }
+    else if (id === "b-box") mysteryBox();
+    else if (id === "b-xp") { const before = levelOf(xpOf()); prog.stats.xp = xpOf() + 400; const after = levelOf(xpOf()); if (after > before) { prog.stats.coins = coins() + 50; prog.stats.gems = gems() + 1; wal(); coinPop("LEVEL UP! You're level " + after + "  ·  +50 ⚡  +1 💎", true); confetti(160); } else coinPop("+400 XP!", true); saveProg(); renderWallet(); }
+    else if (id === "b-mega") { addCoinsNoXp(1000); window.gblGive(0, 50, 0, "+1,000 ⚡  MEGA CHEST!"); }
+  }
+  const CHEST_MS = 4 * 3600 * 1000;
+  const LOGIN_REW = [[50, 0, 0], [0, 5, 0], [100, 0, 0], [0, 10, 0], [150, 0, 0], [0, 0, 2], [300, 20, 5]];
+  const BANK = [["c", 500, "$", 10], ["$", 10, "c", 400], ["$", 25, "d", 1], ["d", 1, "c", 300]];
+  const localDay = (t) => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
+  function loginInfo() {
+    const [day, n] = String(prog.stats.login || "").split("|"), today = localDay(Date.now()), yest = localDay(Date.now() - 864e5);
+    const claimed = day === today, streak = claimed ? (+n || 1) : day === yest ? (+n || 0) + 1 : 1;
+    return { claimed, streak, today };
+  }
+  const bonusDue = () => !loginInfo().claimed || Date.now() - stat("chestAt") >= CHEST_MS || !!(window.gblBadgeDue && window.gblBadgeDue());
+  const rewLab = (r) => [r[0] ? fmt(r[0]) + " ⚡" : "", r[1] ? "$" + r[1] : "", r[2] ? r[2] + " 💎" : ""].filter(Boolean).join(" + ");
+  function bonusTab() {
+    const li = loginInfo(), idx = (li.streak - 1) % 7, gone = Date.now() - stat("chestAt"), chestOk = gone >= CHEST_MS, left = CHEST_MS - gone;
+    return el("div", { class: "bonus" },
+      el("p", { class: "eyebrow set-h2", text: "📅 Daily login streak · day " + li.streak }),
+      el("div", { class: "login-row" }, ...LOGIN_REW.map((r, i) => el("div", { class: "login-day" + (i < idx || (i === idx && li.claimed) ? " got" : i === idx ? " now" : "") }, el("small", { text: "DAY " + (i + 1) }), el("b", { text: rewLab(r) })))),
+      el("button", { class: "btn" + (li.claimed ? "" : " hot"), type: "button", disabled: li.claimed, text: li.claimed ? "Come back tomorrow for day " + (li.streak + 1) : "Claim day " + li.streak + " ▸", onclick: () => {
+        const L = loginInfo(); if (L.claimed) return; const r = LOGIN_REW[(L.streak - 1) % 7];
+        prog.stats.login = L.today + "|" + L.streak; prog.stats.bestStreak = Math.max(stat("bestStreak"), L.streak); saveProg();
+        window.gblGive(r[0], r[1], r[2], "day " + L.streak + " streak!"); renderRewards(); } }),
+      el("p", { class: "eyebrow set-h2", text: "🧰 Free chest · every 4 hours" }),
+      el("div", { class: "chest-box" }, el("span", { class: "chest" + (chestOk ? " ready" : ""), text: chestOk ? "🎁" : "🔒" }),
+        el("button", { class: "btn" + (chestOk ? " hot" : ""), type: "button", disabled: !chestOk, text: chestOk ? "OPEN CHEST ▸" : "Opens in " + Math.floor(left / 3600000) + "h " + (Math.floor(left / 60000) % 60) + "m", onclick: () => {
+          if (Date.now() - stat("chestAt") < CHEST_MS) return; prog.stats.chestAt = Date.now(); saveProg(); sfxHub();
+          const r = Math.random();
+          if (r < .12) window.gblGive(100, 5, 1, "rare chest!"); else if (r < .5) window.gblGive(0, 5 + Math.floor(Math.random() * 11), 0, "from the chest!"); else window.gblGive(40 + Math.floor(Math.random() * 120), 0, 0, "from the chest!");
+          renderRewards(); } })),
+      el("p", { class: "eyebrow set-h2", text: "🏦 Bank · trade your money" }),
+      el("div", { class: "bank" }, ...BANK.map(([fc, fn, tc, tn]) => el("div", { class: "bank-row" }, el("span", { text: priceLab(fc, fn) + "  →  " + priceLab(tc, tn) }),
+        el("button", { class: "btn sm", type: "button", disabled: balOf(fc) < fn, text: "Trade", onclick: () => { if (balOf(fc) < fn) return; spend(fc, fn); if (tc === "$") giveCash(tn, "from the bank"); else if (tc === "d") giveGems(tn, "from the bank"); else { addCoinsNoXp(tn); coinPop("+" + tn + " ⚡  from the bank"); } sfxHub(); renderRewards(); } })))),
+      el("p", { class: "set-note", text: "⚡ Coins and 💵 dollars come from every game you finish. 💎 Diamonds come from badges, level ups, streaks, chests, tough tournaments and lucky spins." }));
+  }
+  function spinPrize(k) {
+    if (k === "c50") giveCoins(50, "from the wheel!");
+    else if (k === "cash20") { giveCash(20, "from the wheel!"); confetti(80); }
+    else if (k === "c200") { giveCoins(200, "from the wheel!"); confetti(120); }
+    else if (k === "jackpot") { giveGems(3, null, true); giveCoins(777, "+3 💎  JACKPOT!!!"); confetti(260); setTimeout(() => confetti(200), 700); }
+    else if (k === "mystery") mysteryBox();
+    else if (k === "boost") { prog.stats.boostUntil = Math.max(Date.now(), stat("boostUntil")) + 30 * 60000; saveProg(); coinPop("⚡ 2× COINS for 30 minutes! Go play!", true); confetti(100); }
+    else if (k === "again") { prog.stats.spinGrant = stat("spinGrant") + 1; saveProg(); coinPop("🎡 Lucky! Spin again!", true); }
+    else if (k === "skin") {
+      const owned = new Set(prog.owned || []), free = SHOP.filter((it) => !owned.has(it[0]) && !it[6] && it[3] <= 250 && it[0] !== "sl-pumpkin");
+      if (!free.length) { giveCoins(250, "(you own them all!)"); return; }
+      const it = free[Math.floor(Math.random() * free.length)]; prog.owned = [...owned, it[0]]; saveProg(); coinPop("🎁 FREE SKIN: " + it[2] + "! Equip it in the shop", true); confetti(160);
+    }
+  }
   const coins = () => stat("coins"), xpOf = () => stat("xp");
   const levelOf = (xp) => Math.floor(Math.sqrt(xp / 40)) + 1, xpFor = (lv) => 40 * (lv - 1) * (lv - 1);
   const todayKey = () => new Date().toISOString().slice(0, 10);
+  const cash = () => stat("cash"), gems = () => stat("gems");
+  const wal = () => { prog.stats.wAt = Date.now(); };
+  const balOf = (c) => c === "$" ? cash() : c === "d" ? gems() : coins();
+  const priceLab = (c, n) => c === "$" ? "$" + fmt(n) : c === "d" ? "💎 " + fmt(n) : fmt(n) + " ⚡";
+  function spend(c, n) { const k = c === "$" ? "cash" : c === "d" ? "gems" : "coins"; prog.stats[k] = Math.max(0, stat(k) - n); wal(); saveProg(); renderWallet(); }
+  function giveCash(n, why, silent) { if (!n) return; prog.stats.cash = cash() + n; wal(); if (!silent) coinPop("+$" + n + (why ? "  " + why : "")); saveProg(); renderWallet(); }
+  function giveGems(n, why, silent) { if (!n) return; prog.stats.gems = gems() + n; wal(); if (!silent) coinPop("+" + n + " 💎" + (why ? "  " + why : ""), true); saveProg(); renderWallet(); }
+  function addCoinsNoXp(n) { prog.stats.coins = coins() + n; wal(); saveProg(); renderWallet(); }
+  window.gblGive = (c, d, g, why) => {
+    if (d) giveCash(d, null, true); if (g) giveGems(g, null, true); if (c) giveCoins(c, null, true);
+    coinPop("🎁 " + [c ? "+" + fmt(c) + " ⚡" : "", d ? "+$" + d : "", g ? "+" + g + " 💎" : ""].filter(Boolean).join("  ") + (why ? "  " + why : ""), true);
+    if (window.gblConfetti) window.gblConfetti(g ? 180 : 110);
+  };
+  window.gblRewCtx = () => ({ coins: coins(), cash: cash(), gems: gems(), owned: (prog.owned || []).length, lv: levelOf(xpOf()), spins: stat("spins"), streak: stat("bestStreak") });
   function giveCoins(n, why, silent) {
     if (!n) return;
     const before = levelOf(xpOf());
-    prog.stats.coins = coins() + n; if (n > 0) prog.stats.xp = xpOf() + n;
+    prog.stats.coins = coins() + n; wal(); if (n > 0) prog.stats.xp = xpOf() + n;
     const after = levelOf(xpOf());
     if (!silent) coinPop("+" + n + " ⚡" + (why ? "  " + why : ""));
-    if (after > before) { prog.stats.coins += 50; setTimeout(() => { coinPop("LEVEL UP! You're level " + after + "  ·  +50 ⚡", true); if (window.gblConfetti) window.gblConfetti(160); }, 1400); }
+    if (after > before) { prog.stats.coins += 50; prog.stats.gems = gems() + 1; setTimeout(() => { coinPop("LEVEL UP! You're level " + after + "  ·  +50 ⚡  +1 💎", true); if (window.gblConfetti) window.gblConfetti(160); }, 1400); }
     saveProg(); renderWallet();
   }
   function coinPop(t, big) {
@@ -7167,10 +7372,11 @@ function slitherGame() {
   var renderWallet = function () {
     document.querySelectorAll("[data-wallet]").forEach((b2) => {
       const xp = xpOf(), lv = levelOf(xp), k = Math.min(1, (xp - xpFor(lv)) / Math.max(1, xpFor(lv + 1) - xpFor(lv)));
-      b2.replaceChildren(el("span", { class: "w-coins", text: "⚡ " + fmt(coins()) }), el("span", { class: "w-lv", text: "LV " + lv }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(k * 100) + "%" })));
-      const due = (prog.missions && prog.missions.list || []).some((m) => m.done && !m.claimed) || (prog.stats.spinDay !== todayKey());
+      b2.replaceChildren(el("span", { class: "w-coins", text: "⚡ " + fmt(coins()) }), el("span", { class: "w-cash", text: "$" + fmt(cash()) }), el("span", { class: "w-gems", text: "💎 " + fmt(gems()) }), el("span", { class: "w-lv", text: "LV " + lv }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(k * 100) + "%" })));
+      const due = (prog.missions && prog.missions.list || []).some((m) => m.done && !m.claimed) || (Date.now() - (stat("spinAt") || 0) >= SPIN_MS) || stat("spinGrant") > stat("spinUsed") || bonusDue();
       b2.classList.toggle("due", due);
     });
+    if (window.gblCheckAch) setTimeout(window.gblCheckAch, 0);
   };
   /* missions */
   function seeded(seed) { let h = 2166136261; for (const ch of seed) h = Math.imul(h ^ ch.charCodeAt(0), 16777619); return () => ((h = Math.imul(h ^ (h >>> 15), 2246822507) ^ Math.imul(h ^ (h >>> 13), 3266489909)) >>> 0) / 4294967296; }
@@ -7203,57 +7409,71 @@ function slitherGame() {
   /* hooks */
   window.gblReward = (cur, s) => {
     if (!cur || !cur.g || !BUILTINS.some((b) => b.key === cur.g.key)) return;
-    const wk = new Date().getDay() % 6 === 0, n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1);
+    const wk = new Date().getDay() % 6 === 0, bst = stat("boostUntil") > Date.now(), n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1) * (bst ? 2 : 1);
+    const dl = (1 + Math.min(4, Math.floor(Math.log10(Math.max(1, s))))) * (bst ? 2 : 1);
     const prevBest = typeof myBest === "function" ? myBest(cur.g.key) || 0 : 0;
-    giveCoins(n, (cur.daily ? "daily bonus! " : "") + (wk ? "x2 weekend!" : ""));
-    if (s > 0 && s > prevBest && prevBest > 0) { setTimeout(() => { coinPop("🏅 NEW PERSONAL BEST in " + cur.g.title + "!", true); if (window.gblConfetti) window.gblConfetti(150); }, 900); }
+    giveCash(dl, null, true);
+    giveCoins(n, "+$" + dl + "  " + (cur.daily ? "daily bonus! " : "") + (wk ? "x2 weekend! " : "") + (bst ? "2× boost!" : ""));
+    if (!stat("fp_" + cur.g.key)) { prog.stats["fp_" + cur.g.key] = 1; saveProg(); setTimeout(() => window.gblGive(50, 5, 1, "first time playing " + cur.g.title + "!"), 2600); }
+    if (s > 0 && s > prevBest && prevBest > 0) { setTimeout(() => { giveCash(10, null, true); coinPop("🏅 NEW PERSONAL BEST in " + cur.g.title + "!  +$10", true); if (window.gblConfetti) window.gblConfetti(150); }, 900); }
     missionProgress(cur.g.key, s);
   };
-  window.gblAchCoins = (n) => giveCoins(100 * n, n > 1 ? "badges!" : "badge!");
-  window.gblWinCoins = (n, why) => giveCoins(n, why);
+  window.gblAchCoins = (n) => setTimeout(() => coinPop("🏅 New badge" + (n > 1 ? "s" : "") + "! Claim the reward on the Badges page", true), 400);
+  window.gblWinCoins = (n, why) => { giveCash(Math.max(5, Math.round(n / 6)), null, true); giveCoins(n, why + "  +$" + Math.max(5, Math.round(n / 6))); };
   /* rewards modal */
   const rm = $("#rew-modal"), rbody = $("#rew-body");
-  let rtab = "missions", spinning = false;
+  let rtab = "missions", spinning = false, shopGroup = "all";
   function renderRewards() {
     const xp = xpOf(), lv = levelOf(xp), k = Math.min(1, (xp - xpFor(lv)) / Math.max(1, xpFor(lv + 1) - xpFor(lv)));
     const head = el("div", { class: "rew-head" },
       el("div", { class: "rew-lv" }, el("b", { text: "LEVEL " + lv }), el("span", { class: "w-bar big" }, el("i", { style: "width:" + Math.round(k * 100) + "%" })), el("small", { text: fmt(xp - xpFor(lv)) + " / " + fmt(xpFor(lv + 1) - xpFor(lv)) + " XP to level " + (lv + 1) })),
-      el("div", { class: "rew-coins", text: "⚡ " + fmt(coins()) }));
-    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["spin", "🎡 Daily spin"], ["shop", "🛒 Shop"]].map(([id, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { rtab = id; renderRewards(); } })));
+      el("div", { class: "rew-money" }, el("div", { class: "rew-coins", text: "⚡ " + fmt(coins()) }), el("div", { class: "rew-cash", text: "$" + fmt(cash()) }), el("div", { class: "rew-gems", text: "💎 " + fmt(gems()) })));
+    const tt = (prog.equip || {}).title && SHOP.find((it) => it[0] === prog.equip.title);
+    if (tt) head.firstChild.append(el("span", { class: "rew-title", style: "--tc:" + (tt[4].startsWith("#") ? tt[4] : "#ffd66b"), text: "🏷 " + tt[2] }));
+    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["bonus", "🎁 Bonus"], ["spin", "🎡 Daily spin"], ["shop", "🛒 Shop"]].map(([id, t]) => el("button", { class: "chip" + ((id === "bonus" && bonusDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { rtab = id; renderRewards(); } })));
     let body;
     if (rtab === "missions") {
       body = el("div", { class: "rew-list" }, ...missions().map((m) => el("div", { class: "mission" + (m.done ? " done" : "") },
         el("div", { class: "m-txt" }, el("b", { text: m.text }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(Math.min(1, m.have / m.need) * 100) + "%" })), el("small", { text: (m.kind === "score" ? "best " + fmt(Math.min(m.have, m.need)) + " / " + fmt(m.need) : Math.min(m.have, m.need) + " / " + m.need) })),
-        m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (m.done ? " hot" : ""), type: "button", disabled: !m.done, text: "Claim " + m.reward + " ⚡", onclick: () => { m.claimed = true; giveCoins(m.reward, "mission!"); if (window.gblConfetti) window.gblConfetti(90); renderRewards(); } }))),
-        el("p", { class: "set-note", text: "New missions every day. Coins come from every game you finish, badges, tournaments and online wins." }));
+        m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (m.done ? " hot" : ""), type: "button", disabled: !m.done, text: "Claim " + m.reward + " ⚡ + $5", onclick: () => { m.claimed = true; giveCash(5, null, true); giveCoins(m.reward, "mission!  +$5"); if (window.gblConfetti) window.gblConfetti(90); renderRewards(); } }))),
+        el("p", { class: "set-note", text: "New missions every day. Coins and dollars come from every game you finish. Check the Bonus tab for free stuff!" }));
+    } else if (rtab === "bonus") {
+      body = bonusTab();
     } else if (rtab === "spin") {
-      const can = prog.stats.spinDay !== todayKey();
-      const wheel = el("div", { class: "wheel" }, ...WHEEL.map(([v], i) => el("span", { class: "w-lab", style: "transform:rotate(" + (i * 45 + 22.5) + "deg) translateY(-96px) rotate(" + -(i * 45 + 22.5) + "deg)", text: v })));
-      wheel.style.background = "conic-gradient(" + WHEEL.map(([, c], i) => c + " " + i * 45 + "deg " + (i + 1) * 45 + "deg").join(",") + ")";
+      const left = Math.max(0, (stat("spinAt") || 0) + SPIN_MS - Date.now()), extra = stat("spinGrant") - stat("spinUsed"), can = left <= 0 || extra > 0;
+      const wheel = el("div", { class: "wheel" }, ...WHEEL.map((w, i) => el("span", { class: "w-lab", style: "transform:rotate(" + (i * 45 + 22.5) + "deg) translateY(-92px) rotate(" + -(i * 45 + 22.5) + "deg)", text: w[0] })));
+      wheel.style.background = "conic-gradient(" + WHEEL.map((w, i) => w[1] + " " + i * 45 + "deg " + (i + 1) * 45 + "deg").join(",") + ")";
       wheel.style.transform = "rotate(" + (prog.stats.spinAngle || 0) + "deg)";
-      const btn = el("button", { class: "btn hot", type: "button", disabled: !can || spinning, text: can ? "SPIN! ▸" : "Come back tomorrow", onclick: () => {
-        if (spinning || prog.stats.spinDay === todayKey()) return;
+      const hh = Math.floor(left / 3600000), mm = Math.floor(left / 60000) % 60;
+      const btn = el("button", { class: "btn hot", type: "button", disabled: !can || spinning, text: can ? (left > 0 ? "BONUS SPIN! ▸" + (extra > 1 ? " (" + extra + ")" : "") : "SPIN! ▸") : "Next spin in " + hh + "h " + mm + "m", onclick: () => {
+        if (spinning || !(Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) return;
         spinning = true; btn.disabled = true;
-        const pick = Math.floor(Math.random() * WHEEL.length), land = 360 * 6 + (360 - (pick * 45 + 22.5)) + (Math.random() * 30 - 15);
-        const base = Math.floor((prog.stats.spinAngle || 0) / 360) * 360;
-        prog.stats.spinAngle = base + land; prog.stats.spinDay = todayKey(); saveProg();
+        let r = Math.random() * WHEEL.reduce((t, w) => t + w[2], 0), pick = 0; while (r > WHEEL[pick][2]) { r -= WHEEL[pick][2]; pick++; }
+        const land = 360 * 6 + (360 - (pick * 45 + 22.5)) + (Math.random() * 30 - 15), base = Math.floor((prog.stats.spinAngle || 0) / 360) * 360;
+        prog.stats.spinAngle = base + land; if (Date.now() - (stat("spinAt") || 0) >= SPIN_MS) prog.stats.spinAt = Date.now(); else prog.stats.spinUsed = stat("spinUsed") + 1; prog.stats.spins = stat("spins") + 1; saveProg();
         wheel.style.transition = "transform 4s cubic-bezier(.12,.8,.2,1)"; wheel.style.transform = "rotate(" + (base + land) + "deg)";
-        setTimeout(() => { spinning = false; giveCoins(WHEEL[pick][0], "from the wheel!"); sfxHub(); if (window.gblConfetti) window.gblConfetti(WHEEL[pick][0] >= 100 ? 200 : 70); renderRewards(); }, 4200);
+        setTimeout(() => { spinning = false; spinPrize(WHEEL[pick][3]); sfxHub(); renderRewards(); renderWallet(); }, 4200);
       } });
-      body = el("div", { class: "spin-box" }, el("div", { class: "wheel-wrap" }, wheel, el("div", { class: "wheel-pin" })), btn, el("p", { class: "set-note", text: "One free spin every day." }));
+      body = el("div", { class: "spin-box" }, el("div", { class: "wheel-wrap" }, wheel, el("div", { class: "wheel-pin" })), btn,
+        el("div", { class: "prize-key" }, ...WHEEL.map((w) => el("span", {}, el("i", { style: "background:" + w[1] }), w[4]))),
+        stat("boostUntil") > Date.now() ? el("p", { class: "set-note boost-on", text: "⚡ 2× COINS active for " + Math.ceil((stat("boostUntil") - Date.now()) / 60000) + " more minutes!" }) : null,
+        el("p", { class: "set-note", text: "One free spin every 24 hours. Buy extra spins in the shop with 💵." }));
     } else {
       const owned = new Set(prog.owned || []), eq = prog.equip || {};
-      const groups = [["slither", "Neon Slither skins"], ["snake", "Neon Snake skins"]];
-      body = el("div", { class: "shop" }, ...groups.map(([gk, title]) => el("div", {},
+      const groups = SHOP_GROUPS.filter(([gk]) => shopGroup === "all" || shopGroup === gk);
+      const gchips = el("div", { class: "rew-tabs shop-chips" }, ...[["all", "All"], ...SHOP_GROUPS.map(([gk, t]) => [gk, t.replace(/ \(all games\)/, "")])].map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopGroup === gk), text: t, onclick: () => { shopGroup = gk; renderRewards(); } })));
+      body = el("div", { class: "shop" }, gchips, ...groups.map(([gk, title, base]) => el("div", {},
         el("p", { class: "eyebrow set-h2", text: title }),
         el("div", { class: "shop-grid" },
-          el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + (gk === "slither" ? "#22e4ff" : "#ff2bd6") }), el("b", { text: "Classic" }), el("small", { text: "Free" }),
+          gk === "boost" ? null : el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : "Classic" }), el("small", { text: "Free" }),
             el("button", { class: "btn sm", type: "button", disabled: !eq[gk], text: !eq[gk] ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: null }; saveProg(); renderRewards(); } })),
-          ...SHOP.filter((it) => it[1] === gk && (it[0] !== "sl-pumpkin" || Date.now() < Date.parse("2026-11-01T00:00:00Z") || (prog.owned || []).includes(it[0]))).map(([id, , name, price, col, sub]) => {
-            const has = owned.has(id), on = eq[gk] === id;
-            return el("div", { class: "shop-item" + (on ? " on" : "") }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
+          ...SHOP.filter((it) => it[1] === gk && (it[0] !== "sl-pumpkin" || Date.now() < Date.parse("2026-11-01T00:00:00Z") || (prog.owned || []).includes(it[0]))).map(([id, , name, price, col, sub, cur]) => {
+            const has = owned.has(id), on = eq[gk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = cur === "d" ? " gem" : cur === "$" ? " cash" : "";
+            if (gk === "boost") return el("div", { class: "shop-item" + tag }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
+              el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); renderRewards(); } }));
+            return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (gk === "title" ? " ttl" : ""), style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
               has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: id }; saveProg(); toast(name + " equipped"); renderRewards(); } })
-                : el("button", { class: "btn sm", type: "button", disabled: coins() < price, text: "Buy " + price + " ⚡", onclick: () => { if (coins() < price) return; prog.stats.coins = coins() - price; prog.owned = [...owned, id]; prog.equip = { ...eq, [gk]: id }; saveProg(); renderWallet(); sfxHub(); toast("Unlocked " + name + "!"); renderRewards(); } }));
+                : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...owned, id]; prog.equip = { ...eq, [gk]: id }; saveProg(); renderWallet(); sfxHub(); toast("Unlocked " + name + "!"); if (window.gblConfetti) window.gblConfetti(70); renderRewards(); } }));
           })))));
     }
     rbody.replaceChildren(head, tabs, body);
