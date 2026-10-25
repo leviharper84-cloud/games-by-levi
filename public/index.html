@@ -1743,11 +1743,24 @@ function SHELL() {
     if (S.state !== "play") { st.fresh = true; if (canStart()) start(...again()); return; }
     if (G.down) G.down(S.px, S.py, e.pointerId);
   });
-  addEventListener("pointermove", (e) => { if (!G) return; [S.px, S.py] = local(e); if (S.state === "play" && !S.paused && G.move) G.move(S.px, S.py, e.pointerId); });
+  addEventListener("pointermove", (e) => {
+    if (!G) return; [S.px, S.py] = local(e); if (S.state === "play" && !S.paused && G.move) G.move(S.px, S.py, e.pointerId);
+    // Swipes count the moment the finger moves (no need to lift), and you can chain turns in one swipe.
+    const st = PT.get(e.pointerId);
+    if (st && !st.fresh && S.state === "play" && !S.paused && !G.up && (G.turn || G.swipe)) {
+      const dx = e.clientX - st.sx, dy = e.clientY - st.sy;
+      if (Math.max(Math.abs(dx), Math.abs(dy)) > 22) {
+        const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
+        if (dir !== st.last) { st.last = dir; st.swiped = true; if (G.swipe) G.swipe(dir, st.x, st.y); else G.turn(dir, null, st.x, st.y); }
+        st.sx = e.clientX; st.sy = e.clientY;
+      }
+    }
+  });
   addEventListener("pointerup", (e) => {
     const st = PT.get(e.pointerId); PT.delete(e.pointerId); S.down = PT.size > 0;
     if (!G || !st || st.fresh || S.state !== "play" || S.paused) return;
     if (G.up) { const [ux, uy] = local(e); G.up(ux, uy, e.pointerId); return; }
+    if (st.swiped) return;
     const dx = e.clientX - st.sx, dy = e.clientY - st.sy;
     if (Math.max(Math.abs(dx), Math.abs(dy)) > 24) {
       const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
