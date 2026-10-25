@@ -49,7 +49,7 @@ You need a free Cloudflare account and Node.js installed on your computer.
 
 4. **Tables set themselves up.** The first time the site runs, it creates everything it needs in the database. (If you ever want to do it by hand, run `npm run db:remote`.)
 
-5. **Choose the admin name.** In `wrangler.toml`, `ADMIN_USERNAME = "lharper,Levi"` decides who owns the hub (admin page, approving games). List several names separated by commas.
+5. **Choose the admin name.** In `wrangler.toml`, `ADMIN_USERNAME = "lharper"` decides who owns the hub (admin page, approving games). List several names separated by commas.
 
 6. **Publish the site:**
 
