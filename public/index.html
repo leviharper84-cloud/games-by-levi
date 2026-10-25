@@ -624,6 +624,7 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .adm-score { display: flex; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .adm-score span { flex: 1; }
 .btn.danger { border-color: #ff4d6d; color: #ff4d6d; }
+.card-stars { font: 700 .72rem var(--f-mono); color: #ffd66b; letter-spacing: .06em; text-shadow: 0 0 8px rgba(255,214,107,.5); }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-x2 { position: absolute; top: 8px; right: 8px; z-index: 2; font: 800 .72rem var(--f-mono); padding: 2px 8px; border-radius: 999px; color: #1a1200; background: #ffd66b; box-shadow: 0 0 12px rgba(255,214,107,.8); }
 .tour-duel { position: absolute; bottom: 8px; left: 8px; z-index: 2; font: 700 .58rem var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border-radius: 999px; color: #05030c; background: #3dffa8; }
@@ -1550,6 +1551,7 @@ function SHELL() {
       L.push([G.title.toUpperCase(), 34 * u, G.color, "g"], ["GAMES BY LEVI  //  HI-SCORE " + fmt(S.best), 11 * u, "#8f86b5"], ["", 8 * u]);
       (G.help || []).forEach((h, i) => L.push([h, 13 * u, i % 2 ? "#ff7be6" : "#d8d0f5"]));
       if (SAVED && G.load && !window.TOUR0) L.push(["", 4 * u], ["SAVED GAME: " + (SAVED.label || "IN PROGRESS") + "  ·  PRESS C OR TAP CONTINUE", 13 * u, "#ffd66b", "d"]);
+      const ST0 = window.STAR0; if (ST0 && !window.TOUR0) L.push(["", 4 * u], ["STAR GOALS  " + ST0.goals.map((v, i) => (i < ST0.have ? "★ " : "☆ ") + fmt(v)).join("   "), 13 * u, "#ffd66b"]);
       if (G.easy) L.push(["", 4 * u], ["PRACTICE: " + G.easy, 12 * u, "#3dffa8"]);
       if (G.duo) L.push([window.ONLINE0 ? "ONLINE MATCH: YOU ARE PLAYER " + window.ONLINE0 + (window.ONLINE0 === 1 ? " (YOU GO FIRST)" : "") : window.BOT0 ? "VS " + ["EASY", "MEDIUM", "HARD", "HACKER"][BK()] + " BOT: YOU ARE PLAYER 1, THE BOT IS PLAYER 2" : "2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
       L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && G.duo ? window.ONLINE0 ? "▶ TAP OR PRESS SPACE TO START THE ONLINE MATCH" : (window.BOT0 ? "▶ TAP OR PRESS SPACE TO PLAY THE BOT" : "▶ TAP OR PRESS SPACE TO START 2 PLAYERS") : G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
@@ -7257,7 +7259,7 @@ function thiefGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (Date.now() < Date.parse("2026-11-01T00:00:00Z") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (Date.now() < Date.parse("2026-11-01T00:00:00Z") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -7407,6 +7409,7 @@ function thiefGame() {
           el("div", { class: "card-title", text: g.title }),
           el("div", { class: "card-meta" }, el("span", { class: "genre", text: g.genre }), DUO_KEYS.has(g.key) ? el("span", { class: "p2", text: "2P" }) : null, prog && prog.saves && prog.saves[g.key] ? el("span", { class: "saved-pill", text: "SAVED" }) : null, el("span", { text: "by " + (g.creator || "Anonymous") })),
           top ? el("div", { class: "top", text: "Top score " + fmt(top) }) : null,
+          g.builtin && window.gblStars ? (() => { const n = window.gblStars(g.key), info = window.gblStarInfo(g.key); return info ? el("div", { class: "card-stars", title: n < 3 ? "Next star at " + fmt(info.goals[n]) : "All 3 stars!", text: "★".repeat(n) + "☆".repeat(3 - n) + (n < 3 ? "  next " + fmt(info.goals[n]) : "  MAX") }) : null; })() : null,
           el("div", { class: "play-hint", text: "Insert coin ▸" })));
       if (libReady) card.style.animation = "none"; else card.style.animationDelay = Math.min(i * 30, 400) + "ms";
       const open = () => play(g);
@@ -7920,8 +7923,12 @@ function thiefGame() {
     ["lv25", "🚀", "Sky High", "Reach level 25", (c) => c.lv >= 25],
     ["spinner", "🎡", "Spinner", "Spin the wheel 10 times", (c) => c.spins >= 10],
     ["streak7", "📆", "Week Warrior", "Reach a 7-day login streak", (c) => c.streak >= 7],
+    ["star10", "⭐", "Rising Star", "Earn 10 stars", (c) => c.stars >= 10],
+    ["star50", "🌟", "Superstar", "Earn 50 stars", (c) => c.stars >= 50],
+    ["star100", "💫", "Star Collector", "Earn 100 stars", (c) => c.stars >= 100],
+    ["starall", "🌠", "Galaxy Brain", "Earn every star in the hub", (c) => c.stars >= 144],
   ];
-  const BTIER = { complete: 3, legend: 3, k50: 3, hacker: 3, collector: 3, lv25: 3, online5: 2, daily7: 2, marathon: 2, k10: 2, hard: 2, streak7: 2, diamond: 2, explorer: 2, champ: 2, spinner: 2 };
+  const BTIER = { star100: 3, starall: 3, star50: 2, complete: 3, legend: 3, k50: 3, hacker: 3, collector: 3, lv25: 3, online5: 2, daily7: 2, marathon: 2, k10: 2, hard: 2, streak7: 2, diamond: 2, explorer: 2, champ: 2, spinner: 2 };
   const badgeRew = (id) => { const t = BTIER[id] || 1; return [[100, 10, 1], [250, 25, 3], [500, 50, 10]][t - 1]; };
   window.gblBadgeDue = () => ACH.some((a) => prog.ach[a[0]] && !stat("bc_" + a[0]));
   window.gblCheckAch = () => checkAch();
@@ -8175,6 +8182,23 @@ function thiefGame() {
     ["vd-lime", "void", "Lime Fighter", 250, "#b6ff3b", "A lime ship for the space shooter"],
     ["vd-gold", "void", "Gold Fighter", 60, "#ffd66b", "A golden ship for the space shooter", "$"],
   ];
+  /* ---------- Stars: three score goals for every game ---------- */
+  const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500] };
+  const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
+  const starsOf = (k) => { const t = STARS[k]; if (!t) return 0; const b = starBest(k); return t.filter((v) => b >= v).length; };
+  const totalStars = () => Object.keys(STARS).reduce((a, k) => a + starsOf(k), 0);
+  const starMax = Object.keys(STARS).length * 3;
+  window.gblStarInfo = (k) => STARS[k] ? { goals: STARS[k], have: starsOf(k) } : null;
+  window.gblStars = (k) => starsOf(k);
+  const STAR_REW = [[50, 0, 0], [0, 10, 0], [0, 0, 2]];
+  function starCheck(g, s) {
+    const k = g.key; if (!STARS[k]) return;
+    const before = starsOf(k); prog.stats["sb_" + k] = Math.max(stat("sb_" + k), Math.floor(s) || 0); const after = starsOf(k);
+    if (after > before) {
+      let c = 0, d = 0, gm = 0; for (let i = before; i < after; i++) { c += STAR_REW[i][0]; d += STAR_REW[i][1]; gm += STAR_REW[i][2]; }
+      saveProg(); setTimeout(() => { window.gblGive(c, d, gm, "★".repeat(after) + "☆".repeat(3 - after) + "  " + g.title + "!"); renderLibrary(); }, 1800);
+    }
+  }
   const cost = (n) => Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
   const SHOP_GROUPS = [["boost", "🚀 Boosts", ""], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
@@ -8259,7 +8283,7 @@ function thiefGame() {
     coinPop("🎁 " + [c ? "+" + fmt(c) + " ⚡" : "", d ? "+$" + d : "", g ? "+" + g + " 💎" : ""].filter(Boolean).join("  ") + (why ? "  " + why : ""), true);
     if (window.gblConfetti) window.gblConfetti(g ? 180 : 110);
   };
-  window.gblRewCtx = () => ({ coins: coins(), cash: cash(), gems: gems(), owned: (prog.owned || []).length, lv: levelOf(xpOf()), spins: stat("spins"), streak: stat("bestStreak") });
+  window.gblRewCtx = () => ({ stars: totalStars(), coins: coins(), cash: cash(), gems: gems(), owned: (prog.owned || []).length, lv: levelOf(xpOf()), spins: stat("spins"), streak: stat("bestStreak") });
   function giveCoins(n, why, silent) {
     if (!n) return;
     const before = levelOf(xpOf());
@@ -8325,6 +8349,7 @@ function thiefGame() {
     giveCoins(n2, "+$" + dl + "  " + (cur.daily ? "daily bonus! " : "") + (wk ? "x2 weekend! " : "") + (bst ? "2× boost!" : ""));
     if (!stat("fp_" + cur.g.key)) { prog.stats["fp_" + cur.g.key] = 1; saveProg(); setTimeout(() => window.gblGive(50, 5, 1, "first time playing " + cur.g.title + "!"), 2600); }
     if (s > 0 && s > prevBest && prevBest > 0) { setTimeout(() => { giveCash(10, null, true); coinPop("🏅 NEW PERSONAL BEST in " + cur.g.title + "!  +$10", true); if (window.gblConfetti) window.gblConfetti(150); }, 900); }
+    starCheck(cur.g, s);
     missionProgress(cur.g.key, s);
   };
   window.gblAchCoins = (n) => setTimeout(() => coinPop("🏅 New badge" + (n > 1 ? "s" : "") + "! Claim the reward on the Badges page", true), 400);
@@ -8528,7 +8553,7 @@ function thiefGame() {
     box.replaceChildren(
       el("div", { class: "pc-lv" }, el("span", { text: "LV" }), el("b", { text: String(levelOf(xp)) })),
       el("div", { class: "pc-grid" }, cell("⚡ " + fmt(coins()), "Coins"), cell(fmt(total), "Games played"), cell(got + "/" + ACH.length, "Badges"),
-        cell("🔥 " + stat("streak"), "Day streak"), cell(fmt(stat("maxScore")), "Best score"), cell(String((prog.favs || []).length), "Favorites")));
+        cell("🔥 " + stat("streak"), "Day streak"), cell(fmt(stat("maxScore")), "Best score"), cell("⭐ " + totalStars() + "/" + starMax, "Stars"), cell(String((prog.favs || []).length), "Favorites")));
   }
   const _rw = renderWallet; renderWallet = function () { _rw(); renderPCard(); const wk = $("#weekend"); if (wk) wk.hidden = !isWeekend(); const ev = $("#event-banner"); if (ev) ev.hidden = Date.now() >= Date.parse("2026-11-01T00:00:00Z"); };
   setTimeout(checkStreak, 2500);
