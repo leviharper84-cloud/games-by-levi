@@ -8197,13 +8197,16 @@ function fighterGame() {
     dbg() { return { F, shots }; },
     title: "Neon Fighters", w: W, h: H, color: "#ff2bd6", bpm: 150, easy: "a sleepy CPU fighter",
     duo: "P1 = W A S D (S blocks) + F punch, G kick, H special. P2 = arrows (↓ blocks) + K punch, L kick, Enter special. On iPad each player uses the buttons on their side.",
-    help: ["6 neon fighters, 4 stages! Pick your fighter", "Move ◀ ▶, jump ▲, BLOCK (or walk away) to guard. Kick in the air for a flying kick!", "Hits fill your energy. Half bar = SPECIAL, full bar = SUPER MOVE!", "Win 2 rounds to win. Beat every CPU fighter in a row"],
-    init() { this._p1 = false; hold = []; sel = [0, 1]; lvl = 1; cpuWins = 0; phase = "select"; F = null; shots = []; fx = []; pick = 0; },
+    help: ["6 neon fighters, 4 stages! Pick your fighter", "Move ◀ ▶, jump ▲, BLOCK (or walk away) to guard. Kick in the air for a flying kick!", "Hits fill your energy. Half bar = SPECIAL, full bar = SUPER MOVE!", "Win 2 rounds to win. Tap ❓ HOW TO PLAY to see every button!"],
+    init() { this._p1 = false; hold = []; sel = [0, 1]; lvl = 1; cpuWins = 0; phase = window.__fHow ? "select" : "howto"; F = null; shots = []; fx = []; pick = 0; },
     hud() {
+      if (phase === "howto") return "HOW TO PLAY";
       if (phase === "select") return "PICK YOUR FIGHTER";
       return (S.duo ? "P1 " : "YOU ") + wins[0] + " : " + wins[1] + (twoHuman() ? " P2" : " CPU") + "  ·  ROUND " + roundN + (S.duo ? "" : "  ·  OPPONENT " + (cpuWins + 1) + "/∞");
     },
     down(px, py, id) {
+      if (phase === "howto") { phase = "select"; window.__fHow = true; sfx("blip"); return; }
+      if (phase === "select" && px > W - 150 && py < 60) { phase = "howto"; sfx("blip"); return; }
       if (phase === "select") {
         for (let i = 0; i < CHARS.length; i++) { const X = 80 + i * 128; if (Math.abs(px - X) < 60 && py > 110 && py < 320) {
           if (twoHuman()) { if (!this._p1) { sel[0] = i; this._p1 = true; sfx("blip"); return; } sel[1] = i; this._p1 = false; startMatch(); return; }
@@ -8215,7 +8218,10 @@ function fighterGame() {
     move(px, py, id) { if (phase === "select") return; const h = hold.find((q) => q.id === id); if (!h) return; for (const b of btnsFor()) if (b.pi === h.pi && Math.hypot(px - b.x, py - b.y) < b.r + 8 && (b.a === "l" || b.a === "r") && (h.a === "l" || h.a === "r")) h.a = b.a; },
     up(px, py, id) { hold = hold.filter((q) => q.id !== id); },
     key(k, rep) {
-      if (rep || phase !== "select") return;
+      if (rep) return;
+      if (phase === "howto") { phase = "select"; window.__fHow = true; sfx("blip"); return; }
+      if (phase === "select" && (k === "?" || k === "/" || k === "i")) { phase = "howto"; sfx("blip"); return; }
+      if (phase !== "select") return;
       const m = twoHuman() ? KEYS[this._p1 ? 1 : 0] : SOLOK, who = twoHuman() && this._p1 ? 1 : 0, N = CHARS.length;
       if (m.l.includes(k)) { sel[who] = (sel[who] + N - 1) % N; sfx("tick"); }
       if (m.r.includes(k)) { sel[who] = (sel[who] + 1) % N; sfx("tick"); }
@@ -8223,7 +8229,7 @@ function fighterGame() {
     },
     update(dt0) {
       if (!S.down) hold = [];
-      if (phase === "select") return;
+      if (phase === "select" || phase === "howto") return;
       if (phase === "vs") { vsT -= dt0; if (vsT <= 0) newRound(); return; }
       const dt = slow > 0 ? dt0 * .3 : dt0; slow = Math.max(0, slow - dt0);
       if (phase === "intro") { msgT -= dt0; if (msgT <= 0) { phase = "fight"; banner("FIGHT!", "#ff4d6d"); sfx("boom"); } }
@@ -8245,12 +8251,40 @@ function fighterGame() {
       for (const q of fx) { q.l -= dt0; q.y -= 40 * dt0; } fx = fx.filter((q) => q.l > 0);
     },
     draw() {
+      if (phase === "howto") {
+        x.fillStyle = "#06020e"; x.fillRect(0, 0, W, H);
+        glitchText("HOW TO PLAY", W / 2, 34, 30, "#ffd66b");
+        const btn = (X, Y, label, c, r) => { r = r || 15; glow(c, 10); x.strokeStyle = c; x.lineWidth = 2; x.fillStyle = ca(c, .2); x.beginPath(); x.arc(X, Y, r, 0, 7); x.fill(); x.stroke(); glow(); txt(label, X, Y + 1, label.length > 2 ? 7 : 12, c, "center", "d"); };
+        const key = (X, Y, label) => { const w = Math.max(22, label.length * 8 + 10); x.strokeStyle = "#d8d0f5"; x.lineWidth = 1.5; rr(X, Y - 11, w, 22, 5); x.stroke(); txt(label, X + w / 2, Y, 11, "#ffffff", "center"); return X + w + 5; };
+        const row = (Y, keysArr, what, c) => { let X = 22; for (const k0 of keysArr) X = key(X, Y, k0); txt(what, Math.max(X + 6, 150), Y, 12, c || "#d8d0f5", "left"); };
+        // column 1: moves
+        txt("MOVES", 30, 70, 14, "#22e4ff", "left", "d");
+        [["◀", "▶", "#22e4ff", "Walk left and right"], ["▲", null, "#22e4ff", "Jump"], ["🛡", null, "#3dffa8", "BLOCK (or walk away from an attack)"], ["P", null, "#ffd66b", "PUNCH: quick, 6 damage"], ["K", null, "#ff8a1f", "KICK: strong, 10 damage"], ["▲", "K", "#ff8a1f", "Jump, then KICK = flying kick!"], ["★", null, "#ff2bd6", "SPECIAL move: uses half your energy"], ["★", "★", "#ffd66b", "FULL energy + SPECIAL = SUPER MOVE!"]].forEach(([a0, b0, c, t], i) => {
+          const Y = 100 + i * 34; btn(44, Y, a0, c); if (b0) btn(80, Y, b0, c); txt(t, 108, Y, 12, "#d8d0f5", "left"); });
+        // column 2: keyboard
+        const X2 = 410; txt("KEYBOARD", X2, 70, 14, "#22e4ff", "left", "d");
+        txt("1 PLAYER", X2, 94, 11, "#9a90c0", "left");
+        const kb = (Y, ks, what) => { let X = X2; for (const k0 of ks) X = key(X, Y, k0); txt(what, X + 4, Y, 11, "#d8d0f5", "left"); };
+        kb(116, ["A", "D", "← →"], "walk"); kb(140, ["W", "↑", "SPACE"], "jump"); kb(164, ["S", "↓"], "block");
+        kb(188, ["F", "J", "Z"], "punch"); kb(212, ["G", "K", "X"], "kick"); kb(236, ["H", "L", "C"], "special / super");
+        txt("2 PLAYERS", X2, 268, 11, "#9a90c0", "left");
+        txt("PLAYER 1", X2, 290, 11, "#22e4ff", "left", "d"); kb(312, ["A", "D"], "walk"); { let X = X2 + 110; X = key(X, 312, "W"); txt("jump", X + 2, 312, 11, "#d8d0f5", "left"); }
+        { let X = X2; X = key(X, 336, "S"); txt("block", X + 2, 336, 11, "#d8d0f5", "left"); X = key(X + 50, 336, "F"); txt("punch", X + 2, 336, 11, "#d8d0f5", "left"); X = key(X + 50, 336, "G"); txt("kick", X + 2, 336, 11, "#d8d0f5", "left"); X = key(X + 40, 336, "H"); txt("special", X + 2, 336, 11, "#d8d0f5", "left"); }
+        txt("PLAYER 2", X2, 362, 11, "#ff2bd6", "left", "d");
+        { let X = X2; X = key(X, 384, "← →"); txt("walk", X + 2, 384, 11, "#d8d0f5", "left"); X = key(X + 40, 384, "↑"); txt("jump", X + 2, 384, 11, "#d8d0f5", "left"); X = key(X + 40, 384, "↓"); txt("block", X + 2, 384, 11, "#d8d0f5", "left"); }
+        { let X = X2; X = key(X, 408, "K"); txt("punch", X + 2, 408, 11, "#d8d0f5", "left"); X = key(X + 50, 408, "L"); txt("kick", X + 2, 408, 11, "#d8d0f5", "left"); X = key(X + 40, 408, "ENTER"); txt("special", X + 2, 408, 11, "#d8d0f5", "left"); }
+        txt("iPAD: tap the round buttons on screen", 30, 386, 12, "#3dffa8", "left", "d");
+        txt("2 players: each uses their own side", 30, 406, 11, "#3dffa8", "left");
+        txt(Math.floor(S.clock * 2) % 2 ? "▶ TAP ANYWHERE TO PICK YOUR FIGHTER" : "", W / 2, 438, 13, "#ffd66b", "center", "d");
+        return;
+      }
       if (phase === "select") {
         x.fillStyle = "#06020e"; x.fillRect(0, 0, W, H); x.strokeStyle = "rgba(255,43,214,.15)"; for (let i = 0; i < 20; i++) { x.beginPath(); x.moveTo(0, i * 24); x.lineTo(W, i * 24); x.stroke(); }
         txt(twoHuman() ? (this._p1 ? "PLAYER 2: PICK YOUR FIGHTER" : "PLAYER 1: PICK YOUR FIGHTER") : "PICK YOUR FIGHTER", W / 2, 70, 26, "#ffd66b", "center", "d");
         CHARS.forEach((ch, i) => { const X = 80 + i * 128, on0 = sel[0] === i, on1 = twoHuman() && this._p1 && sel[1] === i; glow(ch.c, on0 ? 22 : 6); x.strokeStyle = on0 ? "#ffffff" : on1 ? "#ff2bd6" : ch.c; x.lineWidth = on0 ? 4 : 2; rr(X - 58, 110, 116, 210, 14); x.stroke(); glow(); x.fillStyle = ca(ch.c, .12); rr(X - 58, 110, 116, 210, 14); x.fill();
           drawF({ i: 0, ch: i, x: X, y: 280, face: 1, st: "idle", t: 0, flash: 0 }, .85); txt(ch.name, X, 302, 16, ch.c, "center", "d"); txt(ch.desc, X, 338, 11, "#d8d0f5", "center"); });
         txt("TAP A FIGHTER" + (twoHuman() ? " (PLAYER 1 FIRST, THEN PLAYER 2)" : "") + "  ·  OR ◀ ▶ AND PUNCH", W / 2, 400, 13, "#9a90c0", "center");
+        glow("#22e4ff", 10); x.strokeStyle = "#22e4ff"; x.lineWidth = 2; rr(W - 146, 12, 132, 34, 10); x.stroke(); glow(); txt("❓ HOW TO PLAY", W - 80, 29, 12, "#22e4ff", "center", "d");
         return;
       }
       bgDraw();
