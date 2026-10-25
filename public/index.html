@@ -925,7 +925,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
         <div>
           <p class="eyebrow">Play across devices</p>
           <h2>Online</h2>
-          <p class="lede">Play Connect Four, Reversi or Chess against a friend on their own phone, iPad or computer. One of you makes a room, the other types in the code.</p>
+          <p class="lede">Play Connect Four, Reversi, Chess, Penalty Kick, Memory Grid or Guess Who against a friend on their own phone, iPad or computer. One of you makes a room, the other types in the code.</p>
         </div>
       </div>
       <div class="online-grid" id="online-box"></div>
@@ -2271,9 +2271,11 @@ function memoryGame() {
   let botT = 1, seen = {}, cards, open, moves, lock, matched, streak, round, rt, limit, cleared, swapNext, pairs = [0, 0], turnP = 0, switchNext = false;
   const cell = (i) => [(i % 4) * 120 + 60, (i / 4 | 0) * 120 + 60];
   const timeFor = (r) => Math.max(16, 60 - (r - 1) * 8);
-  function deal() {
+  let waitSeed = false;
+  function deal(seed) {
+    let sd = seed >>> 0; const rand = seed != null ? () => ((sd = (sd * 1664525 + 1013904223) >>> 0) / 4294967296) : Math.random;
     const a = [0, 1, 2, 3, 4, 5, 6, 7, 0, 1, 2, 3, 4, 5, 6, 7];
-    for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; }
+    for (let i = a.length - 1; i > 0; i--) { const j = rand() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; }
     cards = a.map((v) => ({ v, up: false, done: false, f: 0, bad: 0, sw: 0, circ: Array.from({ length: 4 }, () => [Math.random() * 80 - 40, Math.random() * 80 - 40, Math.random() < .5]) }));
     seen = {}; open = []; lock = 0; matched = 0; swapNext = false; limit = timeFor(round); rt = limit;
   }
@@ -2286,17 +2288,18 @@ function memoryGame() {
     pop(240, 240, "CARDS SWAPPED", "#ff4d6d"); sfx("bad");
   }
   game({
+    remote(m) { if (m && m.seed != null) { deal(+m.seed); waitSeed = false; return true; } if (m && m.f != null) { if (lock > 0 || waitSeed) return false; const [X, Y] = cell(+m.f); this.down(X, Y, "remote"); return true; } return true; },
     load(d) { round = d.round || 1; cleared = d.cleared || 0; deal(); },
     title: "Memory Grid", duo: "take turns. Find a pair and go again. Most pairs wins.", easy: "no timer, no card swaps", w: 480, h: 480, color: "#a35bff", bpm: 96,
     help: ["Click or tap to flip two cards", "Clear the grid before the timer runs out", "Every round is shorter than the last", "From round 3, a miss swaps two hidden cards"],
-    init() { moves = 0; streak = 0; round = 1; cleared = 0; pairs = [0, 0]; turnP = 0; switchNext = false; deal(); },
-    hud() { if (S.duo) return "P1 " + pairs[0] + " PAIRS  ·  PLAYER " + (turnP + 1) + "'S TURN  ·  P2 " + pairs[1] + " PAIRS"; return "ROUND " + round + "  ·  " + (S.practice ? "NO TIMER" : Math.ceil(rt) + "s")+ "  ·  STREAK " + streak; },
+    init() { moves = 0; streak = 0; round = 1; cleared = 0; pairs = [0, 0]; turnP = 0; switchNext = false; waitSeed = false; deal(); if (S.online) { if (S.online === 1) { const sd = (Math.random() * 1e9) | 0; deal(sd); sendMove({ seed: sd }); } else waitSeed = true; } },
+    hud() { if (S.online) return (waitSeed ? "WAITING FOR YOUR FRIEND..." : turnP + 1 === S.online ? "YOUR TURN" : "FRIEND'S TURN") + "  ·  YOU " + pairs[S.online - 1] + "  ·  FRIEND " + pairs[2 - S.online]; if (S.duo) return "P1 " + pairs[0] + " PAIRS  ·  PLAYER " + (turnP + 1) + "'S TURN  ·  P2 " + pairs[1] + " PAIRS"; return "ROUND " + round + "  ·  " + (S.practice ? "NO TIMER" : Math.ceil(rt) + "s")+ "  ·  STREAK " + streak; },
     summary() { if (S.duo) return ["PAIRS  P1 " + pairs[0] + " : " + pairs[1] + " P2"]; return ["ROUNDS CLEARED " + cleared + "   MOVES " + moves]; },
     down(px, py, pid) {
-      if (lock > 0 || (S.bot && turnP === 1 && pid !== "bot")) return;
+      if (lock > 0 || waitSeed || (S.bot && turnP === 1 && pid !== "bot") || (S.online && pid !== "remote" && turnP + 1 !== S.online)) return;
       const c = Math.floor(px / 120), r = Math.floor(py / 120); if (c < 0 || c > 3 || r < 0 || r > 3) return;
       const i = r * 4 + c, k = cards[i]; if (k.up || k.done) return;
-      k.up = true; open.push(i); seen[i] = k.v; sfx("blip");
+      k.up = true; open.push(i); seen[i] = k.v; sfx("blip"); if (S.online && pid !== "remote") sendMove({ f: i });
       if (open.length === 2) {
         moves++;
         const [A, B] = open.map((j) => cards[j]);
@@ -4693,8 +4696,11 @@ function penaltyGame() {
     phase = S.duo ? "kAim" : "aim"; aimX = (GL + GR2) / 2; aimY = (GT + GB) / 2 + 20;
     kick = null; keeper = { x: 240, tx: 240, ty: 0, y: 0, dive: 0, react: 0, guessX: 240, guessY: 200, chosen: false };
   }
+  let remoteNow = false;
+  const isKicker = () => !!S.online && duo && (duo.kick % 2 + 1) === S.online;
   function shoot(tx, ty) {
     if (phase !== "aim" && phase !== "kAim") return;
+    if (S.duo && S.online) { kick = { tx, ty, t: 0, dur: .55 }; sendMove({ k: [Math.round(tx), Math.round(ty)] }); phase = "kWait"; sfx("blip"); return; }
     if (!S.duo) { const spread = S.practice ? 0 : Math.min(26, 6 + level * 2.5); tx += (Math.random() - .5) * spread * 2; ty += (Math.random() - .5) * spread; }
     kick = { tx, ty, t: 0, dur: S.duo ? .55 : Math.max(.42, .62 - level * .015) };
     if (S.duo && S.bot) {
@@ -4710,12 +4716,12 @@ function penaltyGame() {
     keeper.guessY = read ? ty : GT + 40 + Math.random() * 120;
     phase = "fly"; sfx("hit");
   }
-  function keeperChoose(px, py) { keeper.guessX = px; keeper.guessY = py; keeper.react = 0; phase = "fly"; sfx("hit"); }
+  function keeperChoose(px, py) { if (S.online && !remoteNow && !isKicker()) sendMove({ d: [Math.round(px), Math.round(py)] }); keeper.guessX = px; keeper.guessY = py; keeper.react = 0; phase = "fly"; sfx("hit"); }
   function resolve() {
     const bx = kick.tx, by = kick.ty;
     const inGoal = bx > GL + 6 && bx < GR2 - 6 && by > GT + 6 && by < GB;
     const post = !inGoal && (Math.abs(bx - GL) < 10 || Math.abs(bx - GR2) < 10 || Math.abs(by - GT) < 10) && bx > GL - 10 && bx < GR2 + 10 && by > GT - 10;
-    const kx = keeper.x, ky = 220 - keeper.y;
+    const kx = S.online ? keeper.guessX : keeper.x, ky = S.online ? 220 - Math.max(0, Math.min(90, 220 - keeper.guessY)) : 220 - keeper.y;
     const saved = inGoal && Math.abs(bx - kx) < 52 && by > ky - 70 && by < ky + 60;
     let res;
     if (saved) { res = "SAVED!"; burst(bx, by, "#22e4ff", 26, 220, .6); sfx("bad"); shake(5, .25); }
@@ -4743,7 +4749,13 @@ function penaltyGame() {
     return [x0, y0, 1 - e * .55];
   }
   const botKicks = () => S.bot && duo && duo.kick % 2 === 1 && phase === "kAim";
+  const blocked = () => botKicks() || (!!S.online && ((phase === "kAim" && !isKicker()) || (phase === "keep" && isKicker()) || phase === "kWait"));
   game({
+    remote(m) {
+      if (m && Array.isArray(m.k)) { if (phase !== "kAim" || isKicker()) return false; kick = { tx: +m.k[0], ty: +m.k[1], t: 0, dur: .55 }; phase = "keep"; aimX = 240; aimY = 200; sfx("blip"); return true; }
+      if (m && Array.isArray(m.d)) { if (phase !== "kWait") return false; remoteNow = true; keeperChoose(+m.d[0], +m.d[1]); remoteNow = false; return true; }
+      return true;
+    },
     title: "Penalty Kick", duo: "Take turns. The kicker taps a spot, then hands over. The keeper taps where to dive. 5 kicks each.", easy: "slow keeper, perfect aim, no lives", w: W, h: H, color: "#3dffa8", bpm: 120,
     help: ["Tap or drag to aim at the goal, let go to shoot", "Keys: arrows aim, Space shoots", "Corners score double. Keep a streak for multipliers", "3 misses and you're out. The keeper gets better"],
     init() { lives = 3; goals = 0; streak = 0; level = 1; waitT = 0; msg = null; wob = 0; duo = S.duo ? { kick: 0, res: [[], []], win: 0 } : null; reset(); },
@@ -4753,15 +4765,15 @@ function penaltyGame() {
     },
     summary() { return S.duo ? [] : ["GOALS " + goals]; },
     down(px, py) {
-      if (botKicks()) return;
+      if (blocked()) return;
       if (phase === "kHide") { phase = "keep"; aimX = 240; aimY = 200; sfx("tick"); return; }
       if (phase === "keep") { keeperChoose(px, Math.min(GB, py)); return; }
       if (phase === "aim" || phase === "kAim") { aimX = px; aimY = Math.min(py, GB + 30); }
     },
     move(px, py) { if ((phase === "aim" || phase === "kAim") && S.down) { aimX = px; aimY = Math.min(py, GB + 30); } },
-    up() { if (botKicks()) return; if ((phase === "aim" || phase === "kAim") && aimY < GB + 20) shoot(aimX, aimY); },
+    up() { if (blocked()) return; if ((phase === "aim" || phase === "kAim") && aimY < GB + 20) shoot(aimX, aimY); },
     key(k, rep) {
-      if (rep || botKicks()) return;
+      if (rep || blocked()) return;
       if (k === " " || k === "Enter") { if (phase === "aim" || phase === "kAim") shoot(aimX, aimY); else if (phase === "kHide") { phase = "keep"; aimX = 240; aimY = 200; } else if (phase === "keep") keeperChoose(aimX, aimY); }
     },
     update(dt) {
@@ -4820,7 +4832,7 @@ function penaltyGame() {
       if (phase === "keep") { glow("#ff2bd6", 12); x.strokeStyle = "#ff2bd6"; x.lineWidth = 2; x.setLineDash([5, 5]); x.beginPath(); x.arc(aimX, aimY, 20, 0, 7); x.stroke(); x.setLineDash([]); glow(); }
       if (S.duo && S.state === "play") {
         const kp = duo.kick % 2 + 1, keepP = 3 - kp;
-        let t = S.bot ? (phase === "kAim" ? (kp === 1 ? "YOUR KICK: TAP WHERE TO SHOOT" : "THE BOT IS LINING UP ITS KICK...") : phase === "keep" ? "BOT SHOT! TAP WHERE TO DIVE" : "") : phase === "kAim" ? "PLAYER " + kp + ": TAP WHERE TO SHOOT" : phase === "kHide" ? "SHOT LOCKED! HAND IT TO PLAYER " + keepP + ", THEN TAP" : phase === "keep" ? "PLAYER " + keepP + ": TAP WHERE TO DIVE" : "";
+        let t = S.online ? (phase === "kAim" ? (isKicker() ? "YOUR KICK: TAP WHERE TO SHOOT" : "YOUR FRIEND IS AIMING... GET READY TO DIVE") : phase === "kWait" ? "SHOT LOCKED! WAITING FOR THE KEEPER..." : phase === "keep" ? "YOUR FRIEND SHOT! TAP WHERE TO DIVE" : "") : S.bot ? (phase === "kAim" ? (kp === 1 ? "YOUR KICK: TAP WHERE TO SHOOT" : "THE BOT IS LINING UP ITS KICK...") : phase === "keep" ? "BOT SHOT! TAP WHERE TO DIVE" : "") : phase === "kAim" ? "PLAYER " + kp + ": TAP WHERE TO SHOOT" : phase === "kHide" ? "SHOT LOCKED! HAND IT TO PLAYER " + keepP + ", THEN TAP" : phase === "keep" ? "PLAYER " + keepP + ": TAP WHERE TO DIVE" : "";
         if (t) { x.fillStyle = "rgba(4,2,10,.75)"; x.fillRect(0, H - 60, W, 40); txt(t, W / 2, H - 40, 13, kp === 1 ? "#22e4ff" : "#ff2bd6", "center", "d"); }
         if (phase === "kHide") { x.fillStyle = "rgba(4,2,10,.55)"; x.fillRect(0, 0, W, H - 60); }
         duo.res.forEach((r, i) => { for (let k = 0; k < Math.max(5, r.length); k++) { const v = r[k]; x.fillStyle = v === undefined ? "rgba(255,255,255,.15)" : v ? "#3dffa8" : "#ff4d6d"; x.beginPath(); x.arc(i ? W - 20 - k * 16 : 20 + k * 16, 60, 6, 0, 7); x.fill(); } });
@@ -5612,14 +5624,18 @@ function guessGame() {
   function deal() {
     theirs = Math.random() * 24 | 0; do { mine = Math.random() * 24 | 0; } while (mine === theirs);
     if (S.duo && !S.bot) mine = -1;
+    waitSeed = false; if (S.online) { if (S.online === 1) sendMove({ m: theirs }); else waitSeed = true; }
     up = CHARS.map(() => true); botUp = CHARS.map(() => true); flipT = CHARS.map(() => -9);
     turn = 0; duoTurn = 0; phase = "turn"; msg = S.duo ? ["Player 1 goes first. Ask a question or make a guess.", "#22e4ff"] : ["Your turn! Ask a question or make a guess.", "#22e4ff"];
     asked = 0; botAsked = 0; waitT = 0; endMsg = null; guessMode = false; pick = -1; cur = 0;
   }
   const botK = () => (S.bot ? BK() : S.practice ? 0 : Math.min(3, level - 1));
   const who = () => (S.duo && !S.bot ? "PLAYER " + (duoTurn + 1) : "YOU");
+  let waitSeed = false, remoteNow = false;
+  const myTurnOnline = () => !S.online || (!waitSeed && duoTurn + 1 === S.online);
   function ask(i) {
     if (phase !== "ask") return;
+    if (S.online && !remoteNow) sendMove({ q: i });
     const Q = QS[i], yes = Q.t(CHARS[theirs]);
     asked++; let n = 0;
     CHARS.forEach((c, k) => { if (up[k] && Q.t(c) !== yes) { up[k] = false; flipT[k] = S.clock + n * .05; n++; } });
@@ -5628,6 +5644,7 @@ function guessGame() {
   }
   function guess(k) {
     if (phase !== "guess" || !up[k]) return;
+    if (S.online && !remoteNow) sendMove({ g: k });
     if (k === theirs) {
       const X = OX + (k % COLS) * CW + CW / 2, Y = OY + Math.floor(k / COLS) * CH + CH / 2;
       burst(X, Y, "#ffd66b", 50, 300, 1); ring(X, Y, "#ffd66b", 10, 120, .6); flash("#ffd66b", .3); sfx("level");
@@ -5659,7 +5676,7 @@ function guessGame() {
     sfx("tick"); phase = "after"; waitT = 1.6;
   }
   function nextTurn() {
-    if (S.duo && !S.bot) { duoTurn = 1 - duoTurn; turn = 0; phase = "turn"; msg = ["Player " + (duoTurn + 1) + "'s turn. Ask or guess.", duoTurn ? "#ff2bd6" : "#22e4ff"]; return; }
+    if (S.duo && !S.bot) { duoTurn = 1 - duoTurn; turn = 0; phase = "turn"; msg = S.online ? (duoTurn + 1 === S.online ? ["Your turn! Ask a question or make a guess.", "#22e4ff"] : ["Your friend is thinking...", "#ff2bd6"]) : ["Player " + (duoTurn + 1) + "'s turn. Ask or guess.", duoTurn ? "#ff2bd6" : "#22e4ff"]; return; }
     if (turn === 0) { turn = 1; phase = "bot"; waitT = .9; msg = ["The bot is thinking...", "#ff2bd6"]; }
     else { turn = 0; phase = "turn"; msg = ["Your turn! Ask a question or make a guess.", "#22e4ff"]; }
   }
@@ -5685,13 +5702,20 @@ function guessGame() {
     x.restore();
   }
   game({
+    remote(m) {
+      if (m && m.m != null) { theirs = +m.m; waitSeed = false; msg = S.online === 1 ? msg : ["Your friend goes first.", "#ff2bd6"]; return true; }
+      if (m && m.q != null) { if (phase !== "turn") return false; phase = "ask"; remoteNow = true; ask(+m.q); remoteNow = false; return true; }
+      if (m && m.g != null) { if (phase !== "turn") return false; phase = "guess"; remoteNow = true; guess(+m.g); remoteNow = false; return true; }
+      return true;
+    },
     load(d) { level = d.level || 1; deal(); },
     title: "Guess Who", duo: "One secret mystery bot. Take turns asking questions. First to guess it right wins.", easy: "a forgetful bot, and wrong guesses just flip that card", w: W, h: H, color: "#ff7be6", bpm: 100,
     help: ["The bot picked a secret character. Find out who it is!", "Ask yes/no questions. Wrong cards flip down by themselves", "Tap GUESS, then tap a card. A wrong guess loses", "Beat the bot before it guesses yours (shown bottom left)"],
     init() { level = 1; qScroll = 0; deal(); },
-    hud() { return (S.duo && !S.bot ? "PLAYER " + (duoTurn + 1) + "'S TURN" : "LEVEL " + level + "  ·  QUESTIONS " + asked + "  ·  BOT HAS " + botUp.filter(Boolean).length + " LEFT"); },
+    hud() { if (S.online) return waitSeed ? "WAITING FOR YOUR FRIEND..." : duoTurn + 1 === S.online ? "YOUR TURN" : "FRIEND'S TURN"; return (S.duo && !S.bot ? "PLAYER " + (duoTurn + 1) + "'S TURN" : "LEVEL " + level + "  ·  QUESTIONS " + asked + "  ·  BOT HAS " + botUp.filter(Boolean).length + " LEFT"); },
     summary() { return S.duo ? [] : ["BEAT THE BOT " + (level - 1) + " TIME" + (level === 2 ? "" : "S")]; },
     tap(px, py) {
+      if (!myTurnOnline()) return;
       if (phase === "ask") {
         for (let i = 0; i < QS.length; i++) if (inB(qRect(i), px, py)) return ask(i);
         if (py > QY + Math.ceil(QS.length / 2) * (QH + 6) + 4) { phase = "turn"; sfx("tick"); }
@@ -5715,7 +5739,7 @@ function guessGame() {
       sfx("tick");
     },
     key(k, rep) {
-      if (rep) return;
+      if (rep || !myTurnOnline()) return;
       if (phase === "turn" && (k === "q" || k === "a")) { phase = "ask"; cur = 0; }
       else if (phase === "turn" && k === "g") { phase = "guess"; cur = up.indexOf(true); }
       else if (k === " " || k === "Enter") { if (phase === "ask") ask(cur); else if (phase === "guess") guess(cur); else if (phase === "turn") { phase = "ask"; cur = 0; } }
@@ -7009,7 +7033,7 @@ function slitherGame() {
   setInterval(() => { if (!document.hidden) { if (daily && Date.now() > daily.endsAt) loadDaily(); else renderDaily(); } }, 30000);
 
   /* ---------- Online 2-player (turn-based games) ---------- */
-  const ONLINE = [["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"]];
+  const ONLINE = [["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"], ["penalty", "Penalty Kick"], ["memory", "Memory Grid"], ["guesswho", "Guess Who"]];
   let room = null, waitTimer = null;
   function renderOnline() {
     const box = $("#online-box"); if (!box) return;
