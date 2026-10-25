@@ -711,8 +711,11 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 /* ---------- Leaderboards ---------- */
 .lb { display: grid; grid-template-columns: minmax(0, 250px) minmax(0, 1fr); gap: 20px; align-items: start; }
 @media (max-width: 760px) { .lb { grid-template-columns: 1fr; } }
-.lb-games { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
-@media (max-width: 760px) { .lb-games { flex-direction: row; overflow-x: auto; padding-bottom: 8px; scrollbar-width: thin; } }
+.lb-side { display: grid; gap: 10px; min-width: 0; align-content: start; }
+.lb-search { width: 100%; box-sizing: border-box; }
+.lb-none { color: var(--muted); font-size: .85rem; padding: 6px 4px; white-space: normal; }
+.lb-games { display: flex; flex-direction: column; gap: 4px; min-width: 0; max-height: 70vh; overflow-y: auto; scrollbar-width: thin; }
+@media (max-width: 760px) { .lb-games { flex-direction: row; overflow-x: auto; overflow-y: hidden; max-height: none; padding-bottom: 8px; scrollbar-width: thin; } }
 .lb-game {
   display: flex; justify-content: space-between; align-items: center; gap: 12px; text-align: left;
   padding: 10px 12px; border-radius: 10px; border: 1px solid transparent; background: transparent; cursor: pointer;
@@ -1056,7 +1059,10 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
         </div>
       </div>
       <div class="lb">
-        <div class="lb-games" id="lb-games" role="group" aria-label="Choose a game"></div>
+        <div class="lb-side">
+          <input class="search lb-search" id="lb-q" type="search" placeholder="🔎 Search for a game" aria-label="Search leaderboards" autocomplete="off">
+          <div class="lb-games" id="lb-games" role="group" aria-label="Choose a game"></div>
+        </div>
         <div class="panel lit">
           <div class="lb-head">
             <div>
@@ -8603,6 +8609,7 @@ function fighterGame() {
   let subs = [];                     // submitted games (no code)
   let scoreDocs = [];                // [{ uid, tag, av, joined, best: { game: { s, at } } }]
   let showAll = 0, genre = "All", query = "", lbKey = "snake", libReady = false;
+  { const lbq = document.getElementById("lb-q"); if (lbq) { let t0 = 0; lbq.addEventListener("input", () => { clearTimeout(t0); t0 = setTimeout(() => renderBoard(), 120); }); lbq.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); lbq.blur(); } }); } }
 
   const readJsonStore = (k) => { try { return JSON.parse(store.get(k) || "{}") || {}; } catch { return {}; } };
   let localBest = readJsonStore("gbl-best");   // best on this device (any account)
@@ -8719,11 +8726,14 @@ function fighterGame() {
     return Math.round(h / 24) + "d ago";
   }
   function renderBoard() {
-    const games = libraryGames();
+    const games = libraryGames(), lq = (($("#lb-q") || {}).value || "").trim().toLowerCase();
+    const shown = lq ? games.filter((g) => g.title.toLowerCase().includes(lq) || (g.genre || "").toLowerCase().includes(lq)) : games;
+    if (shown.length && !shown.some((g) => g.key === lbKey)) lbKey = shown[0].key;
     if (!games.some((g) => g.key === lbKey)) lbKey = games[0].key;
     const game = games.find((g) => g.key === lbKey);
 
-    $("#lb-games").replaceChildren(...games.map((g) => {
+    if (!shown.length) $("#lb-games").replaceChildren(el("p", { class: "lb-none", text: "No game called \"" + lq + "\". Try another name." }));
+    else $("#lb-games").replaceChildren(...shown.map((g) => {
       const top = topScore(g.key);
       return el("button", { class: "lb-game", type: "button", "aria-pressed": String(g.key === lbKey), onclick: () => { lbKey = g.key; renderBoard(); } },
         el("span", { text: g.title }), el("small", { text: top ? fmt(top) : "no score" }));
