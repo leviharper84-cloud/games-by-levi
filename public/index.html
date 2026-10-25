@@ -126,6 +126,9 @@ button, input, select, textarea { font: inherit; color: inherit; }
   letter-spacing: .14em; text-transform: uppercase; padding: 6px 10px; border-radius: 8px;
   transition: color .25s var(--ease), background .25s var(--ease);
 }
+#top > section.page-off { display: none !important; }
+#top > section { min-height: calc(100vh - 160px); }
+.links a.on { color: var(--fg); background: rgba(var(--a2-rgb), .14); box-shadow: inset 0 -2px 0 var(--a1); }
 .links a:hover { color: var(--fg); background: rgba(var(--a2-rgb), .08); }
 .themes { display: flex; gap: 8px; align-items: center; }
 .themes span { font-size: .7rem; letter-spacing: .18em; text-transform: uppercase; color: var(--dim); }
@@ -10250,8 +10253,7 @@ function fighterGame() {
       home.hidden = true; home.classList.remove("leaving", "entering"); hub.hidden = false;
       window.gblWarpTarget = 1;
       if (animate && !reduce) { hub.classList.remove("entering"); void hub.offsetWidth; hub.classList.add("entering"); }
-      const el = target && target !== "games" && document.getElementById(target);
-      if (el) el.scrollIntoView(); else window.scrollTo(0, 0);
+      showPage(target);
     };
     if (animate && !reduce) { window.gblWarpTarget = 14; home.classList.add("leaving"); setTimeout(go, 650); } else go();
   }
@@ -10270,7 +10272,15 @@ function fighterGame() {
     if (e.target.closest && e.target.closest("input, textarea, select, button, a")) return;
     enter("games");
   });
-  function route() { const h = location.hash.slice(1); if (HUB.includes(h)) showHub(h, false); else if (!h || h === "home") showHome(false); }
+  // Every menu item is its own page: only that section shows.
+  function showPage(target) {
+    const secs = [...document.querySelectorAll("#top > section")], ids = secs.map((s0) => s0.id);
+    const id = ids.includes(target) ? target : "library";
+    secs.forEach((s0) => s0.classList.toggle("page-off", s0.id !== id));
+    document.querySelectorAll('.links a, .foot-links a').forEach((a) => { const on = a.getAttribute("href") === "#" + id; a.classList.toggle("on", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
+    window.scrollTo(0, 0);
+  }
+  function route() { const h = location.hash.slice(1); if (HUB.includes(h)) { if (inHub) showPage(h); else showHub(h, false); } else if (!h || h === "home") showHome(false); }
   addEventListener("popstate", route);
   addEventListener("hashchange", route);
 
