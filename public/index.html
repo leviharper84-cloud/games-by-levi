@@ -649,6 +649,8 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .pet-bub[hidden] { display: none; }
 .sw.petsw { display: grid; place-items: center; font-size: 1.4rem; }
 @media (max-width: 700px) { .pet-tag { display: none; } .pet-face { width: 54px; height: 54px; font-size: 2.1rem; } }
+.duel-sel { flex: 1; min-width: 0; }
+.duel-card .btn + .btn { margin-top: 8px; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-x2 { position: absolute; top: 8px; right: 8px; z-index: 2; font: 800 .72rem var(--f-mono); padding: 2px 8px; border-radius: 999px; color: #1a1200; background: #ffd66b; box-shadow: 0 0 12px rgba(255,214,107,.8); }
 .tour-duel { position: absolute; bottom: 8px; left: 8px; z-index: 2; font: 700 .58rem var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border-radius: 999px; color: #05030c; background: #3dffa8; }
@@ -8395,7 +8397,7 @@ function bowlGame() {
     if (!XR.can()) { box.replaceChildren(el("div", { class: "panel lit online-note" }, el("p", { text: "Log in to play your friends on their own devices. You both need an account." }), el("button", { class: "btn hot", type: "button", text: "Log in", onclick: () => XR.login() }))); return; }
     if (room) {
       box.replaceChildren(el("div", { class: "panel lit online-wait" },
-        el("p", { class: "eyebrow", text: "Room ready · " + (ONLINE.find((o) => o[0] === room.game) || ["", ""])[1] }),
+        el("p", { class: "eyebrow", text: "Room ready · " + (room.game.startsWith("duel:") ? duelName(room.game) : (ONLINE.find((o) => o[0] === room.game) || ["", ""])[1]) }),
         el("div", { class: "room-code", text: room.code }),
         el("p", { text: "Tell your friend this code. They open Online on their device and type it in." }),
         el("p", { class: "online-dots", text: "Waiting for your friend to join" }),
@@ -8412,6 +8414,14 @@ function bowlGame() {
     box.replaceChildren(
       el("div", { class: "panel lit" }, el("h3", { class: "tour-h", text: "Start a game" }), el("p", { class: "duo-how", text: "Pick a game and you'll get a code to share." }),
         el("div", { class: "online-games" }, ...ONLINE.map(([k, t]) => el("button", { class: "tour-opt", type: "button", onclick: () => createRoom(k) }, el("b", { text: t }), el("span", { text: "Create a room ▸" }))))),
+      (() => {
+        const opts = BUILTINS.slice().sort((a, b2) => a.title.localeCompare(b2.title));
+        const sel = el("select", { class: "search duel-sel", "aria-label": "Pick a game for the score battle" }, ...opts.map((g) => el("option", { value: g.key, text: g.title })));
+        return el("div", { class: "panel lit duel-card" }, el("h3", { class: "tour-h", text: "⚔️ Score Battle" }),
+          el("p", { class: "duo-how", text: "Pick ANY game. You and your friend each play one run on your own device. Highest score wins!" }),
+          el("div", { class: "join-row" }, sel, el("button", { class: "btn hot", type: "button", text: "Create battle ▸", onclick: () => createRoom("duel:" + sel.value) })),
+          el("button", { class: "btn", type: "button", text: "🎲 Random game battle", onclick: () => createRoom("duel:" + opts[Math.random() * opts.length | 0].key) }));
+      })(),
       el("div", { class: "panel lit" }, el("h3", { class: "tour-h", text: "Join a friend" }), el("p", { class: "duo-how", text: "Type the 4-letter code your friend sees." }),
         el("div", { class: "join-row" }, code, el("button", { class: "btn hot", type: "button", text: "Join ▸", onclick: join }))));
   }
@@ -8427,7 +8437,37 @@ function bowlGame() {
       waitTimer = setTimeout(wait, 1500);
     } catch (e) { toast(e.message); }
   }
+  function duelName(game) { const g = gameOf(game.slice(5)); return "Score Battle · " + (g ? g.title : game.slice(5)); }
+  function startDuel(code, key, seat) {
+    const g = gameOf(key); if (!g) return;
+    let n = 0, alive = true, timer = null, mine = null, theirs = null, done = false;
+    const take = (moves) => { for (const mv of moves) { n++; if (mv.seat !== seat && mv.m && typeof mv.m.score === "number" && theirs == null) { theirs = mv.m.score; if (mine == null) coinPop("⚔️ Your friend scored " + fmt(theirs) + ". Beat it!", true); } } };
+    const finish = () => {
+      if (done || mine == null || theirs == null) return; done = true; clearTimeout(timer);
+      prog.stats.online = stat("online") + 1;
+      if (mine > theirs) { prog.stats.onlineWins = stat("onlineWins") + 1; coinPop("🏆 YOU WON THE SCORE BATTLE!  " + fmt(mine) + " vs " + fmt(theirs), true); if (window.gblWinCoins) window.gblWinCoins(60, "battle win!"); if (window.gblConfetti) window.gblConfetti(220); }
+      else if (mine === theirs) coinPop("🤝 It's a tie!  " + fmt(mine) + " vs " + fmt(theirs), true);
+      else coinPop("Your friend won  " + fmt(theirs) + " vs " + fmt(mine) + ". Rematch?", true);
+      saveProg(); checkAch();
+    };
+    const poll = async () => {
+      if (!alive || done) return;
+      try { const r = await api("/rooms/" + code + "?since=" + n); take(r.moves); finish(); if (r.status === "left" && theirs == null && !done) { toast("Your friend left the battle"); return; } } catch {}
+      if (!done) timer = setTimeout(poll, 1500);
+    };
+    play(g, null, {
+      onScore: async (sc) => {
+        mine = Math.floor(sc) || 0; coinPop("⚔️ You scored " + fmt(mine) + (theirs == null ? ". Waiting for your friend..." : ""), true);
+        for (let i = 0; i < 6; i++) { try { await api("/rooms/" + code + "/move", { method: "POST", body: { n, move: { score: mine } } }); break; } catch (e) { try { take((await api("/rooms/" + code + "?since=" + n)).moves); } catch {} await new Promise((res) => setTimeout(res, 600)); } }
+        finish();
+      },
+      onClose: () => { alive = false; clearTimeout(timer); if (!done) api("/rooms/" + code + "/leave", { method: "POST", body: {} }).catch(() => {}); },
+    });
+    toast("Score Battle! You both get ONE run of " + g.title + ". Highest score wins. (Practice doesn't count.)");
+    poll();
+  }
   function startOnline(code, game, seat) {
+    if (String(game).startsWith("duel:")) return startDuel(code, game.slice(5), seat);
     const g = gameOf(game); if (!g) return;
     let n = 0, alive = true, timer = null, leftShown = false;
     const poll = async () => {

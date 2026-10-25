@@ -311,7 +311,8 @@ async function createRoom(request, env, user) {
   if (!user) fail(401, "Log in to play online.");
   await limit(env, "room:" + user.id, 20, 10 * MIN, "You've made a lot of rooms. Try again in a few minutes.");
   const b = await readJson(request);
-  if (!ONLINE_GAMES.has(b.game)) fail(400, "That game can't be played online yet.");
+  const duel = typeof b.game === "string" && b.game.startsWith("duel:") && BUILTIN_GAMES.has(b.game.slice(5));
+  if (!ONLINE_GAMES.has(b.game) && !duel) fail(400, "That game can't be played online yet.");
   const now = Date.now();
   await env.DB.prepare("DELETE FROM rooms WHERE updated_at < ?").bind(now - 6 * HOUR).run();
   const A = "ABCDEFGHJKLMNPQRSTUVWXYZ";
