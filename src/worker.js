@@ -50,6 +50,7 @@ const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS daily (day TEXT NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, score INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (day, user_id))",
   "CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, game TEXT NOT NULL, host_id INTEGER NOT NULL, guest_id INTEGER, moves TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS rate (key TEXT PRIMARY KEY, count INTEGER NOT NULL, since INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
 ];
 let tablesReady = null;
 function ensureTables(env) {
@@ -108,6 +109,21 @@ async function handle(request, env, url) {
   if (path === "/api/scores" && method === "GET") return getScores(env, user);
   if (path === "/api/scores" && method === "POST") return postScores(request, env, user);
 
+  if (path === "/api/config" && method === "GET") return getConfig(env);
+  if (path.startsWith("/api/admin/")) {
+    if (!isAdmin(user, env)) fail(403, "Only the admin can do that.");
+    if (path === "/api/admin/config" && method === "PUT") return putConfig(request, env);
+    if (path === "/api/admin/overview" && method === "GET") return adminOverview(env);
+    if (path === "/api/admin/users" && method === "GET") return adminUsers(env, url);
+    if (path === "/api/admin/scores" && method === "DELETE") return adminDeleteScores(request, env);
+    if ((m = path.match(/^\/api\/admin\/users\/(\d+)$/))) {
+      if (method === "GET") return adminUser(env, +m[1]);
+      if (method === "PATCH") return adminEditUser(request, env, user, +m[1]);
+      if (method === "DELETE") return adminDeleteUser(env, user, +m[1]);
+    }
+    if ((m = path.match(/^\/api\/admin\/users\/(\d+)\/reset$/)) && method === "POST") return adminReset(request, env, +m[1]);
+    fail(404, "Not found.");
+  }
   if (path === "/api/submissions" && method === "GET") return listSubmissions(env);
   if (path === "/api/submissions" && method === "POST") return createSubmission(request, env, user);
   if ((m = path.match(/^\/api\/submissions\/(\d+)\/code$/)) && method === "GET") return getCode(env, user, +m[1]);
@@ -256,6 +272,8 @@ async function putProgress(request, env, user) {
   await limit(env, "prog:" + user.id, 120, MIN, "Slow down a little.");
   const b = await readJson(request), text = JSON.stringify(b.progress && typeof b.progress === "object" ? b.progress : {});
   if (text.length > 20000) fail(413, "That's too much data.");
+  const old = await env.DB.prepare("SELECT data FROM progress WHERE user_id = ?").bind(user.id).first();
+  if (old) { let o = null; try { o = JSON.parse(old.data); } catch {} if (o && +o.adminAt > (+(b.progress || {}).adminSeen || 0)) return json({ ok: false, reload: true }); }
   await env.DB.prepare("INSERT INTO progress (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, at = excluded.at").bind(user.id, text, Date.now()).run();
   return json({ ok: true });
 }
@@ -648,4 +666,120 @@ export class SlitherArena {
       this.bcast({ t: "kill", v: Number.isInteger(m.bot) ? id + ":" + m.bot : id, by: String(m.by || "").slice(0, 24), vn: String(m.vn || "").slice(0, 16), bn: String(m.bn || "").slice(0, 16) });
     }
   }
+}
+
+/* ------------------------------------------------------------------ */
+/* Admin: game settings for everyone, and player management            */
+/* ------------------------------------------------------------------ */
+
+const num = (v, lo, hi, d) => { const n = +v; return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : d; };
+function cleanConfig(c) {
+  c = c && typeof c === "object" ? c : {};
+  const out = {
+    announce: String(c.announce || "").slice(0, 200),
+    priceMult: num(c.priceMult, 0.25, 10, 1),
+    coinMult: num(c.coinMult, 0, 10, 1),
+    off: Array.isArray(c.off) ? [...new Set(c.off.map(String).filter((k) => BUILTIN_GAMES.has(k)))] : [],
+    gift: null,
+  };
+  if (c.gift && typeof c.gift === "object" && (+c.gift.c || +c.gift.d || +c.gift.g)) {
+    out.gift = { id: String(c.gift.id || Date.now()).slice(0, 20), c: Math.floor(num(c.gift.c, 0, 100000, 0)), d: Math.floor(num(c.gift.d, 0, 10000, 0)), g: Math.floor(num(c.gift.g, 0, 1000, 0)), msg: String(c.gift.msg || "").slice(0, 120) };
+  }
+  return out;
+}
+async function readConfig(env) {
+  const row = await env.DB.prepare("SELECT v FROM config WHERE k = 'game'").first();
+  let c = null; try { c = row ? JSON.parse(row.v) : null; } catch {}
+  return cleanConfig(c);
+}
+async function getConfig(env) { return json({ config: await readConfig(env) }); }
+async function putConfig(request, env) {
+  const b = await readJson(request), c = cleanConfig(b.config);
+  await env.DB.prepare("INSERT INTO config (k, v) VALUES ('game', ?) ON CONFLICT(k) DO UPDATE SET v = excluded.v").bind(JSON.stringify(c)).run();
+  return json({ config: c });
+}
+async function adminOverview(env) {
+  const q = (sql) => env.DB.prepare(sql).first();
+  const [u, sc, pend, act] = await Promise.all([
+    q("SELECT COUNT(*) AS n FROM users"), q("SELECT COUNT(*) AS n FROM scores"),
+    q("SELECT COUNT(*) AS n FROM submissions WHERE status = 'pending'"),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM progress WHERE at > ?").bind(Date.now() - DAY).first(),
+  ]);
+  return json({ users: u.n, scores: sc.n, pending: pend.n, activeToday: act.n });
+}
+function progSummary(data) {
+  let p = null; try { p = JSON.parse(data || "null"); } catch {}
+  const st = (p && p.stats) || {};
+  const xp = +st.xp || 0;
+  return {
+    coins: +st.coins || 0, cash: +st.cash || 0, gems: +st.gems || 0, xp, level: Math.floor(Math.sqrt(xp / 40)) + 1,
+    played: Object.values((p && p.played) || {}).reduce((a, b) => a + (+b || 0), 0),
+    badges: Object.keys((p && p.ach) || {}).length, items: ((p && p.owned) || []).length,
+  };
+}
+async function adminUsers(env, url) {
+  const q = "%" + String(url.searchParams.get("q") || "").toLowerCase().replace(/[%_]/g, "") + "%";
+  const { results } = await env.DB.prepare(`
+    SELECT u.id, u.username, u.created_at, u.avatar_i, u.avatar_c, p.data, p.at,
+      (SELECT COUNT(*) FROM scores s WHERE s.user_id = u.id) AS nscores
+    FROM users u LEFT JOIN progress p ON p.user_id = u.id
+    WHERE u.username_lc LIKE ? ORDER BY COALESCE(p.at, u.created_at) DESC LIMIT 300
+  `).bind(q).all();
+  return json({ users: results.map((r) => ({ id: r.id, username: r.username, joined: r.created_at, av: { i: r.avatar_i, c: r.avatar_c }, lastSeen: r.at || r.created_at, scores: r.nscores, admin: r.username.toLowerCase() === adminName(env), ...progSummary(r.data) })) });
+}
+async function adminUser(env, id) {
+  const u = await env.DB.prepare("SELECT id, username, created_at, avatar_i, avatar_c FROM users WHERE id = ?").bind(id).first();
+  if (!u) fail(404, "That player doesn't exist.");
+  const p = await env.DB.prepare("SELECT data, at FROM progress WHERE user_id = ?").bind(id).first();
+  const { results } = await env.DB.prepare("SELECT game, score, at FROM scores WHERE user_id = ? ORDER BY score DESC").bind(id).all();
+  let data = null; try { data = p ? JSON.parse(p.data) : null; } catch {}
+  return json({ user: { id: u.id, username: u.username, joined: u.created_at, av: { i: u.avatar_i, c: u.avatar_c }, admin: u.username.toLowerCase() === adminName(env) }, progress: data, summary: progSummary(p && p.data), lastSeen: p ? p.at : null, scores: results });
+}
+async function adminEditUser(request, env, me, id) {
+  const b = await readJson(request);
+  const u = await env.DB.prepare("SELECT id, username_lc FROM users WHERE id = ?").bind(id).first();
+  if (!u) fail(404, "That player doesn't exist.");
+  if (b.username != null) {
+    const name = cleanName(b.username); checkName(name);
+    if (u.username_lc === adminName(env) && name.toLowerCase() !== adminName(env)) fail(400, "The admin account keeps its name.");
+    const lc = name.toLowerCase();
+    if (lc !== u.username_lc && (lc === adminName(env) || await env.DB.prepare("SELECT 1 FROM users WHERE username_lc = ?").bind(lc).first())) fail(409, `"${name}" is taken.`);
+    await env.DB.prepare("UPDATE users SET username = ?, username_lc = ? WHERE id = ?").bind(name, lc, id).run();
+  }
+  const keys = ["coins", "cash", "gems", "xp"].filter((k) => b[k] != null);
+  if (keys.length || b.giveItems || b.takeItems) {
+    const row = await env.DB.prepare("SELECT data FROM progress WHERE user_id = ?").bind(id).first();
+    let p = {}; try { p = row ? JSON.parse(row.data) || {} : {}; } catch {}
+    p.stats = p.stats || {};
+    for (const k of keys) p.stats[k] = Math.floor(num(b[k], 0, 1e9, 0));
+    if (Array.isArray(b.giveItems)) p.owned = [...new Set([...(p.owned || []), ...b.giveItems.map(String).slice(0, 300)])];
+    if (b.takeItems) { p.owned = []; p.equip = {}; }
+    const now = Date.now(); p.stats.wAt = now; p.adminAt = now;
+    await env.DB.prepare("INSERT INTO progress (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data").bind(id, JSON.stringify(p), now).run();
+  }
+  return adminUser(env, id);
+}
+async function adminReset(request, env, id) {
+  const b = await readJson(request), what = String(b.what || "");
+  const now = Date.now(), ops = [];
+  if (what === "progress" || what === "all") ops.push(env.DB.prepare("INSERT INTO progress (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data").bind(id, JSON.stringify({ adminAt: now, stats: { wAt: now } }), now));
+  if (what === "scores" || what === "all") ops.push(env.DB.prepare("DELETE FROM scores WHERE user_id = ?").bind(id), env.DB.prepare("DELETE FROM daily WHERE user_id = ?").bind(id));
+  if (!ops.length) fail(400, "Pick what to reset.");
+  await env.DB.batch(ops);
+  return adminUser(env, id);
+}
+async function adminDeleteUser(env, me, id) {
+  if (id === me.id) fail(400, "You can't delete your own admin account.");
+  const u = await env.DB.prepare("SELECT username_lc FROM users WHERE id = ?").bind(id).first();
+  if (!u) fail(404, "That player doesn't exist.");
+  await env.DB.batch(["sessions", "scores", "progress", "settings", "daily", "submissions"].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(id))
+    .concat([env.DB.prepare("DELETE FROM users WHERE id = ?").bind(id)]));
+  return json({ ok: true });
+}
+async function adminDeleteScores(request, env) {
+  const b = await readJson(request), game = String(b.game || "");
+  if (!game) fail(400, "Pick a game.");
+  if (b.user) await env.DB.prepare("DELETE FROM scores WHERE game = ? AND user_id = ?").bind(game, +b.user).run();
+  else await env.DB.prepare("DELETE FROM scores WHERE game = ?").bind(game).run();
+  return json({ ok: true });
 }

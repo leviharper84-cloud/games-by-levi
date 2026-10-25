@@ -589,6 +589,36 @@ textarea.code {
 .badge-rew { font: 700 .7rem var(--f-mono); color: #ffd66b; opacity: .85; }
 .badge-rew.done { color: #3dffa8; }
 .badge-claim { margin-top: 4px; font-size: .68rem; box-shadow: 0 0 18px rgba(255,43,214,.6); }
+.admin-only[hidden] { display: none !important; }
+.announce { position: sticky; top: 0; z-index: 60; display: flex; gap: 10px; align-items: center; justify-content: center; padding: 10px 44px 10px 16px; background: linear-gradient(90deg, #ff2bd6, #a35bff, #22e4ff); color: #fff; font-weight: 700; text-align: center; text-shadow: 0 1px 6px rgba(0,0,0,.4); }
+.announce[hidden] { display: none; }
+.announce button { position: absolute; right: 12px; background: rgba(0,0,0,.25); border: 0; color: #fff; border-radius: 999px; width: 26px; height: 26px; cursor: pointer; }
+.gift-card { display: grid; gap: 6px; padding: 14px; border-radius: 16px; border: 1px solid #ffd66b; background: rgba(255,214,107,.08); box-shadow: 0 0 22px rgba(255,214,107,.25); }
+.adm-tiles { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 10px; margin-bottom: 14px; }
+.adm-tile { display: grid; gap: 2px; padding: 14px; border-radius: 16px; border: 1px solid var(--line); background: var(--panel); }
+.adm-tile b { font: 800 1.6rem var(--f-mono); color: #ffd66b; }
+.adm-tile small { color: var(--muted); }
+.adm-card { display: grid; gap: 10px; padding: 18px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel); margin-bottom: 14px; }
+.adm-card h3 { margin: 6px 0 0; }
+.adm-lab { font: 700 .72rem var(--f-mono); letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.adm-in { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(0,0,0,.3); color: inherit; font: inherit; }
+.adm-in.sm { width: 110px; }
+.adm-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.adm-row > div { flex: 1; min-width: 160px; display: grid; gap: 4px; }
+.adm-k { font-weight: 800; color: #ffd66b; }
+.adm-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.adm-chips .chip[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
+.adm-list { display: grid; gap: 6px; }
+.adm-user { border: 1px solid var(--line); border-radius: 14px; background: rgba(0,0,0,.2); }
+.adm-user.open { border-color: #ffd66b; }
+.adm-urow { display: grid; grid-template-columns: auto 1.3fr .5fr 1.6fr 1.2fr .7fr; gap: 10px; align-items: center; width: 100%; padding: 10px 12px; background: none; border: 0; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.adm-urow small { color: var(--muted); }
+@media (max-width: 760px) { .adm-urow { grid-template-columns: auto 1fr auto; } .adm-urow span:nth-of-type(n+3) { display: none; } }
+.adm-pane { display: grid; gap: 10px; padding: 0 12px 14px; }
+.adm-scores { display: grid; gap: 4px; }
+.adm-score { display: flex; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); }
+.adm-score span { flex: 1; }
+.btn.danger { border-color: #ff4d6d; color: #ff4d6d; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-x2 { position: absolute; top: 8px; right: 8px; z-index: 2; font: 800 .72rem var(--f-mono); padding: 2px 8px; border-radius: 999px; color: #1a1200; background: #ffd66b; box-shadow: 0 0 12px rgba(255,214,107,.8); }
 .tour-duel { position: absolute; bottom: 8px; left: 8px; z-index: 2; font: 700 .58rem var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border-radius: 999px; color: #05030c; background: #3dffa8; }
@@ -888,6 +918,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#leaderboards">Leaderboards</a>
       <a href="#badges">Badges</a>
       <a href="#submit">Submit</a>
+      <a href="#admin" class="admin-only" hidden>👑 Admin</a>
     </nav>
     <div class="themes" role="group" aria-label="Neon color">
       <span>Neon</span>
@@ -1010,6 +1041,19 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       </div>
       <div class="pcard" id="pcard"></div>
       <div class="badges-grid" id="badges-grid"></div>
+    </div>
+  </section>
+
+  <section id="admin" class="admin-only" hidden>
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">Master controls</p>
+          <h2>👑 Admin</h2>
+          <p class="lede">Only you can see this. Change the game for everyone, and track, edit or delete players.</p>
+        </div>
+      </div>
+      <div id="admin-body"></div>
     </div>
   </section>
 
@@ -6644,6 +6688,7 @@ function slitherGame() {
       el("button", { class: "btn sm", type: "button", text: "Log in", onclick: () => openAcct("login") }),
       el("button", { class: "btn sm hot", type: "button", text: "Sign up", onclick: () => openAcct("signup") }));
     $("#owner-note").hidden = !(me && me.admin);
+    if (window.gblShowAdmin) window.gblShowAdmin();
   }
 
   const am = $("#acct-modal"), body = $("#acct-body");
@@ -6964,6 +7009,7 @@ function slitherGame() {
     }
     const nw = (+((a.stats || {}).wAt) || 0) >= (+((b.stats || {}).wAt) || 0) ? a : b;
     if (nw.stats && nw.stats.wAt) for (const k of ["coins", "cash", "gems"]) out.stats[k] = +nw.stats[k] || 0;
+    out.adminSeen = Math.max(+a.adminSeen || 0, +b.adminSeen || 0);
     out.owned = uniq([...(a.owned || []), ...(b.owned || [])]); out.equip = { ...(b.equip || {}), ...(a.equip || {}) };
     const td = new Date().toISOString().slice(0, 10); out.missions = (a.missions && a.missions.day === td) ? a.missions : (b.missions && b.missions.day === td) ? b.missions : a.missions || b.missions || null;
     for (const src of [b.saves || {}, a.saves || {}]) for (const [k, v] of Object.entries(src)) if (v && typeof v === "object" && (!out.saves[k] || (v.at || 0) > (out.saves[k].at || 0))) out.saves[k] = v;
@@ -6979,11 +7025,11 @@ function slitherGame() {
   function saveProg() {
     store.set("gbl-prog", JSON.stringify(prog));
     if (!XR.can()) return;
-    clearTimeout(progTimer); progTimer = setTimeout(() => XR.saveProg(prog).catch(() => {}), 1500);
+    clearTimeout(progTimer); progTimer = setTimeout(() => XR.saveProg(prog).then((r) => { if (r && r.reload) loadProg(); }).catch(() => {}), 1500);
   }
   async function loadProg() {
     if (!XR.can()) return;
-    try { const r = await XR.loadProg(); if (r && typeof r === "object") prog = mergeProg(prog, r); saveProg(); renderExtras(); checkAch(true); } catch {}
+    try { const r = await XR.loadProg(); if (r && typeof r === "object") { if ((+r.adminAt || 0) > (+prog.adminSeen || 0)) { prog = { ...EMPTY_PROG(), ...r, adminSeen: +r.adminAt }; delete prog.adminAt; if (typeof renderWallet === "function") renderWallet(); } else prog = mergeProg(prog, r); } saveProg(); renderExtras(); checkAch(true); } catch {}
   }
   const stat = (k) => (prog && prog.stats && +prog.stats[k]) || 0;
   const isFav = (k) => !!(prog && prog.favs.includes(k));
@@ -7201,80 +7247,81 @@ function slitherGame() {
 
   /* ---------- Rewards: coins, levels, daily missions, spin wheel, shop ---------- */
   const SHOP = [
-    ["sl-pink", "slither", "Bubblegum", 80, "#ff2bd6", "Pink snake for Neon Slither"],
-    ["sl-lime", "slither", "Toxic", 100, "#b6ff3b", "Lime snake for Neon Slither"],
-    ["sl-gold", "slither", "Golden", 200, "#ffc23d", "Shiny gold snake for Neon Slither"],
-    ["sl-fire", "slither", "Inferno", 300, "linear-gradient(90deg,#ff2e4d,#ff8a1f,#ffd66b)", "Burning flame colors"],
-    ["sl-galaxy", "slither", "Galaxy", 350, "linear-gradient(90deg,#a35bff,#ff7be6,#22e4ff)", "Swirling space colors"],
-    ["sl-pumpkin", "slither", "🎃 Pumpkin (event)", 150, "repeating-linear-gradient(90deg,#ff8a1f 0 12px,#1a0b24 12px 20px)", "Hiss-O-Ween only, until Oct 31"],
-    ["sl-rainbow", "slither", "Rainbow", 500, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Every color, always moving"],
-    ["sn-ice", "snake", "Ice", 120, "#6af7ff", "Frozen blue Neon Snake"],
-    ["sn-gold", "snake", "Golden", 150, "#ffc23d", "Gold Neon Snake"],
-    ["sn-fire", "snake", "Inferno", 220, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Neon Snake on fire"],
-    ["sn-ghost", "snake", "Ghost", 260, "rgba(255,255,255,.5)", "See-through spooky snake"],
-    ["sn-rainbow", "snake", "Rainbow", 400, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow Neon Snake"],
-    ["fx-ice", "fx", "Ice Sparks", 150, "linear-gradient(90deg,#bff6ff,#6af7ff)", "Every explosion turns icy blue, in all games"],
-    ["fx-gold", "fx", "Gold Sparks", 180, "linear-gradient(90deg,#ffd66b,#ffc23d)", "Golden sparks in all games"],
-    ["fx-rainbow", "fx", "Rainbow Sparks", 250, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow explosions in all games"],
-    ["fr-gold", "frame", "Gold Frame", 200, "#ffd66b", "A shining gold border around every game"],
-    ["fr-rainbow", "frame", "Rainbow Frame", 350, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-cycling border around every game"],
-    ["fl-noir", "filter", "Noir", 120, "linear-gradient(90deg,#222,#ddd)", "Black-and-white movie look"],
-    ["fl-sunset", "filter", "Sunset", 150, "linear-gradient(90deg,#ff8a1f,#ff2e88)", "Warm golden-hour colors"],
-    ["fl-flip", "filter", "Upside-Down Colors", 200, "linear-gradient(90deg,#00d4ff,#ff2bd6)", "Flip every color. Weird and fun!"],
-    ["fp-blue", "flap", "Blue Jay", 100, "#22e4ff", "A blue bird for Neon Flap"],
-    ["fp-pink", "flap", "Flamingo", 120, "#ff2bd6", "A pink bird for Neon Flap"],
-    ["fp-gold", "flap", "Golden Bird", 200, "#ffd66b", "A golden bird for Neon Flap"],
-    ["bl-lime", "blaster", "Toxic Ship", 120, "#b6ff3b", "A lime ship for Star Blaster"],
-    ["bl-pink", "blaster", "Pink Viper", 120, "#ff2bd6", "A pink ship for Star Blaster"],
-    ["bl-gold", "blaster", "Gold Falcon", 220, "#ffd66b", "A golden ship for Star Blaster"],
-    ["hp-pink", "hop", "Bubblegum", 100, "#ff2bd6", "A pink blob for Sky Hop"],
-    ["hp-cyan", "hop", "Frost", 100, "#22e4ff", "A blue blob for Sky Hop"],
-    ["hp-gold", "hop", "Golden", 200, "#ffd66b", "A golden blob for Sky Hop"],
-    ["gf-pink", "golf", "Pink Ball", 80, "#ff7be6", "A pink ball for Mini Golf"],
-    ["gf-gold", "golf", "Gold Ball", 150, "#ffd66b", "A golden ball for Mini Golf"],
-    ["gf-rainbow", "golf", "Rainbow Ball", 250, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing ball for Mini Golf"],
-    ["hb-blue", "hoops", "Ice Ball", 100, "#22e4ff", "A blue basketball for Hoop Shot"],
-    ["hb-gold", "hoops", "Gold Ball", 180, "#ffd66b", "A golden basketball for Hoop Shot"],
-    ["hb-rainbow", "hoops", "Rainbow Ball", 300, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing basketball for Hoop Shot"],
-    ["b-2x", "boost", "2× Coins (1 hour)", 25, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "Double coins from every game for 1 hour", "$"],
-    ["b-spin", "boost", "Extra Spin", 15, "conic-gradient(#22e4ff,#ff2bd6,#b6ff3b,#ffc23d,#22e4ff)", "One more spin on the wheel right now", "$"],
-    ["b-box", "boost", "Mystery Box", 10, "linear-gradient(135deg,#a35bff,#ff2bd6)", "Coins, dollars or diamonds inside!", "$"],
-    ["b-xp", "boost", "XP Potion", 2, "linear-gradient(135deg,#3dffa8,#22e4ff)", "+400 XP to level up faster", "d"],
-    ["b-mega", "boost", "Mega Chest", 5, "linear-gradient(135deg,#9ff3ff,#ffffff)", "1,000 coins and $50", "d"],
-    ["t-rookie", "title", "Rookie", 5, "#3dffa8", "Show off the title Rookie", "$"],
-    ["t-pro", "title", "Pro Gamer", 30, "#22e4ff", "Show off the title Pro Gamer", "$"],
-    ["t-snake", "title", "Snake King", 40, "#b6ff3b", "Show off the title Snake King", "$"],
-    ["t-speed", "title", "Speed Demon", 50, "#ff4d6d", "Show off the title Speed Demon", "$"],
-    ["t-brain", "title", "Big Brain", 60, "#a35bff", "Show off the title Big Brain", "$"],
-    ["t-legend", "title", "Legend", 10, "#ffd66b", "Show off the title Legend", "d"],
-    ["t-hacker", "title", "Hacker", 20, "#00ff88", "Show off the title Hacker", "d"],
-    ["t-goat", "title", "The GOAT 🐐", 50, "linear-gradient(90deg,#ffd66b,#ffffff,#9ff3ff)", "The best title in the hub", "d"],
-    ["fx-fire", "fx", "Fire Sparks", 20, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Fiery explosions in all games", "$"],
-    ["fx-diamond", "fx", "Diamond Sparks", 5, "linear-gradient(90deg,#ffffff,#9ff3ff,#ffd0f6)", "Sparkling diamond explosions in all games", "d"],
-    ["fr-fire", "frame", "Fire Frame", 35, "linear-gradient(90deg,#ff2e4d,#ff8a1f)", "A blazing border around every game", "$"],
-    ["fr-diamond", "frame", "Diamond Frame", 8, "linear-gradient(90deg,#ffffff,#9ff3ff)", "A twinkling diamond border", "d"],
-    ["fl-neon", "filter", "Super Neon", 15, "linear-gradient(90deg,#ff00e1,#00fff0)", "Extra bright and colorful", "$"],
-    ["fl-matrix", "filter", "Matrix", 25, "linear-gradient(90deg,#002b12,#00ff88)", "Green hacker vision", "$"],
-    ["fl-dream", "filter", "Dream World", 30, "linear-gradient(90deg,#3dffa8,#a35bff)", "Colors from another world", "$"],
-    ["bk-fire", "bricks", "Fire Paddle", 100, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "A fiery paddle for Neon Bricks"],
-    ["bk-lime", "bricks", "Toxic Paddle", 100, "linear-gradient(90deg,#3dffa8,#b6ff3b)", "A green paddle for Neon Bricks"],
-    ["bk-gold", "bricks", "Gold Paddle", 20, "linear-gradient(90deg,#ff8a1f,#ffd66b)", "A golden paddle for Neon Bricks", "$"],
-    ["bk-diamond", "bricks", "Diamond Paddle", 4, "linear-gradient(90deg,#9ff3ff,#ffffff)", "A diamond paddle for Neon Bricks", "d"],
-    ["rn-pink", "runner", "Pink Cube", 80, "#ff2bd6", "A pink cube for the runner"],
-    ["rn-lime", "runner", "Lime Cube", 80, "#b6ff3b", "A lime cube for the runner"],
-    ["rn-gold", "runner", "Gold Cube", 15, "#ffd66b", "A golden cube for the runner", "$"],
-    ["rn-rainbow", "runner", "Rainbow Cube", 3, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing cube", "d"],
-    ["rc-pink", "racer", "Pink Racer", 120, "#ff2bd6", "A pink car for the racer"],
-    ["rc-lime", "racer", "Lime Racer", 120, "#b6ff3b", "A lime car for the racer"],
-    ["rc-gold", "racer", "Gold Racer", 25, "#ffd66b", "A golden car for the racer", "$"],
-    ["rc-rainbow", "racer", "Rainbow Racer", 4, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing car", "d"],
-    ["dr-pink", "drift", "Pink Drifter", 100, "#ff2bd6", "A pink car for the drift game"],
-    ["dr-lime", "drift", "Lime Drifter", 100, "#b6ff3b", "A lime car for the drift game"],
-    ["dr-gold", "drift", "Gold Drifter", 20, "#ffd66b", "A golden car for the drift game", "$"],
-    ["vd-pink", "void", "Pink Fighter", 100, "#ff2bd6", "A pink ship for the space shooter"],
-    ["vd-lime", "void", "Lime Fighter", 100, "#b6ff3b", "A lime ship for the space shooter"],
-    ["vd-gold", "void", "Gold Fighter", 20, "#ffd66b", "A golden ship for the space shooter", "$"],
+    ["sl-pink", "slither", "Bubblegum", 200, "#ff2bd6", "Pink snake for Neon Slither"],
+    ["sl-lime", "slither", "Toxic", 250, "#b6ff3b", "Lime snake for Neon Slither"],
+    ["sl-gold", "slither", "Golden", 500, "#ffc23d", "Shiny gold snake for Neon Slither"],
+    ["sl-fire", "slither", "Inferno", 750, "linear-gradient(90deg,#ff2e4d,#ff8a1f,#ffd66b)", "Burning flame colors"],
+    ["sl-galaxy", "slither", "Galaxy", 880, "linear-gradient(90deg,#a35bff,#ff7be6,#22e4ff)", "Swirling space colors"],
+    ["sl-pumpkin", "slither", "🎃 Pumpkin (event)", 380, "repeating-linear-gradient(90deg,#ff8a1f 0 12px,#1a0b24 12px 20px)", "Hiss-O-Ween only, until Oct 31"],
+    ["sl-rainbow", "slither", "Rainbow", 1250, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Every color, always moving"],
+    ["sn-ice", "snake", "Ice", 300, "#6af7ff", "Frozen blue Neon Snake"],
+    ["sn-gold", "snake", "Golden", 380, "#ffc23d", "Gold Neon Snake"],
+    ["sn-fire", "snake", "Inferno", 550, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Neon Snake on fire"],
+    ["sn-ghost", "snake", "Ghost", 650, "rgba(255,255,255,.5)", "See-through spooky snake"],
+    ["sn-rainbow", "snake", "Rainbow", 1000, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow Neon Snake"],
+    ["fx-ice", "fx", "Ice Sparks", 380, "linear-gradient(90deg,#bff6ff,#6af7ff)", "Every explosion turns icy blue, in all games"],
+    ["fx-gold", "fx", "Gold Sparks", 450, "linear-gradient(90deg,#ffd66b,#ffc23d)", "Golden sparks in all games"],
+    ["fx-rainbow", "fx", "Rainbow Sparks", 620, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow explosions in all games"],
+    ["fr-gold", "frame", "Gold Frame", 500, "#ffd66b", "A shining gold border around every game"],
+    ["fr-rainbow", "frame", "Rainbow Frame", 880, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-cycling border around every game"],
+    ["fl-noir", "filter", "Noir", 300, "linear-gradient(90deg,#222,#ddd)", "Black-and-white movie look"],
+    ["fl-sunset", "filter", "Sunset", 380, "linear-gradient(90deg,#ff8a1f,#ff2e88)", "Warm golden-hour colors"],
+    ["fl-flip", "filter", "Upside-Down Colors", 500, "linear-gradient(90deg,#00d4ff,#ff2bd6)", "Flip every color. Weird and fun!"],
+    ["fp-blue", "flap", "Blue Jay", 250, "#22e4ff", "A blue bird for Neon Flap"],
+    ["fp-pink", "flap", "Flamingo", 300, "#ff2bd6", "A pink bird for Neon Flap"],
+    ["fp-gold", "flap", "Golden Bird", 500, "#ffd66b", "A golden bird for Neon Flap"],
+    ["bl-lime", "blaster", "Toxic Ship", 300, "#b6ff3b", "A lime ship for Star Blaster"],
+    ["bl-pink", "blaster", "Pink Viper", 300, "#ff2bd6", "A pink ship for Star Blaster"],
+    ["bl-gold", "blaster", "Gold Falcon", 550, "#ffd66b", "A golden ship for Star Blaster"],
+    ["hp-pink", "hop", "Bubblegum", 250, "#ff2bd6", "A pink blob for Sky Hop"],
+    ["hp-cyan", "hop", "Frost", 250, "#22e4ff", "A blue blob for Sky Hop"],
+    ["hp-gold", "hop", "Golden", 500, "#ffd66b", "A golden blob for Sky Hop"],
+    ["gf-pink", "golf", "Pink Ball", 200, "#ff7be6", "A pink ball for Mini Golf"],
+    ["gf-gold", "golf", "Gold Ball", 380, "#ffd66b", "A golden ball for Mini Golf"],
+    ["gf-rainbow", "golf", "Rainbow Ball", 620, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing ball for Mini Golf"],
+    ["hb-blue", "hoops", "Ice Ball", 250, "#22e4ff", "A blue basketball for Hoop Shot"],
+    ["hb-gold", "hoops", "Gold Ball", 450, "#ffd66b", "A golden basketball for Hoop Shot"],
+    ["hb-rainbow", "hoops", "Rainbow Ball", 750, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing basketball for Hoop Shot"],
+    ["b-2x", "boost", "2× Coins (1 hour)", 75, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "Double coins from every game for 1 hour", "$"],
+    ["b-spin", "boost", "Extra Spin", 60, "conic-gradient(#22e4ff,#ff2bd6,#b6ff3b,#ffc23d,#22e4ff)", "One more spin on the wheel right now", "$"],
+    ["b-box", "boost", "Mystery Box", 30, "linear-gradient(135deg,#a35bff,#ff2bd6)", "Coins, dollars or diamonds inside!", "$"],
+    ["b-xp", "boost", "XP Potion", 4, "linear-gradient(135deg,#3dffa8,#22e4ff)", "+400 XP to level up faster", "d"],
+    ["b-mega", "boost", "Mega Chest", 10, "linear-gradient(135deg,#9ff3ff,#ffffff)", "1,000 coins and $50", "d"],
+    ["t-rookie", "title", "Rookie", 15, "#3dffa8", "Show off the title Rookie", "$"],
+    ["t-pro", "title", "Pro Gamer", 90, "#22e4ff", "Show off the title Pro Gamer", "$"],
+    ["t-snake", "title", "Snake King", 120, "#b6ff3b", "Show off the title Snake King", "$"],
+    ["t-speed", "title", "Speed Demon", 150, "#ff4d6d", "Show off the title Speed Demon", "$"],
+    ["t-brain", "title", "Big Brain", 180, "#a35bff", "Show off the title Big Brain", "$"],
+    ["t-legend", "title", "Legend", 20, "#ffd66b", "Show off the title Legend", "d"],
+    ["t-hacker", "title", "Hacker", 40, "#00ff88", "Show off the title Hacker", "d"],
+    ["t-goat", "title", "The GOAT 🐐", 100, "linear-gradient(90deg,#ffd66b,#ffffff,#9ff3ff)", "The best title in the hub", "d"],
+    ["fx-fire", "fx", "Fire Sparks", 60, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Fiery explosions in all games", "$"],
+    ["fx-diamond", "fx", "Diamond Sparks", 10, "linear-gradient(90deg,#ffffff,#9ff3ff,#ffd0f6)", "Sparkling diamond explosions in all games", "d"],
+    ["fr-fire", "frame", "Fire Frame", 105, "linear-gradient(90deg,#ff2e4d,#ff8a1f)", "A blazing border around every game", "$"],
+    ["fr-diamond", "frame", "Diamond Frame", 16, "linear-gradient(90deg,#ffffff,#9ff3ff)", "A twinkling diamond border", "d"],
+    ["fl-neon", "filter", "Super Neon", 45, "linear-gradient(90deg,#ff00e1,#00fff0)", "Extra bright and colorful", "$"],
+    ["fl-matrix", "filter", "Matrix", 75, "linear-gradient(90deg,#002b12,#00ff88)", "Green hacker vision", "$"],
+    ["fl-dream", "filter", "Dream World", 90, "linear-gradient(90deg,#3dffa8,#a35bff)", "Colors from another world", "$"],
+    ["bk-fire", "bricks", "Fire Paddle", 250, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "A fiery paddle for Neon Bricks"],
+    ["bk-lime", "bricks", "Toxic Paddle", 250, "linear-gradient(90deg,#3dffa8,#b6ff3b)", "A green paddle for Neon Bricks"],
+    ["bk-gold", "bricks", "Gold Paddle", 60, "linear-gradient(90deg,#ff8a1f,#ffd66b)", "A golden paddle for Neon Bricks", "$"],
+    ["bk-diamond", "bricks", "Diamond Paddle", 8, "linear-gradient(90deg,#9ff3ff,#ffffff)", "A diamond paddle for Neon Bricks", "d"],
+    ["rn-pink", "runner", "Pink Cube", 200, "#ff2bd6", "A pink cube for the runner"],
+    ["rn-lime", "runner", "Lime Cube", 200, "#b6ff3b", "A lime cube for the runner"],
+    ["rn-gold", "runner", "Gold Cube", 45, "#ffd66b", "A golden cube for the runner", "$"],
+    ["rn-rainbow", "runner", "Rainbow Cube", 6, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing cube", "d"],
+    ["rc-pink", "racer", "Pink Racer", 300, "#ff2bd6", "A pink car for the racer"],
+    ["rc-lime", "racer", "Lime Racer", 300, "#b6ff3b", "A lime car for the racer"],
+    ["rc-gold", "racer", "Gold Racer", 75, "#ffd66b", "A golden car for the racer", "$"],
+    ["rc-rainbow", "racer", "Rainbow Racer", 8, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing car", "d"],
+    ["dr-pink", "drift", "Pink Drifter", 250, "#ff2bd6", "A pink car for the drift game"],
+    ["dr-lime", "drift", "Lime Drifter", 250, "#b6ff3b", "A lime car for the drift game"],
+    ["dr-gold", "drift", "Gold Drifter", 60, "#ffd66b", "A golden car for the drift game", "$"],
+    ["vd-pink", "void", "Pink Fighter", 250, "#ff2bd6", "A pink ship for the space shooter"],
+    ["vd-lime", "void", "Lime Fighter", 250, "#b6ff3b", "A lime ship for the space shooter"],
+    ["vd-gold", "void", "Gold Fighter", 60, "#ffd66b", "A golden ship for the space shooter", "$"],
   ];
+  const cost = (n) => Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
   const SHOP_GROUPS = [["boost", "🚀 Boosts", ""], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
   const SPIN_MS = 24 * 3600 * 1000;
@@ -7295,18 +7342,21 @@ function slitherGame() {
   }
   const CHEST_MS = 4 * 3600 * 1000;
   const LOGIN_REW = [[50, 0, 0], [0, 5, 0], [100, 0, 0], [0, 10, 0], [150, 0, 0], [0, 0, 2], [300, 20, 5]];
-  const BANK = [["c", 500, "$", 10], ["$", 10, "c", 400], ["$", 25, "d", 1], ["d", 1, "c", 300]];
+  const BANK = [["c", 1000, "$", 10], ["$", 10, "c", 300], ["$", 50, "d", 1], ["d", 1, "c", 250]];
   const localDay = (t) => { const d = new Date(t); return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0"); };
   function loginInfo() {
     const [day, n] = String(prog.stats.login || "").split("|"), today = localDay(Date.now()), yest = localDay(Date.now() - 864e5);
     const claimed = day === today, streak = claimed ? (+n || 1) : day === yest ? (+n || 0) + 1 : 1;
     return { claimed, streak, today };
   }
-  const bonusDue = () => !loginInfo().claimed || Date.now() - stat("chestAt") >= CHEST_MS || !!(window.gblBadgeDue && window.gblBadgeDue());
+  const bonusDue = () => !!((window.GCFG || {}).gift && !stat("gift_" + window.GCFG.gift.id)) || !loginInfo().claimed || Date.now() - stat("chestAt") >= CHEST_MS || !!(window.gblBadgeDue && window.gblBadgeDue());
   const rewLab = (r) => [r[0] ? fmt(r[0]) + " ⚡" : "", r[1] ? "$" + r[1] : "", r[2] ? r[2] + " 💎" : ""].filter(Boolean).join(" + ");
   function bonusTab() {
     const li = loginInfo(), idx = (li.streak - 1) % 7, gone = Date.now() - stat("chestAt"), chestOk = gone >= CHEST_MS, left = CHEST_MS - gone;
+    const gf = (window.GCFG || {}).gift;
     return el("div", { class: "bonus" },
+      gf && !stat("gift_" + gf.id) ? el("div", { class: "gift-card" }, el("b", { text: "🎁 A gift from Levi!" }), el("span", { text: gf.msg || "Thanks for playing!" }),
+        el("button", { class: "btn hot", type: "button", text: "Claim " + rewLab([gf.c, gf.d, gf.g]), onclick: () => { if (stat("gift_" + gf.id)) return; prog.stats["gift_" + gf.id] = 1; saveProg(); window.gblGive(gf.c, gf.d, gf.g, "gift!"); renderRewards(); } })) : null,
       el("p", { class: "eyebrow set-h2", text: "📅 Daily login streak · day " + li.streak }),
       el("div", { class: "login-row" }, ...LOGIN_REW.map((r, i) => el("div", { class: "login-day" + (i < idx || (i === idx && li.claimed) ? " got" : i === idx ? " now" : "") }, el("small", { text: "DAY " + (i + 1) }), el("b", { text: rewLab(r) })))),
       el("button", { class: "btn" + (li.claimed ? "" : " hot"), type: "button", disabled: li.claimed, text: li.claimed ? "Come back tomorrow for day " + (li.streak + 1) : "Claim day " + li.streak + " ▸", onclick: () => {
@@ -7334,7 +7384,7 @@ function slitherGame() {
     else if (k === "boost") { prog.stats.boostUntil = Math.max(Date.now(), stat("boostUntil")) + 30 * 60000; saveProg(); coinPop("⚡ 2× COINS for 30 minutes! Go play!", true); confetti(100); }
     else if (k === "again") { prog.stats.spinGrant = stat("spinGrant") + 1; saveProg(); coinPop("🎡 Lucky! Spin again!", true); }
     else if (k === "skin") {
-      const owned = new Set(prog.owned || []), free = SHOP.filter((it) => !owned.has(it[0]) && !it[6] && it[3] <= 250 && it[0] !== "sl-pumpkin");
+      const owned = new Set(prog.owned || []), free = SHOP.filter((it) => !owned.has(it[0]) && !it[6] && it[3] <= 600 && it[0] !== "sl-pumpkin");
       if (!free.length) { giveCoins(250, "(you own them all!)"); return; }
       const it = free[Math.floor(Math.random() * free.length)]; prog.owned = [...owned, it[0]]; saveProg(); coinPop("🎁 FREE SKIN: " + it[2] + "! Equip it in the shop", true); confetti(160);
     }
@@ -7409,11 +7459,11 @@ function slitherGame() {
   /* hooks */
   window.gblReward = (cur, s) => {
     if (!cur || !cur.g || !BUILTINS.some((b) => b.key === cur.g.key)) return;
-    const wk = new Date().getDay() % 6 === 0, bst = stat("boostUntil") > Date.now(), n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1) * (bst ? 2 : 1);
+    const wk = new Date().getDay() % 6 === 0, bst = stat("boostUntil") > Date.now(), n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1) * (bst ? 2 : 1), cm = (window.GCFG || {}).coinMult, n2 = Math.round(n * (cm == null ? 1 : cm));
     const dl = (1 + Math.min(4, Math.floor(Math.log10(Math.max(1, s))))) * (bst ? 2 : 1);
     const prevBest = typeof myBest === "function" ? myBest(cur.g.key) || 0 : 0;
     giveCash(dl, null, true);
-    giveCoins(n, "+$" + dl + "  " + (cur.daily ? "daily bonus! " : "") + (wk ? "x2 weekend! " : "") + (bst ? "2× boost!" : ""));
+    giveCoins(n2, "+$" + dl + "  " + (cur.daily ? "daily bonus! " : "") + (wk ? "x2 weekend! " : "") + (bst ? "2× boost!" : ""));
     if (!stat("fp_" + cur.g.key)) { prog.stats["fp_" + cur.g.key] = 1; saveProg(); setTimeout(() => window.gblGive(50, 5, 1, "first time playing " + cur.g.title + "!"), 2600); }
     if (s > 0 && s > prevBest && prevBest > 0) { setTimeout(() => { giveCash(10, null, true); coinPop("🏅 NEW PERSONAL BEST in " + cur.g.title + "!  +$10", true); if (window.gblConfetti) window.gblConfetti(150); }, 900); }
     missionProgress(cur.g.key, s);
@@ -7467,8 +7517,8 @@ function slitherGame() {
         el("div", { class: "shop-grid" },
           gk === "boost" ? null : el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : "Classic" }), el("small", { text: "Free" }),
             el("button", { class: "btn sm", type: "button", disabled: !eq[gk], text: !eq[gk] ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: null }; saveProg(); renderRewards(); } })),
-          ...SHOP.filter((it) => it[1] === gk && (it[0] !== "sl-pumpkin" || Date.now() < Date.parse("2026-11-01T00:00:00Z") || (prog.owned || []).includes(it[0]))).map(([id, , name, price, col, sub, cur]) => {
-            const has = owned.has(id), on = eq[gk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = cur === "d" ? " gem" : cur === "$" ? " cash" : "";
+          ...SHOP.filter((it) => it[1] === gk && (it[0] !== "sl-pumpkin" || Date.now() < Date.parse("2026-11-01T00:00:00Z") || (prog.owned || []).includes(it[0]))).map(([id, , name, price0, col, sub, cur]) => {
+            const price = cost(price0), has = owned.has(id), on = eq[gk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = cur === "d" ? " gem" : cur === "$" ? " cash" : "";
             if (gk === "boost") return el("div", { class: "shop-item" + tag }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
               el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); renderRewards(); } }));
             return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (gk === "title" ? " ttl" : ""), style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
@@ -7486,6 +7536,101 @@ function slitherGame() {
   document.querySelectorAll("[data-wallet]").forEach((b2) => b2.addEventListener("click", () => openRewards()));
   document.querySelectorAll("[data-rewards]").forEach((b2) => b2.addEventListener("click", () => openRewards()));
   renderWallet();
+
+  /* ---------- Live game settings from the admin ---------- */
+  window.GCFG = window.GCFG || {};
+  const ALLB = BUILTINS.slice(), ALLD = DUO.slice();
+  const annBar = el("div", { class: "announce", hidden: true }); document.body.prepend(annBar);
+  function applyCfg() {
+    const c = window.GCFG || {}, off = new Set(c.off || []);
+    BUILTINS.splice(0, BUILTINS.length, ...ALLB.filter((g) => !off.has(g.key)));
+    DUO.splice(0, DUO.length, ...ALLD.filter((d) => !off.has(d.key)));
+    DUO_KEYS.clear(); DUO.forEach((d) => DUO_KEYS.add(d.key));
+    annBar.hidden = !c.announce; annBar.replaceChildren(el("span", { text: "📢 " + (c.announce || "") }), el("button", { type: "button", "aria-label": "Hide", text: "✕", onclick: () => { annBar.hidden = true; } }));
+    try { renderLibrary(); renderDuo(); renderWallet(); } catch (e) {}
+  }
+  if (XR.online) api("/config").then((r) => { window.GCFG = r.config || {}; applyCfg(); }).catch(() => {});
+
+  /* ---------- Admin panel (only the admin account sees it) ---------- */
+  const adm = { q: "", users: [], open: null };
+  const ago = (t) => { if (!t) return "never"; const m = Math.floor((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? m + "m ago" : m < 1440 ? Math.floor(m / 60) + "h ago" : Math.floor(m / 1440) + "d ago"; };
+  window.gblShowAdmin = () => { const on = !!(me && me.admin && XR.online); document.querySelectorAll(".admin-only").forEach((e) => { e.hidden = !on; }); if (on) renderAdmin(); };
+  async function admCall(path, opts, okMsg) { try { const r = await api(path, opts); if (okMsg) toast(okMsg); return r; } catch (e) { toast(e.message || "That didn't work"); return null; } }
+  async function renderAdmin() {
+    const box = $("#admin-body"); if (!box) return;
+    const ov = (await admCall("/admin/overview")) || {};
+    const c = { announce: "", priceMult: 1, coinMult: 1, off: [], gift: null, ...(window.GCFG || {}) };
+    const tiles = el("div", { class: "adm-tiles" }, ...[["👥", ov.users, "Players"], ["🔥", ov.activeToday, "Active today"], ["🏆", ov.scores, "High scores"], ["📥", ov.pending, "Games waiting"]].map(([i, n, l]) => el("div", { class: "adm-tile" }, el("span", { text: i }), el("b", { text: fmt(n || 0) }), el("small", { text: l }))));
+    const ann = el("input", { class: "adm-in", type: "text", maxlength: 200, placeholder: "Message everyone sees at the top (leave empty for none)", value: c.announce });
+    const sel = (vals, cur, lab) => el("select", { class: "adm-in" }, ...vals.map((v) => { const o = el("option", { value: v, text: lab(v) }); if (+v === +cur) o.selected = true; return o; }));
+    const pm = sel([0.5, 1, 1.5, 2, 3, 5], c.priceMult, (v) => v === 1 ? "Normal prices" : v + "× prices"), cm = sel([0, 0.5, 1, 2, 3, 5], c.coinMult, (v) => v === 1 ? "Normal coins" : v === 0 ? "No coins from games" : v + "× coins from games");
+    const off = new Set(c.off || []);
+    const offBox = el("div", { class: "adm-chips" }, ...ALLB.map((g) => el("button", { class: "chip", type: "button", "aria-pressed": String(!off.has(g.key)), text: g.title, onclick: (e) => { if (off.has(g.key)) off.delete(g.key); else off.add(g.key); e.currentTarget.setAttribute("aria-pressed", String(!off.has(g.key))); } })));
+    const gc = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "⚡ coins" }), gd = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "$ dollars" }), gg = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "💎 diamonds" }), gm = el("input", { class: "adm-in", type: "text", maxlength: 120, placeholder: "Gift message" });
+    const save = async (gift) => {
+      const body = { announce: ann.value.trim(), priceMult: +pm.value, coinMult: +cm.value, off: [...off], gift: gift === undefined ? c.gift : gift };
+      const r = await admCall("/admin/config", { method: "PUT", body: { config: body } }, "Saved for everyone ✓");
+      if (r) { window.GCFG = r.config; applyCfg(); renderAdmin(); }
+    };
+    const ctl = el("div", { class: "adm-card" },
+      el("h3", { text: "🎮 Game controls (for everyone)" }),
+      el("label", { class: "adm-lab", text: "Announcement" }), ann,
+      el("div", { class: "adm-row" }, el("div", {}, el("label", { class: "adm-lab", text: "Shop prices" }), pm), el("div", {}, el("label", { class: "adm-lab", text: "Coins from games" }), cm)),
+      el("label", { class: "adm-lab", text: "Games that are ON (tap to turn a game off)" }), offBox,
+      el("button", { class: "btn hot", type: "button", text: "Save game controls", onclick: () => save() }),
+      el("h3", { text: "🎁 Send a gift to everyone" }),
+      c.gift ? el("p", { class: "set-note", text: "Current gift: " + rewLab([c.gift.c, c.gift.d, c.gift.g]) + (c.gift.msg ? " · \"" + c.gift.msg + "\"" : "") }) : null,
+      el("div", { class: "adm-row" }, gc, gd, gg), gm,
+      el("div", { class: "adm-row" },
+        el("button", { class: "btn hot", type: "button", text: "Send gift", onclick: () => { if (!(+gc.value || +gd.value || +gg.value)) return toast("Add some coins, dollars or diamonds"); save({ id: String(Date.now()), c: +gc.value || 0, d: +gd.value || 0, g: +gg.value || 0, msg: gm.value.trim() }); } }),
+        c.gift ? el("button", { class: "btn", type: "button", text: "Stop the gift", onclick: () => save(null) }) : null));
+    const lbSel = el("select", { class: "adm-in" }, ...ALLB.map((g) => el("option", { value: g.key, text: g.title })));
+    const lb = el("div", { class: "adm-card" }, el("h3", { text: "🏆 Leaderboards" }), el("div", { class: "adm-row" }, lbSel,
+      el("button", { class: "btn", type: "button", text: "Clear this leaderboard", onclick: async () => { if (!confirm("Delete EVERY score on this leaderboard?")) return; await admCall("/admin/scores", { method: "DELETE", body: { game: lbSel.value } }, "Leaderboard cleared"); refresh("scores"); } })),
+      el("p", { class: "set-note" }, "Waiting games are reviewed on the ", el("a", { href: "#submit", text: "Submit page" }), " (Approve, Reject or Delete)."));
+    const q = el("input", { class: "adm-in", type: "search", placeholder: "Search players by name", value: adm.q });
+    const list = el("div", { class: "adm-list" });
+    const loadUsers = async () => { const r = await admCall("/admin/users?q=" + encodeURIComponent(adm.q)); adm.users = (r && r.users) || []; drawUsers(); };
+    let qt = 0; q.addEventListener("input", () => { adm.q = q.value.trim(); clearTimeout(qt); qt = setTimeout(loadUsers, 300); });
+    function drawUsers() {
+      list.replaceChildren(...(adm.users.length ? adm.users.map((u) => el("div", { class: "adm-user" + (adm.open === u.id ? " open" : "") },
+        el("button", { class: "adm-urow", type: "button", onclick: () => { adm.open = adm.open === u.id ? null : u.id; drawUsers(); } },
+          avEl(u.av, "sm"), el("b", { text: u.username + (u.admin ? " 👑" : "") }), el("span", { text: "LV " + u.level }), el("span", { text: "⚡" + fmt(u.coins) + "  $" + fmt(u.cash) + "  💎" + fmt(u.gems) }), el("span", { text: u.played + " plays · " + u.badges + " badges" }), el("small", { text: ago(u.lastSeen) })),
+        adm.open === u.id ? userPanel(u.id) : null)) : [el("p", { class: "set-note", text: "No players found." })]));
+    }
+    function userPanel(id) {
+      const pane = el("div", { class: "adm-pane", text: "Loading…" });
+      admCall("/admin/users/" + id).then((r) => { if (!r) return; drawPane(pane, r); });
+      return pane;
+    }
+    function drawPane(pane, r) {
+      const u = r.user, sm = r.summary, id = u.id;
+      const nm = el("input", { class: "adm-in", type: "text", value: u.username });
+      const f = (v, ph) => el("input", { class: "adm-in sm", type: "number", min: 0, value: v, placeholder: ph });
+      const ic = f(sm.coins, "coins"), id2 = f(sm.cash, "dollars"), ig = f(sm.gems, "diamonds"), ix = f(sm.xp, "XP");
+      const redo = (x2) => { if (x2) { drawPane(pane, x2); loadUsersQuiet(); } };
+      const titleOf = (k) => (ALLB.find((g) => g.key === k) || { title: k }).title;
+      pane.replaceChildren(
+        el("p", { class: "set-note", text: "Joined " + new Date(u.joined).toLocaleDateString() + " · last seen " + ago(r.lastSeen) + " · level " + sm.level + " · " + sm.items + " shop items · " + sm.badges + " badges" }),
+        el("div", { class: "adm-row" }, nm, el("button", { class: "btn sm", type: "button", text: "Rename", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { username: nm.value } }, "Renamed ✓")) })),
+        el("div", { class: "adm-row" }, el("span", { class: "adm-k", text: "⚡" }), ic, el("span", { class: "adm-k", text: "$" }), id2, el("span", { class: "adm-k", text: "💎" }), ig, el("span", { class: "adm-k", text: "XP" }), ix,
+          el("button", { class: "btn sm hot", type: "button", text: "Save money", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { coins: +ic.value || 0, cash: +id2.value || 0, gems: +ig.value || 0, xp: +ix.value || 0 } }, "Saved ✓")) })),
+        el("div", { class: "adm-row wrapr" },
+          el("button", { class: "btn sm", type: "button", text: "🎁 Give every shop item", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { giveItems: SHOP.filter((it) => it[1] !== "boost").map((it) => it[0]) } }, "Gave everything ✓")) }),
+          el("button", { class: "btn sm", type: "button", text: "Take all items", onclick: async () => { if (confirm("Take away all of " + u.username + "'s shop items?")) redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { takeItems: true } }, "Items removed")); } }),
+          el("button", { class: "btn sm", type: "button", text: "Reset progress", onclick: async () => { if (confirm("Reset ALL of " + u.username + "'s progress (coins, levels, badges, items)?")) redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "progress" } }, "Progress reset")); } }),
+          el("button", { class: "btn sm", type: "button", text: "Delete all scores", onclick: async () => { if (confirm("Delete every high score " + u.username + " has?")) { redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "scores" } }, "Scores deleted")); refresh("scores"); } } }),
+          u.admin ? null : el("button", { class: "btn sm danger", type: "button", text: "🗑 Delete account", onclick: async () => { if (!confirm("Delete " + u.username + "'s account forever? This can't be undone.")) return; if (await admCall("/admin/users/" + id, { method: "DELETE" }, "Account deleted")) { adm.open = null; loadUsers(); refresh("scores"); } } })),
+        r.scores.length ? el("div", { class: "adm-scores" }, el("label", { class: "adm-lab", text: "High scores" }), ...r.scores.map((sc) => el("div", { class: "adm-score" }, el("span", { text: titleOf(sc.game) }), el("b", { text: fmt(sc.score) }),
+          el("button", { class: "linkbtn", type: "button", text: "delete", onclick: async () => { const ok = await admCall("/admin/scores", { method: "DELETE", body: { game: sc.game, user: id } }, "Score deleted"); if (ok) { redo(await admCall("/admin/users/" + id)); refresh("scores"); } } })))) : el("p", { class: "set-note", text: "No high scores yet." }));
+    }
+    async function loadUsersQuiet() { const r = await admCall("/admin/users?q=" + encodeURIComponent(adm.q)); if (r) adm.users = r.users; }
+    const players = el("div", { class: "adm-card" }, el("h3", { text: "👥 Players" }), q, el("p", { class: "set-note", text: "Tap a player to see and change everything about them. Changes reach them the next time they load the site." }), list);
+    box.replaceChildren(tiles, ctl, players, lb);
+    loadUsers();
+  }
+  window.gblShowAdmin();
+
 
   /* ---------- Extra fun: confetti, streaks, weekend bonus, surprise me, player card ---------- */
   const confettiCv = el("canvas", { class: "confetti", "aria-hidden": "true" }); document.body.append(confettiCv);
@@ -7806,7 +7951,7 @@ function slitherGame() {
 (() => {
   const home = document.getElementById("home"), hub = document.getElementById("hub");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const HUB = ["games", "library", "two-player", "tournament", "online", "leaderboards", "badges", "submit", "queue"];
+  const HUB = ["games", "library", "two-player", "tournament", "online", "leaderboards", "badges", "admin", "submit", "queue"];
   let inHub = false;
   const setHash = (h) => { try { history.pushState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) {} };
   function showHub(target, animate) {
