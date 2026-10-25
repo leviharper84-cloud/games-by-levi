@@ -4,7 +4,7 @@
  * with accounts, leaderboards and game submissions stored in a D1 database.
  */
 
-const BUILTIN_GAMES = new Set(["snake", "bricks", "pong", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "pingpong", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "connect4", "reversi", "beat", "simon", "chess", "guesswho", "slither", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "tug", "clash", "thief", "stack", "crossing", "airhockey", "whack", "bowling", "merge", "colordash", "blades", "ttt", "dots"]);
+const BUILTIN_GAMES = new Set(["snake", "bricks", "pong", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "pingpong", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "connect4", "reversi", "beat", "simon", "chess", "guesswho", "slither", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "tug", "clash", "thief", "stack", "crossing", "airhockey", "whack", "bowling", "merge", "colordash", "blades", "ttt", "dots", "solitaire"]);
 const GENRES = new Set(["Arcade", "Action", "Puzzle", "Racing", "Platformer", "Sports", "Strategy", "Other"]);
 const USER_RE = /^[A-Za-z0-9 _.\-]{3,16}$/;
 const MAX_CODE_BYTES = 200 * 1024;
@@ -285,7 +285,7 @@ async function putProgress(request, env, user) {
 /* Daily challenge: one game per day (UTC), its own leaderboard        */
 /* ------------------------------------------------------------------ */
 
-const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling", "merge", "colordash", "blades"];
+const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling", "merge", "colordash", "blades", "solitaire"];
 const dayKey = (t = Date.now()) => new Date(t).toISOString().slice(0, 10);
 function dailyGame(day) { let h = 7; for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return DAILY_POOL[h % DAILY_POOL.length]; }
 async function getDaily(env, user) {

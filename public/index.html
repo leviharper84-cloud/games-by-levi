@@ -654,6 +654,14 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .like-n { font: 700 .66rem var(--f-mono); color: #ff7be6; }
 .strip.featured { border: 1px solid rgba(255,214,107,.5); border-radius: 18px; padding: 12px 14px; background: rgba(255,214,107,.06); box-shadow: 0 0 24px rgba(255,214,107,.15); }
 .feat-txt { align-self: center; color: #ffd66b; font-weight: 700; margin: 0 0 0 10px; }
+.turns-head { grid-column: 1 / -1; margin-top: 18px; }
+.turns-head h3 { margin: 0 0 4px; }
+.turns-grid { grid-column: 1 / -1; display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 10px; }
+.turn-card { display: grid; gap: 6px; padding: 8px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); color: inherit; font: inherit; text-align: left; cursor: pointer; }
+.turn-card .screen { height: 70px; border-radius: 10px; }
+.turn-card b { font-size: .85rem; }
+.turn-card span { font: 700 .68rem var(--f-mono); color: #ff7be6; }
+.turn-card:hover { border-color: #ff2bd6; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-x2 { position: absolute; top: 8px; right: 8px; z-index: 2; font: 800 .72rem var(--f-mono); padding: 2px 8px; border-radius: 999px; color: #1a1200; background: #ffd66b; box-shadow: 0 0 12px rgba(255,214,107,.8); }
 .tour-duel { position: absolute; bottom: 8px; left: 8px; z-index: 2; font: 700 .58rem var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border-radius: 999px; color: #05030c; background: #3dffa8; }
@@ -935,7 +943,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <div class="meter" aria-label="Library progress">
       <div class="meter-top">
         <span class="meter-label">Cabinets lit</span>
-        <span class="meter-num"><b id="lit-count">58</b> / 1000</span>
+        <span class="meter-num"><b id="lit-count">59</b> / 1000</span>
       </div>
       <div class="ticks" id="ticks"></div>
     </div>
@@ -1005,7 +1013,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
         <div>
           <p class="eyebrow">Grab a friend</p>
           <h2>2-player games</h2>
-          <p class="lede">Play side by side on one keyboard, or share an iPad. Matches are just for fun and never go on the leaderboards.</p>
+          <p class="lede">Every game can be played with 2 players! Head-to-head games are first, then take-turns games where you pass the iPad. Matches are just for fun and never go on the leaderboards.</p>
         </div>
       </div>
       <div class="duo-grid" id="duo-grid"></div>
@@ -1206,7 +1214,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#submit">Submit a game</a>
       <a href="#queue">Queue</a>
     </nav>
-    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">58</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
+    <div class="foot-note">The Ultimate Gaming Hub &middot; <span id="foot-count">59</span> of 1000 cabinets lit &middot; &copy; <span id="year">2026</span> Levi</div>
   </div>
 </footer>
 </div>
@@ -1494,16 +1502,27 @@ function SHELL() {
   }
   let SAVED = window.SAVE0 || null;
   const contBtn = document.getElementById("cont");
-  function saveGame(d) { if (S.practice || S.duo) return; SAVED = d ? { ...d, score: Math.floor(S.score) } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); } catch (e) {} }
+  function saveGame(d) { if (S.practice || S.duo || S.tt) return; SAVED = d ? { ...d, score: Math.floor(S.score) } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); } catch (e) {} }
   function start(practice, duo, cont) {
     if (window.TOUR0) { duo = true; practice = false; }
-    S.duo = !!(duo && G.duo); S.practice = !!practice && !S.duo; S.bot = S.duo && !!window.BOT0 && !window.ONLINE0; S.online = S.duo ? (window.ONLINE0 || 0) : 0; RQ.length = 0;
+    const wantTT = !!duo && !G.duo && !window.ONLINE0 && !window.TOUR0;
+    if (wantTT) { if (S.tt && !S.tt.done && S.tt.s[0] != null && S.tt.p === 1) S.tt.p = 2; else S.tt = { p: 1, s: [null, null] }; } else S.tt = null;
+    S.duo = !!(duo && G.duo); S.practice = !!practice && !S.duo && !S.tt; S.bot = S.duo && !!window.BOT0 && !window.ONLINE0; S.online = S.duo ? (window.ONLINE0 || 0) : 0; RQ.length = 0;
     S.score = 0; S.t = 0; S.keys = {}; S.newBest = false; S.parts = []; S.pops = []; S.rings = []; S.banner = null; S.paused = false;
-    G.init(); if (cont && SAVED && G.load && !S.duo && !S.practice) { G.load(SAVED); S.score = SAVED.score || 0; banner("WELCOME BACK", G.color); }
+    G.init(); if (cont && SAVED && G.load && !S.duo && !S.practice && !S.tt) { G.load(SAVED); S.score = SAVED.score || 0; banner("WELCOME BACK", G.color); }
     S.state = "count"; S.cd = 1.2; audio(); sfx("tick");
   }
   function over(text) {
     if (S.state !== "play") return;
+    if (S.tt) {
+      const t = S.tt; S.score = Math.floor(S.score); t.s[t.p - 1] = S.score;
+      S.state = "over"; S.overAt = performance.now(); S.shown = 0; S.newBest = false; sfx("over");
+      if (t.p === 1) { S.end = "PLAYER 1 SCORED " + fmt(S.score); return; }
+      t.done = true; const w = t.s[0] > t.s[1] ? 1 : t.s[1] > t.s[0] ? 2 : 0;
+      S.end = w ? "PLAYER " + w + " WINS" : "IT'S A TIE"; setTimeout(() => sfx("level"), 500);
+      try { parent.postMessage({ type: "gbl:match", winner: w }, "*"); } catch (e) {}
+      return;
+    }
     if (S.duo) { const m = /PLAYER (\d) WINS/.exec(text || ""); try { parent.postMessage({ type: "gbl:match", winner: m ? +m[1] : 0 }, "*"); } catch (e) {} }
     if (S.bot && text) text = text.replace("PLAYER 1 WINS", "YOU WIN!").replace("PLAYER 2 WINS", "BOT WINS");
     if (S.online && text) { const m2 = /PLAYER (\d) WINS/.exec(text); if (m2) text = +m2[1] === S.online ? "YOU WIN!" : "YOU LOSE"; }
@@ -1565,25 +1584,31 @@ function SHELL() {
     if (S.state === "count") {
       const n = Math.ceil(S.cd / .4), f = (S.cd / .4) % 1;
       x.fillStyle = "rgba(3,2,10,.35)"; x.fillRect(0, 0, G.w, G.h);
-      glitchText(String(n), G.w / 2, G.h / 2, Math.min(G.w, G.h) * .2 * (1 + f * .4), G.color); return;
+      glitchText(String(n), G.w / 2, G.h / 2, Math.min(G.w, G.h) * .2 * (1 + f * .4), G.color);
+      if (S.tt) glitchText("PLAYER " + S.tt.p, G.w / 2, G.h / 2 - Math.min(G.w, G.h) * .2, Math.min(28, G.w / 10), S.tt.p === 1 ? "#22e4ff" : "#ff2bd6");
+      return;
     }
     x.fillStyle = "rgba(3,2,10,.8)"; x.fillRect(0, 0, G.w, G.h);
     const u = Math.min(G.w / 480, G.h / 420, 1.1), L = [];
     if (S.state === "over") {
-      if (S.duo) L.push([S.end, 30 * u, G.color, "g"], [window.BOT0 ? "MATCH VS BOT" : "2-PLAYER MATCH", 12 * u, "#8f86b5"]);
+      if (S.tt && !S.tt.done) L.push(["PLAYER 1 SCORED", 14 * u, "#8f86b5"], [fmt(S.shown), 44 * u, "#22e4ff", "d"], ["", 6 * u], ["NOW PASS IT TO PLAYER 2!", 22 * u, "#ff2bd6", "g"], ["Beat " + fmt(S.tt.s[0]) + " to win", 13 * u, "#d8d0f5"]);
+      else if (S.tt) L.push([S.end, 30 * u, S.end.includes("1") ? "#22e4ff" : S.end.includes("2") ? "#ff2bd6" : G.color, "g"], ["PLAYER 1  " + fmt(S.tt.s[0]) + "   ·   " + fmt(S.tt.s[1]) + "  PLAYER 2", 16 * u, "#ffffff", "d"], ["TAKE-TURNS 2-PLAYER MATCH", 12 * u, "#8f86b5"]);
+      else if (S.duo) L.push([S.end, 30 * u, G.color, "g"], [window.BOT0 ? "MATCH VS BOT" : "2-PLAYER MATCH", 12 * u, "#8f86b5"]);
       else L.push([S.end, 30 * u, G.color, "g"], ["FINAL SCORE", 12 * u, "#8f86b5"], [fmt(S.shown), 40 * u, "#ffffff", "d"]);
-      if (S.newBest) L.push(["★ NEW RECORD ★", 15 * u, Math.floor(S.clock * 4) % 2 ? "#ffd66b" : "#fff3c4", "d"]);
+      if (S.newBest && !S.tt) L.push(["★ NEW RECORD ★", 15 * u, Math.floor(S.clock * 4) % 2 ? "#ffd66b" : "#fff3c4", "d"]);
       (G.summary ? G.summary() : []).forEach((s) => L.push([s, 12 * u, "#d8d0f5"]));
-      if (S.practice || S.duo) L.push([S.duo ? (window.TOUR0 ? "TOURNAMENT ROUND COMPLETE" : "JUST FOR FUN  ·  NOT RANKED") : "PRACTICE RUN  ·  SCORE NOT SAVED", 12 * u, S.duo ? "#ff7be6" : "#3dffa8"]);
-      L.push(["", 6 * u], [window.TOUR0 ? "BACK TO THE TOURNAMENT IN A MOMENT..." : Math.floor(S.clock * 2) % 2 ? "▶ TAP OR PRESS SPACE TO PLAY AGAIN" : "", 13 * u, G.color]);
+      if (S.tt && !S.tt.done) L.push(["", 6 * u], [Math.floor(S.clock * 2) % 2 ? "▶ TAP WHEN PLAYER 2 IS READY" : "", 13 * u, "#ff2bd6"]);
+      else if (S.practice || S.duo) L.push([S.duo ? (window.TOUR0 ? "TOURNAMENT ROUND COMPLETE" : "JUST FOR FUN  ·  NOT RANKED") : "PRACTICE RUN  ·  SCORE NOT SAVED", 12 * u, S.duo ? "#ff7be6" : "#3dffa8"]);
+      if (!(S.tt && !S.tt.done)) L.push(["", 6 * u], [window.TOUR0 ? "BACK TO THE TOURNAMENT IN A MOMENT..." : Math.floor(S.clock * 2) % 2 ? "▶ TAP OR PRESS SPACE TO PLAY AGAIN" : "", 13 * u, G.color]);
     } else {
       L.push([G.title.toUpperCase(), 34 * u, G.color, "g"], ["GAMES BY LEVI  //  HI-SCORE " + fmt(S.best), 11 * u, "#8f86b5"], ["", 8 * u]);
       (G.help || []).forEach((h, i) => L.push([h, 13 * u, i % 2 ? "#ff7be6" : "#d8d0f5"]));
       if (SAVED && G.load && !window.TOUR0) L.push(["", 4 * u], ["SAVED GAME: " + (SAVED.label || "IN PROGRESS") + "  ·  PRESS C OR TAP CONTINUE", 13 * u, "#ffd66b", "d"]);
       const ST0 = window.STAR0; if (ST0 && !window.TOUR0) L.push(["", 4 * u], ["STAR GOALS  " + ST0.goals.map((v, i) => (i < ST0.have ? "★ " : "☆ ") + fmt(v)).join("   "), 13 * u, "#ffd66b"]);
       if (G.easy) L.push(["", 4 * u], ["PRACTICE: " + G.easy, 12 * u, "#3dffa8"]);
+      if (!G.duo && !window.ONLINE0 && !window.TOUR0) L.push(["2 PLAYERS: TAKE TURNS! Each player gets one run. Highest score wins.", 12 * u, "#ff7be6"]);
       if (G.duo) L.push([window.ONLINE0 ? "ONLINE MATCH: YOU ARE PLAYER " + window.ONLINE0 + (window.ONLINE0 === 1 ? " (YOU GO FIRST)" : "") : window.BOT0 ? "VS " + ["EASY", "MEDIUM", "HARD", "HACKER"][BK()] + " BOT: YOU ARE PLAYER 1, THE BOT IS PLAYER 2" : "2 PLAYERS: " + G.duo, 12 * u, "#ff7be6"]);
-      L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && G.duo ? window.ONLINE0 ? "▶ TAP OR PRESS SPACE TO START THE ONLINE MATCH" : (window.BOT0 ? "▶ TAP OR PRESS SPACE TO PLAY THE BOT" : "▶ TAP OR PRESS SPACE TO START 2 PLAYERS") : G.duo ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
+      L.push(["", 8 * u], [Math.floor(S.clock * 2) % 2 ? (window.DUO0 && (G.duo || !window.ONLINE0) ? window.ONLINE0 ? "▶ TAP OR PRESS SPACE TO START THE ONLINE MATCH" : (window.BOT0 ? "▶ TAP OR PRESS SPACE TO PLAY THE BOT" : "▶ TAP OR PRESS SPACE TO START 2 PLAYERS") : !window.ONLINE0 ? "▶ SPACE START  ·  E PRACTICE  ·  2 TWO PLAYERS" : "▶ SPACE TO START  ·  E FOR PRACTICE") : "", 14 * u, G.color], ["P PAUSE   ·   M SOUND", 10 * u, "#6c6290"]);
     }
     const maxW = G.w - Math.max(14, G.w * .06) * 2 - 12, WL = [];
     for (const l of L) {
@@ -1611,7 +1636,7 @@ function SHELL() {
   }
   function hud() {
     const live = S.state === "play" || S.state === "count";
-    const l = S.duo && S.state !== "title" ? "2 PLAYERS" : (S.practice && live ? "PRACTICE · " : "") + "SCORE " + fmt(S.score), c = live && G.hud ? G.hud() : G.title.toUpperCase(), r = "HI " + fmt(Math.max(S.best, S.score));
+    const l = S.tt && S.state !== "title" ? "PLAYER " + S.tt.p + " · SCORE " + fmt(S.score) : S.duo && S.state !== "title" ? "2 PLAYERS" : (S.practice && live ? "PRACTICE · " : "") + "SCORE " + fmt(S.score), c = live && G.hud ? G.hud() : G.title.toUpperCase(), r = "HI " + fmt(Math.max(S.best, S.score));
     const key = l + "|" + c + "|" + r;
     if (key !== hudCache) { hudCache = key; hl.textContent = l; hc.textContent = c; hr.textContent = r; }
   }
@@ -1645,15 +1670,15 @@ function SHELL() {
     const menu = (S.state === "title" || (S.state === "over" && !window.TOUR0)) && performance.now() - S.overAt > 700;
     const showGo = S.paused || menu;
     if (btns.hidden === showGo) btns.hidden = !showGo;
-    const showP = menu && !S.paused && !window.TOUR0, showD = showP && !!G.duo, isOver = S.state === "over";
+    const showP = menu && !S.paused && !window.TOUR0, showD = showP && !window.ONLINE0, isOver = S.state === "over";
     if (pracBtn.hidden === showP) pracBtn.hidden = !showP;
     if (contBtn) { const showC = showP && S.state === "title" && !!SAVED && !!G.load; if (contBtn.hidden === showC) contBtn.hidden = !showC; const cl = "▶ CONTINUE" + (SAVED && SAVED.label ? " · " + SAVED.label : ""); if (showC && contBtn.textContent !== cl) contBtn.textContent = cl; }
     if (duoBtn.hidden === showD) duoBtn.hidden = !showD;
-    const label = S.paused ? "▶ RESUME" : isOver ? (S.duo ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? (window.ONLINE0 ? "▶ START ONLINE MATCH" : window.BOT0 ? "▶ START VS BOT" : "▶ START 2 PLAYERS") : "▶ START";
+    const label = S.paused ? "▶ RESUME" : isOver && S.tt && !S.tt.done ? "▶ PLAYER 2 GO!" : isOver ? (S.duo || S.tt ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? (window.ONLINE0 ? "▶ START ONLINE MATCH" : window.BOT0 ? "▶ START VS BOT" : "▶ START 2 PLAYERS") : "▶ START";
     if (goBtn.textContent !== label) goBtn.textContent = label;
     const plabel = isOver && S.practice ? "RANKED GAME" : "PRACTICE";
     if (pracBtn.textContent !== plabel) pracBtn.textContent = plabel;
-    const dlabel = (isOver ? S.duo : duoDefault()) ? "1 PLAYER" : "2 PLAYERS";
+    const dlabel = (isOver ? S.duo || !!S.tt : duoDefault()) ? "1 PLAYER" : "2 PLAYERS";
     if (duoBtn.textContent !== dlabel) duoBtn.textContent = dlabel;
   }
 
@@ -1663,12 +1688,12 @@ function SHELL() {
   // Buttons fire when the finger lifts (iPad can drop the click event), or on click for mouse.
   const onTap = (btn, fn) => { if (!btn) return; let tt = 0; btn.addEventListener("touchend", (e) => { e.preventDefault(); tt = Date.now(); fn(e); }, { passive: false }); btn.addEventListener("click", (e) => { if (Date.now() - tt < 600) { e.stopPropagation(); return; } fn(e); }); };
   onTap(sndBtn, (e) => { e.stopPropagation(); cycleSound(); });
-  const duoDefault = () => !!(window.DUO0 && G && G.duo);
-  const again = () => (S.state === "over" ? [S.practice, S.duo] : [false, duoDefault()]);
+  const duoDefault = () => !!(window.DUO0 && G && (G.duo || !window.ONLINE0));
+  const again = () => (S.state === "over" ? [S.practice, S.duo || !!S.tt] : [false, duoDefault()]);
   onTap(goBtn, (e) => { e.stopPropagation(); audio(); if (S.paused) togglePause(); else if (canStart()) start(...again()); });
   if (contBtn) onTap(contBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, false, true); });
   onTap(pracBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(!(S.state === "over" && S.practice), false); });
-  onTap(duoBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, !(S.state === "over" ? S.duo : duoDefault())); });
+  onTap(duoBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, !(S.state === "over" ? (S.duo || !!S.tt) : duoDefault())); });
   addEventListener("touchstart", (e) => {
     if (!G || (e.target.closest && e.target.closest("button"))) return;
     audio();
@@ -1688,7 +1713,7 @@ function SHELL() {
     if (k === "m") { cycleSound(); return; }
     if (k === "p") { togglePause(); return; }
     if (S.paused) { if (k === " " || k === "Enter") togglePause(); return; }
-    if (S.state === "title" || S.state === "over") { if (window.TOUR0) { if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(false, true); return; } if (k === "c" && SAVED && G.load && S.state === "title" && !e.repeat && canStart()) start(false, false, true); else if (k === "e" && !e.repeat && canStart()) start(true); else if (k === "2" && G.duo && !e.repeat && canStart()) start(false, true); else if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(...again()); return; }
+    if (S.state === "title" || S.state === "over") { if (window.TOUR0) { if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(false, true); return; } if (k === "c" && SAVED && G.load && S.state === "title" && !e.repeat && canStart()) start(false, false, true); else if (k === "e" && !e.repeat && canStart()) start(true); else if (k === "2" && !window.ONLINE0 && !e.repeat && canStart()) start(false, true); else if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(...again()); return; }
     if (S.state !== "play") return;
     S.keys[k] = true;
     if (DIRS[k] && G.turn && (!e.repeat || G.repeat)) G.turn(DIRS[k], k);
@@ -7846,6 +7871,122 @@ function dotsGame() {
   });
 }
 
+/* ---------- 59 Neon Solitaire ---------- */
+function solitaireGame() {
+  const W = 640, H = 760, CW = 78, CH = 108, GAP = 10, OX = (W - 7 * CW - 6 * GAP) / 2, TOPY = 54, TABY = 186, BTNY = H - 46;
+  const SUITS = ["♠", "♥", "♦", "♣"], RANK = ["", "A", "2", "3", "4", "5", "6", "7", "8", "9", "10", "J", "Q", "K"];
+  const red = (c) => c.s === 1 || c.s === 2, colX = (i) => OX + i * (CW + GAP);
+  let stock, waste, found, tab, held, hist, deal, moves, timeT, auto, hintT, hint, won;
+  function snap() { return JSON.stringify({ stock, waste, found, tab, sc: S.score, moves }); }
+  function push() { hist.push(snap()); if (hist.length > 60) hist.shift(); }
+  function undo() { if (!hist.length || auto || won) return; const d = JSON.parse(hist.pop()); ({ stock, waste, found, tab } = d); S.score = Math.max(0, d.sc - (S.practice ? 0 : 5)); moves = d.moves; sfx("blip"); }
+  function newDeal() {
+    const d = []; for (let s0 = 0; s0 < 4; s0++) for (let r = 1; r <= 13; r++) d.push({ s: s0, r, up: false });
+    for (let i = d.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [d[i], d[j]] = [d[j], d[i]]; }
+    tab = []; for (let i = 0; i < 7; i++) { tab.push(d.splice(0, i + 1)); tab[i][i].up = true; }
+    stock = d; waste = []; found = [[], [], [], []]; held = null; hist = []; moves = 0; timeT = 0; auto = 0; won = 0; hint = null;
+    banner("DEAL " + deal, "#22e4ff");
+  }
+  const canFound = (c, f) => (f.length ? f[f.length - 1].s === c.s && c.r === f[f.length - 1].r + 1 : c.r === 1 && found.indexOf(f) === c.s);
+  const canTab = (c, col) => (col.length ? col[col.length - 1].up && red(col[col.length - 1]) !== red(c) && c.r === col[col.length - 1].r - 1 : c.r === 13);
+  function tabYs(col) {
+    const ys = []; let y = TABY; const room = BTNY - 16 - CH - TABY, downs = col.filter((c) => !c.up).length, ups = col.length - downs;
+    let dn = 14, un = 28; const need = downs * dn + Math.max(0, ups - 1) * un; if (need > room && need > 0) { const k = room / need; dn *= k; un *= k; }
+    col.forEach((c, i) => { ys.push(y); y += c.up ? un : dn; }); return ys;
+  }
+  function flipTops() { for (const col of tab) if (col.length && !col[col.length - 1].up) { col[col.length - 1].up = true; S.score += 5; } }
+  function srcCards(src) { if (src.k === "w") return waste.slice(-1); if (src.k === "f") return found[src.i].slice(-1); return tab[src.i].slice(src.j); }
+  function take(src) { if (src.k === "w") return [waste.pop()]; if (src.k === "f") { S.score = Math.max(0, S.score - 15); return [found[src.i].pop()]; } return tab[src.i].splice(src.j); }
+  function doMove(src, dst) {
+    push(); const cs = take(src);
+    if (dst.k === "f") { found[dst.i].push(cs[0]); S.score += 10; sfx("score"); burst(colX(3 + dst.i) + CW / 2, TOPY + CH / 2, red(cs[0]) ? "#ff2bd6" : "#22e4ff", 10, 160, .4, 2); }
+    else { tab[dst.i].push(...cs); if (src.k === "w") S.score += 5; sfx("hit"); }
+    moves++; flipTops(); hint = null; checkWin();
+  }
+  function bestDest(src) {
+    const cs = srcCards(src); if (!cs.length || !cs[0].up) return null;
+    if (cs.length === 1 && src.k !== "f") for (let f = 0; f < 4; f++) if (canFound(cs[0], found[f])) return { k: "f", i: f };
+    let emptyOk = null;
+    for (let i = 0; i < 7; i++) { if (src.k === "t" && src.i === i) continue; if (canTab(cs[0], tab[i])) { if (tab[i].length) return { k: "t", i }; if (!(src.k === "t" && src.j === 0)) emptyOk = emptyOk || { k: "t", i }; } }
+    return emptyOk;
+  }
+  function draw1() {
+    if (auto || won) return; push();
+    if (stock.length) { const c = stock.pop(); c.up = true; waste.push(c); sfx("tick"); }
+    else if (waste.length) { stock = waste.reverse().map((c) => ({ ...c, up: false })); waste = []; sfx("blip"); }
+    else hist.pop();
+    hint = null;
+  }
+  function checkWin() {
+    if (found.every((f) => f.length === 13)) { won = 2.6; const bonus = 500 + Math.max(0, 600 - Math.floor(timeT)) + (S.practice ? 0 : 0); S.score += bonus; banner("YOU WIN!  +" + bonus, "#ffd66b"); sfx("level"); for (let i = 0; i < 6; i++) burst(Math.random() * W, Math.random() * H * .6, ["#ff2bd6", "#22e4ff", "#ffd66b"][i % 3], 30, 300, 1, 3); return; }
+    if (!stock.length && !waste.length && tab.every((col) => col.every((c) => c.up)) && !auto) auto = .1;
+  }
+  function findHint() {
+    for (let i = 0; i < 7; i++) { const col = tab[i]; if (!col.length) continue; const top = { k: "t", i, j: col.length - 1 }, d = bestDest(top); if (d && d.k === "f") return top; }
+    for (let i = 0; i < 7; i++) { const col = tab[i], j = col.findIndex((c) => c.up); if (j < 0) continue; const d = bestDest({ k: "t", i, j }); if (d && !(j === 0 && d.k === "t" && !tab[d.i].length)) return { k: "t", i, j }; }
+    if (waste.length && bestDest({ k: "w" })) return { k: "w" };
+    return { k: "s" };
+  }
+  function hitAt(px, py) {
+    if (py >= BTNY - 20) { const b = Math.floor(px / (W / 3)); return { btn: ["end", "undo", "hint"][b] }; }
+    if (py >= TOPY && py <= TOPY + CH) {
+      if (px >= colX(0) && px <= colX(0) + CW) return { k: "s" };
+      if (px >= colX(1) && px <= colX(1) + CW + 30 && waste.length) return { k: "w" };
+      for (let f = 0; f < 4; f++) if (px >= colX(3 + f) && px <= colX(3 + f) + CW && found[f].length) return { k: "f", i: f };
+    }
+    for (let i = 0; i < 7; i++) { if (px < colX(i) || px > colX(i) + CW) continue; const col = tab[i], ys = tabYs(col); for (let j = col.length - 1; j >= 0; j--) if (py >= ys[j] && py <= ys[j] + CH) return col[j].up ? { k: "t", i, j } : null; }
+    return null;
+  }
+  function dropTarget(px, py) {
+    for (let f = 0; f < 4; f++) if (Math.abs(px - (colX(3 + f) + CW / 2)) < CW * .7 && py < TOPY + CH + 30) return { k: "f", i: f };
+    let best = null, bd = 1e9; for (let i = 0; i < 7; i++) { const d = Math.abs(px - (colX(i) + CW / 2)); if (d < bd && d < CW) { bd = d; best = { k: "t", i }; } } return py > TABY - 40 ? best : null;
+  }
+  function legal(src, dst) { const cs = srcCards(src); if (!cs.length) return false; if (dst.k === "f") return cs.length === 1 && canFound(cs[0], found[dst.i]); if (src.k === "t" && src.i === dst.i) return false; return canTab(cs[0], tab[dst.i]); }
+  function cardArt(c, X, Y, glowOn) {
+    if (!c.up) { glow("#a35bff", 6); x.fillStyle = "#1c0c3a"; rr(X, Y, CW, CH, 8); x.fill(); x.strokeStyle = "#a35bff"; x.lineWidth = 1.5; x.stroke(); glow(); x.save(); rr(X + 4, Y + 4, CW - 8, CH - 8, 5); x.clip(); x.strokeStyle = "rgba(163,91,255,.35)"; x.lineWidth = 1; for (let k = -CH; k < CW; k += 10) { x.beginPath(); x.moveTo(X + k, Y); x.lineTo(X + k + CH, Y + CH); x.stroke(); } x.restore(); return; }
+    const col = red(c) ? "#ff2bd6" : "#22e4ff";
+    glow(glowOn ? "#ffd66b" : col, glowOn ? 22 : 8); x.fillStyle = "#0d0820"; rr(X, Y, CW, CH, 8); x.fill(); x.strokeStyle = glowOn ? "#ffd66b" : col; x.lineWidth = 2; x.stroke(); glow();
+    txt(RANK[c.r], X + 8, Y + 14, 16, col, "left", "d"); txt(SUITS[c.s], X + CW - 10, Y + 14, 15, col, "right");
+    txt(SUITS[c.s], X + CW / 2, Y + CH / 2 + 10, 38, col, "center");
+  }
+  game({
+    title: "Neon Solitaire", w: W, h: H, color: "#22e4ff", bpm: 84, easy: "free undo and no time pressure",
+    help: ["Classic solitaire! Build the 4 piles from Ace to King", "TAP a card to move it to the best spot, or drag it", "Tableau: count down, switching pink and blue", "Tap the deck for a new card. UNDO and HINT are at the bottom"],
+    init() { deal = 1; newDeal(); },
+    hud() { return "DEAL " + deal + "  ·  MOVES " + moves + "  ·  " + Math.floor(timeT / 60) + ":" + String(Math.floor(timeT % 60)).padStart(2, "0"); },
+    down(px, py) {
+      if (auto || won) return; const h = hitAt(px, py); if (!h) return;
+      if (h.btn) { if (h.btn === "end") { if (S.practice) { deal++; newDeal(); } else over("GAME OVER"); } else if (h.btn === "undo") undo(); else { hint = findHint(); hintT = 1.6; sfx("blip"); } return; }
+      if (h.k === "s") { draw1(); return; }
+      const cs = srcCards(h); const by = h.k === "t" ? tabYs(tab[h.i])[h.j] : TOPY, bx = h.k === "t" ? colX(h.i) : h.k === "w" ? colX(1) + Math.min(2, waste.length - 1) * 14 : colX(3 + h.i);
+      held = { src: h, cards: cs, ox: px - bx, oy: py - by, x: px, y: py, sx: px, sy: py, moved: false };
+    },
+    move(px, py) { if (!held) return; held.x = px; held.y = py; if (Math.hypot(px - held.sx, py - held.sy) > 8) held.moved = true; },
+    up(px, py) {
+      if (!held) return; const h = held; held = null;
+      if (!h.moved) { const d = bestDest(h.src); if (d) doMove(h.src, d); else { sfx("bad"); } return; }
+      const d = dropTarget(px, py); if (d && legal(h.src, d)) doMove(h.src, d); else sfx("tick");
+    },
+    key(k, rep) { if (rep) return; if (k === " " || k === "d") draw1(); if (k === "u" || k === "z") undo(); if (k === "h") { hint = findHint(); hintT = 1.6; } },
+    update(dt) {
+      if (won) { won -= dt; if (won <= 0) { deal++; newDeal(); } return; }
+      timeT += dt; if (hintT > 0) hintT -= dt; else hint = null;
+      if (auto) { auto -= dt; if (auto <= 0) { auto = .09; let movedOne = false; for (let i = 0; i < 7 && !movedOne; i++) { const col = tab[i]; if (!col.length) continue; const c = col[col.length - 1]; for (let f = 0; f < 4; f++) if (canFound(c, found[f])) { found[f].push(col.pop()); S.score += 10; sfx("score", 1.2); movedOne = true; break; } } if (!movedOne) auto = 0; checkWin(); } }
+    },
+    draw() {
+      bg("#060313"); x.fillStyle = "rgba(34,228,255,.03)"; for (let i = 0; i < 20; i++) x.fillRect(0, i * 40, W, 1);
+      const slot = (X, Y, label) => { x.strokeStyle = "rgba(255,255,255,.18)"; x.lineWidth = 1.5; x.setLineDash([5, 5]); rr(X, Y, CW, CH, 8); x.stroke(); x.setLineDash([]); if (label) txt(label, X + CW / 2, Y + CH / 2, 22, "rgba(255,255,255,.2)", "center"); };
+      const isHint = (src) => hint && hint.k === src.k && hint.i === src.i && (src.j == null || hint.j === src.j);
+      slot(colX(0), TOPY, stock.length ? "" : "↺"); if (stock.length) { cardArt({ up: false }, colX(0), TOPY); txt(String(stock.length), colX(0) + CW / 2, TOPY + CH + 12, 11, "#9a90c0", "center"); if (hint && hint.k === "s") { glow("#ffd66b", 20); x.strokeStyle = "#ffd66b"; x.lineWidth = 3; rr(colX(0), TOPY, CW, CH, 8); x.stroke(); glow(); } }
+      const ws = waste.slice(-3); ws.forEach((c, i) => { if (held && held.src.k === "w" && i === ws.length - 1) return; cardArt(c, colX(1) + i * 14, TOPY, i === ws.length - 1 && isHint({ k: "w" })); });
+      for (let f = 0; f < 4; f++) { const X = colX(3 + f); slot(X, TOPY, SUITS[f]); const fp = found[f]; const show = held && held.src.k === "f" && held.src.i === f ? fp.length - 2 : fp.length - 1; if (show >= 0) cardArt(fp[show], X, TOPY); }
+      for (let i = 0; i < 7; i++) { const col = tab[i], ys = tabYs(col); slot(colX(i), TABY, "K"); col.forEach((c, j) => { if (held && held.src.k === "t" && held.src.i === i && j >= held.src.j) return; cardArt(c, colX(i), ys[j], isHint({ k: "t", i, j })); }); }
+      if (held && held.moved) held.cards.forEach((c, k) => { x.globalAlpha = .95; cardArt(c, held.x - held.ox, held.y - held.oy + k * 28, false); x.globalAlpha = 1; });
+      [["END GAME", "#ff4d6d"], ["↶ UNDO", "#22e4ff"], ["💡 HINT", "#ffd66b"]].forEach(([t, c], i) => { const X = i * W / 3 + 14, w = W / 3 - 28; x.strokeStyle = c; x.lineWidth = 2; rr(X, BTNY - 14, w, 40, 12); x.stroke(); txt(S.practice && i === 0 ? "NEW DEAL" : t, X + w / 2, BTNY + 6, 14, c, "center", "d"); });
+    },
+  });
+}
+
 /* ====================================================================
    The hub
    ==================================================================== */
@@ -8021,6 +8162,7 @@ function dotsGame() {
     { key: "blades", title: "Blade Spin", genre: "Arcade", fn: knifeGame },
     { key: "ttt", title: "Neon Tic-Tac-Toe", genre: "Strategy", fn: tttGame },
     { key: "dots", title: "Dots & Boxes", genre: "Strategy", fn: dotsGame },
+    { key: "solitaire", title: "Neon Solitaire", genre: "Puzzle", fn: solitaireGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -8291,7 +8433,7 @@ function dotsGame() {
     const t = document.getElementById("ticker"); if (!t) return;
     const items = [];
     for (const g of libraryGames()) { const e = entries(g.key)[0]; if (e) items.push([g.title, nameOf(e), fmt(e.s)]); }
-    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["58 games", "ready to play", "Insert coin"]];
+    const one = items.length ? items : [["High scores", "No records yet", "Be the first"], ["59 games", "ready to play", "Insert coin"]];
     let half = []; while (half.length < 8) half = half.concat(one);
     const make = () => half.map(([g, n, v]) => el("span", { class: "tick-item" }, el("b", { text: g }), el("span", { text: n }), el("em", { text: v })));
     t.replaceChildren(...make(), ...make());
@@ -8739,7 +8881,7 @@ function dotsGame() {
     ["star10", "⭐", "Rising Star", "Earn 10 stars", (c) => c.stars >= 10],
     ["star50", "🌟", "Superstar", "Earn 50 stars", (c) => c.stars >= 50],
     ["star100", "💫", "Star Collector", "Earn 100 stars", (c) => c.stars >= 100],
-    ["starall", "🌠", "Galaxy Brain", "Earn every star in the hub", (c) => c.stars >= 174],
+    ["starall", "🌠", "Galaxy Brain", "Earn every star in the hub", (c) => c.stars >= 177],
   ];
   const BTIER = { star100: 3, starall: 3, star50: 2, complete: 3, legend: 3, k50: 3, hacker: 3, collector: 3, lv25: 3, online5: 2, daily7: 2, marathon: 2, k10: 2, hard: 2, streak7: 2, diamond: 2, explorer: 2, champ: 2, spinner: 2 };
   const badgeRew = (id) => { const t = BTIER[id] || 1; return [[100, 10, 1], [250, 25, 3], [500, 50, 10]][t - 1]; };
@@ -8799,7 +8941,7 @@ function dotsGame() {
   }
 
   /* ---------- Daily challenge ---------- */
-  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling", "merge", "colordash", "blades"];
+  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling", "merge", "colordash", "blades", "solitaire"];
   function dailyGameFor(day) { let h = 7; for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return DAILY_POOL[h % DAILY_POOL.length]; }
   let daily = null;
   async function loadDaily() { try { daily = await XR.daily(); } catch { const day = new Date().toISOString().slice(0, 10); daily = { day, game: dailyGameFor(day), endsAt: Date.parse(day + "T00:00:00Z") + 864e5, top: [], mine: null }; } renderDaily(); }
@@ -9049,7 +9191,7 @@ function dotsGame() {
     ["vd-gold", "void", "Gold Fighter", 60, "#ffd66b", "A golden ship for the space shooter", "$"],
   ];
   /* ---------- Stars: three score goals for every game ---------- */
-  const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500] };
+  const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
   const starsOf = (k) => { const t = STARS[k]; if (!t) return 0; const b = starBest(k); return t.filter((v) => b >= v).length; };
   const totalStars = () => Object.keys(STARS).reduce((a, k) => a + starsOf(k), 0);
@@ -9712,7 +9854,10 @@ function dotsGame() {
   function renderDuo() {
     const grid = $("#duo-grid"); if (!grid) return;
     const list = DUO.filter((d) => { const b = BUILTINS.find((q) => q.key === d.key); return b && (genre === "All" || b.genre === genre); });
-    if (!list.length) { grid.replaceChildren(el("p", { class: "duo-how", text: "No 2-player games in " + genre + " yet. Pick another genre, or All." })); return; }
+    const turns = BUILTINS.map((b, i) => ({ ...b, slot: i + 1 })).filter((b) => !DUO_KEYS.has(b.key) && (genre === "All" || b.genre === genre));
+    const turnCards = turns.length ? [el("div", { class: "turns-head" }, el("h3", { text: "🔁 Take-turns games" }), el("p", { class: "duo-how", text: "Every other game works for 2 players too! Player 1 plays one run, then passes the iPad. Player 2 tries to beat the score." })),
+      el("div", { class: "turns-grid" }, ...turns.map((g) => { const go = () => play(g, null, { duo: true }); return el("button", { class: "turn-card", type: "button", "aria-label": "Play " + g.title + " taking turns", onclick: go }, art(g), el("b", { text: g.title }), el("span", { text: "Take turns ▸" })); }))] : [];
+    if (!list.length) { grid.replaceChildren(el("p", { class: "duo-how", text: "No head-to-head games in " + genre + " yet." }), ...turnCards); return; }
     grid.replaceChildren(...list.map((d) => {
       const i = BUILTINS.findIndex((b) => b.key === d.key), g = { ...BUILTINS[i], slot: i + 1 };
       const go = () => play(g, null, { duo: true });
@@ -9726,7 +9871,7 @@ function dotsGame() {
             el("div", { class: "kbd" }, el("b", { text: "Keyboard" }), el("span", { text: d.keys })),
             el("div", { class: "kbd" }, el("b", { text: "iPad / touch" }), el("span", { text: d.touch }))),
           el("button", { class: "btn hot sm", type: "button", text: "Play 2 players ▸", onclick: go })));
-    }));
+    }), ...turnCards);
   }
   renderDuo();
   renderTour();
