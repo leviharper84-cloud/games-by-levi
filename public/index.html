@@ -1716,12 +1716,6 @@ function SHELL() {
   if (contBtn) onTap(contBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, false, true); });
   onTap(pracBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(!(S.state === "over" && S.practice), false); });
   onTap(duoBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, !(S.state === "over" ? (S.duo || !!S.tt) : duoDefault())); });
-  addEventListener("touchstart", (e) => {
-    if (!G || (e.target.closest && e.target.closest("button"))) return;
-    audio();
-    if (S.paused) { S.fresh = true; togglePause(); return; }
-    if ((S.state === "title" || S.state === "over") && canStart()) { S.fresh = true; start(...again()); }
-  }, { passive: true });
   const noScroll = (e) => { if (!(e.target.closest && e.target.closest("button"))) e.preventDefault(); };
   addEventListener("touchstart", noScroll, { passive: false });
   addEventListener("touchmove", (e) => e.preventDefault(), { passive: false });
@@ -1748,15 +1742,15 @@ function SHELL() {
   function sendMove(m) { try { parent.postMessage({ type: "gbl:move", move: m }, "*"); } catch (e) {} }
   addEventListener("message", (e) => { const d = e.data; if (e.source === parent && d && d.type === "gbl:remote") RQ.push(d.move); });
   const PT = new Map();
-  addEventListener("pointerdown", (e) => {
+  function pDown(e) {
     if (!G || (e.target.closest && e.target.closest("button"))) return;
     audio();
     [S.px, S.py] = local(e); const st = { sx: e.clientX, sy: e.clientY, x: S.px, y: S.py, fresh: false }; PT.set(e.pointerId, st); S.down = true;
     if (S.paused) { st.fresh = true; togglePause(); return; }
     if (S.state !== "play") { st.fresh = true; if (canStart()) start(...again()); return; }
     if (G.down) G.down(S.px, S.py, e.pointerId);
-  });
-  addEventListener("pointermove", (e) => {
+  }
+  function pMove(e) {
     if (!G) return; [S.px, S.py] = local(e); if (S.state === "play" && !S.paused && G.move) G.move(S.px, S.py, e.pointerId);
     // Swipes count the moment the finger moves (no need to lift), and you can chain turns in one swipe.
     const st = PT.get(e.pointerId);
@@ -1768,8 +1762,8 @@ function SHELL() {
         st.sx = e.clientX; st.sy = e.clientY;
       }
     }
-  });
-  addEventListener("pointerup", (e) => {
+  }
+  function pUp(e) {
     const st = PT.get(e.pointerId); PT.delete(e.pointerId); S.down = PT.size > 0;
     if (!G || !st || st.fresh || S.state !== "play" || S.paused) return;
     if (G.up) { const [ux, uy] = local(e); G.up(ux, uy, e.pointerId); return; }
@@ -1779,8 +1773,21 @@ function SHELL() {
       const dir = Math.abs(dx) > Math.abs(dy) ? (dx > 0 ? "right" : "left") : (dy > 0 ? "down" : "up");
       if (G.swipe) G.swipe(dir, st.x, st.y); else if (G.turn) G.turn(dir, null, st.x, st.y);
     } else if (G.tap) { const [tx, ty] = local(e); G.tap(tx, ty); }
-  });
-  addEventListener("pointercancel", (e) => { const had = PT.has(e.pointerId); PT.delete(e.pointerId); S.down = PT.size > 0; if (had && G && G.up && S.state === "play") { const [ux, uy] = local(e); G.up(ux, uy, e.pointerId); } });
+  }
+  function pCancel(e) { const had = PT.has(e.pointerId); PT.delete(e.pointerId); S.down = PT.size > 0; if (had && G && G.up && S.state === "play") { const [ux, uy] = local(e); G.up(ux, uy, e.pointerId); } }
+  // Fingers are read straight from touch events, which iPad never cancels (even inside other pages).
+  // Mouse and pen still use pointer events.
+  const HAS_TOUCH = "ontouchstart" in window;
+  const viaPtr = (fn) => (e) => { if (HAS_TOUCH && e.pointerType === "touch") return; fn(e); };
+  addEventListener("pointerdown", viaPtr(pDown));
+  addEventListener("pointermove", viaPtr(pMove));
+  addEventListener("pointerup", viaPtr(pUp));
+  addEventListener("pointercancel", viaPtr(pCancel));
+  const viaTouch = (fn) => (e) => { for (const t of e.changedTouches) fn({ pointerId: "t" + t.identifier, clientX: t.clientX, clientY: t.clientY, target: e.target }); };
+  addEventListener("touchstart", viaTouch(pDown), { passive: true });
+  addEventListener("touchmove", viaTouch(pMove), { passive: true });
+  addEventListener("touchend", viaTouch(pUp), { passive: true });
+  addEventListener("touchcancel", viaTouch(pUp), { passive: true });
   addEventListener("resize", fit);
   window.__gs = { G: () => G, start };
   Object.assign(window, { saveGame, sendMove, BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
