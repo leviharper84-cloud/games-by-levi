@@ -685,6 +685,7 @@ function cleanConfig(c) {
     coinMult: num(c.coinMult, 0, 10, 1),
     off: Array.isArray(c.off) ? [...new Set(c.off.map(String).filter((k) => BUILTIN_GAMES.has(k)))] : [],
     gift: null,
+    featured: BUILTIN_GAMES.has(String(c.featured || "")) ? String(c.featured) : "",
   };
   if (c.gift && typeof c.gift === "object" && (+c.gift.c || +c.gift.d || +c.gift.g)) {
     out.gift = { id: String(c.gift.id || Date.now()).slice(0, 20), c: Math.floor(num(c.gift.c, 0, 100000, 0)), d: Math.floor(num(c.gift.d, 0, 10000, 0)), g: Math.floor(num(c.gift.g, 0, 1000, 0)), msg: String(c.gift.msg || "").slice(0, 120) };
@@ -709,7 +710,14 @@ async function adminOverview(env) {
     q("SELECT COUNT(*) AS n FROM submissions WHERE status = 'pending'"),
     env.DB.prepare("SELECT COUNT(*) AS n FROM progress WHERE at > ?").bind(Date.now() - DAY).first(),
   ]);
-  return json({ users: u.n, scores: sc.n, pending: pend.n, activeToday: act.n });
+  const [gs, lk] = await Promise.all([
+    env.DB.prepare("SELECT game, COUNT(*) AS n FROM scores GROUP BY game").all(),
+    env.DB.prepare("SELECT game, COUNT(*) AS n FROM likes GROUP BY game").all(),
+  ]);
+  const games = {};
+  for (const r of gs.results) (games[r.game] = games[r.game] || { players: 0, hearts: 0 }).players = r.n;
+  for (const r of lk.results) (games[r.game] = games[r.game] || { players: 0, hearts: 0 }).hearts = r.n;
+  return json({ users: u.n, scores: sc.n, pending: pend.n, activeToday: act.n, games });
 }
 function progSummary(data) {
   let p = null; try { p = JSON.parse(data || "null"); } catch {}

@@ -652,6 +652,8 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .duel-sel { flex: 1; min-width: 0; }
 .duel-card .btn + .btn { margin-top: 8px; }
 .like-n { font: 700 .66rem var(--f-mono); color: #ff7be6; }
+.strip.featured { border: 1px solid rgba(255,214,107,.5); border-radius: 18px; padding: 12px 14px; background: rgba(255,214,107,.06); box-shadow: 0 0 24px rgba(255,214,107,.15); }
+.feat-txt { align-self: center; color: #ffd66b; font-weight: 700; margin: 0 0 0 10px; }
 .set-btn { font-size: 1rem; padding: 6px 12px; }
 .tour-x2 { position: absolute; top: 8px; right: 8px; z-index: 2; font: 800 .72rem var(--f-mono); padding: 2px 8px; border-radius: 999px; color: #1a1200; background: #ffd66b; box-shadow: 0 0 12px rgba(255,214,107,.8); }
 .tour-duel { position: absolute; bottom: 8px; left: 8px; z-index: 2; font: 700 .58rem var(--f-mono); letter-spacing: .12em; padding: 2px 8px; border-radius: 999px; color: #05030c; background: #3dffa8; }
@@ -8370,7 +8372,8 @@ function bowlGame() {
   }
   function renderStrips() {
     const box = $("#strips"); if (!box) return;
-    const rows = [];
+    const rows = [], fk = (window.GCFG || {}).featured, fg = fk && BUILTINS.find((b2) => b2.key === fk);
+    if (fg) rows.push(el("div", { class: "strip featured" }, el("h3", { text: "👑 Levi's Pick" }), el("div", { class: "strip-row" }, miniCard(fk), el("p", { class: "feat-txt", text: "The hub owner says: go play " + fg.title + "!" }))));
     const favs = prog.favs.map(miniCard).filter(Boolean), rec = prog.recent.map(miniCard).filter(Boolean);
     if (favs.length) rows.push(el("div", { class: "strip" }, el("h3", { text: "♥ Your favorites" }), el("div", { class: "strip-row" }, ...favs)));
     if (rec.length) rows.push(el("div", { class: "strip" }, el("h3", { text: "⟲ Recently played" }), el("div", { class: "strip-row" }, ...rec)));
@@ -8927,7 +8930,7 @@ function bowlGame() {
     DUO.splice(0, DUO.length, ...ALLD.filter((d) => !off.has(d.key)));
     DUO_KEYS.clear(); DUO.forEach((d) => DUO_KEYS.add(d.key));
     annBar.hidden = !c.announce; annBar.replaceChildren(el("span", { text: "📢 " + (c.announce || "") }), el("button", { type: "button", "aria-label": "Hide", text: "✕", onclick: () => { annBar.hidden = true; } }));
-    try { renderLibrary(); renderDuo(); renderWallet(); } catch (e) {}
+    try { renderLibrary(); renderDuo(); renderWallet(); renderStrips(); } catch (e) {}
   }
   if (XR.online) api("/config").then((r) => { window.GCFG = r.config || {}; applyCfg(); }).catch(() => {});
 
@@ -8945,10 +8948,11 @@ function bowlGame() {
     const sel = (vals, cur, lab) => el("select", { class: "adm-in" }, ...vals.map((v) => { const o = el("option", { value: v, text: lab(v) }); if (+v === +cur) o.selected = true; return o; }));
     const pm = sel([0.5, 1, 1.5, 2, 3, 5], c.priceMult, (v) => v === 1 ? "Normal prices" : v + "× prices"), cm = sel([0, 0.5, 1, 2, 3, 5], c.coinMult, (v) => v === 1 ? "Normal coins" : v === 0 ? "No coins from games" : v + "× coins from games");
     const off = new Set(c.off || []);
+    const featSel = el("select", { class: "adm-in" }, el("option", { value: "", text: "No featured game" }), ...ALLB.map((g) => { const o = el("option", { value: g.key, text: g.title }); if (g.key === c.featured) o.selected = true; return o; }));
     const offBox = el("div", { class: "adm-chips" }, ...ALLB.map((g) => el("button", { class: "chip", type: "button", "aria-pressed": String(!off.has(g.key)), text: g.title, onclick: (e) => { if (off.has(g.key)) off.delete(g.key); else off.add(g.key); e.currentTarget.setAttribute("aria-pressed", String(!off.has(g.key))); } })));
     const gc = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "⚡ coins" }), gd = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "$ dollars" }), gg = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "💎 diamonds" }), gm = el("input", { class: "adm-in", type: "text", maxlength: 120, placeholder: "Gift message" });
     const save = async (gift) => {
-      const body = { announce: ann.value.trim(), priceMult: +pm.value, coinMult: +cm.value, off: [...off], gift: gift === undefined ? c.gift : gift };
+      const body = { announce: ann.value.trim(), priceMult: +pm.value, coinMult: +cm.value, off: [...off], featured: featSel.value, gift: gift === undefined ? c.gift : gift };
       const r = await admCall("/admin/config", { method: "PUT", body: { config: body } }, "Saved for everyone ✓");
       if (r) { window.GCFG = r.config; applyCfg(); renderAdmin(); }
     };
@@ -8956,6 +8960,7 @@ function bowlGame() {
       el("h3", { text: "🎮 Game controls (for everyone)" }),
       el("label", { class: "adm-lab", text: "Announcement" }), ann,
       el("div", { class: "adm-row" }, el("div", {}, el("label", { class: "adm-lab", text: "Shop prices" }), pm), el("div", {}, el("label", { class: "adm-lab", text: "Coins from games" }), cm)),
+      el("label", { class: "adm-lab", text: "👑 Levi's Pick (featured at the top of the library)" }), featSel,
       el("label", { class: "adm-lab", text: "Games that are ON (tap to turn a game off)" }), offBox,
       el("button", { class: "btn hot", type: "button", text: "Save game controls", onclick: () => save() }),
       el("h3", { text: "🎁 Send a gift to everyone" }),
@@ -9006,7 +9011,10 @@ function bowlGame() {
     }
     async function loadUsersQuiet() { const r = await admCall("/admin/users?q=" + encodeURIComponent(adm.q)); if (r) adm.users = r.users; }
     const players = el("div", { class: "adm-card" }, el("h3", { text: "👥 Players" }), q, el("p", { class: "set-note", text: "Tap a player to see and change everything about them. Changes reach them the next time they load the site." }), list);
-    box.replaceChildren(tiles, ctl, players, lb);
+    const gst = Object.entries(ov.games || {}).map(([k, v]) => [ALLB.find((g) => g.key === k), v]).filter(([g]) => g).sort((a, b2) => b2[1].players - a[1].players || b2[1].hearts - a[1].hearts);
+    const stats = el("div", { class: "adm-card" }, el("h3", { text: "📊 Most played games" }),
+      gst.length ? el("div", { class: "adm-scores" }, ...gst.slice(0, 20).map(([g, v], i) => el("div", { class: "adm-score" }, el("span", { text: (i + 1) + ". " + g.title }), el("b", { text: v.players + " players" }), el("small", { text: "♥ " + v.hearts })))) : el("p", { class: "set-note", text: "No scores yet." }));
+    box.replaceChildren(tiles, ctl, players, stats, lb);
     loadUsers();
   }
   window.gblShowAdmin();
