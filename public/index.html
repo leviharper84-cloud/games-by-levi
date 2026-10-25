@@ -1278,6 +1278,18 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
+(function () {
+  let box = null, seen = {};
+  function show(msg) {
+    msg = String(msg || "").slice(0, 160); if (!msg || /^Script error/.test(msg) || seen[msg]) return; seen[msg] = 1;
+    if (!box) { box = document.createElement("div"); box.style.cssText = "position:fixed;left:8px;right:8px;bottom:8px;z-index:99999;background:#b00030;color:#fff;font:600 13px/1.4 system-ui,sans-serif;padding:10px 12px;border-radius:10px;box-shadow:0 4px 20px rgba(0,0,0,.5)"; box.onclick = () => { box.remove(); box = null; }; (document.body || document.documentElement).appendChild(box); }
+    box.textContent = "Oops, something broke (tap to hide). Tell Claude: " + msg;
+  }
+  addEventListener("error", (e) => show((e.message || "error") + (e.lineno ? " @" + e.lineno : "")));
+  addEventListener("message", (e) => { const d = e.data; if (d && d.type === "gbl:err") show("game: " + d.msg); });
+})();
+</script>
+<script>
 /* ====================================================================
    Music styles. Shared by every game and by the Settings preview.
    ==================================================================== */
@@ -1365,6 +1377,7 @@ function musicLib(ac, out) {
    Bloom, CRT scanlines, particles, shake, synth audio, music, pause.
    ==================================================================== */
 function SHELL() {
+  addEventListener("error", (e) => { try { parent.postMessage({ type: "gbl:err", msg: (e.message || "error") + (e.lineno ? " @" + e.lineno : "") }, "*"); } catch (_) {} });
   const cv = document.getElementById("c"), x = cv.getContext("2d");
   const hl = document.getElementById("hl"), hc = document.getElementById("hc"), hr = document.getElementById("hr");
   const sndBtn = document.getElementById("snd"), pzBtn = document.getElementById("pz"), goBtn = document.getElementById("go"), pracBtn = document.getElementById("prac"), duoBtn = document.getElementById("duo"), btns = document.getElementById("btns");
@@ -10265,7 +10278,7 @@ function fighterGame() {
     const go = () => {
       home.hidden = true; home.classList.remove("leaving", "entering"); hub.hidden = false;
       window.gblWarpTarget = 1;
-      if (animate && !reduce) { hub.classList.remove("entering"); void hub.offsetWidth; hub.classList.add("entering"); }
+      if (animate && !reduce) { hub.classList.remove("entering"); void hub.offsetWidth; hub.classList.add("entering"); setTimeout(() => hub.classList.remove("entering"), 700); }
       showPage(target);
     };
     if (animate && !reduce) { window.gblWarpTarget = 14; home.classList.add("leaving"); setTimeout(go, 650); } else go();
@@ -10274,7 +10287,7 @@ function fighterGame() {
     if (!inHub) return;
     inHub = false;
     hub.hidden = true; hub.classList.remove("entering"); home.hidden = false; window.scrollTo(0, 0);
-    if (animate && !reduce) { home.classList.remove("entering"); void home.offsetWidth; home.classList.add("entering"); }
+    if (animate && !reduce) { home.classList.remove("entering"); void home.offsetWidth; home.classList.add("entering"); setTimeout(() => home.classList.remove("entering"), 700); }
   }
   const enter = (to) => { setHash(to); showHub(to, true); };
   document.getElementById("browse").addEventListener("click", () => enter("games"));
