@@ -1748,7 +1748,7 @@ function SHELL() {
     [S.px, S.py] = local(e); const st = { sx: e.clientX, sy: e.clientY, x: S.px, y: S.py, fresh: false }; PT.set(e.pointerId, st); S.down = true;
     if (S.paused) { st.fresh = true; togglePause(); return; }
     if (S.state !== "play") { st.fresh = true; if (canStart()) start(...again()); return; }
-    if (G.down) G.down(S.px, S.py, e.pointerId);
+    if (G.down) { DG.gd++; G.down(S.px, S.py, e.pointerId); }
   }
   function pMove(e) {
     if (!G) return; [S.px, S.py] = local(e); if (S.state === "play" && !S.paused && G.move) G.move(S.px, S.py, e.pointerId);
@@ -1789,6 +1789,11 @@ function SHELL() {
   addEventListener("touchend", viaTouch(pUp), { passive: true });
   addEventListener("touchcancel", viaTouch(pUp), { passive: true });
   addEventListener("resize", fit);
+  // Helper note: counts what the game feels from fingers, sent to the hub so problems can be found.
+  const DG = { pd: 0, pm: 0, pu: 0, pc: 0, ts: 0, tm: 0, te: 0, tc: 0, md: 0, gd: 0, types: "" };
+  [["pointerdown", "pd"], ["pointermove", "pm"], ["pointerup", "pu"], ["pointercancel", "pc"], ["touchstart", "ts"], ["touchmove", "tm"], ["touchend", "te"], ["touchcancel", "tc"], ["mousedown", "md"]].forEach(([ev, k]) => addEventListener(ev, (e) => { DG[k]++; if (e.pointerType && !DG.types.includes(e.pointerType)) DG.types += e.pointerType + " "; if (ev === "touchstart") DG.tgt = (e.target && (e.target.id || e.target.tagName)) || "?"; }, { capture: true, passive: true }));
+  let dgLast = "";
+  setInterval(() => { const d = { ...DG, st: S.state, paused: !!S.paused, fresh: !!S.fresh, pts: PT.size, hasTouch: HAS_TOUCH, w: innerWidth, h: innerHeight, title: G && G.title, ua: navigator.userAgent.slice(0, 160) }; const k = JSON.stringify(d); if (k !== dgLast) { dgLast = k; try { parent.postMessage({ type: "gbl:diag", d }, "*"); } catch (_) {} } }, 3000);
   window.__gs = { G: () => G, start };
   Object.assign(window, { saveGame, sendMove, BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
 }
