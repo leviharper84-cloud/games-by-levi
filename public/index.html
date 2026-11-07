@@ -1408,6 +1408,7 @@ function musicLib(ac, out) {
     else if (kind === "swing") { if (s === 0 || s === 6 || s === 8 || s === 14) hiss(.06, .035, 6000, t); if (s === 4 || s === 12) hiss(.04, .06, 2600, t); if (s === 0) kick(t, .14); }
     else if (kind === "fast") { if (s % 4 === 0) kick(t, .3); if (s === 4 || s === 12) hiss(.12, .13, 1700, t); hiss(.015, .03, 9000, t); }
     else if (kind === "bells") { if (s % 2 === 0) hiss(.04, .04, 10000, t); if (s === 0 || s === 8) kick(t, .14); }
+    else if (kind === "sleigh") { if (s % 2 === 0) hiss(.04, .05, 10000, t); if (s === 0 || s === 8) kick(t, .16); if (step % 32 === 0) { hiss(.05, .32, 2600, t); hiss(.03, .2, 5000, t + .05); } }
     else if (kind === "country") { if (s === 0 || s === 8) kick(t, .24); if (s === 4 || s === 12) hiss(.08, .09, 2400, t); if (s % 2 === 0) hiss(.02, .025, 6000, t); }
   }
   // A singing voice ("aah", "ooh" or "ee"): a buzzy tone shaped like a human mouth, with a little wobble.
@@ -1464,6 +1465,22 @@ function musicLib(ac, out) {
     spooky: { voice: "oo", vv: .1, m: "E4 2 E4 2 r 2 G4 1 E4 1 D#4 2 B3 2 r 4 E4 2 E4 2 r 2 G4 1 E4 1 F#4 2 D#4 2 r 4 C5 2 B4 2 A4 2 G4 2 F#4 2 G4 2 E4 4", b: "E2 4 B1 4 E2 4 B1 4", w: "triangle", vol: .09, leg: .4, d: "country" },
     harvest: { voice: "ee", vv: .07, m: "G4 2 G4 1 A4 1 B4 2 D5 2 E5 2 D5 2 B4 4 C5 2 B4 1 A4 1 G4 2 E4 2 D4 4 r 4 G4 2 G4 1 A4 1 B4 2 D5 2 E5 2 G5 2 E5 4 D5 2 B4 2 A4 2 B4 2 G4 8", b: "G2 4 D2 4 G2 4 D2 4 C2 4 G2 4 D2 4 G2 4", w: "sawtooth", vol: .03, lp: 2000, d: "country" },
     shopjam: { m: "r 4 E5 2 G5 2 A5 4 G5 2 E5 2 D5 4 C5 4 r 4 D5 2 E5 2 G5 6 E5 2 D5 8", b: "C2 4 E2 4 G2 4 A2 4 F2 4 A2 4 C3 4 A2 4", c: "C4 16 F3 16", w: "triangle", vol: .06, cv: .012, d: "swing" },
+    // ---- event songs ----
+    carol: { voice: "ah", vv: .07, m: "A#4 4 A4 2 A#4 2 G4 4 A#4 4 A4 2 A#4 2 G4 4 A#4 4 A4 2 A#4 2 G4 4 A#4 4 A4 2 A#4 2 G4 4 D5 4 C5 2 D5 2 A#4 4 D5 4 C5 2 D5 2 A#4 4 G5 4 F5 2 G5 2 D#5 4 G5 4 F5 2 G5 2 D#5 4", b: "G2 12 G2 12 G2 12 G2 12 D#2 12 D#2 12 C2 12 D2 12", w: "sawtooth", vol: .035, lp: 2200, d: "waltz" },
+    sugarplum: { m: "G5 2 E5 2 G5 2 F#5 2 D#5 2 E5 2 D5 2 D5 2 D5 2 C#5 2 C5 2 C5 2 C5 2 B4 2 C5 2 B4 2 A#4 4 A4 4 r 8", b: "E2 4 r 4 B1 4 r 4", w: "sine", vol: .08, oct: true, leg: .5, slow: 2 },
+    gladiators: { m: "B5 1 A#5 1 A5 1 G#5 1 G5 1 F#5 1 F5 1 E5 1 D#5 2 r 2 D#5 2 E5 2 C5 2 B4 2 A#4 2 B4 2 C5 4 r 4 B5 1 A#5 1 A5 1 G#5 1 G5 1 F#5 1 F5 1 E5 1 D#5 2 r 2 D#5 2 E5 2 G5 2 F#5 2 E5 2 D#5 2 E5 8", b: "E2 2 B1 2 E2 2 B1 2", w: "square", vol: .035, d: "country" },
+    haunted: { voice: "oo", vv: .09, m: "E4 2 F4 2 E4 2 D#4 2 E4 4 B3 4 C4 2 D4 2 C4 2 B3 2 A3 8 E4 2 F4 2 E4 2 D#4 2 E4 4 G4 4 F#4 2 E4 2 D#4 2 F#4 2 E4 8", b: "E2 4 B1 4 A1 4 B1 4", w: "triangle", vol: .08, leg: .6, d: "country" },
+    monsterbash: { voice: "oo", vv: .09, vup: .5, m: "G4 4 E4 2 G4 2 A4 4 G4 4 E4 2 D4 2 C4 8 r 4 G4 4 A4 2 C5 2 A4 4 G4 4 E4 2 G4 2 D4 12", b: "C2 4 E2 4 G2 4 A2 4 F2 4 A2 4 C3 4 A2 4 G2 4 B2 4 D3 4 B2 4 C2 4 E2 4 G2 4 E2 4", w: "triangle", vol: .06, bv: .12, d: "swing" },
+    ghostcatch: { m: "r 4 D5 2 D5 2 F5 2 D5 2 r 4 C5 2 D5 2 F5 4 E5 4 r 4 D5 2 D5 2 F5 2 A5 2 G5 4 F5 2 D5 2 C5 8", b: "G2 2 G2 2 r 2 G2 2 B2 2 r 2 A2 2 F2 2", w: "sawtooth", vol: .035, lp: 2600, bw: "sawtooth", bv: .07, blp: 700, d: "pop" },
+    cursed: { m: "C5 2 G5 2 B5 2 F#5 2 C5 2 G5 2 B5 2 F#5 2 C5 2 G5 2 B5 2 G5 2 C5 2 E5 2 B4 2 F#5 2", b: "C3 16 B2 16 A#2 16 A2 16", w: "square", vol: .03, lp: 2200, bw: "square", bv: .03, slow: 2 },
+    holidayhit: { voice: "ah", vv: .07, m: "G4 2 B4 2 D5 4 E5 2 D5 2 B4 4 C5 2 E5 2 G5 4 F#5 2 E5 2 D5 4 B4 2 D5 2 G5 4 A5 2 G5 2 E5 4 D5 2 C5 2 B4 2 A4 2 G4 8", b: "G2 4 D3 4 C3 4 D3 4 E2 4 B2 4 C3 4 D3 4", w: "square", vol: .03, d: "bells" },
+    snowrock: { m: "E5 2 G5 2 A5 2 G5 2 E5 4 C5 4 D5 2 E5 2 D5 2 C5 2 A4 8 E5 2 G5 2 A5 2 C6 2 B5 4 G5 4 A5 2 G5 2 E5 2 D5 2 C5 8", b: "C2 4 E2 4 G2 4 E2 4 A1 4 C2 4 E2 4 C2 4 F1 4 A1 4 C2 4 A1 4 G1 4 B1 4 D2 4 G1 4", w: "sawtooth", vol: .03, lp: 2400, d: "rock" },
+    sleigh: { m: "C5 2 E5 2 G5 2 A5 2 G5 4 E5 4 F5 2 A5 2 G5 2 E5 2 D5 8 E5 2 G5 2 C6 2 B5 2 A5 4 G5 4 F5 2 E5 2 D5 2 B4 2 C5 8", b: "C3 4 G2 4 F2 4 G2 4", w: "square", vol: .03, d: "sleigh" },
+    surf: { m: "B4 1 B4 1 B4 1 B4 1 E5 2 G#5 2 B5 4 A5 2 G#5 2 E5 4 C#5 1 C#5 1 C#5 1 C#5 1 F#5 2 A5 2 B5 4 G#5 2 F#5 2 E5 4", b: "E2 2 E2 2 E2 2 E2 2 A2 2 A2 2 B2 2 B2 2", w: "sawtooth", vol: .035, lp: 2000, d: "rock" },
+    mallrush: { m: "C5 1 E5 1 G5 1 C6 1 B5 2 G5 2 A5 1 G5 1 F5 1 E5 1 D5 2 G5 2 E5 1 F#5 1 G5 1 A5 1 B5 2 D6 2 C6 4 r 4", b: "C3 2 r 1 C3 1 G2 2 r 2 F2 2 r 1 F2 1 G2 2 r 2", w: "sine", vol: .08, oct: true, d: "fast" },
+    reef: { m: "G4 2 C5 2 E5 3 D5 1 C5 2 A4 2 G4 4 F4 2 A4 2 C5 3 B4 1 A4 2 F4 2 G4 4", b: "C2 3 C2 1 G2 2 C2 2 F1 3 F1 1 C2 2 F1 2", w: "sine", vol: .08, oct: true, leg: .6, d: "soft" },
+    poolside: { m: "E5 4 D5 2 B4 2 A4 4 B4 4 D5 4 E5 2 F#5 2 E5 8 r 4 F#5 2 E5 2 D5 4 B4 4 A4 2 B4 2 D5 4 B4 8", c: "A3 16 F#3 16 D3 16 E3 16", b: "A2 4 A2 4 F#2 4 F#2 4 D2 4 D2 4 E2 4 E2 4", w: "square", vol: .03, cv: .014, d: "pop" },
+    leaves: { voice: "oo", vv: .08, m: "E5 4 D5 2 C5 2 A4 8 B4 2 C5 2 D5 4 G4 8 C5 4 B4 2 A4 2 F4 8 G#4 2 A4 2 B4 4 E4 8", b: "A2 4 E2 4 G2 4 D2 4 F2 4 C2 4 E2 4 B1 4", w: "triangle", vol: .07, d: "swing" },
   };
   for (const k in SONGS) T[k] = tune(SONGS[k]);
   return (track, step, t, spb) => { const fn = T[track] || T.synth; fn(step, t, spb); };
@@ -9850,11 +9867,26 @@ function fighterGame() {
     ["mu-metal", "music", "🏎️ Rip & Tear 🔥", 18, "linear-gradient(135deg,#ff2e4d,#1a0000)", "HEAVY METAL battle music. Popular!", "d"],
     ["mu-harvest", "music", "🦃 Harvest Hoedown (event)", 350, "linear-gradient(135deg,#ff8a1f,#8a4b1f)", "Harvest Fest only: November"],
     ["mu-jingle", "music", "❄️ Jingle Bells (event)", 30, "linear-gradient(135deg,#ffffff,#ff2e4d)", "Winter Fest only: December, with singing", "$"],
+    ["mu-haunted", "music", "🎃 Haunted Holiday 🔥 (event)", 60, "linear-gradient(135deg,#a35bff,#1a0b24)", "Hiss-O-Ween only: October. Spooky singing! Popular!", "$"],
+    ["mu-monsterbash", "music", "🎃 Monster Bash (event)", 450, "linear-gradient(135deg,#3dffa8,#1a0b24)", "Hiss-O-Ween only: October. Retro monster dance", ""],
+    ["mu-ghostcatch", "music", "🎃 Ghost Catchers 🔥 (event)", 10, "linear-gradient(135deg,#ff4d6d,#ffffff)", "Hiss-O-Ween only: October. Catch those ghosts! Popular!", "d"],
+    ["mu-cursed", "music", "🎃 Cursed Town (event)", 500, "linear-gradient(135deg,#a35bff,#000000)", "Hiss-O-Ween only: October. Creepy 8-bit", ""],
+    ["mu-carol", "music", "❄️ Carol of the Bells 🔥 (event)", 70, "linear-gradient(135deg,#9ff3ff,#1a4bff)", "Winter Fest only: December. Epic, with singing. Popular!", "$"],
+    ["mu-sugarplum", "music", "❄️ Sugar Plum Fairy (event)", 500, "linear-gradient(135deg,#ffd0f6,#a35bff)", "Winter Fest only: December. Magic toy workshop", ""],
+    ["mu-holidayhit", "music", "❄️ Holiday Hit 🔥 (event)", 12, "linear-gradient(135deg,#ff2e4d,#ffd66b)", "Winter Fest only: December. Big holiday pop, with singing. Popular!", "d"],
+    ["mu-snowrock", "music", "❄️ Snow Town Rock (event)", 450, "linear-gradient(135deg,#ffffff,#3dffa8)", "Winter Fest only: December. Cozy holiday rock", ""],
+    ["mu-sleigh", "music", "❄️ Sleigh Racer (event)", 40, "linear-gradient(135deg,#ff2e4d,#ffffff)", "Winter Fest only: December. Bells and whip cracks!", "$"],
+    ["mu-surf", "music", "☀️ Surf Party (event)", 450, "linear-gradient(135deg,#ffd66b,#22e4ff)", "Summer only: June to August. Beach surf rock", ""],
+    ["mu-mallrush", "music", "☀️ Mall Rush 🔥 (event)", 12, "linear-gradient(135deg,#3dffa8,#ffd66b)", "Summer only: June to August. Crazy fast and fun! Popular!", "d"],
+    ["mu-reef", "music", "☀️ Steel Drum Reef (event)", 500, "linear-gradient(135deg,#22e4ff,#3dffa8)", "Summer only: June to August. Island steel drums", ""],
+    ["mu-poolside", "music", "☀️ Poolside 80s (event)", 40, "linear-gradient(135deg,#ff7be6,#22e4ff)", "Summer only: June to August. Chill pool party", "$"],
+    ["mu-gladiators", "music", "🤡 Circus Clowns 🔥 (event)", 50, "linear-gradient(90deg,#ff2e4d,#ffffff,#ff2e4d)", "April Fools only: April. The real circus song! Popular!", "$"],
+    ["mu-leaves", "music", "🍂 Falling Leaves (event)", 400, "linear-gradient(135deg,#ff8a1f,#ffd66b)", "Harvest Fest only: November. Cozy autumn jazz, with singing", ""],
     ["mu-spooky", "music", "🎃 Spooky Bones (event)", 380, "linear-gradient(135deg,#ff8a1f,#1a0b24)", "Hiss-O-Ween only: October, with singing"],
   ];
   // Event songs: the month (0 = January) they can be bought.
-  const EVENT_MONTH = { "mu-spooky": 9, "mu-harvest": 10, "mu-jingle": 11 }, MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const inSeason = (id) => EVENT_MONTH[id] == null || new Date().getMonth() === EVENT_MONTH[id];
+  const EVENT_MONTH = { "mu-spooky": [9], "mu-haunted": [9], "mu-monsterbash": [9], "mu-ghostcatch": [9], "mu-cursed": [9], "mu-harvest": [10], "mu-leaves": [10], "mu-jingle": [11], "mu-carol": [11], "mu-sugarplum": [11], "mu-holidayhit": [11], "mu-snowrock": [11], "mu-sleigh": [11], "mu-surf": [5, 6, 7], "mu-mallrush": [5, 6, 7], "mu-reef": [5, 6, 7], "mu-poolside": [5, 6, 7], "mu-gladiators": [3] }, MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const inSeason = (id) => EVENT_MONTH[id] == null || EVENT_MONTH[id].includes(new Date().getMonth());
   // The song games play: a shop song you equipped, otherwise the style picked in Settings.
   window.gblMusicPick = () => { try { if (settings.music === "off") return "off"; const m = prog.equip && prog.equip.music; return m ? m.slice(3) : settings.music; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
@@ -10129,7 +10161,7 @@ function fighterGame() {
           ...SHOP.filter((it) => it[1] === gk && (it[0] !== "sl-pumpkin" || Date.now() < Date.parse("2026-11-01T00:00:00Z") || (prog.owned || []).includes(it[0]))).map(([id, , name, price0, col, sub, cur]) => {
             const price = cost(price0), has = owned.has(id), on = eq[gk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = cur === "d" ? " gem" : cur === "$" ? " cash" : "";
             const listen = gk === "music" ? el("button", { class: "btn sm shop-listen", type: "button", "aria-label": "Listen to " + name, text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
-            if (!has && !inSeason(id)) return el("div", { class: "shop-item locked" }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), listen, el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Back in " + MONTHS[EVENT_MONTH[id]] }));
+            if (!has && !inSeason(id)) return el("div", { class: "shop-item locked" }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), listen, el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Back in " + MONTHS[EVENT_MONTH[id][0]] }));
             if (cur === "lv" && !has) return el("div", { class: "shop-item locked" }, el("span", { class: "sw ttl", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
             if (gk === "boost") return el("div", { class: "shop-item" + tag }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
               el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); renderRewards(); } }));
