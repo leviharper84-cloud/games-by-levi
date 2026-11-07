@@ -6429,7 +6429,7 @@ function slitherGame() {
     if (streak.length >= 2) { banner(["", "", "DOUBLE KILL!", "TRIPLE KILL!", "MEGA KILL!"][streak.length] || "RAMPAGE!", "#ff4d6d"); sfx("level"); shake(6, .3); }
     S.score += 50 + Math.floor(mass); pop(W / 2, H / 2 - 70, "KILLED " + String(name).toUpperCase() + "!", "#ffd66b"); sfx("score");
   }
-  let snakes, me, pellets, pill, pillT, cam, zoom, kills, grid, deadT, bestRank, boostIds, aim, keyTurn, joystick, boostTouchId;
+  let snakes, me, pellets, pill, pillT, cam, zoom, kills, grid, deadT, bestRank, boostIds, aim, keyTurn, joystick, boostTouchId, joyAngle;
   const rnd = (a, b) => a + Math.random() * (b - a);
   const rad = (s) => Math.min(24, 6 + Math.sqrt(s.mass) * .42);
   const segCount = (s) => Math.floor(12 + s.mass * .55);
@@ -6567,7 +6567,7 @@ function slitherGame() {
     title: NET ? "Slither Arena" : "Neon Slither", easy: "calmer bots, and if you crash you just respawn", w: W, h: H, color: "#3dffa8", bpm: 132,
     help: [EVENT ? "🎃 HISS-O-WEEN: spooky pumpkins are worth 5!" : NET ? "LIVE ONLINE: real players from everywhere, plus bots" : "Touch: press and drag anywhere on the left to steer with the joystick", "Eat glowing pellets to grow. Big ones are worth more!", "Hold the ⚡ BOOST button (bottom right) or press Space to speed up — it costs length", "Grab power-ups: M = magnet, » = speed, x2 = double food. Crash into a body and you're out!"],
     init() {
-      snakes = []; pellets = []; grid = new Map(); kills = 0; deadT = 0; bestRank = 21; pill = null; pillT = 15; boostIds = new Set(); aim = null; keyTurn = 0; joystick = null; boostTouchId = null;
+      snakes = []; pellets = []; grid = new Map(); kills = 0; deadT = 0; bestRank = 21; pill = null; pillT = 15; boostIds = new Set(); aim = null; keyTurn = 0; joystick = null; boostTouchId = null; joyAngle = null;
       cam = { x: 0, y: 0 }; zoom = 1;
       if (ws) { try { ws.onclose = null; ws.close(); } catch (e) {} ws = null; } remote.clear(); feed = []; isHost = false;
       botIdx = NET ? [] : Array.from({ length: BOTS }, (_, i) => i); myIdx = NET ? 0 : BOTS;
@@ -6580,21 +6580,22 @@ function slitherGame() {
     down(px, py, pid) {
       const boostR = 65, boostX = W - 80, boostY = H - 90;
       if (Math.hypot(px - boostX, py - boostY) < boostR + 20) { boostTouchId = pid; boostIds.add(pid); return; }
-      joystick = { id: pid, cx: px, cy: py }; aim = null;
+      joystick = { id: pid, cx: px, cy: py, dx: 0, dy: 0 }; aim = null; joyAngle = null;
     },
     move(px, py, pid) {
       if (pid === boostTouchId) return;
       if (joystick && joystick.id === pid) {
         const dx = px - joystick.cx, dy = py - joystick.cy;
-        if (Math.hypot(dx, dy) > 12) aim = [joystick.cx + dx * 4, joystick.cy + dy * 4];
+        joystick.dx = dx; joystick.dy = dy;
+        if (Math.hypot(dx, dy) > 8) joyAngle = Math.atan2(dy, dx);
         return;
       }
-      aim = [px, py];
+      aim = [px, py]; joyAngle = null;
     },
     up(px, py, pid) {
       if (pid === boostTouchId) { boostTouchId = null; }
       boostIds.delete(pid);
-      if (joystick && joystick.id === pid) { joystick = null; aim = null; }
+      if (joystick && joystick.id === pid) { joystick = null; aim = null; joyAngle = null; }
     },
     update(dt) {
       if (!S.down) boostIds.clear();
@@ -6614,7 +6615,8 @@ function slitherGame() {
       // player input
       if (me.alive) {
         const k = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
-        if (k) { me.ta = me.a + k * 1.2; aim = null; }
+        if (k) { me.ta = me.a + k * 1.2; aim = null; joyAngle = null; }
+        else if (joyAngle !== null) me.ta = joyAngle;
         else if (aim) me.ta = Math.atan2(aim[1] - H / 2, aim[0] - W / 2);
         me.boost = boostTouchId !== null || boostIds.size > 0 || !!(S.keys[" "] || S.keys.Shift || S.keys.ArrowUp || S.keys.w);
       }
@@ -6712,9 +6714,10 @@ function slitherGame() {
         const jx = joystick.cx, jy = joystick.cy;
         x.globalAlpha = .35; x.strokeStyle = "#22e4ff"; x.lineWidth = 2; x.beginPath(); x.arc(jx, jy, 56, 0, 6.2832); x.stroke();
         x.strokeStyle = "rgba(34,228,255,.2)"; x.lineWidth = 1; x.beginPath(); x.arc(jx, jy, 20, 0, 6.2832); x.stroke();
-        if (aim) {
-          const dx = aim[0] - jx * 4, dy = aim[1] - jy * 4, d = Math.min(50, Math.hypot(dx / 4, dy / 4)), a2 = Math.atan2(dy, dx);
-          x.fillStyle = "#22e4ff"; x.globalAlpha = .55; x.beginPath(); x.arc(jx + Math.cos(a2) * d, jy + Math.sin(a2) * d, 24, 0, 6.2832); x.fill();
+        const dragD = Math.hypot(joystick.dx, joystick.dy);
+        if (dragD > 8) {
+          const thumbR = Math.min(44, dragD * .75), a2 = Math.atan2(joystick.dy, joystick.dx);
+          x.fillStyle = "#22e4ff"; x.globalAlpha = .55; x.beginPath(); x.arc(jx + Math.cos(a2) * thumbR, jy + Math.sin(a2) * thumbR, 22, 0, 6.2832); x.fill();
         }
         x.globalAlpha = 1;
       }
