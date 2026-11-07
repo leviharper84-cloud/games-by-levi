@@ -10074,12 +10074,8 @@ function fighterGame() {
     ["ea-carrot", "ev-easter", "Carrot Dash FX 🥕", 450, "linear-gradient(135deg,#ff8a1f,#b6ff3b)", "Carrot sparks in every game. Epic!", "", "e"],
     // 🐾 Extra pets
     ["pet-lion", "pet", "Lion Cub 🦁", 1000, "linear-gradient(135deg,#ffc23d,#ff8a1f)", "Brave and roary. Prowls beside you.", "", "e"],
-    ["pet-panda", "pet", "Panda 🐼", 900, "linear-gradient(135deg,#ffffff,#333333)", "Black & white and utterly cute.", "", "r"],
-    ["pet-dino", "pet", "Dino Hatchling 🦕", 1200, "linear-gradient(135deg,#b6ff3b,#22e4ff)", "Tiny prehistoric pal. Very rare!", "", "e"],
     ["pet-owl", "pet", "Neon Owl 🦉", 800, "linear-gradient(135deg,#a35bff,#22e4ff)", "Wise and glowing. Hoo are you?", "", "r"],
-    ["pet-shark", "pet", "Baby Shark 🦈", 1400, "linear-gradient(135deg,#22e4ff,#001a2e)", "doo doo doo. Legendary find!", "", "l"],
     ["pet-koala", "pet", "Koala 🐨", 700, "linear-gradient(135deg,#9e9e9e,#b6ff3b)", "Chilled-out fluff ball. Common but lovable.", "", "c"],
-    ["pet-fox", "pet", "Cyber Fox 🦊", 1100, "linear-gradient(135deg,#ff8a1f,#ff2bd6)", "Quick and cunning. Neon upgrade!", "", "e"],
     // 🏷 Extra titles
     ["t-neon", "title", "Neon King", 500, "linear-gradient(135deg,#ff2bd6,#22e4ff)", "For the brightest player.", "", "r"],
     ["t-arcade", "title", "Arcade Hero", 600, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "Classic arcade legend.", "", "r"],
@@ -10087,13 +10083,13 @@ function fighterGame() {
     ["t-speedy", "title", "Speed Demon", 400, "linear-gradient(135deg,#22e4ff,#b6ff3b)", "Always first, never last.", "", "c"],
     ["t-gold", "title", "Gold Member", 1000, "linear-gradient(135deg,#ffc23d,#ff6b3d)", "Exclusive golden status.", "", "e"],
     ["t-shadow", "title", "Shadow Runner", 450, "linear-gradient(135deg,#333366,#a35bff)", "Moves in the dark.", "", "c"],
-    ["t-galaxy", "title", "Galaxy Brain", 700, "linear-gradient(135deg,#a35bff,#22e4ff)", "Thinking on a cosmic scale.", "", "r"],
-    ["t-legend", "title", "The Legend", 2000, "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)", "There can only be one. LEGENDARY!", "", "l"],
+    ["t-galaxybrain", "title", "Galaxy Brain", 700, "linear-gradient(135deg,#a35bff,#22e4ff)", "Thinking on a cosmic scale.", "", "r"],
+    ["t-thelegend", "title", "The Legend", 2000, "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)", "There can only be one. LEGENDARY!", "", "l"],
     // ✨ More FX
     ["fx-hearts", "fx", "Hearts FX 💜", 350, "linear-gradient(135deg,#ff7be6,#ff2bd6)", "Pink heart sparks all over.", "", "c"],
-    ["fx-ice", "fx", "Ice Burst ❄️", 400, "linear-gradient(135deg,#22e4ff,#ffffff)", "Cool icy explosions in every game.", "", "r"],
-    ["fx-gold", "fx", "Gold Shower 🌟", 500, "linear-gradient(135deg,#ffd66b,#ffc23d)", "Gold star sparks — make it rain!", "", "r"],
-    ["fx-rainbow", "fx", "Rainbow Pop 🌈", 800, "linear-gradient(135deg,#ff2bd6,#ffd66b,#22e4ff)", "Neon rainbow every time you score. Epic!", "", "e"],
+    ["fx-iceburst", "fx", "Ice Burst ❄️", 400, "linear-gradient(135deg,#22e4ff,#ffffff)", "Cool icy explosions in every game.", "", "r"],
+    ["fx-goldshower", "fx", "Gold Shower 🌟", 500, "linear-gradient(135deg,#ffd66b,#ffc23d)", "Gold star sparks — make it rain!", "", "r"],
+    ["fx-rainbowpop", "fx", "Rainbow Pop 🌈", 800, "linear-gradient(135deg,#ff2bd6,#ffd66b,#22e4ff)", "Neon rainbow every time you score. Epic!", "", "e"],
   ];
   // Event songs: the month (0 = January) they can be bought.
   const EVENT_MONTH = {
@@ -10149,7 +10145,7 @@ function fighterGame() {
     }
   }
   /* ---------- Pets: they live in the corner, level up as you play and give bonus coins ---------- */
-  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉", "pet-penguin": "🐧", "pet-bunny": "🐰", "pet-turtle": "🐢", "pet-shark": "🦈", "pet-panda": "🐼", "pet-dino": "🦕", "pet-alien": "👾", "pet-narwhal": "🦄", "pet-phoenix": "🔥", "pet-crab": "🦀", "pet-jelly": "🪼", "pet-ghost": "👻", "pet-pumpkin": "🎃", "pet-elf": "🧝", "pet-snowman": "⛄", "pet-chick": "🐣", "pet-easterbunny": "🐰", "pet-beachcrab": "🦀", "pet-raccoon": "🦝", "pet-jester": "🤡" };
+  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-lion": "🦁", "pet-owl": "🦉", "pet-koala": "🐨", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉", "pet-penguin": "🐧", "pet-bunny": "🐰", "pet-turtle": "🐢", "pet-shark": "🦈", "pet-panda": "🐼", "pet-dino": "🦕", "pet-alien": "👾", "pet-narwhal": "🦄", "pet-phoenix": "🔥", "pet-crab": "🦀", "pet-jelly": "🪼", "pet-ghost": "👻", "pet-pumpkin": "🎃", "pet-elf": "🧝", "pet-snowman": "⛄", "pet-chick": "🐣", "pet-easterbunny": "🐰", "pet-beachcrab": "🦀", "pet-raccoon": "🦝", "pet-jester": "🤡" };
   const PET_TALK = ["Let's play!", "You're awesome!", "Beat your high score!", "I'm hungry...", "*happy noises*", "Go go go!", "Best friends!", "Try a new game!"];
   const petLv = (id) => Math.min(10, Math.floor(Math.sqrt(stat("px_" + id) / 3)) + 1);
   const petBonus = () => { const id = (prog.equip || {}).pet; return id && (prog.owned || []).includes(id) ? petLv(id) * .02 : 0; };
@@ -10661,11 +10657,6 @@ function fighterGame() {
     if (hubPrev) { stopHubMusic(); try { localStorage.setItem("gbl-hubmus", "0"); } catch {} } else { try { localStorage.removeItem("gbl-hubmus"); } catch {} startHubMusic(); }
     updateHubMusicBtn();
   });
-  const tryHubMusicWithPref = () => { let off = false; try { off = localStorage.getItem("gbl-hubmus") === "0"; } catch {} if (!off) tryHubMusic(); else { hubStarted = true; updateHubMusicBtn(); } };
-  document.removeEventListener("click", tryHubMusic);
-  document.removeEventListener("touchend", tryHubMusic);
-  document.addEventListener("click", tryHubMusicWithPref, { once: true });
-  document.addEventListener("touchend", tryHubMusicWithPref, { once: true });
     closeBtn.onclick = () => { modal.hidden = true; };
     modal.addEventListener("click", (e) => { if (e.target === modal) modal.hidden = true; });
     ta.addEventListener("input", () => { charDiv.textContent = ta.value.length + " / 500"; });
