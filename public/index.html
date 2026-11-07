@@ -680,6 +680,29 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .pet-bub { position: absolute; left: 6px; bottom: 76px; white-space: nowrap; padding: 8px 12px; border-radius: 14px 14px 14px 4px; background: #fff; color: #12081f; font-weight: 700; font-size: .85rem; }
 .pet-bub[hidden] { display: none; }
 .sw.petsw { display: grid; place-items: center; font-size: 1.4rem; }
+/* Rarity badges */
+.rar { display:inline-block; padding:1px 7px; border-radius:20px; font-size:.62rem; font-weight:800; text-transform:uppercase; letter-spacing:.06em; }
+.rar-c { background:rgba(170,170,170,.15); color:#aaa; }
+.rar-r { background:rgba(34,228,255,.2); color:#22e4ff; }
+.rar-e { background:rgba(163,91,255,.28); color:#a35bff; }
+.rar-l { background:rgba(255,214,107,.28); color:#ffd66b; box-shadow:0 0 8px rgba(255,214,107,.3); }
+/* Advent calendar */
+.adv-grid { display:grid; grid-template-columns:repeat(6,1fr); gap:6px; }
+.adv-day { display:flex; flex-direction:column; align-items:center; justify-content:center; padding:8px 4px; border-radius:12px; border:1px solid var(--line); background:rgba(0,0,0,.3); font-size:.72rem; cursor:pointer; min-height:52px; gap:3px; transition:transform .15s; }
+.adv-day:hover { transform:scale(1.06); }
+.adv-day.today { border-color:#ffd66b; box-shadow:0 0 14px rgba(255,214,107,.4); }
+.adv-day.opened { opacity:.55; border-color:rgba(61,255,168,.3); }
+.adv-day.locked { opacity:.35; cursor:default; }
+.adv-day b { font-size:1.1rem; }
+.adv-num { font-size:.6rem; color:var(--muted); font-weight:700; }
+.adv-lab { font-size:.8rem; font-weight:600; text-align:center; }
+.adv-wrap { display:flex; flex-direction:column; gap:12px; }
+.adv-day.today .adv-lab { color:#ffd66b; }
+/* Event egg hunt */
+.ev-egg { position:fixed; z-index:8000; font-size:2.2rem; cursor:pointer; animation:eggPulse 1.6s ease-in-out infinite; user-select:none; filter:drop-shadow(0 0 10px rgba(255,214,107,.8)); }
+@keyframes eggPulse { 0%,100%{transform:scale(1) rotate(-8deg);} 50%{transform:scale(1.18) rotate(8deg);} }
+.ev-egg-pop { position:fixed; z-index:8001; font:800 1.1rem var(--f-mono); color:#ffd66b; pointer-events:none; animation:eggPopAnim .9s forwards; }
+@keyframes eggPopAnim { 0%{opacity:1;transform:translateY(0) scale(1);} 100%{opacity:0;transform:translateY(-60px) scale(1.3);} }
 @media (max-width: 700px) { .pet-tag { display: none; } .pet-face { width: 54px; height: 54px; font-size: 2.1rem; } }
 .duel-sel { flex: 1; min-width: 0; }
 .duel-card .btn + .btn { margin-top: 8px; }
@@ -8413,13 +8436,13 @@ function fighterGame() {
   function btnsFor() {
     const B = [], mk = (pi, a, X, Y, r, label, c) => B.push({ pi, a, x: X, y: Y, r, label, c });
     if (twoHuman()) {
-      mk(0, "l", 46, 396, 30, "◀", "#22e4ff"); mk(0, "r", 116, 396, 30, "▶", "#22e4ff"); mk(0, "u", 81, 332, 26, "▲", "#22e4ff"); mk(0, "dn", 150, 330, 22, "🛡", "#3dffa8");
-      mk(0, "p", 200, 406, 26, "P", "#ffd66b"); mk(0, "k", 262, 386, 26, "K", "#ff8a1f"); mk(0, "s", 232, 330, 24, "★", "#ff2bd6");
-      mk(1, "l", W - 116, 396, 30, "◀", "#ff2bd6"); mk(1, "r", W - 46, 396, 30, "▶", "#ff2bd6"); mk(1, "u", W - 81, 332, 26, "▲", "#ff2bd6"); mk(1, "dn", W - 150, 330, 22, "🛡", "#3dffa8");
-      mk(1, "p", W - 262, 386, 26, "P", "#ffd66b"); mk(1, "k", W - 200, 406, 26, "K", "#ff8a1f"); mk(1, "s", W - 232, 330, 24, "★", "#ff2bd6");
+      mk(0, "l", 46, H - 70, 34, "◀", "#22e4ff"); mk(0, "r", 120, H - 70, 34, "▶", "#22e4ff"); mk(0, "u", 83, H - 125, 30, "▲", "#22e4ff"); mk(0, "dn", 165, H - 125, 28, "🛡", "#3dffa8");
+      mk(0, "p", 210, H - 65, 30, "P", "#ffd66b"); mk(0, "k", 278, H - 80, 30, "K", "#ff8a1f"); mk(0, "s", 250, H - 135, 28, "★", "#ff2bd6");
+      mk(1, "l", W - 120, H - 70, 34, "◀", "#ff2bd6"); mk(1, "r", W - 46, H - 70, 34, "▶", "#ff2bd6"); mk(1, "u", W - 83, H - 125, 30, "▲", "#ff2bd6"); mk(1, "dn", W - 165, H - 125, 28, "🛡", "#3dffa8");
+      mk(1, "p", W - 278, H - 80, 30, "P", "#ffd66b"); mk(1, "k", W - 210, H - 65, 30, "K", "#ff8a1f"); mk(1, "s", W - 250, H - 135, 28, "★", "#ff2bd6");
     } else {
-      mk(0, "l", 56, 390, 36, "◀", "#22e4ff"); mk(0, "r", 144, 390, 36, "▶", "#22e4ff"); mk(0, "u", 100, 316, 30, "▲", "#22e4ff");
-      mk(0, "p", W - 206, 402, 32, "PUNCH", "#ffd66b"); mk(0, "k", W - 124, 376, 32, "KICK", "#ff8a1f"); mk(0, "s", W - 58, 306, 30, "SPECIAL", "#ff2bd6"); mk(0, "dn", W - 214, 318, 26, "BLOCK", "#3dffa8");
+      mk(0, "l", 55, H - 55, 42, "◀", "#22e4ff"); mk(0, "r", 155, H - 55, 42, "▶", "#22e4ff"); mk(0, "u", 105, H - 125, 36, "▲", "#22e4ff");
+      mk(0, "p", W - 65, H - 55, 42, "P", "#ffd66b"); mk(0, "k", W - 165, H - 60, 42, "K", "#ff8a1f"); mk(0, "s", W - 100, H - 135, 38, "★", "#ff2bd6"); mk(0, "dn", W - 258, H - 65, 38, "🛡", "#3dffa8");
     }
     return B;
   }
@@ -9968,18 +9991,128 @@ function fighterGame() {
     ["mu-gladiators", "music", "🤡 Circus Clowns 🔥 (event)", 50, "linear-gradient(90deg,#ff2e4d,#ffffff,#ff2e4d)", "April Fools only: April. The real circus song! Popular!", "$"],
     ["mu-leaves", "music", "🍂 Falling Leaves (event)", 400, "linear-gradient(135deg,#ff8a1f,#ffd66b)", "Harvest Fest only: November. Cozy autumn jazz, with singing", ""],
     ["mu-spooky", "music", "🎃 Spooky Bones (event)", 380, "linear-gradient(135deg,#ff8a1f,#1a0b24)", "Hiss-O-Ween only: October, with singing"],
+    // 🐾 More pets — common / rare / epic / legendary (index 7 = rarity)
+    ["pet-penguin", "pet", "Cozy Penguin", 20, "#9ff3ff", "A waddling pixel penguin", "$", "c"],
+    ["pet-bunny", "pet", "Pixel Bunny", 25, "#ffb6f8", "A quick little bunny", "$", "c"],
+    ["pet-turtle", "pet", "Cyber Turtle", 25, "#3dffa8", "Slow and steady wins the race", "$", "c"],
+    ["pet-shark", "pet", "Cyber Shark", 50, "#22e4ff", "Chomps at bugs", "$", "r"],
+    ["pet-panda", "pet", "Neon Panda", 55, "linear-gradient(90deg,#ffffff,#1a1a1a)", "Black-and-white pixel pal", "$", "r"],
+    ["pet-dino", "pet", "Dino Buddy", 60, "#b6ff3b", "RAWRR! A tiny dino friend", "$", "r"],
+    ["pet-alien", "pet", "Glitch Alien", 10, "#a35bff", "It came from outer space", "d", "e"],
+    ["pet-narwhal", "pet", "Space Narwhal", 15, "linear-gradient(90deg,#22e4ff,#ff2bd6)", "Swims through stars", "d", "e"],
+    ["pet-phoenix", "pet", "Pixel Phoenix", 20, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Reborn from glitchy flames", "d", "e"],
+    ["pet-crab", "pet", "Cyber Crab", 45, "linear-gradient(90deg,#ff2e4d,#ff8a1f)", "The rarest crustacean in the hub", "d", "l"],
+    ["pet-jelly", "pet", "Crystal Jellyfish", 55, "linear-gradient(90deg,#9ff3ff,#a35bff,#ff7be6)", "Drifts in the neon sea", "d", "l"],
+    // 🐾 Event pets (buy during the event only)
+    ["pet-ghost", "pet", "Spooky Ghost", 25, "rgba(220,210,255,.8)", "BOO! Hiss-O-Ween only", "$", "r"],
+    ["pet-pumpkin", "pet", "Jack O' Lantern", 10, "#ff8a1f", "A glowing pumpkin pal. Hiss-O-Ween only", "d", "e"],
+    ["pet-elf", "pet", "Christmas Elf", 25, "#3dffa8", "Busy making gifts. Winter Fest only", "$", "r"],
+    ["pet-snowman", "pet", "Frosty Snowman", 10, "#9ff3ff", "It's cold but cheerful. Winter Fest only", "d", "e"],
+    ["pet-chick", "pet", "Spring Chick", 20, "#ffd66b", "Fresh hatched for Easter! Easter only", "$", "r"],
+    ["pet-easterbunny", "pet", "Easter Bunny", 10, "linear-gradient(90deg,#ff7be6,#ffd66b)", "Hops around finding eggs. Easter only", "d", "e"],
+    ["pet-beachcrab", "pet", "Beach Crab", 25, "#ff8a1f", "Scuttles on the sand. Summer only", "$", "r"],
+    ["pet-raccoon", "pet", "Harvest Raccoon", 20, "#a35bff", "Rummages for treats. Harvest Fest only", "$", "r"],
+    ["pet-jester", "pet", "Jester Bot", 20, "linear-gradient(90deg,#ff2e4d,#ffffff)", "It's not funny! April Fools only", "$", "r"],
+    // 🏷 More titles — common / rare / epic / legendary
+    ["t-noob", "title", "Noob", 10, "#aaa", "Everyone starts somewhere", "$", "c"],
+    ["t-gamer", "title", "Gamer", 15, "#3dffa8", "Born to play", "$", "c"],
+    ["t-champ", "title", "Champion", 25, "#22e4ff", "Won it fair and square", "$", "c"],
+    ["t-ninja", "title", "Ninja", 40, "#ff4d6d", "Swift and sneaky", "$", "r"],
+    ["t-wizard", "title", "Wizard", 55, "#a35bff", "Knows a few tricks", "$", "r"],
+    ["t-captain", "title", "Captain", 65, "#ff8a1f", "Leading the charge", "$", "r"],
+    ["t-boss", "title", "Boss", 80, "#ffd66b", "Runs this place", "$", "r"],
+    ["t-titan", "title", "Titan", 12, "#22e4ff", "Unstoppable force", "d", "e"],
+    ["t-master", "title", "Master", 16, "linear-gradient(90deg,#a35bff,#ff2bd6)", "Mastered the art of gaming", "d", "e"],
+    ["t-supreme", "title", "Supreme", 22, "linear-gradient(90deg,#ffd66b,#ff8a1f)", "Above the rest", "d", "e"],
+    ["t-galaxy", "title", "Galaxy Brain", 35, "linear-gradient(90deg,#a35bff,#22e4ff,#ff2bd6)", "Brain too big for this universe", "d", "l"],
+    ["t-arcane", "title", "Arcane God", 60, "linear-gradient(90deg,#a35bff,#ffd66b,#3dffa8)", "Ancient and all-powerful", "d", "l"],
+    ["t-ultra", "title", "ULTRA ✦", 80, "linear-gradient(90deg,#ffd66b,#ffffff,#ffd66b)", "Nothing higher than this", "d", "l"],
+    // 🏷 Event titles
+    ["t-spooky", "title", "Spooky One", 20, "#ff8a1f", "Hiss-O-Ween only", "$", "r"],
+    ["t-witch", "title", "Dark Witch", 8, "linear-gradient(90deg,#a35bff,#1a0b24)", "Hiss-O-Ween only. Rare!", "d", "e"],
+    ["t-vampire", "title", "Vampire Lord", 15, "linear-gradient(90deg,#ff2e4d,#1a0b24)", "Hiss-O-Ween only. Legendary!", "d", "l"],
+    ["t-santa", "title", "Santa's Helper", 20, "#ff2e4d", "Winter Fest only", "$", "r"],
+    ["t-frozen", "title", "Ice Queen", 8, "linear-gradient(90deg,#9ff3ff,#22e4ff)", "Winter Fest only. Rare!", "d", "e"],
+    ["t-winterchamp", "title", "Winter Champion", 15, "linear-gradient(90deg,#ffffff,#9ff3ff,#22e4ff)", "Winter Fest only. Legendary!", "d", "l"],
+    ["t-spring", "title", "Spring Star", 20, "#b6ff3b", "Easter only", "$", "r"],
+    ["t-eggfinder", "title", "Egg Finder", 8, "linear-gradient(90deg,#ffd66b,#ff7be6)", "Easter only. Epic!", "d", "e"],
+    ["t-surf", "title", "Surf King", 25, "#22e4ff", "Summer only", "$", "r"],
+    ["t-sunbum", "title", "Sun Bum", 10, "linear-gradient(90deg,#ffd66b,#ff8a1f)", "Summer only. Epic!", "d", "e"],
+    ["t-harvest", "title", "Harvest Queen", 20, "#ff8a1f", "Harvest Fest only", "$", "r"],
+    ["t-trickster", "title", "The Trickster", 20, "linear-gradient(90deg,#ff2e4d,#ffffff)", "April Fools only", "$", "r"],
+    // 🎃 Halloween event merch
+    ["hw-cape", "ev-halloween", "Vampire Cape 🧛", 400, "linear-gradient(135deg,#1a0b24,#ff2e4d)", "A dark flowing cape for all games", "", "r"],
+    ["hw-skull", "ev-halloween", "Neon Skull ☠️", 500, "linear-gradient(135deg,#a35bff,#1a0b24)", "Glowing skull frame overlay", "", "e"],
+    ["hw-spider", "ev-halloween", "Spider FX 🕷", 350, "linear-gradient(135deg,#1a0b24,#ff8a1f)", "Spooky spider sparks in every game", "", "r"],
+    // ❄️ Winter Fest event merch
+    ["wn-wreath", "ev-winter", "Holiday Wreath 🌿", 400, "linear-gradient(135deg,#3dffa8,#ff2e4d)", "A festive frame for all your games", "", "r"],
+    ["wn-snow", "ev-winter", "Snowflake FX ❄️", 500, "linear-gradient(135deg,#9ff3ff,#ffffff)", "Snowflake sparks in every game", "", "e"],
+    ["wn-gift", "ev-winter", "Gift Box Frame 🎁", 350, "linear-gradient(135deg,#ff2e4d,#ffd66b)", "Wrapped-present border on every game", "", "r"],
+    // ☀️ Summer event merch
+    ["su-shades", "ev-summer", "Cool Shades 😎", 350, "linear-gradient(135deg,#22e4ff,#ffd66b)", "Summer style frame for every game", "", "r"],
+    ["su-wave", "ev-summer", "Wave FX 🌊", 450, "linear-gradient(135deg,#22e4ff,#3dffa8)", "Splash sparks in every game", "", "e"],
+    ["su-surf", "ev-summer", "Surfboard Frame 🏄", 400, "linear-gradient(135deg,#ffd66b,#22e4ff)", "Ride the neon wave around every game", "", "r"],
+    // 🍂 Harvest event merch
+    ["ha-leaf", "ev-harvest", "Falling Leaves FX 🍂", 400, "linear-gradient(135deg,#ff8a1f,#ffd66b)", "Autumn leaf sparks in every game", "", "r"],
+    ["ha-lantern", "ev-harvest", "Harvest Lantern 🏮", 450, "linear-gradient(135deg,#ff8a1f,#8a4b1f)", "Warm lantern glow frame", "", "r"],
+    // 🤡 April Fools event merch
+    ["af-pie", "ev-aprilfools", "Pie-in-Face FX 🥧", 300, "linear-gradient(135deg,#ff2e4d,#ffffff)", "Silly pie sparks in every game", "", "r"],
+    ["af-banana", "ev-aprilfools", "Banana Peel Frame 🍌", 350, "linear-gradient(135deg,#ffd66b,#3dffa8)", "Classic prank border", "", "r"],
+    // 🐣 Easter event merch
+    ["ea-eggs", "ev-easter", "Easter Egg FX 🥚", 350, "linear-gradient(135deg,#ffd66b,#ff7be6,#22e4ff)", "Colorful egg sparks in every game", "", "r"],
+    ["ea-basket", "ev-easter", "Spring Basket 🧺", 400, "linear-gradient(135deg,#b6ff3b,#ffd66b)", "Fresh spring frame for all your games", "", "r"],
+    ["ea-carrot", "ev-easter", "Carrot Dash FX 🥕", 450, "linear-gradient(135deg,#ff8a1f,#b6ff3b)", "Carrot sparks in every game. Epic!", "", "e"],
+    // 🐾 Extra pets
+    ["pet-lion", "pet", "Lion Cub 🦁", 1000, "linear-gradient(135deg,#ffc23d,#ff8a1f)", "Brave and roary. Prowls beside you.", "", "e"],
+    ["pet-panda", "pet", "Panda 🐼", 900, "linear-gradient(135deg,#ffffff,#333333)", "Black & white and utterly cute.", "", "r"],
+    ["pet-dino", "pet", "Dino Hatchling 🦕", 1200, "linear-gradient(135deg,#b6ff3b,#22e4ff)", "Tiny prehistoric pal. Very rare!", "", "e"],
+    ["pet-owl", "pet", "Neon Owl 🦉", 800, "linear-gradient(135deg,#a35bff,#22e4ff)", "Wise and glowing. Hoo are you?", "", "r"],
+    ["pet-shark", "pet", "Baby Shark 🦈", 1400, "linear-gradient(135deg,#22e4ff,#001a2e)", "doo doo doo. Legendary find!", "", "l"],
+    ["pet-koala", "pet", "Koala 🐨", 700, "linear-gradient(135deg,#9e9e9e,#b6ff3b)", "Chilled-out fluff ball. Common but lovable.", "", "c"],
+    ["pet-fox", "pet", "Cyber Fox 🦊", 1100, "linear-gradient(135deg,#ff8a1f,#ff2bd6)", "Quick and cunning. Neon upgrade!", "", "e"],
+    // 🏷 Extra titles
+    ["t-neon", "title", "Neon King", 500, "linear-gradient(135deg,#ff2bd6,#22e4ff)", "For the brightest player.", "", "r"],
+    ["t-arcade", "title", "Arcade Hero", 600, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "Classic arcade legend.", "", "r"],
+    ["t-glitch", "title", "Glitch Lord", 800, "linear-gradient(135deg,#ff4d6d,#a35bff)", "Master of the broken dimension.", "", "e"],
+    ["t-speedy", "title", "Speed Demon", 400, "linear-gradient(135deg,#22e4ff,#b6ff3b)", "Always first, never last.", "", "c"],
+    ["t-gold", "title", "Gold Member", 1000, "linear-gradient(135deg,#ffc23d,#ff6b3d)", "Exclusive golden status.", "", "e"],
+    ["t-shadow", "title", "Shadow Runner", 450, "linear-gradient(135deg,#333366,#a35bff)", "Moves in the dark.", "", "c"],
+    ["t-galaxy", "title", "Galaxy Brain", 700, "linear-gradient(135deg,#a35bff,#22e4ff)", "Thinking on a cosmic scale.", "", "r"],
+    ["t-legend", "title", "The Legend", 2000, "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)", "There can only be one. LEGENDARY!", "", "l"],
+    // ✨ More FX
+    ["fx-hearts", "fx", "Hearts FX 💜", 350, "linear-gradient(135deg,#ff7be6,#ff2bd6)", "Pink heart sparks all over.", "", "c"],
+    ["fx-ice", "fx", "Ice Burst ❄️", 400, "linear-gradient(135deg,#22e4ff,#ffffff)", "Cool icy explosions in every game.", "", "r"],
+    ["fx-gold", "fx", "Gold Shower 🌟", 500, "linear-gradient(135deg,#ffd66b,#ffc23d)", "Gold star sparks — make it rain!", "", "r"],
+    ["fx-rainbow", "fx", "Rainbow Pop 🌈", 800, "linear-gradient(135deg,#ff2bd6,#ffd66b,#22e4ff)", "Neon rainbow every time you score. Epic!", "", "e"],
   ];
   // Event songs: the month (0 = January) they can be bought.
-  const EVENT_MONTH = { "sl-pumpkin": [9], "mu-spooky": [9], "mu-haunted": [9], "mu-monsterbash": [9], "mu-ghostcatch": [9], "mu-cursed": [9], "mu-harvest": [10], "mu-leaves": [10], "mu-jingle": [11], "mu-carol": [11], "mu-sugarplum": [11], "mu-holidayhit": [11], "mu-snowrock": [11], "mu-sleigh": [11], "mu-surf": [5, 6, 7], "mu-mallrush": [5, 6, 7], "mu-reef": [5, 6, 7], "mu-poolside": [5, 6, 7], "mu-gladiators": [3] }, MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const EVENT_MONTH = {
+    // halloween (month 9 = October)
+    "sl-pumpkin":[9],"mu-spooky":[9],"mu-haunted":[9],"mu-monsterbash":[9],"mu-ghostcatch":[9],"mu-cursed":[9],
+    "pet-ghost":[9],"pet-pumpkin":[9],"t-spooky":[9],"t-witch":[9],"t-vampire":[9],"hw-cape":[9],"hw-skull":[9],"hw-spider":[9],
+    // harvest (month 10 = November)
+    "mu-harvest":[10],"mu-leaves":[10],"pet-raccoon":[10],"t-harvest":[10],"ha-leaf":[10],"ha-lantern":[10],
+    // winter (month 11 = December)
+    "mu-jingle":[11],"mu-carol":[11],"mu-sugarplum":[11],"mu-holidayhit":[11],"mu-snowrock":[11],"mu-sleigh":[11],
+    "pet-elf":[11],"pet-snowman":[11],"t-santa":[11],"t-frozen":[11],"t-winterchamp":[11],"wn-wreath":[11],"wn-snow":[11],"wn-gift":[11],
+    // summer (months 5,6,7 = June-August)
+    "mu-surf":[5,6,7],"mu-mallrush":[5,6,7],"mu-reef":[5,6,7],"mu-poolside":[5,6,7],
+    "pet-beachcrab":[5,6,7],"t-surf":[5,6,7],"t-sunbum":[5,6,7],"su-shades":[5,6,7],"su-wave":[5,6,7],"su-surf":[5,6,7],
+    // april fools (month 3 = April)
+    "mu-gladiators":[3],"pet-jester":[3],"t-trickster":[3],"af-pie":[3],"af-banana":[3],
+    // easter (month 2 = March)
+    "pet-chick":[2],"pet-easterbunny":[2],"t-spring":[2],"t-eggfinder":[2],"ea-eggs":[2],"ea-basket":[2],"ea-carrot":[2],
+  }, MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
   // Seasonal events. The admin can turn one on any time, or leave it on Auto (by the calendar).
   const EVENTS = {
-    halloween: { name: "🎃 Hiss-O-Ween", months: [9], color: "#ff8a1f", banner: "🎃 HISS-O-WEEN · pumpkins worth 5 in Neon Slither · spooky songs & the Pumpkin skin in the ⚡ shop 🎃" },
-    harvest: { name: "🍂 Harvest Fest", months: [10], color: "#ff8a1f", banner: "🍂 HARVEST FEST · cozy autumn songs in the ⚡ shop 🍂" },
-    winter: { name: "❄️ Winter Fest", months: [11], color: "#9ff3ff", banner: "❄️ WINTER FEST · holiday songs in the ⚡ shop · happy holidays! ❄️" },
-    summer: { name: "☀️ Summer Splash", months: [5, 6, 7], color: "#ffd66b", banner: "☀️ SUMMER SPLASH · beachy summer songs in the ⚡ shop ☀️" },
-    aprilfools: { name: "🤡 April Fools", months: [3], color: "#ff2bd6", banner: "🤡 APRIL FOOLS · the circus is in town! Silly songs in the ⚡ shop 🤡" },
+    halloween: { name: "🎃 Hiss-O-Ween", months: [9], color: "#ff8a1f", banner: "🎃 HISS-O-WEEN · pumpkins worth 5 in Neon Slither · spooky songs, pets & capes in the ⚡ shop 🎃" },
+    harvest: { name: "🍂 Harvest Fest", months: [10], color: "#ff8a1f", banner: "🍂 HARVEST FEST · cozy autumn songs, pets & FX in the ⚡ shop · find falling leaves! 🍂" },
+    winter: { name: "❄️ Winter Fest", months: [11], color: "#9ff3ff", banner: "❄️ WINTER FEST · open your daily present in the ⚡ shop! Holiday songs, elves & ornaments ❄️" },
+    summer: { name: "☀️ Summer Splash", months: [5, 6, 7], color: "#ffd66b", banner: "☀️ SUMMER SPLASH · surf songs, beach crabs & shades in the ⚡ shop ☀️" },
+    aprilfools: { name: "🤡 April Fools", months: [3], color: "#ff2bd6", banner: "🤡 APRIL FOOLS · the circus is in town! Silly songs, jesters & banana peel frames! 🤡" },
+    easter: { name: "🐣 Easter Hunt", months: [2], color: "#ffd66b", banner: "🥚 EASTER EGG HUNT · find hidden eggs around the site! Spring pets & egg FX in the ⚡ shop 🐣" },
   };
-  const M2E = { 9: "halloween", 10: "harvest", 11: "winter", 5: "summer", 6: "summer", 7: "summer", 3: "aprilfools" };
+  const M2E = { 9: "halloween", 10: "harvest", 11: "winter", 5: "summer", 6: "summer", 7: "summer", 3: "aprilfools", 2: "easter" };
   const EVENT_OF = {}; for (const id in EVENT_MONTH) EVENT_OF[id] = M2E[EVENT_MONTH[id][0]];
   // Which event is on: the admin's choice, or by the calendar when set to "auto".
   function activeEvent() { const e = (window.GCFG || {}).event; if (e === "none") return null; if (e && e !== "auto" && EVENTS[e]) return e; const m = new Date().getMonth(); return Object.keys(EVENTS).find((k) => EVENTS[k].months.includes(m)) || null; }
@@ -10006,7 +10139,7 @@ function fighterGame() {
     }
   }
   /* ---------- Pets: they live in the corner, level up as you play and give bonus coins ---------- */
-  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉" };
+  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉", "pet-penguin": "🐧", "pet-bunny": "🐰", "pet-turtle": "🐢", "pet-shark": "🦈", "pet-panda": "🐼", "pet-dino": "🦕", "pet-alien": "👾", "pet-narwhal": "🦄", "pet-phoenix": "🔥", "pet-crab": "🦀", "pet-jelly": "🪼", "pet-ghost": "👻", "pet-pumpkin": "🎃", "pet-elf": "🧝", "pet-snowman": "⛄", "pet-chick": "🐣", "pet-easterbunny": "🐰", "pet-beachcrab": "🦀", "pet-raccoon": "🦝", "pet-jester": "🤡" };
   const PET_TALK = ["Let's play!", "You're awesome!", "Beat your high score!", "I'm hungry...", "*happy noises*", "Go go go!", "Best friends!", "Try a new game!"];
   const petLv = (id) => Math.min(10, Math.floor(Math.sqrt(stat("px_" + id) / 3)) + 1);
   const petBonus = () => { const id = (prog.equip || {}).pet; return id && (prog.owned || []).includes(id) ? petLv(id) * .02 : 0; };
@@ -10027,7 +10160,9 @@ function fighterGame() {
   };
   const cost = (n) => Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
-  const SHOP_GROUPS = [["boost", "🚀 Boosts", ""], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
+  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
+  const getShopGroups = () => { const ae = activeEvent(); return ae && EVENTS[ae] ? [["ev-" + ae, EVENTS[ae].name + " Event Shop ✨", EVENTS[ae].color], ...SHOP_GROUPS_BASE] : SHOP_GROUPS_BASE; };
+  const SHOP_GROUPS = SHOP_GROUPS_BASE; // legacy alias
   const SPIN_MS = 24 * 3600 * 1000;
   // [label, color, weight, prize, description]
   const WHEEL = [["50", "#22e4ff", 20, "c50", "50 coins"], ["2×", "#ff2bd6", 11, "boost", "2× coins for 30 min"], ["$20", "#b6ff3b", 13, "cash20", "20 dollars"], ["?", "#ffc23d", 15, "mystery", "Mystery box (maybe 💎!)"], ["SKIN", "#a35bff", 9, "skin", "A free skin"], ["AGAIN", "#3dffa8", 10, "again", "Spin again"], ["777", "#ff4d6d", 3, "jackpot", "Jackpot: 777 coins + 3 💎"], ["200", "#ff8a1f", 9, "c200", "200 coins"]];
@@ -10058,6 +10193,12 @@ function fighterGame() {
   /* Level Road: a reward for every level up to 50 */
   const roadRew = (lv) => { const t = SHOP.find((it) => it[6] === "lv" && it[3] === lv); return { c: 40 * lv, d: lv % 5 === 0 ? lv * 2 : 0, g: lv % 10 === 0 ? lv / 5 : 0, title: t ? t[0] : null, tname: t ? t[2] : null }; };
   const roadDue = () => { const L = levelOf(xpOf()); for (let v = 2; v <= Math.min(50, L); v++) if (!stat("lr_" + v)) return true; return false; };
+  const ADV_REWARDS = [
+    { c: 50 }, { c: 80, d: 1 }, { c: 60 }, { c: 100 }, { g: 1 }, { c: 120, d: 2 }, { c: 70 }, { c: 150 },
+    { c: 80, g: 1 }, { c: 100 }, { d: 3 }, { c: 200 }, { c: 90, g: 2 }, { c: 130 }, { c: 100, d: 2 }, { c: 160 },
+    { c: 110, g: 1 }, { d: 5 }, { c: 180 }, { c: 140, g: 2 }, { c: 200, d: 3 }, { g: 3 }, { c: 250 }, { c: 300, d: 5, g: 2 }
+  ];
+  const advCalDue = () => { const d = new Date(), day = d.getDate() - 1, mo = d.getMonth(); if (mo !== 11) return false; return day < 24 && stat("adv_" + day) !== 1; };
   function roadTab() {
     const L = levelOf(xpOf()), cards = [];
     for (let v = 2; v <= 50; v++) {
@@ -10216,7 +10357,9 @@ function fighterGame() {
       el("div", { class: "rew-money" }, el("div", { class: "rew-coins", text: "⚡ " + fmt(coins()) }), el("div", { class: "rew-cash", text: "$" + fmt(cash()) }), el("div", { class: "rew-gems", text: "💎 " + fmt(gems()) })));
     const tt = (prog.equip || {}).title && SHOP.find((it) => it[0] === prog.equip.title);
     if (tt) head.firstChild.append(el("span", { class: "rew-title", style: "--tc:" + (tt[4].startsWith("#") ? tt[4] : "#ffd66b"), text: "🏷 " + tt[2] }));
-    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["bonus", "🎁 Bonus"], ["road", "🛣 Levels"], ["spin", "🎡 Daily spin"], ["shop", "🛒 Shop"]].map(([id, t]) => el("button", { class: "chip" + ((id === "bonus" && bonusDue()) || (id === "road" && roadDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { rtab = id; renderRewards(); } })));
+    const ae = activeEvent();
+    const advDue = ae === "winter" && advCalDue();
+    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["bonus", "🎁 Bonus"], ["road", "🛣 Levels"], ["spin", "🎡 Daily spin"], ...(ae === "winter" ? [["advent", "🎄 Advent"]] : []), ["shop", "🛒 Shop"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + ((id === "bonus" && bonusDue()) || (id === "road" && roadDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) || (id === "advent" && advDue) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { rtab = id; renderRewards(); } })));
     let body;
     if (rtab === "missions") {
       body = el("div", { class: "rew-list" }, ...missions().map((m) => el("div", { class: "mission" + (m.done ? " done" : "") },
@@ -10246,27 +10389,72 @@ function fighterGame() {
         el("div", { class: "prize-key" }, ...WHEEL.map((w) => el("span", {}, el("i", { style: "background:" + w[1] }), w[4]))),
         stat("boostUntil") > Date.now() ? el("p", { class: "set-note boost-on", text: "⚡ 2× COINS active for " + Math.ceil((stat("boostUntil") - Date.now()) / 60000) + " more minutes!" }) : null,
         el("p", { class: "set-note", text: "One free spin every 24 hours. Buy extra spins in the shop with 💵." }));
+    } else if (rtab === "advent") {
+      const mo = new Date().getMonth(), today = new Date().getDate() - 1;
+      const cells = ADV_REWARDS.map((r, i) => {
+        const opened = stat("adv_" + i) === 1, isToday = mo === 11 && i === today, canOpen = isToday && !opened;
+        const lab = opened ? [r.c ? "⚡" + r.c : "", r.d ? "$" + r.d : "", r.g ? "💎" + r.g : ""].filter(Boolean).join(" ") || "✓" : (mo === 11 && i <= today ? "?" : "🔒");
+        return el("div", { class: "adv-day" + (opened ? " opened" : "") + (isToday ? " today" : "") + (mo !== 11 || i > today ? " locked" : ""), onclick: canOpen ? () => {
+          prog.stats["adv_" + i] = 1; if (r.c) prog.coins = (prog.coins || 0) + r.c * (window.GCFG && window.GCFG.doubleCoins ? 2 : 1);
+          if (r.d) prog.dollars = (prog.dollars || 0) + r.d; if (r.g) prog.gems = (prog.gems || 0) + r.g;
+          saveProg(); sfxHub(); renderRewards(); renderWallet();
+          const msg = ["🎁 Day " + (i + 1) + "!", r.c ? "+" + r.c + " ⚡" : "", r.d ? "+" + r.d + " 💵" : "", r.g ? "+" + r.g + " 💎" : ""].filter(Boolean).join(" ");
+          toast(msg);
+        } : null }, el("div", { class: "adv-num", text: String(i + 1) }), el("div", { class: "adv-lab", text: lab }));
+      });
+      body = el("div", { class: "adv-wrap" }, el("h3", { class: "rew-head", text: "🎄 Advent Calendar" }), el("p", { class: "set-note", text: "Open one gift per day in December! Come back every day for 24 days." }), el("div", { class: "adv-grid" }, ...cells));
+    } else if (rtab === "inv") {
+      const owned2 = prog.owned || [], eq2 = prog.equip || {};
+      const INV_GROUPS = [["pet","🐾 Pets"],["title","🏷 Titles"],["music","🎵 Music"],["fx","✨ Sparks"],["frame","🖼 Frames"],["filter","🎞 Filters"]];
+      const invSections = INV_GROUPS.map(([gk, gname2]) => {
+        const items = owned2.map((id) => SHOP.find((it) => it[0] === id)).filter((it) => it && it[1] === gk);
+        if (!items.length) return null;
+        return el("div", { class: "inv-section" },
+          el("p", { class: "eyebrow", text: gname2 }),
+          el("div", { class: "shop-grid" }, ...items.map(([id, igrp, name, , col, sub, , rar]) => {
+            const bgk = igrp; const on = eq2[bgk] === id;
+            const rarBadge = rar ? el("span", { class: "rar rar-" + rar, text: RAR_LABEL[rar] }) : null;
+            const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null });
+            const listen = igrp === "music" ? el("button", { class: "btn sm shop-listen", type: "button", text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
+            return el("div", { class: "shop-item" + (on ? " on" : "") },
+              icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), listen,
+              el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "✓ Equipped" : "Equip",
+                onclick: () => { prog.equip = { ...eq2, [bgk]: on ? null : id }; saveProg(); toast(on ? name + " removed" : name + " equipped"); renderRewards(); } }));
+          })));
+      }).filter(Boolean);
+      body = el("div", { class: "shop" },
+        el("h3", { class: "rew-head", text: "🎒 Inventory" }),
+        el("p", { class: "set-note", text: "Everything you've unlocked. Equip items here or in the Shop." }),
+        ...(invSections.length ? invSections : [el("p", { class: "set-note", text: "Nothing owned yet — head to the Shop to get started!" })]));
     } else {
       const owned = new Set(prog.owned || []), eq = prog.equip || {};
-      const groups = SHOP_GROUPS.filter(([gk]) => shopGroup === "all" || shopGroup === gk);
-      const gchips = el("div", { class: "rew-tabs shop-chips" }, ...[["all", "All"], ...SHOP_GROUPS.map(([gk, t]) => [gk, t.replace(/ \(all games\)/, "")])].map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopGroup === gk), text: t, onclick: () => { shopGroup = gk; renderRewards(); } })));
+      const SG = getShopGroups();
+      const groups = SG.filter(([gk]) => shopGroup === "all" || shopGroup === gk);
+      const gchips = el("div", { class: "rew-tabs shop-chips" }, ...[["all", "All"], ...SG.map(([gk, t]) => [gk, t.replace(/ \(all games\)/g, "").replace(/ Event Shop ✨/, " ✨")])].map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopGroup === gk), text: t, onclick: () => { shopGroup = gk; renderRewards(); } })));
       const smOn = shopMusicOn();
       const smBtn = el("button", { class: "chip", type: "button", "aria-pressed": String(smOn), text: smOn ? "🔊 Shop music on" : "🔇 Shop music off", onclick: () => { try { localStorage.setItem("gbl-shopmus", smOn ? "0" : "1"); } catch (e) {} if (smOn) stopPreview(); else preview("shopjam", null, true); renderRewards(); } });
+      const RAR_LABEL = { c: "Common", r: "Rare", e: "Epic", l: "Legendary" };
+      /* determine actual shop-group for equip/unequip: ev-* groups don't have equip slots */
+      const baseGk = (gk) => gk.startsWith("ev-") ? null : gk;
+      /* items for a group: ev-* shows all event-tagged items for the active event */
+      const groupItems = (gk) => gk.startsWith("ev-") ? SHOP.filter((it) => EVENT_OF[it[0]] === activeEvent()) : SHOP.filter((it) => it[1] === gk);
       body = el("div", { class: "shop" }, el("div", { class: "rew-tabs shop-chips" }, smBtn), gchips, ...groups.map(([gk, title, base]) => el("div", {},
         el("p", { class: "eyebrow set-h2", text: title }),
         el("div", { class: "shop-grid" },
-          gk === "boost" ? null : el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : gk === "music" ? "Settings song" : "Classic" }), el("small", { text: gk === "music" ? "The style picked in ⚙ Settings" : "Free" }),
+          (gk === "boost" || gk.startsWith("ev-")) ? null : el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : gk === "music" ? "Default music" : "Classic" }), el("small", { text: gk === "music" ? "Synth style – free" : "Free" }),
             el("button", { class: "btn sm", type: "button", disabled: !eq[gk], text: !eq[gk] ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: null }; saveProg(); renderRewards(); } })),
-          ...SHOP.filter((it) => it[1] === gk).map(([id, , name, price0, col, sub, cur]) => {
-            const price = cost(price0), has = owned.has(id), on = eq[gk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = cur === "d" ? " gem" : cur === "$" ? " cash" : "";
-            const listen = gk === "music" ? el("button", { class: "btn sm shop-listen", type: "button", "aria-label": "Listen to " + name, text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
-            if (!has && !inSeason(id)) return el("div", { class: "shop-item locked" }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), listen, el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 " + (EVENTS[EVENT_OF[id]] ? EVENTS[EVENT_OF[id]].name : "event") + " only" }));
-            if (cur === "lv" && !has) return el("div", { class: "shop-item locked" }, el("span", { class: "sw ttl", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
-            if (gk === "boost") return el("div", { class: "shop-item" + tag }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
+          ...groupItems(gk).map(([id, igrp, name, price0, col, sub, cur, rar]) => {
+            const bgk = baseGk(gk) || igrp;
+            const price = cost(price0), has = owned.has(id), on = eq[bgk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = cur === "d" ? " gem" : cur === "$" ? " cash" : "";
+            const rarBadge = rar ? el("span", { class: "rar rar-" + rar, text: RAR_LABEL[rar] || "" }) : null;
+            const listen = igrp === "music" ? el("button", { class: "btn sm shop-listen", type: "button", "aria-label": "Listen to " + name, text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
+            if (!has && !inSeason(id)) return el("div", { class: "shop-item locked" }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), rarBadge, el("small", { text: sub }), listen, el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 " + (EVENTS[EVENT_OF[id]] ? EVENTS[EVENT_OF[id]].name : "event") + " only" }));
+            if (cur === "lv" && !has) return el("div", { class: "shop-item locked" }, el("span", { class: "sw ttl", style: "background:" + col }), el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
+            if (igrp === "boost") return el("div", { class: "shop-item" + tag }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), rarBadge, el("small", { text: sub }),
               el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); renderRewards(); } }));
-            return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (gk === "title" ? " ttl" : gk === "pet" ? " petsw" : ""), style: "background:" + col, text: gk === "pet" ? PET_EMO[id] : null }), el("b", { text: name }), el("small", { text: sub }), listen,
-              has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: id }; saveProg(); toast(name + " equipped"); renderRewards(); } })
-                : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...owned, id]; prog.equip = { ...eq, [gk]: id }; saveProg(); renderWallet(); sfxHub(); toast("Unlocked " + name + "!"); if (window.gblConfetti) window.gblConfetti(70); renderRewards(); } }));
+            return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null }), el("b", { text: name }), rarBadge, el("small", { text: sub }), listen,
+              has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [bgk]: id }; saveProg(); toast(name + " equipped"); renderRewards(); } })
+                : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...owned, id]; prog.equip = { ...eq, [bgk]: id }; saveProg(); renderWallet(); sfxHub(); toast("Unlocked " + name + "!"); if (window.gblConfetti) window.gblConfetti(70); renderRewards(); } }));
           })))));
     }
     rbody.replaceChildren(head, tabs, body);
@@ -10296,7 +10484,43 @@ function fighterGame() {
     annBar.hidden = !c.announce; annBar.replaceChildren(el("span", { text: "📢 " + (c.announce || "") }), el("button", { type: "button", "aria-label": "Hide", text: "✕", onclick: () => { annBar.hidden = true; } }));
     try { renderLibrary(); renderDuo(); renderWallet(); renderStrips(); } catch (e) {}
   }
-  if (XR.online) api("/config").then((r) => { window.GCFG = r.config || {}; applyCfg(); }).catch(() => {});
+  if (XR.online) api("/config").then((r) => { window.GCFG = r.config || {}; applyCfg(); initEggHunt(); }).catch(() => {});
+
+  /* ---------- Easter Egg Hunt ---------- */
+  const EGG_MAX = 10, EGG_ICONS = ["🥚","🐣","🐰","🌸","🌷","🐥","🌈","🍬"];
+  const EGG_SPOTS = [[10,20],[85,15],[50,35],[20,60],[75,70],[40,80],[65,45],[30,10],[90,55],[55,65]];
+  function eggCollected(el0, idx) {
+    const today = localDay(Date.now()), count = prog.stats.eggsToday || 0, eggDate = prog.stats.eggDate || "";
+    const todayCount = eggDate === today ? count : 0;
+    if (todayCount >= EGG_MAX) return;
+    el0.remove();
+    prog.stats["egg_" + idx] = today;
+    prog.stats.eggsToday = todayCount + 1; prog.stats.eggDate = today;
+    const coins = 15 + Math.floor(Math.random() * 25), gems = Math.random() < .2 ? 1 : 0;
+    prog.coins = (prog.coins || 0) + coins * (window.GCFG && window.GCFG.doubleCoins ? 2 : 1);
+    if (gems) prog.gems = (prog.gems || 0) + gems;
+    saveProg(); renderWallet();
+    const pop = document.createElement("div"); pop.className = "ev-egg-pop";
+    pop.textContent = "+" + coins + " ⚡" + (gems ? " +1💎" : "");
+    pop.style.left = el0.style.left; pop.style.top = el0.style.top;
+    document.body.appendChild(pop); setTimeout(() => pop.remove(), 1000);
+    sfxHub();
+  }
+  function initEggHunt() {
+    document.querySelectorAll(".ev-egg").forEach((e) => e.remove());
+    if (activeEvent() !== "easter") return;
+    const today = localDay(Date.now());
+    EGG_SPOTS.forEach(([lp, tp], i) => {
+      if ((prog.stats["egg_" + i] || "") === today) return;
+      const e = document.createElement("div"); e.className = "ev-egg";
+      e.textContent = EGG_ICONS[i % EGG_ICONS.length];
+      e.style.left = lp + "vw"; e.style.top = tp + "vh";
+      e.style.animationDelay = (i * 0.2) + "s";
+      e.addEventListener("click", () => eggCollected(e, i));
+      document.body.appendChild(e);
+    });
+  }
+  window.gblInitEggHunt = initEggHunt;
 
   /* ---------- Admin panel (only the admin account sees it) ---------- */
   const adm = { q: "", users: [], open: null };
@@ -10557,8 +10781,8 @@ function fighterGame() {
     const volTxt = el("b", { text: settings.mvol + "%" });
     vol.addEventListener("input", () => { settings.mvol = +vol.value; volTxt.textContent = vol.value + "%"; if (prev) prev.gain.gain.value = .5 * settings.mvol / 100; saveSettings(); });
     sbody.replaceChildren(
-      el("p", { class: "eyebrow", text: "Game music" }),
-      el("div", { class: "set-grid" }, ...cards),
+      el("p", { class: "eyebrow", text: "Music" }),
+      el("p", { class: "set-note", text: "🎵 Pick and equip music styles in the Shop (🏆 Rewards → Shop → 🎵 Music). Owned music can also be equipped from 🎒 Inventory." }),
       el("div", { class: "set-vol" }, el("span", { text: "Music volume" }), vol, volTxt),
       slider("svol", "Sound effects"),
       el("p", { class: "eyebrow set-h2", text: "Color theme" }),
@@ -10755,6 +10979,7 @@ function fighterGame() {
     if (window.gblLoadLikes) window.gblLoadLikes(); if (me) { loadSettings(); loadProg(); }
     await refresh();
     syncGuest();
+    initEggHunt();
     setInterval(() => { if (!document.hidden) refresh(); }, 30000);
   })();
 })();

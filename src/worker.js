@@ -697,7 +697,7 @@ function cleanConfig(c) {
     off: Array.isArray(c.off) ? [...new Set(c.off.map(String).filter((k) => BUILTIN_GAMES.has(k)))] : [],
     gift: null,
     featured: BUILTIN_GAMES.has(String(c.featured || "")) ? String(c.featured) : "",
-    event: ["auto", "none", "halloween", "harvest", "winter", "summer", "aprilfools"].includes(String(c.event || "")) ? String(c.event) : "auto",
+    event: ["auto", "none", "halloween", "harvest", "winter", "summer", "aprilfools", "easter"].includes(String(c.event || "")) ? String(c.event) : "auto",
     doubleCoins: !!c.doubleCoins,
   };
   if (c.gift && typeof c.gift === "object" && (+c.gift.c || +c.gift.d || +c.gift.g)) {
