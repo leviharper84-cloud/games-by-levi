@@ -1502,7 +1502,7 @@ function SHELL() {
   }
 
   /* ----- lifecycle ----- */
-  function fit() { if (!G) return; const k = Math.min((innerWidth - 12) / G.w, (innerHeight - 40) / G.h); cv.style.width = G.w * k + "px"; cv.style.height = G.h * k + "px"; }
+  function fit() { if (!G) return; const k = Math.min((innerWidth - 12) / G.w, (innerHeight - 40 - (S.padRoom || 0)) / G.h); cv.style.width = G.w * k + "px"; cv.style.height = G.h * k + "px"; }
   function setup() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.width = Math.round(G.w * dpr); cv.height = Math.round(G.h * dpr);
@@ -1793,8 +1793,25 @@ function SHELL() {
   const DG = { pd: 0, pm: 0, pu: 0, pc: 0, ts: 0, tm: 0, te: 0, tc: 0, md: 0, gd: 0, types: "" };
   [["pointerdown", "pd"], ["pointermove", "pm"], ["pointerup", "pu"], ["pointercancel", "pc"], ["touchstart", "ts"], ["touchmove", "tm"], ["touchend", "te"], ["touchcancel", "tc"], ["mousedown", "md"]].forEach(([ev, k]) => addEventListener(ev, (e) => { DG[k]++; if (e.pointerType && !DG.types.includes(e.pointerType)) DG.types += e.pointerType + " "; if (ev === "touchstart") DG.tgt = (e.target && (e.target.id || e.target.tagName)) || "?"; }, { capture: true, passive: true }));
   let dgLast = "";
-  const dgBox = document.createElement("div"); dgBox.style.cssText = "position:fixed;left:4px;bottom:2px;z-index:9;pointer-events:none;font:10px/1.2 ui-monospace,Menlo,monospace;color:#ffd66b;background:rgba(0,0,0,.55);padding:2px 5px;border-radius:4px;white-space:nowrap"; document.body.appendChild(dgBox);
-  setInterval(() => { dgBox.textContent = "T " + DG.ts + "/" + DG.tm + "/" + DG.te + "/" + DG.tc + " P " + DG.pd + "/" + DG.pm + "/" + DG.pu + "/" + DG.pc + " " + DG.types + "D " + DG.gd + " " + S.state + (S.paused ? " PAUSED" : "") + " " + (DG.tgt || "") + " " + innerWidth + "x" + innerHeight + (HAS_TOUCH ? " t" : " n"); }, 400);
+  // Arrow buttons for touch screens, in games you steer with arrows (Snake, Muncher, Grid Thief).
+  const PAD = document.createElement("div"); PAD.hidden = true;
+  PAD.style.cssText = "position:fixed;z-index:6;display:grid;grid-template-columns:repeat(3,66px);grid-template-rows:repeat(3,66px);gap:4px;touch-action:none;opacity:.8";
+  const PADK = { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" };
+  [["up", "▲", 2, 1], ["left", "◀", 1, 2], ["right", "▶", 3, 2], ["down", "▼", 2, 3]].forEach(([dir, sym, cx, cy]) => {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = sym;
+    b.style.cssText = "grid-column:" + cx + ";grid-row:" + cy + ";font:24px system-ui,sans-serif;color:#fff;background:rgba(34,228,255,.18);border:2px solid rgba(34,228,255,.7);border-radius:16px;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none";
+    const go = (e) => { e.preventDefault(); e.stopPropagation(); audio(); b.style.background = "rgba(34,228,255,.5)"; setTimeout(() => { b.style.background = "rgba(34,228,255,.18)"; }, 120); if (G && G.turn && S.state === "play" && !S.paused) G.turn(dir, PADK[dir]); };
+    b.addEventListener("touchstart", go, { passive: false }); b.addEventListener("mousedown", go);
+    PAD.appendChild(b);
+  });
+  document.body.appendChild(PAD);
+  setInterval(() => {
+    const on = HAS_TOUCH && !!G && !!G.turn && !G.tap && !G.down && !S.duo && (S.state === "play" || S.state === "count");
+    if (PAD.hidden === on) PAD.hidden = !on;
+    const room = on && innerHeight > innerWidth * 1.15 ? Math.min(226, innerHeight * .32) : 0;
+    if (room !== (S.padRoom || 0)) { S.padRoom = room; const wr = document.getElementById("wrap"); if (wr) wr.style.bottom = room + "px"; fit(); }
+    if (on) { const tall = innerHeight > innerWidth * 1.15; PAD.style.left = tall ? "50%" : "auto"; PAD.style.right = tall ? "auto" : "12px"; PAD.style.transform = tall ? "translateX(-50%)" : "none"; PAD.style.bottom = "12px"; }
+  }, 250);
   setInterval(() => { const d = { ...DG, st: S.state, paused: !!S.paused, fresh: !!S.fresh, pts: PT.size, hasTouch: HAS_TOUCH, w: innerWidth, h: innerHeight, title: G && G.title, ua: navigator.userAgent.slice(0, 160) }; const k = JSON.stringify(d); if (k !== dgLast) { dgLast = k; try { parent.postMessage({ type: "gbl:diag", d }, "*"); } catch (_) {} } }, 3000);
   window.__gs = { G: () => G, start };
   Object.assign(window, { saveGame, sendMove, BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
