@@ -1502,7 +1502,7 @@ function SHELL() {
   }
 
   /* ----- lifecycle ----- */
-  function fit() { if (!G) return; const k = Math.min((innerWidth - 12) / G.w, (innerHeight - 40 - (S.padRoom || 0)) / G.h); cv.style.width = G.w * k + "px"; cv.style.height = G.h * k + "px"; }
+  function fit() { if (!G) return; const k = Math.min((innerWidth - 12 - (S.padW || 0)) / G.w, (innerHeight - 40 - (S.padRoom || 0)) / G.h); cv.style.width = G.w * k + "px"; cv.style.height = G.h * k + "px"; }
   function setup() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.width = Math.round(G.w * dpr); cv.height = Math.round(G.h * dpr);
@@ -1806,11 +1806,16 @@ function SHELL() {
   });
   document.body.appendChild(PAD);
   setInterval(() => {
-    const on = HAS_TOUCH && !!G && !!G.turn && !G.tap && !G.down && !S.duo && (S.state === "play" || S.state === "count");
-    if (PAD.hidden === on) PAD.hidden = !on;
-    const room = on && innerHeight > innerWidth * 1.15 ? Math.min(226, innerHeight * .32) : 0;
-    if (room !== (S.padRoom || 0)) { S.padRoom = room; const wr = document.getElementById("wrap"); if (wr) wr.style.bottom = room + "px"; fit(); }
-    if (on) { const tall = innerHeight > innerWidth * 1.15; PAD.style.left = tall ? "50%" : "auto"; PAD.style.right = tall ? "auto" : "12px"; PAD.style.transform = tall ? "translateX(-50%)" : "none"; PAD.style.bottom = "12px"; }
+    // The game keeps a fixed space for the arrows (under it when upright, beside it when sideways),
+    // so nothing jumps around and the arrows never cover the game.
+    const uses = HAS_TOUCH && !!G && !!G.turn && !G.tap && !G.down && !S.duo;
+    const show = uses && (S.state === "play" || S.state === "count") && !S.paused;
+    if (PAD.hidden === uses) PAD.hidden = !uses;
+    PAD.style.visibility = show ? "visible" : "hidden";
+    const tall = innerHeight > innerWidth;
+    const room = uses && tall ? 226 : 0, side = uses && !tall ? 226 : 0;
+    if (room !== (S.padRoom || 0) || side !== (S.padW || 0)) { S.padRoom = room; S.padW = side; const wr = document.getElementById("wrap"); if (wr) { wr.style.bottom = room + "px"; wr.style.right = side + "px"; } fit(); }
+    if (uses) { PAD.style.left = tall ? "50%" : "auto"; PAD.style.right = tall ? "auto" : "10px"; PAD.style.transform = tall ? "translateX(-50%)" : "none"; PAD.style.bottom = tall ? "10px" : "auto"; PAD.style.top = tall ? "auto" : "calc(50% + 15px)"; if (!tall) PAD.style.transform = "translateY(-50%)"; }
   }, 250);
   setInterval(() => { const d = { ...DG, st: S.state, paused: !!S.paused, fresh: !!S.fresh, pts: PT.size, hasTouch: HAS_TOUCH, w: innerWidth, h: innerHeight, title: G && G.title, ua: navigator.userAgent.slice(0, 160) }; const k = JSON.stringify(d); if (k !== dgLast) { dgLast = k; try { parent.postMessage({ type: "gbl:diag", d }, "*"); } catch (_) {} } }, 3000);
   window.__gs = { G: () => G, start };
