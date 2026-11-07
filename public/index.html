@@ -5013,7 +5013,7 @@ function questGame() {
     key(k, rep) { if (!rep && (k === " " || k === "ArrowUp" || k === "w")) pl.jb = .12; },
     update(dt) {
       if (!S.down) btn.clear();
-      if (winT > 0) { winT -= dt; if (winT <= 0) { level++; genLevel(level); banner("WORLD " + level, "#ffc23d"); saveGame({ level, lives, label: "WORLD " + level }); } return; }
+      if (winT > 0) { winT -= dt; if (winT <= 0) { level++; if (!S.practice) lives = 3; genLevel(level); banner("WORLD " + level, "#ffc23d"); saveGame({ level, lives, label: "WORLD " + level }); } return; }
       if (deadT > 0) { deadT -= dt; if (deadT <= 0) { if (!S.practice && lives <= 0) return over(); spawn(); } return; }
       let mv = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
       let hold = !!(S.keys[" "] || S.keys.ArrowUp || S.keys.w);
