@@ -467,7 +467,10 @@ textarea.code {
 .daily-top .nm { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 @media (max-width: 860px) { .daily { grid-template-columns: 1fr; } }
 /* favorites and recently played */
-.strips { display: grid; gap: 14px; margin-bottom: 20px; }
+.strips { display: grid; grid-template-columns: minmax(0, 1fr); gap: 14px; margin-bottom: 20px; min-width: 0; }
+.strip { min-width: 0; }
+/* the page can never be wider than the screen (phones would zoom out) */
+html, body { max-width: 100%; overflow-x: clip; }
 .strips[hidden] { display: none; }
 .strip h3 { margin: 0 0 8px; font-size: .78rem; letter-spacing: .18em; text-transform: uppercase; color: var(--a2); }
 .strip-row { display: flex; gap: 10px; overflow-x: auto; padding-bottom: 6px; scrollbar-width: thin; }
@@ -1517,7 +1520,7 @@ function SHELL() {
   function sfx(n, v) { if (!ac || S.sound < 1) return; try { SFX[n](v); } catch (e) {} }
   const MUS = window.MUSIC0 || "synth"; let mplay = null;
   function music() {
-    if (!ac || S.sound < 2 || S.state !== "play" || S.paused || MUS === "off") return;
+    if (!ac || S.sound < 2 || S.state !== "play" || S.paused || MUS === "off" || (G && G.noMusic)) return;
     if (!mplay) { const mg = ac.createGain(); mg.gain.value = window.MVOL0 == null ? .8 : window.MVOL0; mg.connect(master); mplay = musicLib(ac, mg); }
     const spb = 60 / (G.bpm || 116) / 4;
     if (seqT < ac.currentTime - .2) seqT = ac.currentTime + .03;
@@ -1903,7 +1906,7 @@ function SHELL() {
   }, 250);
   setInterval(() => { const d = { ...DG, st: S.state, paused: !!S.paused, fresh: !!S.fresh, pts: PT.size, hasTouch: HAS_TOUCH, w: innerWidth, h: innerHeight, title: G && G.title, ua: navigator.userAgent.slice(0, 160) }; const k = JSON.stringify(d); if (k !== dgLast) { dgLast = k; try { parent.postMessage({ type: "gbl:diag", d }, "*"); } catch (_) {} } }, 3000);
   window.__gs = { G: () => G, start };
-  Object.assign(window, { saveGame, sendMove, BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
+  Object.assign(window, { toneAt: (f, d, delay, vol, type) => { if (!ac || S.sound < 1 || S.paused) return; voice(f, f, d, type || "triangle", vol || .1, ac.currentTime + Math.max(0, delay || 0), 2600); }, saveGame, sendMove, BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
 }
 
 /* ---------- 01 Neon Snake ---------- */
@@ -5527,72 +5530,109 @@ function reversiGame() {
 
 /* ---------- 32 Beat Lanes ---------- */
 function beatGame() {
-  const W = 480, H = 600, LN = 4, LW = 100, LX = 40, HITY = 512, BPM = 120, SPB = 60 / BPM, LEAD = 2.05;
+  const W = 480, H = 600, LN = 4, LW = 100, LX = 40, HITY = 512, LEAD = 2.05;
   const COLS = ["#ff2bd6", "#22e4ff", "#b6ff3b", "#ffc23d"], LABEL = ["←", "↓", "↑", "→"];
   const KEYL = { d: 0, f: 1, j: 2, k: 3, ArrowLeft: 0, ArrowDown: 1, ArrowUp: 2, ArrowRight: 3, a: 0, s: 1, w: 2 };
-  let notes, nextSub, combo, maxCombo, hp, level, judge, press, stats, lastLane, tvv;
-  const travelGoal = () => Math.max(.85, 1.55 - (level - 1) * .1) * (S.practice ? 1.25 : 1), travel = () => tvv;
-  function gen(sub) {
-    const t = LEAD + sub * SPB / 2, onBeat = sub % 2 === 0, bar = Math.floor(sub / 8);
-    let p = onBeat ? .8 : Math.min(.55, (level - 1) * .12);
-    if (bar % 8 === 7) p *= .4;
-    if (S.practice) p *= .7;
-    if (Math.random() > p) return;
-    let lane; do { lane = Math.random() * LN | 0; } while (lane === lastLane && Math.random() < .6);
-    lastLane = lane; notes.push({ lane, t, hit: false, miss: false });
-    if (level >= 3 && onBeat && Math.random() < Math.min(.3, (level - 2) * .07)) { let l2; do { l2 = Math.random() * LN | 0; } while (l2 === lane); notes.push({ lane: l2, t, hit: false, miss: false }); }
+  // Songs: [note, beats]. "r" is a rest. Twinkle Twinkle, Für Elise and Mountain King are old classics anyone can use;
+  // Taco Rain and Rush! are new songs written for this game.
+  const SONGS = [
+    { name: "Twinkle Twinkle", bpm: 96, c: "#22e4ff", m: "C4 1 C4 1 G4 1 G4 1 A4 1 A4 1 G4 2 F4 1 F4 1 E4 1 E4 1 D4 1 D4 1 C4 2 G4 1 G4 1 F4 1 F4 1 E4 1 E4 1 D4 2 G4 1 G4 1 F4 1 F4 1 E4 1 E4 1 D4 2 C4 1 C4 1 G4 1 G4 1 A4 1 A4 1 G4 2 F4 1 F4 1 E4 1 E4 1 D4 1 D4 1 C4 2" },
+    { name: "Für Elise", bpm: 100, c: "#b6ff3b", m: "E5 .5 D#5 .5 E5 .5 D#5 .5 E5 .5 B4 .5 D5 .5 C5 .5 A4 1 r .5 C4 .5 E4 .5 A4 .5 B4 1 r .5 E4 .5 G#4 .5 B4 .5 C5 1 r .5 E4 .5 E5 .5 D#5 .5 E5 .5 D#5 .5 E5 .5 B4 .5 D5 .5 C5 .5 A4 1 r .5 C4 .5 E4 .5 A4 .5 B4 1 r .5 E4 .5 C5 .5 B4 .5 A4 2" },
+    { name: "Taco Rain", bpm: 128, c: "#ffc23d", m: "C5 .5 C5 .5 A4 .5 C5 .5 D5 1 C5 1 A4 .5 G4 .5 A4 .5 C5 .5 F4 2 F4 .5 G4 .5 A4 .5 C5 .5 D5 .5 F5 .5 E5 1 D5 .5 C5 .5 A4 .5 G4 .5 C5 2 C5 .5 C5 .5 A4 .5 C5 .5 D5 1 F5 1 E5 .5 D5 .5 C5 .5 A4 .5 G4 1 F4 .5 G4 .5 A4 .5 G4 .5 F4 .5 E4 .5 F4 2" },
+    { name: "Mountain King", bpm: 132, c: "#a35bff", m: "B3 .5 C#4 .5 D4 .5 E4 .5 F#4 .5 D4 .5 F#4 1 F4 .5 C#4 .5 F4 1 E4 .5 C4 .5 E4 1 B3 .5 C#4 .5 D4 .5 E4 .5 F#4 .5 D4 .5 F#4 .5 B4 .5 A4 .5 F#4 .5 D4 .5 F#4 .5 A4 2 F#4 .5 G#4 .5 A#4 .5 B4 .5 C#5 .5 A#4 .5 C#5 1 C5 .5 G#4 .5 C5 1 B4 .5 G4 .5 B4 1 F#4 .5 G#4 .5 A#4 .5 B4 .5 C#5 .5 A#4 .5 C#5 .5 F#5 .5 E5 .5 C#5 .5 A#4 .5 C#5 .5 E5 2" },
+    { name: "Rush!", bpm: 150, c: "#ff4d6d", m: "A4 .25 B4 .25 C5 .25 D5 .25 E5 .25 F5 .25 E5 .25 D5 .25 C5 .5 E5 .5 A5 .5 E5 .5 G#5 .25 A5 .25 B5 .25 A5 .25 G#5 .25 E5 .25 D5 .25 B4 .25 E5 1 A4 .25 C5 .25 E5 .25 A5 .25 G5 .25 E5 .25 C5 .25 E5 .25 F5 .25 D5 .25 B4 .25 D5 .25 E5 .5 E4 .5 A4 .25 B4 .25 C5 .25 B4 .25 A4 .25 G#4 .25 A4 .25 B4 .25 C5 .25 D5 .25 E5 .25 F5 .25 G#5 .25 B5 .25 A5 1 r .5 A5 .25 E5 .25 C5 .25 A4 .25 E5 .25 C5 .25 A4 .25 E4 .25 A4 1" },
+  ];
+  const SEMI = { C: 0, "C#": 1, D: 2, "D#": 3, E: 4, F: 5, "F#": 6, G: 7, "G#": 8, A: 9, "A#": 10, B: 11 };
+  const freq = (n) => { const m = /^([A-G]#?)(\d)$/.exec(n); return 440 * Math.pow(2, (SEMI[m[1]] + (+m[2] + 1) * 12 - 69) / 12); };
+  const midi = (n) => { const m = /^([A-G]#?)(\d)$/.exec(n); return SEMI[m[1]] + (+m[2] + 1) * 12; };
+  SONGS.forEach((s) => { const t = s.m.split(" "); s.notes = []; for (let i = 0; i < t.length; i += 2) s.notes.push([t[i], +t[i + 1]]); const ps = [...new Set(s.notes.filter((q) => q[0] !== "r").map((q) => midi(q[0])))].sort((a, b) => a - b); s.lane = (n) => Math.min(LN - 1, Math.floor(ps.indexOf(midi(n)) * LN / ps.length)); });
+  let notes, combo, maxCombo, hp, judge, press, stats, si, part, round, levelEnd, breakT, songsDone, travelV;
+  const song = () => SONGS[si];
+  const bpmNow = () => song().bpm * (1 + (part - 1) * .1) * (1 + round * .12) * (S.practice ? .85 : 1);
+  const travelGoal = () => Math.max(.8, 1.5 - si * .12 - (part - 1) * .08 - round * .1) * (S.practice ? 1.25 : 1);
+  // Lay out one part of the current song, starting at time t0.
+  function chart(t0) {
+    const s = song(), spb = 60 / bpmNow(); let beat = 0, t = t0, lastLane = -1;
+    const loops = s.notes.reduce((a, q) => a + q[1], 0) * spb < 18 ? 2 : 1;
+    for (let k = 0; k < loops; k++) for (const [n, b] of s.notes) {
+      const onBeat = Math.abs(beat - Math.round(beat)) < .01;
+      if (n !== "r") {
+        // Part 1 skips the quickest in-between notes so you can learn the tune.
+        const skip = part === 1 && b < .5 && !onBeat;
+        let lane = s.lane(n); if (lane === lastLane && Math.random() < .25 && si >= 2) lane = (lane + 1) % LN;
+        notes.push({ lane, t, f: freq(n), d: Math.max(.12, b * spb * .9), hit: false, miss: false, ghost: skip, played: false });
+        lastLane = lane;
+        if (part === 3 && si >= 1 && onBeat && b >= 1 && Math.random() < .5) { const l2 = (lane + 2) % LN; notes.push({ lane: l2, t, f: 0, d: 0, hit: false, miss: false, ghost: false, played: true }); }
+      }
+      beat += b; t += b * spb;
+    }
+    levelEnd = t + .4;
+  }
+  function nextPart() {
+    part++;
+    if (part > 3) {
+      part = 1; songsDone++; si++; if (si >= SONGS.length) { si = 0; round++; }
+      breakT = 4; S.score += 500 * songsDone; sfx("level"); burst(W / 2, H / 2, song().c, 40, 320, .8, 3);
+      return;
+    }
+    banner(song().name + " · PART " + part, song().c); chart(S.t + travelV + .6);
   }
   function hitLane(l) {
     if (l < 0 || l >= LN) return;
     press[l] = .12;
-    let best = null; for (const n of notes) if (n.lane === l && !n.hit && !n.miss && Math.abs(n.t - S.t) < .16 && (!best || Math.abs(n.t - S.t) < Math.abs(best.t - S.t))) best = n;
+    let best = null; for (const n of notes) if (n.lane === l && !n.hit && !n.miss && !n.ghost && Math.abs(n.t - S.t) < .16 && (!best || Math.abs(n.t - S.t) < Math.abs(best.t - S.t))) best = n;
     if (!best) { sfx("tick"); return; }
     const err = Math.abs(best.t - S.t); best.hit = true;
     const [name, pts, col] = err < .05 ? ["PERFECT", 300, "#ffd66b"] : err < .1 ? ["GREAT", 200, "#3dffa8"] : ["GOOD", 100, "#22e4ff"];
     combo++; maxCombo = Math.max(maxCombo, combo); stats[name]++;
     const mult = Math.min(4, 1 + Math.floor(combo / 10) * .5); S.score += pts * mult; hp = Math.min(100, hp + (err < .05 ? 3 : 2));
-    judge = { t: name, c: col, l: .5 }; sfx("hit", [1, 1.26, 1.5, 2][l]);
+    judge = { t: name, c: col, l: .5 };
     const X = LX + l * LW + LW / 2; burst(X, HITY, COLS[l], err < .05 ? 18 : 10, 220, .45, 3, -Math.PI / 2, 2.2); ring(X, HITY, COLS[l], 8, 50, .3);
     if (combo % 50 === 0) { banner(combo + " COMBO!", "#ffd66b"); sfx("level"); }
   }
   game({
-    title: "Beat Lanes", easy: "slower notes and misses don't hurt", w: W, h: H, color: "#ff2bd6", bpm: BPM,
-    help: ["Hit the notes as they cross the line", "Tap the lanes, or press the arrow keys ← ↓ ↑ →", "Perfect timing scores most. Combos multiply", "Misses drain your energy. It speeds up as you go"],
-    init() { notes = []; nextSub = 0; combo = 0; maxCombo = 0; hp = 100; level = 1; judge = null; press = [0, 0, 0, 0]; stats = { PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 }; lastLane = -1; tvv = travelGoal(); },
-    hud() { return "LEVEL " + level + "  ·  COMBO " + combo + "  ·  x" + Math.min(4, 1 + Math.floor(combo / 10) * .5); },
-    summary() { return ["MAX COMBO " + maxCombo + "   PERFECT " + stats.PERFECT + "   MISS " + stats.MISS]; },
-    down(px) { hitLane(Math.floor((px - LX) / LW)); },
+    title: "Beat Lanes", easy: "slower songs and misses don't hurt", w: W, h: H, color: "#ff2bd6", bpm: 120, noMusic: true,
+    help: ["Hit the notes as they cross the line, to the music!", "Tap the lanes, or press the arrow keys ← ↓ ↑ →", "Each song has 3 parts. Clear them for a harder song", "Songs: Twinkle Twinkle, Für Elise, Taco Rain, Mountain King, Rush!"],
+    init() { notes = []; combo = 0; maxCombo = 0; hp = 100; judge = null; press = [0, 0, 0, 0]; stats = { PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 }; si = 0; part = 1; round = 0; songsDone = 0; breakT = 0; travelV = travelGoal(); chart(LEAD); },
+    hud() { return breakT > 0 ? "SONG CLEAR!" : song().name.toUpperCase() + "  ·  PART " + part + "/3  ·  COMBO " + combo; },
+    summary() { return ["SONGS CLEARED " + songsDone + "   MAX COMBO " + maxCombo + "   PERFECT " + stats.PERFECT]; },
+    down(px) { if (breakT > 0) { if (breakT < 3) breakT = Math.min(breakT, .01); return; } hitLane(Math.floor((px - LX) / LW)); },
     up() {},
-    key(k, rep) { if (rep) return; if (k in KEYL) hitLane(KEYL[k]); },
+    key(k, rep) { if (rep) return; if (breakT > 0) { if ((k === " " || k === "Enter") && breakT < 3) breakT = .01; return; } if (k in KEYL) hitLane(KEYL[k]); },
     update(dt) {
-      level = 1 + Math.floor(S.t / 32); tvv += (travelGoal() - tvv) * Math.min(1, dt * .5);
-      while (LEAD + nextSub * SPB / 2 < S.t + travel() + .2) { gen(nextSub); nextSub++; }
-      for (const n of notes) if (!n.hit && !n.miss && S.t - n.t > .16) {
+      if (breakT > 0) {
+        breakT -= dt;
+        if (breakT <= 0) { breakT = 0; notes = []; travelV = travelGoal(); banner(song().name + " · PART 1", song().c); chart(S.t + travelV + .6); }
+        return;
+      }
+      travelV += (travelGoal() - travelV) * Math.min(1, dt * .5);
+      // Play the tune: each note sounds right when it reaches the line.
+      for (const n of notes) if (!n.played && n.t - S.t < .1) { n.played = true; if (n.f && typeof toneAt === "function") toneAt(n.f, n.d, Math.max(0, n.t - S.t), .11, si === 4 ? "square" : "triangle"); }
+      for (const n of notes) if (!n.hit && !n.miss && !n.ghost && S.t - n.t > .16) {
         n.miss = true; combo = 0; stats.MISS++; judge = { t: "MISS", c: "#ff4d6d", l: .5 }; sfx("bad");
-        if (!S.practice) { hp -= 12; if (hp <= 0) { hp = 0; return over("OUT OF ENERGY"); } }
+        if (!S.practice) { hp -= 10; if (hp <= 0) { hp = 0; return over("OUT OF ENERGY"); } }
       }
       notes = notes.filter((n) => n.t > S.t - .6);
       for (let i = 0; i < LN; i++) press[i] = Math.max(0, press[i] - dt);
       if (judge) { judge.l -= dt; if (judge.l <= 0) judge = null; }
-      if (Math.floor(S.t / 32) > Math.floor((S.t - dt) / 32)) { banner("LEVEL " + level + " · FASTER", "#ff2bd6"); }
+      if (S.t > levelEnd) nextPart();
     },
     draw() {
       bg("#03020a");
-      const beat = ((S.t - LEAD) / SPB) % 1, pulse = S.t > LEAD ? Math.pow(1 - (beat < 0 ? beat + 1 : beat), 3) : 0;
+      const tv = travelV, sc = song().c;
       for (let i = 0; i < LN; i++) {
         const X = LX + i * LW, g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, ca(COLS[i], 0)); g.addColorStop(1, ca(COLS[i], .1 + press[i] * 2));
         x.fillStyle = g; x.fillRect(X + 2, 0, LW - 4, H);
         x.strokeStyle = ca(COLS[i], .25); x.lineWidth = 1; x.beginPath(); x.moveTo(X, 0); x.lineTo(X, H); x.stroke();
       }
-      x.strokeStyle = "rgba(255,255,255,.07)"; x.lineWidth = 1; x.beginPath();
-      const tv = travel();
-      for (let k = Math.ceil((S.t - LEAD) / SPB); k < (S.t + tv - LEAD) / SPB + 1; k++) { const y = HITY - ((LEAD + k * SPB) - S.t) / tv * (HITY + 20); x.moveTo(LX, y); x.lineTo(LX + LN * LW, y); } x.stroke();
-      glow("#ffffff", 14 + pulse * 14); x.fillStyle = "rgba(255,255,255," + (.6 + pulse * .4) + ")"; x.fillRect(LX, HITY - 2, LN * LW, 4); glow();
+      glow("#ffffff", 16); x.fillStyle = "rgba(255,255,255,.85)"; x.fillRect(LX, HITY - 2, LN * LW, 4); glow();
       for (let i = 0; i < LN; i++) { const X = LX + i * LW + LW / 2; x.strokeStyle = ca(COLS[i], .6 + press[i] * 3); x.lineWidth = 3; x.beginPath(); x.arc(X, HITY, 26 + press[i] * 40, 0, 7); x.stroke(); txt(LABEL[i], X, HITY + 50, 26, ca(COLS[i], .9), "center"); }
       for (const n of notes) {
         if (n.hit) continue;
         const y = HITY - (n.t - S.t) / tv * (HITY + 20); if (y < -30 || y > H + 30) continue;
-        const X = LX + n.lane * LW + LW / 2, c = n.miss ? "#5a5470" : COLS[n.lane];
+        const X = LX + n.lane * LW + LW / 2;
+        if (n.ghost) { x.strokeStyle = ca(COLS[n.lane], .25); x.lineWidth = 2; rr(X - 20, y - 6, 40, 12, 6); x.stroke(); continue; }
+        const c = n.miss ? "#5a5470" : COLS[n.lane];
         glow(c, n.miss ? 0 : 16); x.fillStyle = ca(c, .35); x.strokeStyle = c; x.lineWidth = 3; rr(X - 38, y - 11, 76, 22, 11); x.fill(); x.stroke(); glow();
         x.fillStyle = "rgba(255,255,255,.7)"; x.fillRect(X - 26, y - 3, 52, 3);
       }
@@ -5600,7 +5640,17 @@ function beatGame() {
       if (combo >= 5) txt(combo + " COMBO", W / 2, HITY - 80, 15, "#ffffff", "center", "d");
       x.fillStyle = "rgba(255,255,255,.1)"; x.fillRect(LX, 16, LN * LW, 8);
       const hc = hp > 50 ? "#3dffa8" : hp > 25 ? "#ffc23d" : "#ff4d6d"; glow(hc, 10); x.fillStyle = hc; x.fillRect(LX, 16, LN * LW * hp / 100, 8); glow();
-      if (S.state === "play" && S.t < LEAD) { glow("#ff2bd6", 16); txt("GET READY", W / 2, H / 2 - 40, 28, "#ff2bd6", "center", "d"); glow(); }
+      txt("♪ " + song().name + "  ·  PART " + part + "/3", W / 2, 44, 13, sc, "center");
+      if (breakT > 0) {
+        const prev = SONGS[(si + SONGS.length - 1) % SONGS.length];
+        x.fillStyle = "rgba(3,2,10,.82)"; x.fillRect(0, 0, W, H);
+        glow("#ffd66b", 22); txt("SONG CLEAR!", W / 2, H / 2 - 110, 40, "#ffd66b", "center", "d"); glow();
+        txt(prev.name + "  ·  +" + 500 * songsDone + " BONUS", W / 2, H / 2 - 64, 15, "#ffffff", "center");
+        txt("NEXT SONG", W / 2, H / 2 - 4, 13, "#9a90c0", "center");
+        glow(sc, 18); txt(song().name, W / 2, H / 2 + 34, 32, sc, "center", "d"); glow();
+        txt(round > 0 ? "EVEN FASTER! ROUND " + (round + 1) : "HARDER!", W / 2, H / 2 + 74, 14, "#ff4d6d", "center");
+        txt("STARTING IN " + Math.ceil(breakT), W / 2, H / 2 + 120, 14, "#d8d0f5", "center");
+      } else if (S.state === "play" && S.t < LEAD) { glow("#ff2bd6", 16); txt("GET READY", W / 2, H / 2 - 40, 28, "#ff2bd6", "center", "d"); txt("♪ " + song().name, W / 2, H / 2, 18, song().c, "center"); glow(); }
     },
   });
 }
