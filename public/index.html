@@ -1394,6 +1394,78 @@ function musicLib(ac, out) {
       if (s === 14) { const f = mtof(root + 24 + 3); v(f, mtof(root + 24), spb * 2, "square", .025, t, 2400); }
     },
   };
+  // ---- Shop songs. Classical tunes are old enough for anyone to use; the rest are new songs made for the hub. ----
+  // Melodies are "note length" pairs, length in sixteenth steps. "r" is a rest.
+  const NOTE = { C: 0, "C#": 1, D: 2, "D#": 3, E: 4, F: 5, "F#": 6, G: 7, "G#": 8, A: 9, "A#": 10, B: 11 };
+  const parse = (str) => { const ev = [], t = str.trim().split(/\s+/); let pos = 0; for (let i = 0; i < t.length; i += 2) { const n = t[i], d = +t[i + 1]; if (n !== "r") { const m = /^([A-G]#?)(\d)$/.exec(n); ev[pos] = [mtof(NOTE[m[1]] + (+m[2] + 1) * 12), d]; } pos += d; } ev.length = pos; return ev; };
+  function drums(kind, step, t) {
+    const s = step % 16;
+    if (kind === "soft") { if (s === 0 || s === 8) kick(t, .18); if (s % 2 === 0) hiss(.02, .018, 7000, t); }
+    else if (kind === "pop") { if (s === 0 || s === 8 || s === 10) kick(t, .26); if (s === 4 || s === 12) hiss(.12, .1, 1800, t); if (s % 2 === 0) hiss(.025, .03, 8000, t); }
+    else if (kind === "rock") { if (s === 0 || s === 6 || s === 8) kick(t, .32); if (s === 4 || s === 12) hiss(.15, .16, 1500, t); if (s % 2 === 0) hiss(.03, .04, 7500, t); }
+    else if (kind === "metal") { if (s % 2 === 0 || s === 3 || s === 11) kick(t, .3); if (s === 4 || s === 12) hiss(.16, .2, 1400, t); hiss(.02, .035, 9000, t); }
+    else if (kind === "rave") { if (s % 4 === 0) kick(t, .34); if (s % 4 === 2) hiss(.05, .07, 9000, t); if (s === 4 || s === 12) hiss(.1, .08, 2200, t); }
+    else if (kind === "swing") { if (s === 0 || s === 6 || s === 8 || s === 14) hiss(.06, .035, 6000, t); if (s === 4 || s === 12) hiss(.04, .06, 2600, t); if (s === 0) kick(t, .14); }
+    else if (kind === "fast") { if (s % 4 === 0) kick(t, .3); if (s === 4 || s === 12) hiss(.12, .13, 1700, t); hiss(.015, .03, 9000, t); }
+    else if (kind === "bells") { if (s % 2 === 0) hiss(.04, .04, 10000, t); if (s === 0 || s === 8) kick(t, .14); }
+    else if (kind === "country") { if (s === 0 || s === 8) kick(t, .24); if (s === 4 || s === 12) hiss(.08, .09, 2400, t); if (s % 2 === 0) hiss(.02, .025, 6000, t); }
+  }
+  // A singing voice ("aah", "ooh" or "ee"): a buzzy tone shaped like a human mouth, with a little wobble.
+  const VOW = { ah: [800, 1150, 2900], oo: [350, 600, 2700], ee: [300, 2300, 3000] };
+  function sing(f, dur, vol, t, vowel) {
+    const o = ac.createOscillator(), lfo = ac.createOscillator(), lg = ac.createGain(), g = ac.createGain();
+    o.type = "sawtooth"; o.frequency.value = f; lfo.frequency.value = 5.2; lg.gain.value = f * .012; lfo.connect(lg); lg.connect(o.frequency);
+    g.gain.setValueAtTime(.0001, t); g.gain.linearRampToValueAtTime(vol, t + Math.min(.08, dur / 3)); g.gain.setValueAtTime(vol, t + dur * .75); g.gain.linearRampToValueAtTime(.0001, t + dur);
+    (VOW[vowel] || VOW.ah).forEach((ff, i) => { const bp = ac.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = ff; bp.Q.value = 7; const w = ac.createGain(); w.gain.value = [1, .55, .22][i]; o.connect(bp); bp.connect(w); w.connect(g); });
+    g.connect(out); o.start(t); lfo.start(t); o.stop(t + dur + .05); lfo.stop(t + dur + .05);
+  }
+  function waltz(step, t) { const s = step % 12; if (s === 0) kick(t, .2); if (s === 4 || s === 8) hiss(.05, .05, 4000, t); }
+  function tune(o) {
+    const M = parse(o.m), B = o.b ? parse(o.b) : null, C = o.c ? parse(o.c) : null;
+    return (step, t, spb) => {
+      const sp = spb * (o.slow || 1), st = o.slow ? Math.floor(step / o.slow) : step; if (o.slow && step % o.slow) return;
+      const m = M[st % M.length]; if (m) v(m[0], m[0], m[1] * sp * (o.leg || .9), o.w || "square", o.vol || .04, t, o.lp || 3000);
+      if (o.oct && m) v(m[0] * 2, m[0] * 2, m[1] * sp * .6, "sine", (o.vol || .04) * .5, t);
+      if (o.voice && m) sing(m[0] * (o.vup || 1), m[1] * sp * .95, o.vv || .1, t, o.voice);
+      if (B) { const b = B[st % B.length]; if (b) v(b[0], b[0], b[1] * sp * .9, o.bw || "triangle", o.bv || .1, t, o.blp || 900); }
+      if (C) { const c = C[st % C.length]; if (c) [1, 1.26, 1.5].forEach((k) => pad(c[0] * k, c[1] * sp, o.cv || .02, t, "sine")); }
+      if (o.d === "waltz") waltz(st, t); else if (o.d) drums(o.d, st, t);
+    };
+  }
+  const SONGS = {
+    // classics
+    furelise: { m: "E5 1 D#5 1 E5 1 D#5 1 E5 1 B4 1 D5 1 C5 1 A4 2 r 1 C4 1 E4 1 A4 1 B4 2 r 1 E4 1 G#4 1 B4 1 C5 2 r 1 E4 1 E5 1 D#5 1 E5 1 D#5 1 E5 1 B4 1 D5 1 C5 1 A4 2 r 1 C4 1 E4 1 A4 1 B4 2 r 1 E4 1 C5 1 B4 1 A4 4 r 2", b: "A2 6 E3 6 A2 6 r 6", w: "triangle", vol: .09, slow: 2 },
+    moonlight: { voice: "oo", vv: .06, m: "G#3 1 C#4 1 E4 1 G#3 1 C#4 1 E4 1 G#3 1 C#4 1 E4 1 G#3 1 C#4 1 E4 1 A3 1 C#4 1 E4 1 A3 1 C#4 1 E4 1 A3 1 D4 1 F#4 1 A3 1 D4 1 F#4 1 G#3 1 C4 1 F#4 1 G#3 1 C#4 1 E4 1 G#3 1 C#4 1 D#4 1 F#3 1 C4 1 D#4 1", b: "C#2 12 B1 12 A1 6 F#1 6 G#1 6 G#1 6", w: "sine", vol: .07, bw: "sine", bv: .12, slow: 2 },
+    mountain: { m: "B3 2 C#4 2 D4 2 E4 2 F#4 2 D4 2 F#4 4 F4 2 C#4 2 F4 4 E4 2 C4 2 E4 4 B3 2 C#4 2 D4 2 E4 2 F#4 2 D4 2 F#4 2 B4 2 A4 2 F#4 2 D4 2 F#4 2 A4 8", b: "B1 4 r 4 F#1 4 r 4", w: "square", vol: .035, leg: .45, d: "soft" },
+    toccata: { m: "A5 1 G5 1 A5 6 r 4 G5 1 F5 1 E5 1 D5 1 C#5 4 D5 8 r 4 A4 1 G4 1 A4 6 r 4 E4 2 F4 2 C#4 4 D4 8 r 8", b: "D2 16 D2 16 A1 16 D2 16", w: "sawtooth", vol: .04, lp: 1800, bw: "sawtooth", bv: .06, oct: true },
+    danube: { m: "D4 4 D4 4 F#4 4 A4 4 A4 8 r 4 A5 2 r 2 A5 2 r 2 F#5 2 r 2 F#5 2 r 2 D4 4 D4 4 F#4 4 A4 4 A4 8 r 4 A5 2 r 2 A5 2 r 2 G5 2 r 2 G5 2 r 2 C#4 4 C#4 4 E4 4 B4 4 B4 8 r 4 B5 2 r 2 B5 2 r 2 G5 2 r 2 G5 2 r 2", b: "D2 4 r 8 D2 4 r 8 A1 4 r 8 A1 4 r 8", w: "triangle", vol: .08, d: "waltz" },
+    bumblebee: { m: "A5 1 G#5 1 G5 1 F#5 1 F5 1 A5 1 G#5 1 G5 1 F#5 1 F5 1 E5 1 D#5 1 E5 1 D#5 1 D5 1 C#5 1 C5 1 F5 1 E5 1 D#5 1 D5 1 C#5 1 C5 1 B4 1 C5 1 C#5 1 D5 1 C#5 1 C5 1 B4 1 A#4 1 A4 1", b: "A2 8 E2 8", w: "sawtooth", vol: .03, lp: 2400, d: "fast" },
+    valkyries: { m: "F#4 3 B4 1 D5 2 B4 6 D5 3 B4 1 D5 2 F#5 6 D5 3 F#5 1 A5 2 F#5 6 A5 3 F#5 1 A5 2 C#6 6 r 12", b: "B1 6 B1 6 B1 6 B1 6 D2 6 D2 6 F#1 6 F#1 6", w: "sawtooth", vol: .045, lp: 1600, d: "rock" },
+    canon: { voice: "ah", vv: .09, m: "F#5 8 E5 8 D5 8 C#5 8 B4 8 A4 8 B4 8 C#5 8 D5 4 C#5 4 B4 4 A4 4 G4 4 F#4 4 G4 4 E4 4", b: "D3 8 A2 8 B2 8 F#2 8 G2 8 D2 8 G2 8 A2 8", w: "triangle", vol: .07, c: "D4 8 A3 8 B3 8 F#3 8 G3 8 D3 8 G3 8 A3 8", cv: .012 },
+    jingle: { voice: "ah", vv: .08, m: "E5 2 E5 2 E5 4 E5 2 E5 2 E5 4 E5 2 G5 2 C5 3 D5 1 E5 8 F5 2 F5 2 F5 3 F5 1 F5 2 E5 2 E5 2 E5 1 E5 1 E5 2 D5 2 D5 2 E5 2 D5 4 G5 4", b: "C3 4 G2 4 C3 4 G2 4 C3 4 G2 4 C3 4 G2 4 F2 4 C3 4 F2 4 C3 4 G2 4 D3 4 G2 4 G2 4", w: "sine", vol: .1, oct: true, d: "bells" },
+    // new hub songs
+    cozy: { m: "G4 2 B4 2 D5 2 B4 2 C5 4 A4 4 B4 2 G4 2 A4 2 F#4 2 G4 8 D5 2 E5 2 D5 2 B4 2 C5 4 E5 4 D5 4 B4 2 A4 2 G4 8", b: "G2 8 C3 8 D3 8 G2 8", w: "triangle", vol: .08, leg: .6, d: "soft" },
+    lullaby: { voice: "oo", vv: .09, m: "E5 4 r 4 B4 4 r 4 C5 6 r 2 G4 8 r 8 A4 4 r 4 E5 4 r 4 D5 8 r 8", c: "C3 16 A2 16 F2 16 G2 16", w: "sine", vol: .07, cv: .02, slow: 2 },
+    docks: { m: "E5 3 F#5 1 G#5 4 B5 4 A5 4 G#5 8 E5 4 C#5 4 E5 3 F#5 1 G#5 4 B5 4 C#6 4 B5 12", b: "E2 16 C#2 16 A1 16 B1 16", c: "E3 16 C#3 16 A2 16 B2 16", w: "sine", vol: .07, cv: .015, d: "soft" },
+    jazz: { m: "r 2 A4 2 C5 3 D5 1 F5 4 E5 2 D5 2 r 4 C5 2 A4 2 G4 3 A4 1 C5 8 r 4", b: "D2 4 F2 4 A2 4 C3 4 G2 4 B2 4 D3 4 F3 4", w: "triangle", vol: .08, bv: .13, d: "swing" },
+    north: { voice: "oo", vv: .1, m: "D4 4 E4 4 F4 4 A4 4 G4 8 E4 8 F4 4 G4 4 A4 4 C5 4 A4 16", b: "D2 16 C2 16 A#1 16 C2 16", c: "D3 16 C3 16 A#2 16 C3 16", w: "triangle", vol: .07, cv: .012, slow: 2 },
+    caves: { voice: "oo", vv: .1, m: "C5 6 G4 2 G#4 8 G4 4 F4 4 D#4 8 r 8 C5 6 D5 2 D#5 8 D5 4 C5 4 B4 12 r 4", b: "C2 16 G#1 16 F1 16 G1 16", w: "sine", vol: .08, bw: "sine", slow: 2 },
+    metal: { m: "E2 1 E2 1 r 2 E2 1 E2 1 G2 2 E2 1 E2 1 r 2 A#2 2 A2 2 E2 1 E2 1 r 2 E2 1 E2 1 D3 2 C3 2 B2 2 G2 2 F#2 2", w: "sawtooth", vol: .09, lp: 900, leg: .7, d: "metal" },
+    nightdrive: { m: "A4 4 C5 4 E5 6 D5 2 C5 4 B4 4 G4 8 A4 4 C5 4 E5 4 G5 4 F5 8 E5 8", b: "A1 2 A1 2 A1 2 A1 2 A1 2 A1 2 A1 2 A1 2 F1 2 F1 2 F1 2 F1 2 G1 2 G1 2 G1 2 G1 2", w: "sawtooth", vol: .04, lp: 2200, bw: "sawtooth", bv: .07, blp: 600, d: "rock" },
+    highway: { m: "E5 2 E5 2 G5 2 E5 2 D5 4 C5 4 D5 2 E5 2 G5 4 A5 8 G5 2 E5 2 D5 2 C5 2 D5 4 E5 4 C5 16", b: "C2 2 C2 2 C2 2 C2 2 G1 2 G1 2 G1 2 G1 2 A1 2 A1 2 A1 2 A1 2 F1 2 F1 2 F1 2 F1 2", w: "square", vol: .035, d: "fast" },
+    bossbass: { m: "A4 1 D5 1 F5 2 E5 1 D5 1 C5 2 D5 2 A4 2 F5 1 G5 1 A5 2 G5 1 F5 1 E5 2 D5 4", b: "D2 2 D2 2 D3 2 D2 2 C2 2 C2 2 C3 2 C2 2 A#1 2 A#1 2 A#2 2 A#1 2 A1 2 A1 2 A2 2 A1 2", w: "square", vol: .035, bw: "square", bv: .05, blp: 1200, d: "fast" },
+    sunny: { m: "C5 2 E5 2 G5 2 E5 2 F5 2 A5 2 G5 4 E5 2 D5 2 C5 2 D5 2 E5 8 C5 2 E5 2 G5 2 C6 2 B5 2 G5 2 A5 4 G5 2 F5 2 E5 2 D5 2 C5 8", b: "C3 4 G2 4 F2 4 G2 4", w: "square", vol: .035, d: "pop" },
+    tacos: { voice: "ah", vv: .08, m: "C5 2 C5 2 A4 2 C5 2 D5 4 C5 4 A4 2 G4 2 A4 2 C5 2 F4 8 F4 2 G4 2 A4 2 C5 2 D5 2 F5 2 E5 4 D5 2 C5 2 A4 2 G4 2 C5 8", b: "F2 4 C3 4 F2 4 C3 4 A#1 4 F2 4 C2 4 C3 4", w: "square", vol: .04, d: "pop" },
+    hamster: { m: "C6 1 C6 1 E6 1 G6 1 E6 1 C6 1 D6 2 D6 1 D6 1 F6 1 A6 1 F6 1 D6 1 E6 2 E6 1 G6 1 C7 2 G6 1 E6 1 D6 1 C6 1 D6 4", b: "C3 2 G2 2 C3 2 G2 2 G2 2 D3 2 G2 2 D3 2", w: "square", vol: .025, d: "fast" },
+    rainbowcat: { m: "E5 1 G5 1 B5 2 A5 1 G5 1 E5 2 D5 1 E5 1 G5 2 E5 4 C5 1 E5 1 G5 2 F#5 1 E5 1 D5 2 B4 1 D5 1 E5 2 r 4", b: "E2 2 E3 2 C2 2 C3 2 D2 2 D3 2 B1 2 B2 2", w: "square", vol: .035, bw: "square", bv: .04, d: "fast" },
+    rave: { m: "r 2 A5 2 r 2 A5 2 G5 2 E5 2 r 2 D5 2 r 2 E5 2 r 2 G5 2 A5 4 C6 4", b: "r 2 A2 2 r 2 A2 2 r 2 F2 2 r 2 F2 2 r 2 G2 2 r 2 G2 2 r 2 E2 2 r 2 E2 2", w: "sawtooth", vol: .035, lp: 2600, bw: "sawtooth", bv: .07, d: "rave" },
+    starsynth: { voice: "ah", vv: .08, m: "G5 4 A5 2 B5 2 D6 4 B5 4 A5 4 G5 2 E5 2 G5 8 C6 4 B5 2 A5 2 G5 4 E5 4 D5 8 G5 8", c: "G3 16 E3 16 C3 16 D3 16", b: "G2 4 G2 4 E2 4 E2 4 C2 4 C2 4 D2 4 D2 4", w: "sawtooth", vol: .03, lp: 2800, cv: .015, d: "pop" },
+    gummy: { m: "G5 1 G5 1 E5 2 G5 2 A5 2 G5 1 E5 1 C5 2 D5 2 E5 2 G5 1 G5 1 E5 2 G5 2 C6 2 B5 2 A5 4", b: "C3 2 C3 2 A2 2 A2 2 F2 2 F2 2 G2 2 G2 2", w: "square", vol: .03, d: "fast" },
+    spooky: { voice: "oo", vv: .1, m: "E4 2 E4 2 r 2 G4 1 E4 1 D#4 2 B3 2 r 4 E4 2 E4 2 r 2 G4 1 E4 1 F#4 2 D#4 2 r 4 C5 2 B4 2 A4 2 G4 2 F#4 2 G4 2 E4 4", b: "E2 4 B1 4 E2 4 B1 4", w: "triangle", vol: .09, leg: .4, d: "country" },
+    harvest: { voice: "ee", vv: .07, m: "G4 2 G4 1 A4 1 B4 2 D5 2 E5 2 D5 2 B4 4 C5 2 B4 1 A4 1 G4 2 E4 2 D4 4 r 4 G4 2 G4 1 A4 1 B4 2 D5 2 E5 2 G5 2 E5 4 D5 2 B4 2 A4 2 B4 2 G4 8", b: "G2 4 D2 4 G2 4 D2 4 C2 4 G2 4 D2 4 G2 4", w: "sawtooth", vol: .03, lp: 2000, d: "country" },
+    shopjam: { m: "r 4 E5 2 G5 2 A5 4 G5 2 E5 2 D5 4 C5 4 r 4 D5 2 E5 2 G5 6 E5 2 D5 8", b: "C2 4 E2 4 G2 4 A2 4 F2 4 A2 4 C3 4 A2 4", c: "C4 16 F3 16", w: "triangle", vol: .06, cv: .012, d: "swing" },
+  };
+  for (const k in SONGS) T[k] = tune(SONGS[k]);
   return (track, step, t, spb) => { const fn = T[track] || T.synth; fn(step, t, spb); };
 }
 
@@ -8744,7 +8816,7 @@ function fighterGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button><button id="xq" type="button" title="Close" hidden>✕</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (Date.now() < Date.parse("2026-11-01T00:00:00Z") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (Date.now() < Date.parse("2026-11-01T00:00:00Z") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -9750,7 +9822,41 @@ function fighterGame() {
     ["vd-pink", "void", "Pink Fighter", 250, "#ff2bd6", "A pink ship for the space shooter"],
     ["vd-lime", "void", "Lime Fighter", 250, "#b6ff3b", "A lime ship for the space shooter"],
     ["vd-gold", "void", "Gold Fighter", 60, "#ffd66b", "A golden ship for the space shooter", "$"],
+    // 🎵 Music for every game. 🔥 = most popular, so they cost more. Event songs can only be bought during their event.
+    ["mu-cozy", "music", "🌲 Cozy Farm", 400, "linear-gradient(135deg,#3dffa8,#ffd66b)", "Warm, happy acoustic tune"],
+    ["mu-lullaby", "music", "🌲 Block Lullaby", 400, "linear-gradient(135deg,#9ff3ff,#3dffa8)", "Soft dreamy piano, with singing"],
+    ["mu-docks", "music", "🌲 Deep Docks", 500, "linear-gradient(135deg,#22e4ff,#1a4bff)", "Relaxing underwater sounds"],
+    ["mu-canon", "music", "🎻 Canon in D", 450, "linear-gradient(135deg,#ffd0f6,#ffd66b)", "Peaceful classic, with a choir"],
+    ["mu-danube", "music", "🎻 Blue Danube", 500, "linear-gradient(135deg,#6af7ff,#ffffff)", "A fancy waltz. Funny with chaos!"],
+    ["mu-moonlight", "music", "🎻 Moonlight Sonata", 600, "linear-gradient(135deg,#1a1440,#9ff3ff)", "Slow, spooky and beautiful"],
+    ["mu-north", "music", "⚔️ Northern Town", 500, "linear-gradient(135deg,#a3b8ff,#3dffa8)", "Peaceful adventure town, with singing"],
+    ["mu-caves", "music", "⚔️ Hollow Caves", 600, "linear-gradient(135deg,#2b2b4a,#9a90c0)", "Dark, lonely and mysterious, with singing"],
+    ["mu-sunny", "music", "🕹️ Sunny Hills", 600, "linear-gradient(135deg,#3dffa8,#22e4ff)", "Bright and cheerful 8-bit"],
+    ["mu-gummy", "music", "🌮 Gummy Pop", 500, "linear-gradient(135deg,#ff2bd6,#b6ff3b)", "Super hyper candy pop"],
+    ["mu-starsynth", "music", "🌮 Shooting Star", 650, "linear-gradient(135deg,#a35bff,#22e4ff)", "Floaty space synth-pop, with singing"],
+    ["mu-jazz", "music", "⚔️ Jazz Hideout", 40, "linear-gradient(135deg,#ff2bd6,#1a1440)", "Smooth jazz for a secret hangout", "$"],
+    ["mu-highway", "music", "🏎️ Coast Highway", 45, "linear-gradient(135deg,#ff8a1f,#22e4ff)", "Fast driving music", "$"],
+    ["mu-toccata", "music", "🎻 Toccata (Bach)", 50, "linear-gradient(135deg,#1a0b24,#a35bff)", "Booming villain organ", "$"],
+    ["mu-valkyries", "music", "🎻 Ride of the Valkyries", 50, "linear-gradient(135deg,#ffd66b,#ff2e4d)", "Big heroic charge", "$"],
+    ["mu-nightdrive", "music", "🏎️ Night City Drive", 55, "linear-gradient(135deg,#ff2bd6,#ffd66b)", "Gritty future synth-rock", "$"],
+    ["mu-bumblebee", "music", "🎻 Flight of the Bumblebee", 60, "linear-gradient(135deg,#ffd66b,#1a1a1a)", "Crazy fast buzzing", "$"],
+    ["mu-rave", "music", "🌮 Neon Rave", 65, "linear-gradient(135deg,#00fff0,#ff00e1)", "Secret dance party", "$"],
+    ["mu-hamster", "music", "🌮 Hamster Hop 🔥", 70, "linear-gradient(135deg,#ffd0a0,#ff7be6)", "Silly squeaky fast song. Popular!", "$"],
+    ["mu-furelise", "music", "🎻 Für Elise 🔥", 90, "linear-gradient(135deg,#ffffff,#b6ff3b)", "The famous piano song. Popular!", "$"],
+    ["mu-mountain", "music", "🎻 Mountain King 🔥", 100, "linear-gradient(135deg,#a35bff,#ff4d6d)", "Sneaky, then panic! Popular!", "$"],
+    ["mu-tacos", "music", "🌮 Taco Rain 🔥", 12, "linear-gradient(135deg,#ffc23d,#ff8a1f)", "Silly singing taco party. Popular!", "d"],
+    ["mu-rainbowcat", "music", "🌮 Rainbow Cat 🔥", 12, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Nonstop 8-bit space cat. Popular!", "d"],
+    ["mu-bossbass", "music", "🕹️ Boss Bass 🔥", 15, "linear-gradient(135deg,#ffffff,#22e4ff)", "Fast and frantic boss fight. Popular!", "d"],
+    ["mu-metal", "music", "🏎️ Rip & Tear 🔥", 18, "linear-gradient(135deg,#ff2e4d,#1a0000)", "HEAVY METAL battle music. Popular!", "d"],
+    ["mu-harvest", "music", "🦃 Harvest Hoedown (event)", 350, "linear-gradient(135deg,#ff8a1f,#8a4b1f)", "Harvest Fest only: November"],
+    ["mu-jingle", "music", "❄️ Jingle Bells (event)", 30, "linear-gradient(135deg,#ffffff,#ff2e4d)", "Winter Fest only: December, with singing", "$"],
+    ["mu-spooky", "music", "🎃 Spooky Bones (event)", 380, "linear-gradient(135deg,#ff8a1f,#1a0b24)", "Hiss-O-Ween only: October, with singing"],
   ];
+  // Event songs: the month (0 = January) they can be bought.
+  const EVENT_MONTH = { "mu-spooky": 9, "mu-harvest": 10, "mu-jingle": 11 }, MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  const inSeason = (id) => EVENT_MONTH[id] == null || new Date().getMonth() === EVENT_MONTH[id];
+  // The song games play: a shop song you equipped, otherwise the style picked in Settings.
+  window.gblMusicPick = () => { try { if (settings.music === "off") return "off"; const m = prog.equip && prog.equip.music; return m ? m.slice(3) : settings.music; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
   const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
@@ -9790,7 +9896,7 @@ function fighterGame() {
   };
   const cost = (n) => Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
-  const SHOP_GROUPS = [["boost", "🚀 Boosts", ""], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
+  const SHOP_GROUPS = [["boost", "🚀 Boosts", ""], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
   const SPIN_MS = 24 * 3600 * 1000;
   // [label, color, weight, prize, description]
   const WHEEL = [["50", "#22e4ff", 20, "c50", "50 coins"], ["2×", "#ff2bd6", 11, "boost", "2× coins for 30 min"], ["$20", "#b6ff3b", 13, "cash20", "20 dollars"], ["?", "#ffc23d", 15, "mystery", "Mystery box (maybe 💎!)"], ["SKIN", "#a35bff", 9, "skin", "A free skin"], ["AGAIN", "#3dffa8", 10, "again", "Spin again"], ["777", "#ff4d6d", 3, "jackpot", "Jackpot: 777 coins + 3 💎"], ["200", "#ff8a1f", 9, "c200", "200 coins"]];
@@ -9875,7 +9981,7 @@ function fighterGame() {
     else if (k === "boost") { prog.stats.boostUntil = Math.max(Date.now(), stat("boostUntil")) + 30 * 60000; saveProg(); coinPop("⚡ 2× COINS for 30 minutes! Go play!", true); confetti(100); }
     else if (k === "again") { prog.stats.spinGrant = stat("spinGrant") + 1; saveProg(); coinPop("🎡 Lucky! Spin again!", true); }
     else if (k === "skin") {
-      const owned = new Set(prog.owned || []), free = SHOP.filter((it) => !owned.has(it[0]) && !it[6] && it[3] <= 600 && it[0] !== "sl-pumpkin" && it[6] !== "lv");
+      const owned = new Set(prog.owned || []), free = SHOP.filter((it) => !owned.has(it[0]) && !it[6] && it[3] <= 600 && it[0] !== "sl-pumpkin" && !(it[0] in EVENT_MONTH) && it[6] !== "lv");
       if (!free.length) { giveCoins(250, "(you own them all!)"); return; }
       const it = free[Math.floor(Math.random() * free.length)]; prog.owned = [...owned, it[0]]; saveProg(); coinPop("🎁 FREE SKIN: " + it[2] + "! Equip it in the shop", true); confetti(160);
     }
@@ -10013,25 +10119,33 @@ function fighterGame() {
       const owned = new Set(prog.owned || []), eq = prog.equip || {};
       const groups = SHOP_GROUPS.filter(([gk]) => shopGroup === "all" || shopGroup === gk);
       const gchips = el("div", { class: "rew-tabs shop-chips" }, ...[["all", "All"], ...SHOP_GROUPS.map(([gk, t]) => [gk, t.replace(/ \(all games\)/, "")])].map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopGroup === gk), text: t, onclick: () => { shopGroup = gk; renderRewards(); } })));
-      body = el("div", { class: "shop" }, gchips, ...groups.map(([gk, title, base]) => el("div", {},
+      const smOn = shopMusicOn();
+      const smBtn = el("button", { class: "chip", type: "button", "aria-pressed": String(smOn), text: smOn ? "🔊 Shop music on" : "🔇 Shop music off", onclick: () => { try { localStorage.setItem("gbl-shopmus", smOn ? "0" : "1"); } catch (e) {} if (smOn) stopPreview(); else preview("shopjam", null, true); renderRewards(); } });
+      body = el("div", { class: "shop" }, el("div", { class: "rew-tabs shop-chips" }, smBtn), gchips, ...groups.map(([gk, title, base]) => el("div", {},
         el("p", { class: "eyebrow set-h2", text: title }),
         el("div", { class: "shop-grid" },
-          gk === "boost" ? null : el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : "Classic" }), el("small", { text: "Free" }),
+          gk === "boost" ? null : el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : gk === "music" ? "Settings song" : "Classic" }), el("small", { text: gk === "music" ? "The style picked in ⚙ Settings" : "Free" }),
             el("button", { class: "btn sm", type: "button", disabled: !eq[gk], text: !eq[gk] ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: null }; saveProg(); renderRewards(); } })),
           ...SHOP.filter((it) => it[1] === gk && (it[0] !== "sl-pumpkin" || Date.now() < Date.parse("2026-11-01T00:00:00Z") || (prog.owned || []).includes(it[0]))).map(([id, , name, price0, col, sub, cur]) => {
             const price = cost(price0), has = owned.has(id), on = eq[gk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = cur === "d" ? " gem" : cur === "$" ? " cash" : "";
+            const listen = gk === "music" ? el("button", { class: "btn sm shop-listen", type: "button", "aria-label": "Listen to " + name, text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
+            if (!has && !inSeason(id)) return el("div", { class: "shop-item locked" }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), listen, el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Back in " + MONTHS[EVENT_MONTH[id]] }));
             if (cur === "lv" && !has) return el("div", { class: "shop-item locked" }, el("span", { class: "sw ttl", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
             if (gk === "boost") return el("div", { class: "shop-item" + tag }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
               el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); renderRewards(); } }));
-            return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (gk === "title" ? " ttl" : gk === "pet" ? " petsw" : ""), style: "background:" + col, text: gk === "pet" ? PET_EMO[id] : null }), el("b", { text: name }), el("small", { text: sub }),
+            return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (gk === "title" ? " ttl" : gk === "pet" ? " petsw" : ""), style: "background:" + col, text: gk === "pet" ? PET_EMO[id] : null }), el("b", { text: name }), el("small", { text: sub }), listen,
               has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: id }; saveProg(); toast(name + " equipped"); renderRewards(); } })
                 : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...owned, id]; prog.equip = { ...eq, [gk]: id }; saveProg(); renderWallet(); sfxHub(); toast("Unlocked " + name + "!"); if (window.gblConfetti) window.gblConfetti(70); renderRewards(); } }));
           })))));
     }
     rbody.replaceChildren(head, tabs, body);
+    // Cool background music while you browse the shop.
+    if (rtab === "shop" && rm.classList.contains("open") && shopMusicOn() && !prev) preview("shopjam", null, true);
+    if (rtab !== "shop" && prev && prev.shop) stopPreview();
   }
-  function openRewards(tab) { if (tab) rtab = tab; renderRewards(); rm.classList.add("open"); rm.setAttribute("aria-hidden", "false"); $("#rew-close").focus(); }
-  function closeRewards() { rm.classList.remove("open"); rm.setAttribute("aria-hidden", "true"); }
+  function shopMusicOn() { let v = null; try { v = localStorage.getItem("gbl-shopmus"); } catch (e) {} return v !== "0" && settings.music !== "off" && settings.mvol > 0; }
+  function openRewards(tab) { if (tab) rtab = tab; rm.classList.add("open"); renderRewards(); rm.setAttribute("aria-hidden", "false"); $("#rew-close").focus(); }
+  function closeRewards() { if (prev) stopPreview(); rm.classList.remove("open"); rm.setAttribute("aria-hidden", "true"); }
   $("#rew-close").addEventListener("click", closeRewards);
   rm.addEventListener("click", (e) => { if (e.target === rm) closeRewards(); });
   addEventListener("keydown", (e) => { if (e.key === "Escape" && rm.classList.contains("open")) closeRewards(); });
@@ -10216,21 +10330,22 @@ function fighterGame() {
     clearTimeout(setTimer);
     setTimer = setTimeout(() => SET_REMOTE.save(settings).catch(() => toast("Couldn't save to your account. Saved on this device.")), 500);
   }
-  let prev = null;
+  var prev = null;
   function stopPreview() {
     if (!prev) return;
     const p = prev; prev = null; clearInterval(p.timer);
     try { p.gain.gain.setTargetAtTime(0, p.ac.currentTime, .06); setTimeout(() => p.ac.close().catch(() => {}), 400); } catch {}
     document.querySelectorAll(".set-listen").forEach((b2) => { b2.textContent = "▶ Listen"; });
+    document.querySelectorAll(".shop-listen").forEach((b2) => { b2.textContent = "▶"; });
   }
-  function preview(id, btn) {
-    const same = prev && prev.id === id; stopPreview(); if (same || id === "off") return;
+  function preview(id, btn, loop) {
+    const same = prev && prev.id === id && !loop; stopPreview(); if (same || id === "off") return;
     try {
       const ac = new (window.AudioContext || window.webkitAudioContext)(), gain = ac.createGain();
       gain.gain.value = .5 * settings.mvol / 100; gain.connect(ac.destination);
       const playStep = musicLib(ac, gain), spb = 60 / 118 / 4; let step = 0, t = ac.currentTime + .08;
-      const timer = setInterval(() => { while (t < ac.currentTime + .2) { playStep(id, step++, t, spb); t += spb; } if (step > 128) stopPreview(); }, 50);
-      prev = { ac, gain, timer, id }; if (btn) btn.textContent = "■ Stop";
+      const timer = setInterval(() => { while (t < ac.currentTime + .2) { playStep(id, step++, t, spb); t += spb; } if (!loop && step > 128) stopPreview(); }, 50);
+      prev = { ac, gain, timer, id, shop: !!loop, btn }; if (btn) btn.textContent = btn.classList.contains("shop-listen") ? "■" : "■ Stop";
     } catch { toast("Sound isn't available here"); }
   }
   const sm = $("#set-modal"), sbody = $("#set-body");
@@ -10239,7 +10354,7 @@ function fighterGame() {
     const cards = STYLES.map(([id, name, sub]) => {
       const on = settings.music === id;
       const listen = id === "off" ? null : el("span", { class: "set-listen", role: "button", tabindex: "0", text: prev && prev.id === id ? "■ Stop" : "▶ Listen", onclick: (e) => { e.stopPropagation(); preview(id, e.currentTarget); }, onkeydown: (e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); e.stopPropagation(); preview(id, e.currentTarget); } } });
-      return el("button", { class: "tour-opt set-opt" + (on ? " on" : ""), type: "button", "aria-pressed": String(on), onclick: () => { settings.music = id; saveSettings(); renderSettings(); toast(name + " selected"); } },
+      return el("button", { class: "tour-opt set-opt" + (on ? " on" : ""), type: "button", "aria-pressed": String(on), onclick: () => { settings.music = id; if (prog.equip && prog.equip.music) { prog.equip = { ...prog.equip, music: null }; saveProg(); } saveSettings(); renderSettings(); toast(name + " selected"); } },
         el("b", { text: (on ? "✓ " : "") + name }), el("span", { text: sub }), listen);
     });
     const slider = (key, label) => {
