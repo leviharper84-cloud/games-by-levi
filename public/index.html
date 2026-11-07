@@ -476,8 +476,8 @@ textarea.code {
 .mini .screen { aspect-ratio: 16 / 10; }
 .mini .glyph { font-size: 1.4rem; }
 .mini > span { padding: 0 9px; font-size: .78rem; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-.fav-btn { position: absolute; top: 8px; left: 50%; transform: translateX(-50%); z-index: 3; width: 34px; height: 34px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); background: rgba(7,4,15,.7); color: #fff; font-size: 1.05rem; line-height: 1; cursor: pointer; display: grid; place-items: center; transition: transform .2s, box-shadow .2s; }
-.fav-btn:hover { transform: translateX(-50%) scale(1.12); }
+.fav-btn { position: absolute; bottom: 8px; right: 8px; z-index: 3; width: 38px; height: 38px; border-radius: 50%; border: 1px solid rgba(255,255,255,.25); background: rgba(7,4,15,.7); color: #fff; font-size: 1.05rem; line-height: 1; cursor: pointer; display: grid; place-items: center; transition: transform .2s, box-shadow .2s; }
+.fav-btn:hover { transform: scale(1.12); }
 .fav-btn.on { color: #ff4d8d; border-color: #ff4d8d; box-shadow: 0 0 14px rgba(255,77,141,.7); }
 /* badges */
 .badges-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(190px, 1fr)); gap: 12px; }
@@ -1793,29 +1793,74 @@ function SHELL() {
   const DG = { pd: 0, pm: 0, pu: 0, pc: 0, ts: 0, tm: 0, te: 0, tc: 0, md: 0, gd: 0, types: "" };
   [["pointerdown", "pd"], ["pointermove", "pm"], ["pointerup", "pu"], ["pointercancel", "pc"], ["touchstart", "ts"], ["touchmove", "tm"], ["touchend", "te"], ["touchcancel", "tc"], ["mousedown", "md"]].forEach(([ev, k]) => addEventListener(ev, (e) => { DG[k]++; if (e.pointerType && !DG.types.includes(e.pointerType)) DG.types += e.pointerType + " "; if (ev === "touchstart") DG.tgt = (e.target && (e.target.id || e.target.tagName)) || "?"; }, { capture: true, passive: true }));
   let dgLast = "";
-  // Arrow buttons for touch screens, in games you steer with arrows (Snake, Muncher, Grid Thief).
-  const PAD = document.createElement("div"); PAD.hidden = true;
-  PAD.style.cssText = "position:fixed;z-index:6;display:grid;grid-template-columns:repeat(3,66px);grid-template-rows:repeat(3,66px);gap:4px;touch-action:none;opacity:.8";
-  const PADK = { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" };
-  [["up", "▲", 2, 1], ["left", "◀", 1, 2], ["right", "▶", 3, 2], ["down", "▼", 2, 3]].forEach(([dir, sym, cx, cy]) => {
-    const b = document.createElement("button"); b.type = "button"; b.textContent = sym;
-    b.style.cssText = "grid-column:" + cx + ";grid-row:" + cy + ";font:24px system-ui,sans-serif;color:#fff;background:rgba(34,228,255,.18);border:2px solid rgba(34,228,255,.7);border-radius:16px;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none";
-    const go = (e) => { e.preventDefault(); e.stopPropagation(); audio(); b.style.background = "rgba(34,228,255,.5)"; setTimeout(() => { b.style.background = "rgba(34,228,255,.18)"; }, 120); if (G && G.turn && S.state === "play" && !S.paused) G.turn(dir, PADK[dir]); };
-    b.addEventListener("touchstart", go, { passive: false }); b.addEventListener("mousedown", go);
-    PAD.appendChild(b);
-  });
+  // On-screen buttons for touch screens. They live in their own space next to the game so they never cover it.
+  // Games you steer with arrows (Snake, Muncher, Grid Thief, 2048) get an arrow pad.
+  // A game can ask for its own buttons with pad: { left: [[label, key], ...], center: [...], right: [...] }.
+  const PAD = document.createElement("div"); PAD.hidden = true; PAD.style.cssText = "position:fixed;z-index:6;touch-action:none;pointer-events:none";
   document.body.appendChild(PAD);
+  const PADK = { up: "ArrowUp", down: "ArrowDown", left: "ArrowLeft", right: "ArrowRight" };
+  let padFor = null, padKind = "";
+  const padSpec = () => {
+    if (!HAS_TOUCH || !G || S.duo) return null;
+    if (G.pad) return G.pad;
+    if (G.turn && !G.tap && !G.down) return "arrows";
+    return null;
+  };
+  function padButton(label, key, size, wide) {
+    const b = document.createElement("button"); b.type = "button"; b.textContent = label;
+    b.style.cssText = "pointer-events:auto;width:" + (wide ? size * 2 + 8 : size) + "px;height:" + size + "px;font:800 " + (label.length > 2 ? 17 : 26) + "px Orbitron,system-ui,sans-serif;letter-spacing:.08em;color:#fff;background:rgba(34,228,255,.16);border:2px solid rgba(34,228,255,.75);border-radius:18px;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;padding:0";
+    const lit = (on) => { b.style.background = on ? "rgba(34,228,255,.5)" : "rgba(34,228,255,.16)"; };
+    const press = (e) => {
+      e.preventDefault(); e.stopPropagation(); audio(); lit(true);
+      if (!G || S.state !== "play" || S.paused) return;
+      if (padKind === "arrows") { if (G.turn) G.turn(PADK[key] ? key : DIRS[key], PADK[key] || key); return; }
+      S.keys[key] = true; if (DIRS[key] && G.turn) G.turn(DIRS[key], key); if (G.key) G.key(key, false);
+    };
+    const release = (e) => { if (e) e.preventDefault(); lit(false); if (padKind !== "arrows") S.keys[key] = false; };
+    b.addEventListener("touchstart", press, { passive: false }); b.addEventListener("touchend", release, { passive: false }); b.addEventListener("touchcancel", release, { passive: false });
+    b.addEventListener("mousedown", press); b.addEventListener("mouseup", release); b.addEventListener("mouseleave", () => release());
+    return b;
+  }
+  function buildPad(spec) {
+    PAD.replaceChildren(); padKind = spec === "arrows" ? "arrows" : "custom";
+    if (spec === "arrows") {
+      const g = document.createElement("div"); g.style.cssText = "display:grid;grid-template-columns:repeat(3,66px);grid-template-rows:repeat(3,66px);gap:4px";
+      [["▲", "up", 2, 1], ["◀", "left", 1, 2], ["▶", "right", 3, 2], ["▼", "down", 2, 3]].forEach(([l, k, cx, cy]) => { const b = padButton(l, k, 66); b.style.gridColumn = cx; b.style.gridRow = cy; g.appendChild(b); });
+      PAD.appendChild(g); return;
+    }
+    ["left", "center", "right"].forEach((side) => {
+      const g = document.createElement("div"); g.dataset.side = side; g.style.cssText = "display:flex;gap:10px;align-items:center";
+      (spec[side] || []).forEach(([l, k, wide]) => g.appendChild(padButton(l, k, 80, wide)));
+      PAD.appendChild(g);
+    });
+  }
   setInterval(() => {
-    // The game keeps a fixed space for the arrows (under it when upright, beside it when sideways),
-    // so nothing jumps around and the arrows never cover the game.
-    const uses = HAS_TOUCH && !!G && !!G.turn && !G.tap && !G.down && !S.duo;
-    const show = uses && (S.state === "play" || S.state === "count") && !S.paused;
+    const spec = padSpec(), uses = !!spec;
+    window.HPAD0 = uses;
+    if (spec !== padFor) { padFor = spec; if (spec) buildPad(spec); }
     if (PAD.hidden === uses) PAD.hidden = !uses;
+    const show = uses && (S.state === "play" || S.state === "count") && !S.paused;
     PAD.style.visibility = show ? "visible" : "hidden";
-    const tall = innerHeight > innerWidth;
-    const room = uses && tall ? 226 : 0, side = uses && !tall ? 226 : 0;
-    if (room !== (S.padRoom || 0) || side !== (S.padW || 0)) { S.padRoom = room; S.padW = side; const wr = document.getElementById("wrap"); if (wr) { wr.style.bottom = room + "px"; wr.style.right = side + "px"; } fit(); }
-    if (uses) { PAD.style.left = tall ? "50%" : "auto"; PAD.style.right = tall ? "auto" : "10px"; PAD.style.transform = tall ? "translateX(-50%)" : "none"; PAD.style.bottom = tall ? "10px" : "auto"; PAD.style.top = tall ? "auto" : "calc(50% + 15px)"; if (!tall) PAD.style.transform = "translateY(-50%)"; }
+    if (!show) { for (const b of PAD.querySelectorAll("button")) b.style.background = "rgba(34,228,255,.16)"; }
+    const tall = innerHeight > innerWidth, arrows = padKind === "arrows";
+    // Space kept for the buttons: under the game when upright, at the sides when sideways.
+    let room = 0, side = 0;
+    if (uses) { if (tall) room = arrows ? 226 : 116; else side = arrows ? 226 : 2 * 186; }
+    if (room !== (S.padRoom || 0) || side !== (S.padW || 0)) {
+      S.padRoom = room; S.padW = side; const wr = document.getElementById("wrap");
+      if (wr) { wr.style.bottom = room + "px"; if (arrows) { wr.style.left = "0px"; wr.style.right = side + "px"; } else { wr.style.left = side / 2 + "px"; wr.style.right = side / 2 + "px"; } }
+      fit();
+    }
+    if (!uses) return;
+    if (arrows) {
+      PAD.style.display = "block"; PAD.style.width = "auto";
+      PAD.style.left = tall ? "50%" : "auto"; PAD.style.right = tall ? "auto" : "10px"; PAD.style.bottom = tall ? "10px" : "auto"; PAD.style.top = tall ? "auto" : "calc(50% + 15px)"; PAD.style.transform = tall ? "translateX(-50%)" : "translateY(-50%)";
+    } else {
+      PAD.style.display = "flex"; PAD.style.left = "12px"; PAD.style.right = "12px"; PAD.style.transform = "none";
+      // One button alone sits in the middle under the game, or at the right side when sideways.
+      PAD.style.justifyContent = !tall && !spec.left && !spec.right ? "flex-end" : "space-between"; PAD.style.alignItems = "center";
+      if (tall) { PAD.style.top = "auto"; PAD.style.bottom = "16px"; } else { PAD.style.top = "auto"; PAD.style.bottom = "24px"; }
+    }
   }, 250);
   setInterval(() => { const d = { ...DG, st: S.state, paused: !!S.paused, fresh: !!S.fresh, pts: PT.size, hasTouch: HAS_TOUCH, w: innerWidth, h: innerHeight, title: G && G.title, ua: navigator.userAgent.slice(0, 160) }; const k = JSON.stringify(d); if (k !== dgLast) { dgLast = k; try { parent.postMessage({ type: "gbl:diag", d }, "*"); } catch (_) {} } }, 3000);
   window.__gs = { G: () => G, start };
@@ -2347,6 +2392,7 @@ function flapGame() {
     help: ["Tap, click or Space to flap", "Fly through the gates", "Green energy orbs are worth +3", "Every 10 gates: faster, tighter, and gates start moving"],
     init() { b = { y: H / 2, v: -260 }; gates = []; orbs = []; timer = .8; dist = 0; sector = 1; spd = 170; },
     hud() { return "SECTOR " + sector + "  ·  SPEED " + (spd / 170).toFixed(1) + "x"; },
+    pad: { center: [["FLAP", " ", true]] },
     key(k) { if (k === " " || k === "ArrowUp" || k === "w") flap(); },
     down() { flap(); },
     update(dt) {
@@ -2618,6 +2664,7 @@ function runnerGame() {
     init() { p = { y: 0, v: 0, on: true }; obs = []; shards = []; spd = 330; tm = 1.2; dist = 0; jumps = 0; rot = 0; ms = 250; bonus = 0; trail = []; lvl = 1; },
     hud() { return "LEVEL " + lvl + "  ·  " + Math.floor(dist / 10) + "m  ·  " + (spd / 330).toFixed(1) + "x SPEED"; },
     summary() { return ["DISTANCE " + Math.floor(dist / 10) + "m   SHARDS +" + bonus]; },
+    pad: { center: [["JUMP", " ", true]] },
     key(k) { if (k === " " || k === "ArrowUp" || k === "w") jump(); },
     down() { jump(); },
     update(dt) {
@@ -4716,6 +4763,7 @@ function questGame() {
     load(d) { level = d.level || 1; lives = d.lives || 3; genLevel(level); },
     title: "Pixel Quest", easy: "unlimited lives and slower enemies", w: W, h: H, color: "#ffc23d", bpm: 132,
     help: ["← → move, ↑ / W / Space jump", "Touch: the on-screen ◀ ▶ and JUMP buttons", "Stomp enemies, dodge spikes, grab every coin", "Reach the flag. Each world is longer and faster"],
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["JUMP", " ", true]] },
     init() { level = 1; lives = 3; winT = 0; btn = new Map(); genLevel(1); },
     hud() { return "WORLD " + level + "  ·  LIVES " + (S.practice ? "∞" : "♥".repeat(Math.max(0, lives))) + "  ·  COINS " + got + "/" + total; },
     summary() { return ["REACHED WORLD " + level]; },
@@ -4785,7 +4833,7 @@ function questGame() {
         x.restore();
       }
       x.restore();
-      if (S.state === "play" && matchMedia("(pointer: coarse)").matches || btn.size) {
+      if (!window.HPAD0 && (S.state === "play" && matchMedia("(pointer: coarse)").matches || btn.size)) {
         for (const k in BTN) {
           const [bx, by, bw, bh] = BTN[k], on = [...btn.values()].includes(k);
           x.fillStyle = on ? "rgba(255,194,61,.35)" : "rgba(255,255,255,.08)"; x.strokeStyle = on ? "#ffc23d" : "rgba(255,255,255,.3)"; x.lineWidth = 2; rr(bx, by, bw, bh, 14); x.fill(); x.stroke();
@@ -7234,6 +7282,7 @@ function stackGame() {
     help: ["Tap, click or Space to drop the sliding block", "Whatever hangs over the edge gets chopped off", "Line it up PERFECTLY for bonus points", "3 perfects in a row makes your block grow!"],
     init() { tower = [{ x: W / 2 - 100, w: 200, y: H - 90, i: 0 }]; chips = []; cam = camT = 0; combo = 0; next(); },
     hud() { return "HEIGHT " + (tower.length - 1) + (combo > 1 ? "  ·  PERFECT x" + combo : ""); },
+    pad: { center: [["DROP", " ", true]] },
     down() { drop(); },
     key(k, rep) { if ((k === " " || k === "Enter" || k === "ArrowDown") && !rep) drop(); },
     update(dt) {
@@ -7734,6 +7783,7 @@ function colorGame() {
     help: ["Tap (or Space) to bounce your ball up", "You can only pass through YOUR color", "Touch a rainbow switch to change color", "Grab stars for points. Don't fall!"],
     init() { go = false; ball = { x: W / 2, y: 520, vy: 0 }; obs = []; cam = 0; nextY = 300; passed = 0; col = 0; dead = 0; for (let i = 0; i < 3; i++) addObs(); },
     hud() { return "STARS " + Math.floor(S.score); },
+    pad: { center: [["JUMP", " ", true]] },
     down() { if (!dead) { go = true; ball.vy = -430; sfx("jump", .6); } },
     key(k, rep) { if ((k === " " || k === "ArrowUp" || k === "w") && !rep) this.down(); },
     update(dt) {
@@ -7790,6 +7840,7 @@ function knifeGame() {
     help: ["Tap (or Space) to throw a blade into the spinning log", "Don't hit a blade that's already stuck in it!", "Hit the apples for bonus points", "Every 5th log is a crazy BOSS"],
     init() { lvl = 1; rot = 0; newLog(); },
     hud() { return "LOG " + lvl + "  ·  BLADES LEFT " + left; },
+    pad: { center: [["THROW", " ", true]] },
     down() { throwK(); },
     key(k, rep) { if ((k === " " || k === "ArrowUp" || k === "Enter") && !rep) throwK(); },
     update(dt) {
