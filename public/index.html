@@ -1046,6 +1046,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     </div>
     <button class="wallet" type="button" data-wallet aria-label="Rewards: coins, missions, spin and shop" title="Rewards"></button>
     <button class="btn sm set-btn" type="button" data-settings aria-label="Settings" title="Settings">⚙</button>
+    <button class="btn sm set-btn" type="button" id="hub-music-btn" aria-label="Toggle hub music" title="Hub music">♪</button>
     <button class="btn sm set-btn" type="button" id="help-open-btn" aria-label="Help or Request" title="Help / Request">❓</button>
     <div class="acct-slot" id="acct"><button class="btn sm" type="button" disabled>Log in</button></div>
   </div>
@@ -9374,6 +9375,7 @@ function fighterGame() {
     else if (!on && locked) { locked = false; b.position = ""; b.top = ""; b.left = ""; b.right = ""; b.overflow = ""; window.scrollTo(0, lockY); }
   }
   async function play(g, codeOverride, opts) {
+    stopHubMusic();
     lastFocus = document.activeElement;
     $("#cab-title").textContent = g.title;
     setCabSub(g);
@@ -9405,6 +9407,7 @@ function fighterGame() {
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     modal.classList.remove("big"); $("#fs").textContent = "Fullscreen";
     if (lastFocus && lastFocus.focus) lastFocus.focus();
+    setTimeout(() => { hubStarted = true; startHubMusic(); }, 600);
   }
   $("#close").addEventListener("click", closeModal);
   modal.addEventListener("click", (e) => { if (e.target === modal) closeModal(); });
@@ -9947,6 +9950,13 @@ function fighterGame() {
     ["vd-pink", "void", "Pink Fighter", 250, "#ff2bd6", "A pink ship for the space shooter"],
     ["vd-lime", "void", "Lime Fighter", 250, "#b6ff3b", "A lime ship for the space shooter"],
     ["vd-gold", "void", "Gold Fighter", 60, "#ffd66b", "A golden ship for the space shooter", "$"],
+    // 🎵 Free base styles (always available, no purchase needed)
+    ["mu-synth", "music", "🎵 Synthwave", 0, "linear-gradient(135deg,#ff2bd6,#22e4ff)", "The classic neon sound: pulsing bass and arpeggios", "", "c"],
+    ["mu-chip", "music", "🎮 Chiptune", 0, "linear-gradient(135deg,#b6ff3b,#22e4ff)", "Bouncy 8-bit tunes, like an old game console", "", "c"],
+    ["mu-chill", "music", "😌 Lo-fi Chill", 0, "linear-gradient(135deg,#a35bff,#3dffa8)", "Soft chords and a lazy beat. Great for puzzles.", "", "c"],
+    ["mu-hyper", "music", "⚡ Hyper Drive", 0, "linear-gradient(135deg,#ffd66b,#ff4d6d)", "Fast drum and bass. Maximum energy.", "", "c"],
+    ["mu-space", "music", "🌌 Deep Space", 0, "linear-gradient(135deg,#1a0b24,#9ff3ff)", "Floating pads and twinkly bells.", "", "c"],
+    ["mu-rock", "music", "🎸 Arcade Rock", 0, "linear-gradient(135deg,#ff8a1f,#ff2e4d)", "Power chords and a stomping beat.", "", "c"],
     // 🎵 Music for every game. 🔥 = most popular, so they cost more. Event songs can only be bought during their event.
     ["mu-cozy", "music", "🌲 Cozy Farm", 400, "linear-gradient(135deg,#3dffa8,#ffd66b)", "Warm, happy acoustic tune"],
     ["mu-lullaby", "music", "🌲 Block Lullaby", 400, "linear-gradient(135deg,#9ff3ff,#3dffa8)", "Soft dreamy piano, with singing"],
@@ -10158,7 +10168,7 @@ function fighterGame() {
     petEl.replaceChildren(bub, face, el("div", { class: "pet-tag" }, el("b", { text: it[2] }), el("small", { text: "LV " + lv + " · +" + Math.round(petBonus() * 100) + "% coins" + (fed ? "" : " · tap to feed!") })));
     petEl.classList.toggle("hungry", !fed);
   };
-  const cost = (n) => Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
+  const cost = (n) => n === 0 ? 0 : Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
   const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
   const getShopGroups = () => { const ae = activeEvent(); return ae && EVENTS[ae] ? [["ev-" + ae, EVENTS[ae].name + " Event Shop ✨", EVENTS[ae].color], ...SHOP_GROUPS_BASE] : SHOP_GROUPS_BASE; };
@@ -10264,7 +10274,7 @@ function fighterGame() {
   const cash = () => stat("cash"), gems = () => stat("gems");
   const wal = () => { prog.stats.wAt = Date.now(); };
   const balOf = (c) => c === "$" ? cash() : c === "d" ? gems() : coins();
-  const priceLab = (c, n) => c === "$" ? "$" + fmt(n) : c === "d" ? "💎 " + fmt(n) : fmt(n) + " ⚡";
+  const priceLab = (c, n) => n === 0 ? "Free" : c === "$" ? "$" + fmt(n) : c === "d" ? "💎 " + fmt(n) : fmt(n) + " ⚡";
   function spend(c, n) { const k = c === "$" ? "cash" : c === "d" ? "gems" : "coins"; prog.stats[k] = Math.max(0, stat(k) - n); wal(); saveProg(); renderWallet(); }
   function giveCash(n, why, silent) { if (!n) return; prog.stats.cash = cash() + n; wal(); if (!silent) coinPop("+$" + n + (why ? "  " + why : "")); saveProg(); renderWallet(); }
   function giveGems(n, why, silent) { if (!n) return; prog.stats.gems = gems() + n; wal(); if (!silent) coinPop("+" + n + " 💎" + (why ? "  " + why : ""), true); saveProg(); renderWallet(); }
@@ -10463,8 +10473,8 @@ function fighterGame() {
     if (rtab !== "shop" && prev && prev.shop) stopPreview();
   }
   function shopMusicOn() { let v = null; try { v = localStorage.getItem("gbl-shopmus"); } catch (e) {} return v !== "0" && settings.music !== "off" && settings.mvol > 0; }
-  function openRewards(tab) { if (tab) rtab = tab; rm.classList.add("open"); renderRewards(); rm.setAttribute("aria-hidden", "false"); $("#rew-close").focus(); }
-  function closeRewards() { if (prev) stopPreview(); rm.classList.remove("open"); rm.setAttribute("aria-hidden", "true"); }
+  function openRewards(tab) { if (tab) rtab = tab; stopHubMusic(); rm.classList.add("open"); renderRewards(); rm.setAttribute("aria-hidden", "false"); $("#rew-close").focus(); }
+  function closeRewards() { if (prev) stopPreview(); rm.classList.remove("open"); rm.setAttribute("aria-hidden", "true"); setTimeout(() => { hubStarted = true; startHubMusic(); }, 400); }
   $("#rew-close").addEventListener("click", closeRewards);
   rm.addEventListener("click", (e) => { if (e.target === rm) closeRewards(); });
   addEventListener("keydown", (e) => { if (e.key === "Escape" && rm.classList.contains("open")) closeRewards(); });
@@ -10644,6 +10654,18 @@ function fighterGame() {
     const modal = $("#help-modal"), ta = $("#help-ta"), sendBtn = $("#help-send-btn"), closeBtn = $("#help-close-btn"), charDiv = $("#help-char"), sentNote = $("#help-sent-note");
     if (!modal) return;
     $("#help-open-btn").onclick = () => { modal.hidden = false; ta.focus(); sentNote.hidden = true; ta.value = ""; charDiv.textContent = "0 / 500"; };
+  const hubMusicBtn = $("#hub-music-btn");
+  function updateHubMusicBtn() { hubMusicBtn.textContent = hubPrev ? "♪" : "♫"; hubMusicBtn.style.opacity = hubPrev ? "1" : "0.45"; }
+  hubMusicBtn.addEventListener("click", () => {
+    hubStarted = true;
+    if (hubPrev) { stopHubMusic(); try { localStorage.setItem("gbl-hubmus", "0"); } catch {} } else { try { localStorage.removeItem("gbl-hubmus"); } catch {} startHubMusic(); }
+    updateHubMusicBtn();
+  });
+  const tryHubMusicWithPref = () => { let off = false; try { off = localStorage.getItem("gbl-hubmus") === "0"; } catch {} if (!off) tryHubMusic(); else { hubStarted = true; updateHubMusicBtn(); } };
+  document.removeEventListener("click", tryHubMusic);
+  document.removeEventListener("touchend", tryHubMusic);
+  document.addEventListener("click", tryHubMusicWithPref, { once: true });
+  document.addEventListener("touchend", tryHubMusicWithPref, { once: true });
     closeBtn.onclick = () => { modal.hidden = true; };
     modal.addEventListener("click", (e) => { if (e.target === modal) modal.hidden = true; });
     ta.addEventListener("input", () => { charDiv.textContent = ta.value.length + " / 500"; });
@@ -10743,6 +10765,31 @@ function fighterGame() {
     setTimer = setTimeout(() => SET_REMOTE.save(settings).catch(() => toast("Couldn't save to your account. Saved on this device.")), 500);
   }
   var prev = null;
+  var hubPrev = null, hubStarted = false;
+  function stopHubMusic() {
+    if (!hubPrev) return;
+    const h = hubPrev; hubPrev = null; clearInterval(h.timer);
+    try { h.gain.gain.setTargetAtTime(0, h.ac.currentTime, .15); setTimeout(() => h.ac.close().catch(() => {}), 600); } catch {}
+    if (typeof updateHubMusicBtn === "function") updateHubMusicBtn();
+  }
+  function startHubMusic() {
+    if (hubPrev || !shopMusicOn()) return;
+    let off = false; try { off = localStorage.getItem("gbl-hubmus") === "0"; } catch {}
+    if (off) return;
+    const id = window.gblMusicPick ? window.gblMusicPick() : settings.music;
+    if (!id || id === "off") return;
+    try {
+      const ac = new (window.AudioContext || window.webkitAudioContext)();
+      const gain = ac.createGain(); gain.gain.value = .35 * settings.mvol / 100; gain.connect(ac.destination);
+      const playStep = musicLib(ac, gain), spb = 60 / 118 / 4; let step = 0, t = ac.currentTime + .08;
+      const timer = setInterval(() => { while (t < ac.currentTime + .2) { playStep(id, step++, t, spb); t += spb; } }, 50);
+      hubPrev = { ac, gain, timer, id };
+      if (typeof updateHubMusicBtn === "function") updateHubMusicBtn();
+    } catch {}
+  }
+  const tryHubMusic = () => { if (!hubStarted) { hubStarted = true; startHubMusic(); } };
+  document.addEventListener("click", tryHubMusic, { once: true });
+  document.addEventListener("touchend", tryHubMusic, { once: true });
   function stopPreview() {
     if (!prev) return;
     const p = prev; prev = null; clearInterval(p.timer);
@@ -10797,8 +10844,8 @@ function fighterGame() {
       el("p", { class: "set-note", text: SET_REMOTE.can() ? "✓ Saved to your account, so it follows you to any device." : "Saved on this device. Log in to save it to your account." }),
       el("p", { class: "set-note", text: "Tip: in any game, the ♪ button or the M key switches between all sound, effects only and silent." }));
   }
-  function openSettings() { setFocus = document.activeElement; renderSettings(); loadSettings(); sm.classList.add("open"); sm.setAttribute("aria-hidden", "false"); $("#set-close").focus(); }
-  function closeSettings() { stopPreview(); sm.classList.remove("open"); sm.setAttribute("aria-hidden", "true"); if (setFocus && setFocus.focus) setFocus.focus(); }
+  function openSettings() { stopHubMusic(); setFocus = document.activeElement; renderSettings(); loadSettings(); sm.classList.add("open"); sm.setAttribute("aria-hidden", "false"); $("#set-close").focus(); }
+  function closeSettings() { stopPreview(); sm.classList.remove("open"); sm.setAttribute("aria-hidden", "true"); if (setFocus && setFocus.focus) setFocus.focus(); setTimeout(() => { hubStarted = true; startHubMusic(); }, 400); }
   $("#set-close").addEventListener("click", closeSettings);
   sm.addEventListener("click", (e) => { if (e.target === sm) closeSettings(); });
   addEventListener("keydown", (e) => { if (e.key === "Escape" && sm.classList.contains("open")) closeSettings(); });
