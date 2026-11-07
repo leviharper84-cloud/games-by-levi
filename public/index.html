@@ -1287,6 +1287,15 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
   }
   addEventListener("error", (e) => show((e.message || "error") + (e.lineno ? " @" + e.lineno : "")));
   addEventListener("message", (e) => { const d = e.data; if (d && d.type === "gbl:err") show("game: " + d.msg); });
+  // Helper notes about touches, so problems on phones and iPads can be found.
+  let dgAt = 0;
+  addEventListener("message", (e) => {
+    const m = e.data; if (!m || (m.type !== "gbl:diag" && m.type !== "gbl:err")) return;
+    const now = Date.now(); if (m.type === "gbl:diag" && now - dgAt < 2500) return; dgAt = now;
+    const vv = window.visualViewport;
+    const body = JSON.stringify({ kind: m.type, d: m.d || { msg: m.msg }, sy: Math.round(window.scrollY), iw: innerWidth, ih: innerHeight, vv: vv ? [Math.round(vv.width), Math.round(vv.height), Math.round(vv.offsetTop), Math.round(vv.pageTop), +vv.scale.toFixed(2)] : null, standalone: !!(navigator.standalone || matchMedia("(display-mode: standalone)").matches) });
+    try { fetch("/api/diag", { method: "POST", headers: { "content-type": "application/json" }, body, credentials: "same-origin" }).catch(() => {}); } catch (_) {}
+  });
 })();
 </script>
 <script>
@@ -1746,6 +1755,7 @@ function SHELL() {
     if (!G || (e.target.closest && e.target.closest("button"))) return;
     audio();
     [S.px, S.py] = local(e); const st = { sx: e.clientX, sy: e.clientY, x: S.px, y: S.py, fresh: false }; PT.set(e.pointerId, st); S.down = true;
+    { const r = cv.getBoundingClientRect(); DG.last = [Math.round(e.clientX), Math.round(e.clientY), Math.round(S.px), Math.round(S.py), Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height), String(e.pointerId).slice(0, 4)].join(","); }
     if (S.paused) { st.fresh = true; togglePause(); return; }
     if (S.state !== "play") { st.fresh = true; if (canStart()) start(...again()); return; }
     if (G.down) { DG.gd++; G.down(S.px, S.py, e.pointerId); }
@@ -9081,6 +9091,7 @@ function fighterGame() {
     setCabSub(g);
     const msgBox = (t) => el("div", { class: "none", style: "position:absolute;inset:0;display:grid;place-items:center;border:0", text: t });
     box.replaceChildren(msgBox("Loading cartridge…"));
+    window.__gblSY = window.scrollY || 0; window.scrollTo(0, 0);
     modal.classList.add("open"); modal.setAttribute("aria-hidden", "false");
     document.documentElement.classList.add("playing");
     $("#close").focus();
@@ -9098,6 +9109,7 @@ function fighterGame() {
   function closeModal() {
     modal.classList.remove("open"); modal.setAttribute("aria-hidden", "true");
     document.documentElement.classList.remove("playing");
+    if (window.__gblSY) { const y = window.__gblSY; window.__gblSY = 0; requestAnimationFrame(() => window.scrollTo(0, y)); }
     if (current && current.onClose) { try { current.onClose(); } catch {} }
     current = null;
     setTimeout(() => { if (!modal.classList.contains("open")) box.replaceChildren(); }, 300);

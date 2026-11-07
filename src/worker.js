@@ -51,6 +51,7 @@ const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, game TEXT NOT NULL, host_id INTEGER NOT NULL, guest_id INTEGER, moves TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS rate (key TEXT PRIMARY KEY, count INTEGER NOT NULL, since INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS diag (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, who TEXT, body TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS likes (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, PRIMARY KEY (user_id, game))",
 ];
 let tablesReady = null;
@@ -111,6 +112,8 @@ async function handle(request, env, url) {
   if (path === "/api/scores" && method === "POST") return postScores(request, env, user);
 
   if (path === "/api/config" && method === "GET") return getConfig(env);
+  if (path === "/api/diag" && method === "POST") return postDiag(request, env, user);
+  if (path === "/api/diag" && method === "GET") return getDiag(env);
   if (path === "/api/likes" && method === "GET") return getLikes(env, user);
   if (path === "/api/likes" && method === "POST") return postLike(request, env, user);
   if (path.startsWith("/api/admin/")) {
@@ -809,6 +812,20 @@ async function getLikes(env, user) {
   if (user) mine = (await env.DB.prepare("SELECT game FROM likes WHERE user_id = ?").bind(user.id).all()).results.map((r) => r.game);
   return json({ counts, mine });
 }
+// Helper notes from games about touches (to fix phone and iPad problems). Only the newest 80 are kept.
+async function postDiag(request, env, user) {
+  await limit(env, "diag:" + clientIp(request), 120, HOUR, "Slow down a little.");
+  const text = await request.text();
+  if (text.length > 4000) fail(413, "Too big.");
+  await env.DB.prepare("INSERT INTO diag (at, who, body) VALUES (?, ?, ?)").bind(Date.now(), user ? user.username : null, text).run();
+  await env.DB.prepare("DELETE FROM diag WHERE id <= (SELECT MAX(id) FROM diag) - 80").run();
+  return json({ ok: true });
+}
+async function getDiag(env) {
+  const r = await env.DB.prepare("SELECT id, at, who, body FROM diag ORDER BY id DESC LIMIT 40").all();
+  return json({ notes: r.results || [] }, 200, { "cache-control": "no-store" });
+}
+
 async function postLike(request, env, user) {
   if (!user) fail(401, "Log in to heart games.");
   await limit(env, "like:" + user.id, 60, MIN, "Slow down a little.");
