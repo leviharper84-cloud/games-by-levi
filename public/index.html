@@ -10169,7 +10169,7 @@ function fighterGame() {
   window.gblEventActive = eventActive;
   const inSeason = (id) => !EVENT_OF[id] || activeEvent() === EVENT_OF[id];
   // The song games play: a shop song you equipped, otherwise the style picked in Settings.
-  window.gblMusicPick = () => { try { if (settings.music === "off") return "off"; const m = prog.equip && prog.equip.music; return m ? m.slice(3) : settings.music; } catch (e) { return "synth"; } };
+  window.gblMusicPick = () => { try { const m = prog.equip && prog.equip.music; if (m) return m.slice(3); if (settings.music === "off") return "off"; return settings.music || "synth"; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
   const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
@@ -10784,6 +10784,7 @@ function fighterGame() {
     ["matrix", "Matrix", "#3dff6e", "#00b3ff"], ["gold", "Gold Rush", "#ffc23d", "#ff6b3d"], ["blood", "Blood Moon", "#ff2e4d", "#a020ff"], ["galaxy", "Galaxy", "#a35bff", "#ff7be6"]];
   document.querySelectorAll(".swatch").forEach((b2) => b2.addEventListener("click", () => { settings.theme = b2.dataset.neon; saveSettings(); }));
   try { const s0 = JSON.parse(store.get("gbl-settings") || "null"); if (s0 && typeof s0 === "object") settings = { ...settings, ...s0 }; } catch {}
+  if (settings.music === "off") { settings.music = "synth"; saveSettings(); }
   let setTimer = null;
   async function loadSettings() {
     if (!SET_REMOTE.can()) return;
