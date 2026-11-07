@@ -614,6 +614,8 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .adm-card { display: grid; gap: 10px; padding: 18px; border-radius: 18px; border: 1px solid var(--line); background: var(--panel); margin-bottom: 14px; }
 .adm-card h3 { margin: 6px 0 0; }
 .adm-lab { font: 700 .72rem var(--f-mono); letter-spacing: .08em; color: var(--muted); text-transform: uppercase; }
+.adm-tog2 { display: flex; gap: 8px; align-items: center; margin: 10px 0; font-size: .9rem; color: var(--fg); cursor: pointer; }
+.adm-tog2 input { width: 18px; height: 18px; accent-color: var(--a1); }
 .adm-in { width: 100%; box-sizing: border-box; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line); background: rgba(0,0,0,.3); color: inherit; font: inherit; }
 .adm-in.sm { width: 110px; }
 .adm-row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
@@ -8833,7 +8835,7 @@ function fighterGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button><button id="xq" type="button" title="Close" hidden>✕</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (Date.now() < Date.parse("2026-11-01T00:00:00Z") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (window.gblEventActive && window.gblEventActive("halloween") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -9885,8 +9887,22 @@ function fighterGame() {
     ["mu-spooky", "music", "🎃 Spooky Bones (event)", 380, "linear-gradient(135deg,#ff8a1f,#1a0b24)", "Hiss-O-Ween only: October, with singing"],
   ];
   // Event songs: the month (0 = January) they can be bought.
-  const EVENT_MONTH = { "mu-spooky": [9], "mu-haunted": [9], "mu-monsterbash": [9], "mu-ghostcatch": [9], "mu-cursed": [9], "mu-harvest": [10], "mu-leaves": [10], "mu-jingle": [11], "mu-carol": [11], "mu-sugarplum": [11], "mu-holidayhit": [11], "mu-snowrock": [11], "mu-sleigh": [11], "mu-surf": [5, 6, 7], "mu-mallrush": [5, 6, 7], "mu-reef": [5, 6, 7], "mu-poolside": [5, 6, 7], "mu-gladiators": [3] }, MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-  const inSeason = (id) => EVENT_MONTH[id] == null || EVENT_MONTH[id].includes(new Date().getMonth());
+  const EVENT_MONTH = { "sl-pumpkin": [9], "mu-spooky": [9], "mu-haunted": [9], "mu-monsterbash": [9], "mu-ghostcatch": [9], "mu-cursed": [9], "mu-harvest": [10], "mu-leaves": [10], "mu-jingle": [11], "mu-carol": [11], "mu-sugarplum": [11], "mu-holidayhit": [11], "mu-snowrock": [11], "mu-sleigh": [11], "mu-surf": [5, 6, 7], "mu-mallrush": [5, 6, 7], "mu-reef": [5, 6, 7], "mu-poolside": [5, 6, 7], "mu-gladiators": [3] }, MONTHS = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  // Seasonal events. The admin can turn one on any time, or leave it on Auto (by the calendar).
+  const EVENTS = {
+    halloween: { name: "🎃 Hiss-O-Ween", months: [9], color: "#ff8a1f", banner: "🎃 HISS-O-WEEN · pumpkins worth 5 in Neon Slither · spooky songs & the Pumpkin skin in the ⚡ shop 🎃" },
+    harvest: { name: "🍂 Harvest Fest", months: [10], color: "#ff8a1f", banner: "🍂 HARVEST FEST · cozy autumn songs in the ⚡ shop 🍂" },
+    winter: { name: "❄️ Winter Fest", months: [11], color: "#9ff3ff", banner: "❄️ WINTER FEST · holiday songs in the ⚡ shop · happy holidays! ❄️" },
+    summer: { name: "☀️ Summer Splash", months: [5, 6, 7], color: "#ffd66b", banner: "☀️ SUMMER SPLASH · beachy summer songs in the ⚡ shop ☀️" },
+    aprilfools: { name: "🤡 April Fools", months: [3], color: "#ff2bd6", banner: "🤡 APRIL FOOLS · the circus is in town! Silly songs in the ⚡ shop 🤡" },
+  };
+  const M2E = { 9: "halloween", 10: "harvest", 11: "winter", 5: "summer", 6: "summer", 7: "summer", 3: "aprilfools" };
+  const EVENT_OF = {}; for (const id in EVENT_MONTH) EVENT_OF[id] = M2E[EVENT_MONTH[id][0]];
+  // Which event is on: the admin's choice, or by the calendar when set to "auto".
+  function activeEvent() { const e = (window.GCFG || {}).event; if (e === "none") return null; if (e && e !== "auto" && EVENTS[e]) return e; const m = new Date().getMonth(); return Object.keys(EVENTS).find((k) => EVENTS[k].months.includes(m)) || null; }
+  const eventActive = (k) => activeEvent() === k;
+  window.gblEventActive = eventActive;
+  const inSeason = (id) => !EVENT_OF[id] || activeEvent() === EVENT_OF[id];
   // The song games play: a shop song you equipped, otherwise the style picked in Settings.
   window.gblMusicPick = () => { try { if (settings.music === "off") return "off"; const m = prog.equip && prog.equip.music; return m ? m.slice(3) : settings.music; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
@@ -10094,7 +10110,7 @@ function fighterGame() {
   /* hooks */
   window.gblReward = (cur, s) => {
     if (!cur || !cur.g || !BUILTINS.some((b) => b.key === cur.g.key)) return;
-    const wk = new Date().getDay() % 6 === 0, bst = stat("boostUntil") > Date.now(), n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1) * (bst ? 2 : 1), cm = (window.GCFG || {}).coinMult, n2 = Math.round(n * (cm == null ? 1 : cm) * (1 + petBonus()));
+    const wk = new Date().getDay() % 6 === 0 || !!(window.GCFG || {}).doubleCoins, bst = stat("boostUntil") > Date.now(), n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1) * (bst ? 2 : 1), cm = (window.GCFG || {}).coinMult, n2 = Math.round(n * (cm == null ? 1 : cm) * (1 + petBonus()));
     if ((prog.equip || {}).pet) { const pk = "px_" + prog.equip.pet, lv0 = petLv(prog.equip.pet); prog.stats[pk] = stat(pk) + 1; if (petLv(prog.equip.pet) > lv0) setTimeout(() => { coinPop(PET_EMO[prog.equip.pet] + " Your pet grew to level " + petLv(prog.equip.pet) + "!", true); renderPet(); }, 3000); }
     const dl = (1 + Math.min(4, Math.floor(Math.log10(Math.max(1, s))))) * (bst ? 2 : 1);
     const prevBest = typeof myBest === "function" ? myBest(cur.g.key) || 0 : 0;
@@ -10158,10 +10174,10 @@ function fighterGame() {
         el("div", { class: "shop-grid" },
           gk === "boost" ? null : el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : gk === "music" ? "Settings song" : "Classic" }), el("small", { text: gk === "music" ? "The style picked in ⚙ Settings" : "Free" }),
             el("button", { class: "btn sm", type: "button", disabled: !eq[gk], text: !eq[gk] ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: null }; saveProg(); renderRewards(); } })),
-          ...SHOP.filter((it) => it[1] === gk && (it[0] !== "sl-pumpkin" || Date.now() < Date.parse("2026-11-01T00:00:00Z") || (prog.owned || []).includes(it[0]))).map(([id, , name, price0, col, sub, cur]) => {
+          ...SHOP.filter((it) => it[1] === gk).map(([id, , name, price0, col, sub, cur]) => {
             const price = cost(price0), has = owned.has(id), on = eq[gk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = cur === "d" ? " gem" : cur === "$" ? " cash" : "";
             const listen = gk === "music" ? el("button", { class: "btn sm shop-listen", type: "button", "aria-label": "Listen to " + name, text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
-            if (!has && !inSeason(id)) return el("div", { class: "shop-item locked" }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), listen, el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Back in " + MONTHS[EVENT_MONTH[id][0]] }));
+            if (!has && !inSeason(id)) return el("div", { class: "shop-item locked" }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), listen, el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 " + (EVENTS[EVENT_OF[id]] ? EVENTS[EVENT_OF[id]].name : "event") + " only" }));
             if (cur === "lv" && !has) return el("div", { class: "shop-item locked" }, el("span", { class: "sw ttl", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
             if (gk === "boost") return el("div", { class: "shop-item" + tag }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), el("small", { text: sub }),
               el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); renderRewards(); } }));
@@ -10207,17 +10223,19 @@ function fighterGame() {
   async function renderAdmin() {
     const box = $("#admin-body"); if (!box) return;
     const ov = (await admCall("/admin/overview")) || {};
-    const c = { announce: "", priceMult: 1, coinMult: 1, off: [], gift: null, ...(window.GCFG || {}) };
+    const c = { announce: "", priceMult: 1, coinMult: 1, off: [], gift: null, event: "auto", doubleCoins: false, ...(window.GCFG || {}) };
     const tiles = el("div", { class: "adm-tiles" }, ...[["👥", ov.users, "Players"], ["🔥", ov.activeToday, "Active today"], ["🏆", ov.scores, "High scores"], ["📥", ov.pending, "Games waiting"]].map(([i, n, l]) => el("div", { class: "adm-tile" }, el("span", { text: i }), el("b", { text: fmt(n || 0) }), el("small", { text: l }))));
     const ann = el("input", { class: "adm-in", type: "text", maxlength: 200, placeholder: "Message everyone sees at the top (leave empty for none)", value: c.announce });
     const sel = (vals, cur, lab) => el("select", { class: "adm-in" }, ...vals.map((v) => { const o = el("option", { value: v, text: lab(v) }); if (+v === +cur) o.selected = true; return o; }));
     const pm = sel([0.5, 1, 1.5, 2, 3, 5], c.priceMult, (v) => v === 1 ? "Normal prices" : v + "× prices"), cm = sel([0, 0.5, 1, 2, 3, 5], c.coinMult, (v) => v === 1 ? "Normal coins" : v === 0 ? "No coins from games" : v + "× coins from games");
     const off = new Set(c.off || []);
     const featSel = el("select", { class: "adm-in" }, el("option", { value: "", text: "No featured game" }), ...ALLB.map((g) => { const o = el("option", { value: g.key, text: g.title }); if (g.key === c.featured) o.selected = true; return o; }));
+    const evSel = el("select", { class: "adm-in" }, ...[["auto", "🔄 Auto (follow the calendar)"], ["none", "⛔ No event"], ...Object.keys(EVENTS).map((k) => [k, EVENTS[k].name + " event"])].map(([v, t]) => { const o = el("option", { value: v, text: t }); if (v === c.event) o.selected = true; return o; }));
+    const dblChk = el("input", { type: "checkbox" }); dblChk.checked = !!c.doubleCoins;
     const offBox = el("div", { class: "adm-chips" }, ...ALLB.map((g) => el("button", { class: "chip", type: "button", "aria-pressed": String(!off.has(g.key)), text: g.title, onclick: (e) => { if (off.has(g.key)) off.delete(g.key); else off.add(g.key); e.currentTarget.setAttribute("aria-pressed", String(!off.has(g.key))); } })));
     const gc = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "⚡ coins" }), gd = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "$ dollars" }), gg = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "💎 diamonds" }), gm = el("input", { class: "adm-in", type: "text", maxlength: 120, placeholder: "Gift message" });
     const save = async (gift) => {
-      const body = { announce: ann.value.trim(), priceMult: +pm.value, coinMult: +cm.value, off: [...off], featured: featSel.value, gift: gift === undefined ? c.gift : gift };
+      const body = { announce: ann.value.trim(), priceMult: +pm.value, coinMult: +cm.value, off: [...off], featured: featSel.value, event: evSel.value, doubleCoins: dblChk.checked, gift: gift === undefined ? c.gift : gift };
       const r = await admCall("/admin/config", { method: "PUT", body: { config: body } }, "Saved for everyone ✓");
       if (r) { window.GCFG = r.config; applyCfg(); renderAdmin(); }
     };
@@ -10225,6 +10243,8 @@ function fighterGame() {
       el("h3", { text: "🎮 Game controls (for everyone)" }),
       el("label", { class: "adm-lab", text: "Announcement" }), ann,
       el("div", { class: "adm-row" }, el("div", {}, el("label", { class: "adm-lab", text: "Shop prices" }), pm), el("div", {}, el("label", { class: "adm-lab", text: "Coins from games" }), cm)),
+      el("label", { class: "adm-lab", text: "🎉 Event (unlocks event songs & skins and shows a banner)" }), evSel,
+      el("label", { class: "adm-tog2" }, dblChk, el("span", { text: "⚡ Double coins for everyone right now" })),
       el("label", { class: "adm-lab", text: "👑 Levi's Pick (featured at the top of the library)" }), featSel,
       el("label", { class: "adm-lab", text: "Games that are ON (tap to turn a game off)" }), offBox,
       el("button", { class: "btn hot", type: "button", text: "Save game controls", onclick: () => save() }),
@@ -10324,7 +10344,10 @@ function fighterGame() {
       el("div", { class: "pc-grid" }, cell("⚡ " + fmt(coins()), "Coins"), cell(fmt(total), "Games played"), cell(got + "/" + ACH.length, "Badges"),
         cell("🔥 " + stat("streak"), "Day streak"), cell(fmt(stat("maxScore")), "Best score"), cell("⭐ " + totalStars() + "/" + starMax, "Stars"), cell(String((prog.favs || []).length), "Favorites")));
   }
-  const _rw = renderWallet; renderWallet = function () { _rw(); renderPCard(); const wk = $("#weekend"); if (wk) wk.hidden = !isWeekend(); const ev = $("#event-banner"); if (ev) ev.hidden = Date.now() >= Date.parse("2026-11-01T00:00:00Z"); };
+  const _rw = renderWallet; renderWallet = function () { _rw(); renderPCard();
+    const dbl = isWeekend() || !!(window.GCFG || {}).doubleCoins, wk = $("#weekend"); if (wk) wk.hidden = !dbl;
+    const act = activeEvent(), ev = $("#event-banner"); if (ev) { ev.hidden = !act; if (act && EVENTS[act]) { ev.textContent = EVENTS[act].banner; ev.style.color = EVENTS[act].color; } }
+  };
   setTimeout(checkStreak, 2500);
   renderWallet();
   const SET_REMOTE = {
