@@ -1547,6 +1547,7 @@ function musicLib(ac, out) {
     reef: { m: "G4 2 C5 2 E5 3 D5 1 C5 2 A4 2 G4 4 F4 2 A4 2 C5 3 B4 1 A4 2 F4 2 G4 4", b: "C2 3 C2 1 G2 2 C2 2 F1 3 F1 1 C2 2 F1 2", w: "sine", vol: .08, oct: true, leg: .6, d: "soft" },
     poolside: { m: "E5 4 D5 2 B4 2 A4 4 B4 4 D5 4 E5 2 F#5 2 E5 8 r 4 F#5 2 E5 2 D5 4 B4 4 A4 2 B4 2 D5 4 B4 8", c: "A3 16 F#3 16 D3 16 E3 16", b: "A2 4 A2 4 F#2 4 F#2 4 D2 4 D2 4 E2 4 E2 4", w: "square", vol: .03, cv: .014, d: "pop" },
     leaves: { voice: "oo", vv: .08, m: "E5 4 D5 2 C5 2 A4 8 B4 2 C5 2 D5 4 G4 8 C5 4 B4 2 A4 2 F4 8 G#4 2 A4 2 B4 4 E4 8", b: "A2 4 E2 4 G2 4 D2 4 F2 4 C2 4 E2 4 B1 4", w: "triangle", vol: .07, d: "swing" },
+    tunak: { m: "D5 1 D5 1 D5 1 D5 1 C5 1 D5 1 r 2 A4 2 A4 2 G4 2 A4 2 C5 2 D5 4 r 4 D5 1 D5 1 D5 1 D5 1 C5 1 D5 1 r 2 F5 2 E5 2 D5 2 C5 2 A4 2 D5 4 r 4", b: "D2 2 A2 2 D2 2 A2 2 F2 2 C2 2 D2 2 A2 2", c: "F4 4 A4 4 C5 8 F4 4 G4 4 D4 8", w: "triangle", vol: .08, cv: .01, bv: .13 },
   };
   for (const k in SONGS) T[k] = tune(SONGS[k]);
   return (track, step, t, spb) => { const fn = T[track] || T.synth; fn(step, t, spb); };
@@ -10033,6 +10034,7 @@ function fighterGame() {
     ["mu-gladiators", "music", "🤡 Circus Clowns 🔥 (event)", 50, "linear-gradient(90deg,#ff2e4d,#ffffff,#ff2e4d)", "April Fools only: April. The real circus song! Popular!", "$"],
     ["mu-leaves", "music", "🍂 Falling Leaves (event)", 400, "linear-gradient(135deg,#ff8a1f,#ffd66b)", "Harvest Fest only: November. Cozy autumn jazz, with singing", ""],
     ["mu-spooky", "music", "🎃 Spooky Bones (event)", 380, "linear-gradient(135deg,#ff8a1f,#1a0b24)", "Hiss-O-Ween only: October, with singing"],
+    ["mu-tunak", "music", "🕺 Tunak Tunak Tun 👑", 9999, "linear-gradient(135deg,#ff8a1f,#ff2bd6,#ffd66b)", "DA DA DA DA — the legendary Indian meme song. LEGENDARY!", "", "l"],
     // 🐾 More pets — common / rare / epic / legendary (index 7 = rarity)
     ["pet-penguin", "pet", "Cozy Penguin", 20, "#9ff3ff", "A waddling pixel penguin", "$", "c"],
     ["pet-bunny", "pet", "Pixel Bunny", 25, "#ffb6f8", "A quick little bunny", "$", "c"],
