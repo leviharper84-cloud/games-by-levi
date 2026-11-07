@@ -6373,7 +6373,7 @@ function guessGame() {
 
 /* ---------- 36 Neon Slither ---------- */
 function slitherGame() {
-  const W = 520, H = 640, ARENA = 1500, SEG = 7, MAXP = 650, BOTS = 20, CELL = 64;
+  const W = Math.min(window.innerWidth || 520, 760), H = Math.min(window.innerHeight || 640, 950), ARENA = 1500, SEG = 7, MAXP = 650, BOTS = 20, CELL = 64;
   const NAMES = ["Viper", "Noodle", "Zigzag", "Sir Hiss", "Mamba", "Wiggles", "Cobra", "Slinky", "Neon Nate", "Python", "Loop", "Fang", "Squiggle", "Rattler", "Byte", "Kaa", "Sly", "Twister", "Pixel", "Medusa"];
   const SKINS = [["#ff2bd6", "#ffd0f6"], ["#22e4ff", "#c8f8ff"], ["#b6ff3b", "#ecffc4"], ["#ffc23d", "#fff0c4"], ["#a35bff", "#e2d0ff"], ["#ff4d6d", "#ffd0d8"], ["#3dffa8", "#c8ffe8"], ["#ff8a1f", "#ffe0c4"]];
   const EVENT = !!window.EVENT0, SK = (window.SKIN0 || {}).slither || "", SPECIAL = { "sl-fire": "fire", "sl-galaxy": "galaxy", "sl-rainbow": "rainbow", "sl-pumpkin": "pumpkin" }, BASIC = { "sl-pink": 0, "sl-lime": 2, "sl-gold": 3 };
@@ -6429,7 +6429,7 @@ function slitherGame() {
     if (streak.length >= 2) { banner(["", "", "DOUBLE KILL!", "TRIPLE KILL!", "MEGA KILL!"][streak.length] || "RAMPAGE!", "#ff4d6d"); sfx("level"); shake(6, .3); }
     S.score += 50 + Math.floor(mass); pop(W / 2, H / 2 - 70, "KILLED " + String(name).toUpperCase() + "!", "#ffd66b"); sfx("score");
   }
-  let snakes, me, pellets, pill, pillT, cam, zoom, kills, grid, deadT, bestRank, boostIds, aim, keyTurn;
+  let snakes, me, pellets, pill, pillT, cam, zoom, kills, grid, deadT, bestRank, boostIds, aim, keyTurn, joystick, boostTouchId;
   const rnd = (a, b) => a + Math.random() * (b - a);
   const rad = (s) => Math.min(24, 6 + Math.sqrt(s.mass) * .42);
   const segCount = (s) => Math.floor(12 + s.mass * .55);
@@ -6565,9 +6565,9 @@ function slitherGame() {
   }
   game({
     title: NET ? "Slither Arena" : "Neon Slither", easy: "calmer bots, and if you crash you just respawn", w: W, h: H, color: "#3dffa8", bpm: 132,
-    help: [EVENT ? "🎃 HISS-O-WEEN: spooky pumpkins are worth 5!" : NET ? "LIVE ONLINE: real players from everywhere, plus bots" : "Steer with your finger, the mouse, or ← →", "Eat glowing pellets to grow. Big ones are worth more", "Hold BOOST (or Space) to speed up. It costs length", "Grab power-ups: M = magnet, » = speed, x2 = double food. Crash into a body and you're out!"],
+    help: [EVENT ? "🎃 HISS-O-WEEN: spooky pumpkins are worth 5!" : NET ? "LIVE ONLINE: real players from everywhere, plus bots" : "Touch: press and drag anywhere on the left to steer with the joystick", "Eat glowing pellets to grow. Big ones are worth more!", "Hold the ⚡ BOOST button (bottom right) or press Space to speed up — it costs length", "Grab power-ups: M = magnet, » = speed, x2 = double food. Crash into a body and you're out!"],
     init() {
-      snakes = []; pellets = []; grid = new Map(); kills = 0; deadT = 0; bestRank = 21; pill = null; pillT = 15; boostIds = new Set(); aim = null; keyTurn = 0;
+      snakes = []; pellets = []; grid = new Map(); kills = 0; deadT = 0; bestRank = 21; pill = null; pillT = 15; boostIds = new Set(); aim = null; keyTurn = 0; joystick = null; boostTouchId = null;
       cam = { x: 0, y: 0 }; zoom = 1;
       if (ws) { try { ws.onclose = null; ws.close(); } catch (e) {} ws = null; } remote.clear(); feed = []; isHost = false;
       botIdx = NET ? [] : Array.from({ length: BOTS }, (_, i) => i); myIdx = NET ? 0 : BOTS;
@@ -6577,9 +6577,25 @@ function slitherGame() {
     },
     hud() { const rank = 1 + snakes.filter((s) => s && s.alive && s !== me && s.mass > me.mass).length; return (NET ? (netState || "ONLINE · " + players + " PLAYER" + (players === 1 ? "" : "S")) + "  ·  " : "") + "LENGTH " + Math.floor(me.mass) + "  ·  KILLS " + kills + "  ·  RANK " + rank + "/" + snakes.filter((s2) => s2 && s2.alive).length; },
     summary() { return ["LENGTH " + Math.floor(me.mass) + "   KILLS " + kills + "   BEST RANK #" + bestRank]; },
-    down(px, py, pid) { if (px > W - 120 && py > H - 120) boostIds.add(pid); else aim = [px, py]; },
-    move(px, py, pid) { if (boostIds.has(pid)) return; aim = [px, py]; },
-    up(px, py, pid) { boostIds.delete(pid); },
+    down(px, py, pid) {
+      const boostR = 65, boostX = W - 80, boostY = H - 90;
+      if (Math.hypot(px - boostX, py - boostY) < boostR + 20) { boostTouchId = pid; boostIds.add(pid); return; }
+      joystick = { id: pid, cx: px, cy: py }; aim = null;
+    },
+    move(px, py, pid) {
+      if (pid === boostTouchId) return;
+      if (joystick && joystick.id === pid) {
+        const dx = px - joystick.cx, dy = py - joystick.cy;
+        if (Math.hypot(dx, dy) > 12) aim = [joystick.cx + dx * 4, joystick.cy + dy * 4];
+        return;
+      }
+      aim = [px, py];
+    },
+    up(px, py, pid) {
+      if (pid === boostTouchId) { boostTouchId = null; }
+      boostIds.delete(pid);
+      if (joystick && joystick.id === pid) { joystick = null; aim = null; }
+    },
     update(dt) {
       if (!S.down) boostIds.clear();
       if (NET) {
@@ -6600,7 +6616,7 @@ function slitherGame() {
         const k = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
         if (k) { me.ta = me.a + k * 1.2; aim = null; }
         else if (aim) me.ta = Math.atan2(aim[1] - H / 2, aim[0] - W / 2);
-        me.boost = boostIds.size > 0 || !!(S.keys[" "] || S.keys.Shift || S.keys.ArrowUp || S.keys.w);
+        me.boost = boostTouchId !== null || boostIds.size > 0 || !!(S.keys[" "] || S.keys.Shift || S.keys.ArrowUp || S.keys.w);
       }
       buildGrid();
       for (const s of snakes) if (s && s.alive && s.bot && !s.remote) { s.think -= dt; if (s.think <= 0) { s.think = .12 + Math.random() * .08; think(s); } }
@@ -6691,10 +6707,23 @@ function slitherGame() {
       x.fillStyle = "rgba(4,2,10,.6)"; x.beginPath(); x.arc(mx, my, mr + 4, 0, 6.2832); x.fill(); x.strokeStyle = "rgba(255,77,109,.6)"; x.lineWidth = 1.5; x.stroke();
       for (const s of snakes) { if (!s || !s.alive) continue; const k = mr / ARENA; x.fillStyle = s === me ? "#ffffff" : ca(SKINS[s.skin][0], .8); x.beginPath(); x.arc(mx + s.x * k, my + s.y * k, s === me ? 3.5 : 1.6 + Math.min(3, s.mass / 80), 0, 6.2832); x.fill(); }
       if (pill) { x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(mx + pill.x * mr / ARENA, my + pill.y * mr / ARENA, 2.5, 0, 6.2832); x.fill(); }
+      // joystick visual
+      if (joystick && matchMedia("(pointer: coarse)").matches) {
+        const jx = joystick.cx, jy = joystick.cy;
+        x.globalAlpha = .35; x.strokeStyle = "#22e4ff"; x.lineWidth = 2; x.beginPath(); x.arc(jx, jy, 56, 0, 6.2832); x.stroke();
+        x.strokeStyle = "rgba(34,228,255,.2)"; x.lineWidth = 1; x.beginPath(); x.arc(jx, jy, 20, 0, 6.2832); x.stroke();
+        if (aim) {
+          const dx = aim[0] - jx * 4, dy = aim[1] - jy * 4, d = Math.min(50, Math.hypot(dx / 4, dy / 4)), a2 = Math.atan2(dy, dx);
+          x.fillStyle = "#22e4ff"; x.globalAlpha = .55; x.beginPath(); x.arc(jx + Math.cos(a2) * d, jy + Math.sin(a2) * d, 24, 0, 6.2832); x.fill();
+        }
+        x.globalAlpha = 1;
+      }
       // boost button
-      const on = me.alive && me.boost;
-      glow("#3dffa8", on ? 22 : 6); x.fillStyle = on ? "rgba(61,255,168,.35)" : "rgba(61,255,168,.1)"; x.strokeStyle = "#3dffa8"; x.lineWidth = 2.5; x.beginPath(); x.arc(W - 62, H - 62, 46, 0, 6.2832); x.fill(); x.stroke(); glow();
-      txt("BOOST", W - 62, H - 62, 13, "#ffffff", "center", "d");
+      const on = me.alive && me.boost, bx = W - 80, by = H - 90;
+      x.globalAlpha = matchMedia("(pointer: coarse)").matches ? 1 : 0;
+      glow("#3dffa8", on ? 28 : 8); x.fillStyle = on ? "rgba(61,255,168,.45)" : "rgba(61,255,168,.12)"; x.strokeStyle = on ? "#3dffa8" : "rgba(61,255,168,.5)"; x.lineWidth = on ? 3.5 : 2; x.beginPath(); x.arc(bx, by, 65, 0, 6.2832); x.fill(); x.stroke(); glow();
+      txt("⚡", bx, by - 10, 26, "#ffd66b", "center", "d"); txt("BOOST", bx, by + 20, 11, "#3dffa8", "center", "d");
+      x.globalAlpha = 1;
       if (me.alive) { const act = [["mag", "MAGNET", "#22e4ff"], ["fast", "SPEED", "#ffd66b"], ["dbl", "x2 FOOD", "#ff2bd6"]].filter(([k]) => me[k] > 0); act.forEach(([k, n, c], i) => txt(n + " " + Math.ceil(me[k]) + "s", W / 2, 86 + i * 20, 13, c, "center", "d")); }
       if (NET) feed.filter((f) => S.t - f.t < 5).forEach((f, i) => txt(f.txt, 14, 24 + i * 18, 12, "#ff7be6", "left"));
       if (NET && netState) { x.fillStyle = "rgba(4,2,10,.7)"; x.fillRect(0, H / 2 - 30, W, 60); txt(netState, W / 2, H / 2, 20, "#3dffa8", "center", "d"); }
