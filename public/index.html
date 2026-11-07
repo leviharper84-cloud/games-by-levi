@@ -3271,7 +3271,7 @@ function golfGame() {
     { par: 4, start: [240, 565], cup: [240, 110], walls: [[[70,60],[410,60],[410,610],[70,610]],[[70,250],[303,250],[303,272],[70,272]],[[177,405],[410,405],[410,427],[177,427]]], bump: [[321,197,15],[249,185,17]], mill: [240,338.5,70,1.67129721455276] },
   ];
   const ALL = BASE.concat(EXTRA);
-  let HOLES = [], hi, hole, SEGS, b, aim, power, drag, phase, wait, strokes, last, card, player, millA, bumpFx;
+  let HOLES = [], hi, hole, SEGS, b, aim, power, drag, phase, wait, strokes, last, card, player, millA, bumpFx, golfRotL, golfRotR;
   const maxS = () => (S.practice ? 15 : 8);
   const sum = (a) => a.reduce((s, v) => s + (v || 0), 0);
   const parSoFar = () => HOLES.slice(0, card[0].length).reduce((s, h) => s + h.par, 0);
@@ -3280,7 +3280,7 @@ function golfGame() {
     for (const poly of hole.walls) for (let k = 0; k < poly.length; k++) { const a = poly[k], c = poly[(k + 1) % poly.length]; SEGS.push([a[0], a[1], c[0], c[1]]); }
     placeBall();
   }
-  function placeBall() { b = { x: hole.start[0], y: hole.start[1], vx: 0, vy: 0 }; last = { x: b.x, y: b.y }; strokes = 0; phase = "aim"; aim = -Math.PI / 2; power = .45; drag = null; }
+  function placeBall() { b = { x: hole.start[0], y: hole.start[1], vx: 0, vy: 0 }; last = { x: b.x, y: b.y }; strokes = 0; phase = "aim"; aim = -Math.PI / 2; power = .45; drag = null; golfRotL = golfRotR = false; }
   function collide(ax, ay, bx, by, e, extra) {
     const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
     let t = ((b.x - ax) * dx + (b.y - ay) * dy) / L2; t = t < 0 ? 0 : t > 1 ? 1 : t;
@@ -3356,7 +3356,7 @@ function golfGame() {
   game({
     load(d) { if (Array.isArray(d.holes) && d.holes.length === 9 && d.holes.every((i) => ALL[i])) { HOLES = d.holes.map((i) => ({ ...ALL[i], id: i + 1 })); card = [(d.card || []).slice(), []]; loadHole(Math.min(8, d.hi || 0)); } },
     title: "Mini Golf", duo: "take turns on the same 9 random holes. Fewest total strokes wins.", easy: "water costs no strokes, 15 tries per hole, an aiming guide", w: W, h: H, color: "#3dffa8", bpm: 98,
-    help: ["Drag back from anywhere and let go to shoot", "Keyboard: arrows aim and set power, Space shoots", "Water costs a stroke. Sand slows you down.", "9 random holes out of 50 courses. Beat par for bonus points"],
+    help: ["Drag back from the ball and release to shoot", "Tap ◀ ▶ buttons to rotate aim · Power bar shows shot strength", "Water costs a stroke. Sand slows you down.", "9 random holes out of 50 courses. Beat par for bonus points"],
     init() { const ids = ALL.map((_, i) => i); for (let i = ids.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [ids[i], ids[j]] = [ids[j], ids[i]]; } HOLES = ids.slice(0, 9).map((i) => ({ ...ALL[i], id: i + 1 })); card = [[], []]; player = 0; bumpFx = []; loadHole(0); },
     hud() {
       if (S.duo) return "HOLE " + (hi + 1) + "/9  ·  PLAYER " + (player + 1) + "'S TURN  ·  P1 " + sum(card[0]) + "  ·  P2 " + sum(card[1]);
@@ -3368,20 +3368,26 @@ function golfGame() {
       if (S.duo) return ["STROKES  P1 " + t0 + " : " + sum(card[1]) + " P2   (PAR " + par + ")"];
       const d = t0 - par; return ["STROKES " + t0 + "   PAR " + par + "   " + (d === 0 ? "EVEN" : d > 0 ? "+" + d : String(d))];
     },
-    down(px, py) { if (phase === "aim") drag = { x: px, y: py }; },
+    down(px, py) {
+      if (phase !== "aim" || S.state !== "play") return;
+      /* rotate-aim buttons: bottom-left and bottom-right corners */
+      if (Math.hypot(px - 44, py - (H - 60)) < 40) { golfRotL = true; return; }
+      if (Math.hypot(px - (W - 44), py - (H - 60)) < 40) { golfRotR = true; return; }
+      drag = { x: px, y: py };
+    },
     move(px, py) {
       if (!drag || phase !== "aim") return;
       const dx = drag.x - px, dy = drag.y - py, L = Math.hypot(dx, dy);
-      if (L > 6) { aim = Math.atan2(dy, dx); power = Math.max(.05, Math.min(1, L / 160)); }
+      if (L > 6) { aim = Math.atan2(dy, dx); power = Math.max(.05, Math.min(1, L / 200)); }
     },
-    up(px, py) { if (!drag) return; const L = Math.hypot(drag.x - px, drag.y - py); drag = null; if (L > 12) shoot(); },
+    up(px, py) { golfRotL = golfRotR = false; if (!drag) return; const L = Math.hypot(drag.x - px, drag.y - py); drag = null; if (L > 12) shoot(); },
     key(k) { if (k === " ") shoot(); },
     update(dt) {
       if (hole.mill) millA += dt * hole.mill[3];
       for (const f of bumpFx) f.l -= dt; bumpFx = bumpFx.filter((f) => f.l > 0);
       if (phase === "sunk" || phase === "pickup") { wait -= dt; if (wait <= 0) nextTurn(); return; }
       if (phase === "aim") {
-        const k = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
+        const k = (S.keys.ArrowRight || S.keys.d || golfRotR ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a || golfRotL ? 1 : 0);
         if (k) aim += k * 2.2 * dt;
         const kp = (S.keys.ArrowUp || S.keys.w ? 1 : 0) - (S.keys.ArrowDown || S.keys.s ? 1 : 0);
         if (kp) power = Math.max(.05, Math.min(1, power + kp * .8 * dt));
@@ -3431,14 +3437,51 @@ function golfGame() {
         x.strokeStyle = COLS[player]; x.lineWidth = 2; x.beginPath(); x.arc(b.x, b.y, BR, 0, 7); x.stroke();
       }
       if (phase === "aim" && S.state === "play") {
-        const len = 26 + power * 120, col = power < .4 ? "#3dffa8" : power < .75 ? "#ffc23d" : "#ff4d6d", ca0 = Math.cos(aim), sa0 = Math.sin(aim);
-        if (S.practice) { x.strokeStyle = "rgba(255,255,255,.25)"; x.lineWidth = 2; x.setLineDash([4, 8]); x.beginPath(); x.moveTo(b.x, b.y); x.lineTo(b.x + ca0 * (60 + power * 330), b.y + sa0 * (60 + power * 330)); x.stroke(); x.setLineDash([]); }
-        glow(col, 12); x.fillStyle = col;
-        for (let d = 16; d < len; d += 10) { x.beginPath(); x.arc(b.x + ca0 * d, b.y + sa0 * d, 2.6, 0, 7); x.fill(); }
+        const col = power < .4 ? "#3dffa8" : power < .75 ? "#ffc23d" : "#ff4d6d";
+        const ca0 = Math.cos(aim), sa0 = Math.sin(aim);
+        /* pulsing ring on ball when waiting for drag */
+        if (!drag) {
+          const pulse = Math.sin(S.clock * 5) * .5 + .5;
+          x.strokeStyle = `rgba(61,255,168,${.3 + pulse * .4})`; x.lineWidth = 2.5;
+          x.beginPath(); x.arc(b.x, b.y, BR + 10 + pulse * 6, 0, 7); x.stroke();
+          txt("DRAG BACK TO SHOOT", W / 2, H - 100, 11, "rgba(255,255,255,.5)");
+        }
+        /* rubber-band line from touch point to ball when dragging */
+        if (drag) {
+          x.strokeStyle = "rgba(255,255,255,.35)"; x.lineWidth = 3; x.setLineDash([5, 7]);
+          x.beginPath(); x.moveTo(drag.x, drag.y); x.lineTo(b.x, b.y); x.stroke(); x.setLineDash([]);
+          x.fillStyle = "rgba(255,255,255,.25)"; x.beginPath(); x.arc(drag.x, drag.y, 18, 0, 7); x.fill();
+          x.strokeStyle = "rgba(255,255,255,.65)"; x.lineWidth = 2; x.beginPath(); x.arc(drag.x, drag.y, 18, 0, 7); x.stroke();
+          /* power arc ring around ball */
+          glow(col, 18); x.strokeStyle = col; x.lineWidth = 5;
+          x.beginPath(); x.arc(b.x, b.y, BR + 10, -Math.PI / 2, -Math.PI / 2 + power * Math.PI * 2); x.stroke(); glow();
+        }
+        /* aim arrow (always visible in aim phase) */
+        const len = 28 + power * 140;
+        if (S.practice || drag) {
+          x.strokeStyle = "rgba(255,255,255,.18)"; x.lineWidth = 2; x.setLineDash([4, 8]);
+          x.beginPath(); x.moveTo(b.x, b.y); x.lineTo(b.x + ca0 * (60 + power * 330), b.y + sa0 * (60 + power * 330)); x.stroke(); x.setLineDash([]);
+        }
+        glow(col, 14); x.fillStyle = col;
+        for (let d = 16; d < len; d += 10) { x.beginPath(); x.arc(b.x + ca0 * d, b.y + sa0 * d, drag ? 3.5 : 2.6, 0, 7); x.fill(); }
         const ex = b.x + ca0 * len, ey = b.y + sa0 * len;
-        x.beginPath(); x.moveTo(ex + ca0 * 10, ey + sa0 * 10); x.lineTo(ex - sa0 * 7, ey + ca0 * 7); x.lineTo(ex + sa0 * 7, ey - ca0 * 7); x.closePath(); x.fill(); glow();
-        x.fillStyle = "rgba(255,255,255,.1)"; x.fillRect(16, H - 22, 120, 8); x.fillStyle = col; x.fillRect(16, H - 22, 120 * power, 8);
-        txt("POWER", 142, H - 18, 11, "#d8d0f5", "left");
+        x.beginPath(); x.moveTo(ex + ca0 * 12, ey + sa0 * 12); x.lineTo(ex - sa0 * 9, ey + ca0 * 9); x.lineTo(ex + sa0 * 9, ey - ca0 * 9); x.closePath(); x.fill(); glow();
+        /* power bar — wider and centered when dragging */
+        const bw = drag ? 200 : 120, bx0 = drag ? W / 2 - 100 : 16, by0 = H - 24;
+        x.fillStyle = "rgba(255,255,255,.12)"; x.fillRect(bx0, by0, bw, 10);
+        x.fillStyle = col; x.fillRect(bx0, by0, bw * power, 10);
+        txt("POWER", bx0 + bw + 8, by0 + 8, 11, "#d8d0f5", "left");
+        /* rotate-aim touch buttons in bottom corners */
+        const drawRotBtn = (bx, by, label, active) => {
+          x.fillStyle = active ? "rgba(34,228,255,.3)" : "rgba(255,255,255,.1)";
+          x.beginPath(); x.arc(bx, by, 36, 0, 7); x.fill();
+          glow(active ? "#22e4ff" : "#aaa", active ? 14 : 6);
+          x.strokeStyle = active ? "#22e4ff" : "rgba(255,255,255,.4)"; x.lineWidth = 2;
+          x.beginPath(); x.arc(bx, by, 36, 0, 7); x.stroke(); glow();
+          txt(label, bx, by + 9, 22, active ? "#22e4ff" : "rgba(255,255,255,.65)");
+        };
+        drawRotBtn(44, H - 60, "◀", golfRotL);
+        drawRotBtn(W - 44, H - 60, "▶", golfRotR);
       }
       txt("HOLE " + (hi + 1) + "  ·  PAR " + hole.par, 16, 30, 14, "#3dffa8", "left", "d"); txt("COURSE #" + hole.id + " OF " + ALL.length, 16, 50, 11, "#8fe8c8", "left");
       txt(S.duo ? "PLAYER " + (player + 1) : "STROKE " + strokes, W - 16, 30, 14, S.duo ? COLS[player] : "#ffffff", "right", "d");
@@ -8803,7 +8846,7 @@ function fighterGame() {
     { key: "memory", how: "Take turns flipping cards. Find a pair and go again. Most pairs wins.", keys: "Click the cards, one player at a time", touch: "Pass the iPad between turns" },
     { key: "targets", how: "Split screen with the same targets on both sides. Best score in 30 seconds wins.", keys: "Best on a touch screen", touch: "P1 taps the left half, P2 the right" },
     { key: "pingpong", how: "Real table tennis: the ball has to bounce on the other side. First to 11.", keys: "P1 ← → move, ↑ swing  ·  P2 A D move, W swing", touch: "Drag to move and tap to swing, each on your own half" },
-    { key: "golf", how: "9 random holes from 50 courses. Take turns. Fewest total strokes wins.", keys: "Drag to aim and shoot, or arrows + Space", touch: "Pass the iPad between turns" },
+    { key: "golf", how: "9 random holes from 50 courses. Take turns. Fewest total strokes wins.", keys: "Drag back from ball to aim, release to shoot · ◀ ▶ buttons rotate aim", touch: "Drag back from ball · tap ◀ ▶ to rotate aim · pass iPad each turn" },
     { key: "guesswho", how: "One mystery character. Take turns asking yes/no questions. First correct guess wins.", keys: "Q asks, G guesses, arrows + Space pick", touch: "Tap ASK or GUESS, then pass the iPad" },
     { key: "chess", how: "Full chess with castling, en passant and promotion. Checkmate the other king.", keys: "Arrows move, Space picks and moves", touch: "Tap a piece, tap a dot, then pass the iPad" },
     { key: "connect4", how: "Classic Connect Four. Drop discs and get 4 in a row first.", keys: "← → pick a column, Space drops", touch: "Tap a column, then pass the iPad" },
