@@ -10410,6 +10410,7 @@ function fighterGame() {
     const ae = activeEvent();
     const advDue = ae === "winter" && advCalDue();
     const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["bonus", "🎁 Bonus"], ["road", "🛣 Levels"], ["spin", "🎡 Daily spin"], ...(ae === "winter" ? [["advent", "🎄 Advent"]] : []), ["shop", "🛒 Shop"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + ((id === "bonus" && bonusDue()) || (id === "road" && roadDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) || (id === "advent" && advDue) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { rtab = id; renderRewards(); } })));
+    const RAR_LABEL = { c: "Common", r: "Rare", e: "Epic", l: "Legendary" };
     let body;
     if (rtab === "missions") {
       body = el("div", { class: "rew-list" }, ...missions().map((m) => el("div", { class: "mission" + (m.done ? " done" : "") },
@@ -10454,7 +10455,6 @@ function fighterGame() {
       });
       body = el("div", { class: "adv-wrap" }, el("h3", { class: "rew-head", text: "🎄 Advent Calendar" }), el("p", { class: "set-note", text: "Open one gift per day in December! Come back every day for 24 days." }), el("div", { class: "adv-grid" }, ...cells));
     } else if (rtab === "inv") {
-      const RAR_LABEL = { c: "Common", r: "Rare", e: "Epic", l: "Legendary" };
       const owned2 = prog.owned || [], eq2 = prog.equip || {};
       const INV_GROUPS = [["pet","🐾 Pets"],["title","🏷 Titles"],["music","🎵 Music"],["fx","✨ Sparks"],["frame","🖼 Frames"],["filter","🎞 Filters"]];
       const invSections = INV_GROUPS.map(([gk, gname2]) => {
