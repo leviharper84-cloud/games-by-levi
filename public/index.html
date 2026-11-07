@@ -10442,6 +10442,7 @@ function fighterGame() {
       });
       body = el("div", { class: "adv-wrap" }, el("h3", { class: "rew-head", text: "🎄 Advent Calendar" }), el("p", { class: "set-note", text: "Open one gift per day in December! Come back every day for 24 days." }), el("div", { class: "adv-grid" }, ...cells));
     } else if (rtab === "inv") {
+      const RAR_LABEL = { c: "Common", r: "Rare", e: "Epic", l: "Legendary" };
       const owned2 = prog.owned || [], eq2 = prog.equip || {};
       const INV_GROUPS = [["pet","🐾 Pets"],["title","🏷 Titles"],["music","🎵 Music"],["fx","✨ Sparks"],["frame","🖼 Frames"],["filter","🎞 Filters"]];
       const invSections = INV_GROUPS.map(([gk, gname2]) => {
@@ -10471,7 +10472,6 @@ function fighterGame() {
       const gchips = el("div", { class: "rew-tabs shop-chips" }, ...[["all", "All"], ...SG.map(([gk, t]) => [gk, t.replace(/ \(all games\)/g, "").replace(/ Event Shop ✨/, " ✨")])].map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopGroup === gk), text: t, onclick: () => { shopGroup = gk; renderRewards(); } })));
       const smOn = shopMusicOn();
       const smBtn = el("button", { class: "chip", type: "button", "aria-pressed": String(smOn), text: smOn ? "🔊 Shop music on" : "🔇 Shop music off", onclick: () => { try { localStorage.setItem("gbl-shopmus", smOn ? "0" : "1"); } catch (e) {} if (smOn) stopPreview(); else preview("shopjam", null, true); renderRewards(); } });
-      const RAR_LABEL = { c: "Common", r: "Rare", e: "Epic", l: "Legendary" };
       /* determine actual shop-group for equip/unequip: ev-* groups don't have equip slots */
       const baseGk = (gk) => gk.startsWith("ev-") ? null : gk;
       /* items for a group: ev-* shows all event-tagged items for the active event */
