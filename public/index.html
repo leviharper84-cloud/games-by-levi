@@ -634,6 +634,28 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .adm-score { display: flex; gap: 10px; align-items: center; padding: 4px 0; border-bottom: 1px solid var(--line); }
 .adm-score span { flex: 1; }
 .btn.danger { border-color: #ff4d6d; color: #ff4d6d; }
+/* Help-request modal */
+.help-modal { position: fixed; inset: 0; z-index: 9000; display: flex; align-items: flex-end; background: rgba(0,0,0,.55); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); }
+.help-modal[hidden] { display: none; }
+.help-cab { width: 100%; max-width: 540px; margin: 0 auto; background: var(--panel); border-radius: 22px 22px 0 0; padding: 20px 20px 32px; display: grid; gap: 12px; }
+.help-cab h3 { margin: 0; font-size: 1.1rem; }
+.help-ta { width: 100%; box-sizing: border-box; padding: 12px 14px; border-radius: 14px; border: 1px solid var(--line); background: rgba(0,0,0,.35); color: inherit; font: inherit; resize: vertical; min-height: 90px; }
+.help-btn-row { display: flex; gap: 8px; }
+/* Admin requests list */
+.req-list { display: grid; gap: 8px; }
+.req-card { border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; background: rgba(0,0,0,.2); display: grid; gap: 6px; }
+.req-card.req-new { border-color: rgba(255,214,107,.5); }
+.req-card.req-done { opacity: .55; }
+.req-card.req-dismissed { opacity: .35; text-decoration: line-through; }
+.req-meta { font-size: .78rem; color: var(--muted); display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+.req-msg { font-size: .95rem; }
+.req-note-in { width: 100%; box-sizing: border-box; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line); background: rgba(0,0,0,.3); color: inherit; font: .82rem inherit; }
+.req-actions { display: flex; gap: 6px; flex-wrap: wrap; }
+.req-badge { display: inline-block; padding: 2px 8px; border-radius: 20px; font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; background: rgba(255,214,107,.18); color: #ffd66b; }
+.req-badge.new { background: rgba(255,43,214,.2); color: #ff2bd6; }
+.req-badge.seen { background: rgba(34,228,255,.18); color: #22e4ff; }
+.req-badge.done { background: rgba(61,255,168,.18); color: #3dffa8; }
+.req-badge.dismissed { background: rgba(255,255,255,.1); color: var(--muted); }
 .card-stars { font: 700 .72rem var(--f-mono); color: #ffd66b; letter-spacing: .06em; text-shadow: 0 0 8px rgba(255,214,107,.5); }
 .road { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; max-height: 52vh; overflow-y: auto; padding: 2px; }
 .road-step { display: grid; gap: 4px; align-content: start; padding: 10px; border-radius: 14px; border: 1px solid var(--line); background: var(--panel); font-size: .72rem; }
@@ -1001,9 +1023,27 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     </div>
     <button class="wallet" type="button" data-wallet aria-label="Rewards: coins, missions, spin and shop" title="Rewards"></button>
     <button class="btn sm set-btn" type="button" data-settings aria-label="Settings" title="Settings">⚙</button>
+    <button class="btn sm set-btn" type="button" id="help-open-btn" aria-label="Help or Request" title="Help / Request">❓</button>
     <div class="acct-slot" id="acct"><button class="btn sm" type="button" disabled>Log in</button></div>
   </div>
 </header>
+
+<!-- Help / Request modal -->
+<div class="help-modal" id="help-modal" hidden role="dialog" aria-modal="true" aria-labelledby="help-modal-title">
+  <div class="help-cab">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <h3 id="help-modal-title">❓ Help &amp; Requests</h3>
+      <button class="btn sm" type="button" id="help-close-btn">Close</button>
+    </div>
+    <p class="set-note">Found a bug? Have an idea? Send a message and the admin will see it.</p>
+    <textarea class="help-ta" id="help-ta" maxlength="500" placeholder="Describe your idea or problem here…" rows="4"></textarea>
+    <div id="help-char" style="font-size:.75rem;color:var(--muted);text-align:right">0 / 500</div>
+    <div class="help-btn-row">
+      <button class="btn hot" type="button" id="help-send-btn" style="flex:1">Send Request</button>
+    </div>
+    <div id="help-sent-note" hidden style="color:#3dffa8;font-size:.88rem">✓ Sent! The admin will review your request.</div>
+  </div>
+</div>
 
 <main id="top">
   <section id="library">
@@ -10267,7 +10307,7 @@ function fighterGame() {
     const box = $("#admin-body"); if (!box) return;
     const ov = (await admCall("/admin/overview")) || {};
     const c = { announce: "", priceMult: 1, coinMult: 1, off: [], gift: null, event: "auto", doubleCoins: false, ...(window.GCFG || {}) };
-    const tiles = el("div", { class: "adm-tiles" }, ...[["👥", ov.users, "Players"], ["🔥", ov.activeToday, "Active today"], ["🏆", ov.scores, "High scores"], ["📥", ov.pending, "Games waiting"]].map(([i, n, l]) => el("div", { class: "adm-tile" }, el("span", { text: i }), el("b", { text: fmt(n || 0) }), el("small", { text: l }))));
+    const tiles = el("div", { class: "adm-tiles" }, ...[["👥", ov.users, "Players"], ["🔥", ov.activeToday, "Active today"], ["🏆", ov.scores, "High scores"], ["📥", ov.pending, "Games waiting"], ["📬", ov.newHelp, "New requests"]].map(([i, n, l]) => el("div", { class: "adm-tile" }, el("span", { text: i }), el("b", { text: fmt(n || 0) }), el("small", { text: l }))));
     const ann = el("input", { class: "adm-in", type: "text", maxlength: 200, placeholder: "Message everyone sees at the top (leave empty for none)", value: c.announce });
     const sel = (vals, cur, lab) => el("select", { class: "adm-in" }, ...vals.map((v) => { const o = el("option", { value: v, text: lab(v) }); if (+v === +cur) o.selected = true; return o; }));
     const pm = sel([0.5, 1, 1.5, 2, 3, 5], c.priceMult, (v) => v === 1 ? "Normal prices" : v + "× prices"), cm = sel([0, 0.5, 1, 2, 3, 5], c.coinMult, (v) => v === 1 ? "Normal coins" : v === 0 ? "No coins from games" : v + "× coins from games");
@@ -10342,10 +10382,60 @@ function fighterGame() {
     const gst = Object.entries(ov.games || {}).map(([k, v]) => [ALLB.find((g) => g.key === k), v]).filter(([g]) => g).sort((a, b2) => b2[1].players - a[1].players || b2[1].hearts - a[1].hearts);
     const stats = el("div", { class: "adm-card" }, el("h3", { text: "📊 Most played games" }),
       gst.length ? el("div", { class: "adm-scores" }, ...gst.slice(0, 20).map(([g, v], i) => el("div", { class: "adm-score" }, el("span", { text: (i + 1) + ". " + g.title }), el("b", { text: v.players + " players" }), el("small", { text: "♥ " + v.hearts })))) : el("p", { class: "set-note", text: "No scores yet." }));
-    box.replaceChildren(tiles, ctl, players, stats, lb);
+    /* Requests card */
+    const reqCard = el("div", { class: "adm-card" });
+    async function loadRequests() {
+      reqCard.replaceChildren(el("h3", { text: "📬 Player Requests & Help" }), el("p", { class: "set-note", text: "Loading…" }));
+      const r = await admCall("/admin/help");
+      if (!r) return;
+      const reqs = r.requests || [];
+      if (!reqs.length) { reqCard.replaceChildren(el("h3", { text: "📬 Player Requests & Help" }), el("p", { class: "set-note", text: "No requests yet." })); return; }
+      const statusLabel = { new: "🔴 New", seen: "👁 Seen", done: "✅ Done", dismissed: "🚫 Dismissed" };
+      const items = reqs.map((req) => {
+        const noteIn = el("input", { class: "req-note-in", type: "text", placeholder: "Add a private note (only you see this)", value: req.admin_note || "" });
+        const statusBtns = ["new", "seen", "done", "dismissed"].map((s) => {
+          const b2 = el("button", { class: "btn sm" + (req.status === s ? " hot" : ""), type: "button", text: statusLabel[s] });
+          b2.onclick = async () => { await admCall("/admin/help/" + req.id, { method: "PATCH", body: { status: s } }); loadRequests(); };
+          return b2;
+        });
+        const delBtn = el("button", { class: "btn sm danger", type: "button", text: "🗑 Delete" });
+        delBtn.onclick = async () => { if (!confirm("Delete this request?")) return; await admCall("/admin/help/" + req.id, { method: "DELETE" }); loadRequests(); };
+        noteIn.addEventListener("blur", async () => { await admCall("/admin/help/" + req.id, { method: "PATCH", body: { admin_note: noteIn.value } }); });
+        return el("div", { class: "req-card req-" + req.status },
+          el("div", { class: "req-meta" }, el("b", { text: req.username }), el("span", { text: ago(req.ts) }), el("span", { class: "req-badge " + req.status, text: req.status.toUpperCase() })),
+          el("div", { class: "req-msg", text: req.msg }),
+          noteIn,
+          el("div", { class: "req-actions" }, ...statusBtns, delBtn));
+      });
+      reqCard.replaceChildren(el("h3", { text: "📬 Player Requests & Help (" + reqs.length + ")" }), el("p", { class: "set-note", text: "Review these and decide what to do. Changes are only made when you (Levi) approve them — nothing happens automatically." }), el("div", { class: "req-list" }, ...items));
+    }
+    loadRequests();
+    box.replaceChildren(tiles, reqCard, ctl, players, stats, lb);
     loadUsers();
   }
   window.gblShowAdmin();
+
+  /* ---------- Help / Request modal ---------- */
+  (function () {
+    const modal = $("#help-modal"), ta = $("#help-ta"), sendBtn = $("#help-send-btn"), closeBtn = $("#help-close-btn"), charDiv = $("#help-char"), sentNote = $("#help-sent-note");
+    if (!modal) return;
+    $("#help-open-btn").onclick = () => { modal.hidden = false; ta.focus(); sentNote.hidden = true; ta.value = ""; charDiv.textContent = "0 / 500"; };
+    closeBtn.onclick = () => { modal.hidden = true; };
+    modal.addEventListener("click", (e) => { if (e.target === modal) modal.hidden = true; });
+    ta.addEventListener("input", () => { charDiv.textContent = ta.value.length + " / 500"; });
+    sendBtn.onclick = async () => {
+      const msg = ta.value.trim();
+      if (msg.length < 3) { toast("Please type a request first."); return; }
+      sendBtn.disabled = true; sendBtn.textContent = "Sending…";
+      try {
+        await api("/help", { method: "POST", body: { msg } });
+        ta.value = ""; charDiv.textContent = "0 / 500";
+        sentNote.hidden = false;
+        sendBtn.textContent = "Send Request";
+      } catch (e) { toast(e.message || "Couldn't send. Try again."); sendBtn.textContent = "Send Request"; }
+      sendBtn.disabled = false;
+    };
+  })();
 
 
   /* ---------- Extra fun: confetti, streaks, weekend bonus, surprise me, player card ---------- */

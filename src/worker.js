@@ -53,6 +53,8 @@ const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS diag (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, who TEXT, body TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS likes (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, PRIMARY KEY (user_id, game))",
+  "CREATE TABLE IF NOT EXISTS help_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, username TEXT NOT NULL DEFAULT 'Guest', msg TEXT NOT NULL, ts INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'new', admin_note TEXT NOT NULL DEFAULT '')",
+  "CREATE INDEX IF NOT EXISTS help_by_ts ON help_requests(ts DESC)",
 ];
 let tablesReady = null;
 function ensureTables(env) {
@@ -116,12 +118,16 @@ async function handle(request, env, url) {
   if (path === "/api/diag" && method === "GET") return getDiag(env);
   if (path === "/api/likes" && method === "GET") return getLikes(env, user);
   if (path === "/api/likes" && method === "POST") return postLike(request, env, user);
+  if (path === "/api/help" && method === "POST") return submitHelp(request, env, user);
   if (path.startsWith("/api/admin/")) {
     if (!isAdmin(user, env)) fail(403, "Only the admin can do that.");
     if (path === "/api/admin/config" && method === "PUT") return putConfig(request, env);
     if (path === "/api/admin/overview" && method === "GET") return adminOverview(env);
     if (path === "/api/admin/users" && method === "GET") return adminUsers(env, url);
     if (path === "/api/admin/scores" && method === "DELETE") return adminDeleteScores(request, env);
+    if (path === "/api/admin/help" && method === "GET") return adminListHelp(env);
+    if ((m = path.match(/^\/api\/admin\/help\/(\d+)$/)) && method === "PATCH") return adminPatchHelp(request, env, +m[1]);
+    if ((m = path.match(/^\/api\/admin\/help\/(\d+)$/)) && method === "DELETE") return adminDeleteHelp(env, +m[1]);
     if ((m = path.match(/^\/api\/admin\/users\/(\d+)$/))) {
       if (method === "GET") return adminUser(env, +m[1]);
       if (method === "PATCH") return adminEditUser(request, env, user, +m[1]);
@@ -712,10 +718,11 @@ async function putConfig(request, env) {
 }
 async function adminOverview(env) {
   const q = (sql) => env.DB.prepare(sql).first();
-  const [u, sc, pend, act] = await Promise.all([
+  const [u, sc, pend, act, newHelp] = await Promise.all([
     q("SELECT COUNT(*) AS n FROM users"), q("SELECT COUNT(*) AS n FROM scores"),
     q("SELECT COUNT(*) AS n FROM submissions WHERE status = 'pending'"),
     env.DB.prepare("SELECT COUNT(*) AS n FROM progress WHERE at > ?").bind(Date.now() - DAY).first(),
+    q("SELECT COUNT(*) AS n FROM help_requests WHERE status = 'new'"),
   ]);
   const [gs, lk] = await Promise.all([
     env.DB.prepare("SELECT game, COUNT(*) AS n FROM scores GROUP BY game").all(),
@@ -724,7 +731,7 @@ async function adminOverview(env) {
   const games = {};
   for (const r of gs.results) (games[r.game] = games[r.game] || { players: 0, hearts: 0 }).players = r.n;
   for (const r of lk.results) (games[r.game] = games[r.game] || { players: 0, hearts: 0 }).hearts = r.n;
-  return json({ users: u.n, scores: sc.n, pending: pend.n, activeToday: act.n, games });
+  return json({ users: u.n, scores: sc.n, pending: pend.n, activeToday: act.n, newHelp: newHelp.n, games });
 }
 function progSummary(data) {
   let p = null; try { p = JSON.parse(data || "null"); } catch {}
@@ -837,4 +844,36 @@ async function postLike(request, env, user) {
   else await env.DB.prepare("DELETE FROM likes WHERE user_id = ? AND game = ?").bind(user.id, game).run();
   const r = await env.DB.prepare("SELECT COUNT(*) AS n FROM likes WHERE game = ?").bind(game).first();
   return json({ game, n: r.n });
+}
+
+/* ------------------------------------------------------------------ */
+/* Help / Requests                                                      */
+/* ------------------------------------------------------------------ */
+async function submitHelp(request, env, user) {
+  const ip = request.headers.get("cf-connecting-ip") || "unknown";
+  const rk = "help:" + (user ? "u" + user.id : "ip" + ip);
+  await limit(env, rk, 5, 60 * 60 * 1000, "You've sent too many requests lately. Try again in an hour.");
+  const b = await readJson(request);
+  const msg = String(b.msg || "").trim().slice(0, 500);
+  if (msg.length < 3) fail(400, "Please type your request.");
+  const username = user ? user.username : (String(b.name || "").trim().slice(0, 30) || "Guest");
+  const uid = user ? user.id : null;
+  await env.DB.prepare("INSERT INTO help_requests (user_id, username, msg, ts, status, admin_note) VALUES (?, ?, ?, ?, 'new', '')").bind(uid, username, msg, Date.now()).run();
+  return json({ ok: true });
+}
+async function adminListHelp(env) {
+  const r = await env.DB.prepare("SELECT id, user_id, username, msg, ts, status, admin_note FROM help_requests ORDER BY ts DESC LIMIT 200").all();
+  return json({ requests: r.results || [] });
+}
+async function adminPatchHelp(request, env, id) {
+  const b = await readJson(request);
+  const status = ["new", "seen", "done", "dismissed"].includes(b.status) ? b.status : null;
+  const note = b.admin_note !== undefined ? String(b.admin_note).trim().slice(0, 300) : null;
+  if (status) await env.DB.prepare("UPDATE help_requests SET status = ? WHERE id = ?").bind(status, id).run();
+  if (note !== null) await env.DB.prepare("UPDATE help_requests SET admin_note = ? WHERE id = ?").bind(note, id).run();
+  return json({ ok: true });
+}
+async function adminDeleteHelp(env, id) {
+  await env.DB.prepare("DELETE FROM help_requests WHERE id = ?").bind(id).run();
+  return json({ ok: true });
 }
