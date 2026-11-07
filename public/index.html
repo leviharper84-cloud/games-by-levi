@@ -515,6 +515,8 @@ textarea.code {
 .coin-pop { position: fixed; left: 50%; bottom: 26px; z-index: 210; padding: 10px 18px; border-radius: 999px; background: #120b24; border: 1px solid #ffd66b; color: #ffd66b; font: 700 .9rem var(--f-mono); box-shadow: 0 0 24px rgba(255,214,107,.45); transform: translate(-50%, 160%); transition: transform .45s var(--ease); white-space: nowrap; }
 .coin-pop.big { font-size: 1.05rem; padding: 13px 22px; }
 .coin-pop, .ach-pop { pointer-events: none; }
+.coin-pop, .ach-pop { max-width: calc(100vw - 24px); box-sizing: border-box; }
+@media (max-width: 600px) { .coin-pop { white-space: normal; text-align: center; border-radius: 18px; width: max-content; } .coin-pop.big { font-size: .9rem; } }
 html.playing .coin-pop { bottom: auto; top: 8px; transform: translate(-50%, -180%); max-width: calc(100vw - 32px); text-align: center; }
 html.playing .coin-pop.show { transform: translate(-50%, 0); }
 html.playing .ach-pop { top: auto; bottom: 14px; transform: translate(-50%, 160%); }
@@ -881,6 +883,14 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 #modal.big .cab-foot { display: none; }
 #modal { touch-action: none; overscroll-behavior: contain; }
 html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
+/* Phones: a slim title bar so the game gets more of the screen */
+@media (pointer: coarse) and (max-width: 700px), (pointer: coarse) and (max-height: 540px) {
+  #modal .cab-bar { padding: 5px 10px !important; gap: 8px; flex-wrap: nowrap; }
+  #modal .cab-bar > div:first-child { flex: 1; min-width: 0; }
+  #modal .cab-title { font-size: 1.05rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #modal .cab-sub { display: none; }
+  #modal .cab-bar .btn.sm { padding: 6px 11px; font-size: .62rem; letter-spacing: .12em; }
+}
 @media (pointer: coarse), (max-width: 900px) {
   #modal { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); }
   #modal .cabinet { width: 100%; height: 100%; max-height: none; border-radius: 0; border-width: 0; }
@@ -1513,7 +1523,7 @@ function SHELL() {
   }
 
   /* ----- lifecycle ----- */
-  function fit() { if (!G) return; const k = Math.min((innerWidth - 12 - (S.padW || 0)) / G.w, (innerHeight - 40 - (S.padRoom || 0)) / G.h); cv.style.width = G.w * k + "px"; cv.style.height = G.h * k + "px"; }
+  function fit() { if (!G) return; const edge = innerWidth < 700 ? 4 : 12; const k = Math.min((innerWidth - edge - (S.padW || 0)) / G.w, (innerHeight - 30 - edge - (S.padRoom || 0)) / G.h); cv.style.width = G.w * k + "px"; cv.style.height = G.h * k + "px"; }
   function setup() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.width = Math.round(G.w * dpr); cv.height = Math.round(G.h * dpr);
@@ -1846,6 +1856,17 @@ function SHELL() {
       PAD.appendChild(g);
     });
   }
+  // Tip: turn the phone when the game would be much bigger the other way.
+  const TIP = document.createElement("div"); TIP.hidden = true;
+  TIP.style.cssText = "position:fixed;left:50%;top:36px;transform:translateX(-50%);z-index:7;pointer-events:none;font:700 12px system-ui,sans-serif;letter-spacing:.06em;color:#03020a;background:#ffd66b;padding:6px 12px;border-radius:999px;white-space:nowrap;box-shadow:0 0 16px rgba(255,214,107,.6)";
+  document.body.appendChild(TIP);
+  setInterval(() => {
+    if (!G) return;
+    const small = Math.min(innerWidth, innerHeight) < 600, ar = G.w / G.h, tall = innerHeight > innerWidth;
+    const tip = HAS_TOUCH && small && S.state !== "play" && S.state !== "count" ? (tall && ar > 1.2 ? "📱 Turn your phone sideways for a bigger game" : !tall && ar < .85 ? "📱 Hold your phone upright for a bigger game" : "") : "";
+    if (TIP.textContent !== tip) TIP.textContent = tip;
+    if (TIP.hidden === !!tip) TIP.hidden = !tip;
+  }, 400);
   setInterval(() => {
     const spec = padSpec(), uses = !!spec;
     window.HPAD0 = uses;
