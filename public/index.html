@@ -10122,6 +10122,15 @@ function fighterGame() {
     ["fx-iceburst", "fx", "Ice Burst ❄️", 400, "linear-gradient(135deg,#22e4ff,#ffffff)", "Cool icy explosions in every game.", "", "r"],
     ["fx-goldshower", "fx", "Gold Shower 🌟", 500, "linear-gradient(135deg,#ffd66b,#ffc23d)", "Gold star sparks — make it rain!", "", "r"],
     ["fx-rainbowpop", "fx", "Rainbow Pop 🌈", 800, "linear-gradient(135deg,#ff2bd6,#ffd66b,#22e4ff)", "Neon rainbow every time you score. Epic!", "", "e"],
+    // 🏆 LEGENDARIES
+    ["pet-dragon", "pet", "Dragon 🐉", 8000, "linear-gradient(135deg,#ff4d00,#ffd66b,#ff2bd6)", "Ancient fire breather. The rarest pet.", "", "l"],
+    ["pet-phoenix", "pet", "Phoenix 🔥", 6500, "linear-gradient(135deg,#ff6b00,#ffd66b,#ff2bd6)", "Rises from the ashes. Never dies.", "", "l"],
+    ["pet-unicorn", "pet", "Unicorn 🦄", 5500, "linear-gradient(135deg,#ff7be6,#a35bff,#22e4ff)", "Pure magic. One of a kind.", "", "l"],
+    ["t-goat", "title", "THE GOAT 🐐", 10000, "linear-gradient(135deg,#ffd66b,#ffffff,#ffd66b)", "Greatest of all time. No debate.", "", "l"],
+    ["t-chosen", "title", "The Chosen One", 7500, "linear-gradient(135deg,#22e4ff,#ffffff,#22e4ff)", "Destined for greatness.", "", "l"],
+    ["t-omega", "title", "OMEGA ✦", 9000, "linear-gradient(135deg,#a35bff,#ff2bd6,#ffd66b)", "The final form. Beyond epic.", "", "l"],
+    ["fx-legendary", "fx", "Legendary Blast 👑", 6000, "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)", "Crown explosion on every score. Legendary only.", "", "l"],
+    ["fx-cosmos", "fx", "Cosmos FX 🌌", 7000, "linear-gradient(135deg,#1a0b24,#a35bff,#22e4ff)", "Stars and galaxies erupt around you.", "", "l"],
   ];
   // Event songs: the month (0 = January) they can be bought.
   const EVENT_MONTH = {
@@ -10177,7 +10186,7 @@ function fighterGame() {
     }
   }
   /* ---------- Pets: they live in the corner, level up as you play and give bonus coins ---------- */
-  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-lion": "🦁", "pet-owl": "🦉", "pet-koala": "🐨", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉", "pet-penguin": "🐧", "pet-bunny": "🐰", "pet-turtle": "🐢", "pet-shark": "🦈", "pet-panda": "🐼", "pet-dino": "🦕", "pet-alien": "👾", "pet-narwhal": "🦄", "pet-phoenix": "🔥", "pet-crab": "🦀", "pet-jelly": "🪼", "pet-ghost": "👻", "pet-pumpkin": "🎃", "pet-elf": "🧝", "pet-snowman": "⛄", "pet-chick": "🐣", "pet-easterbunny": "🐰", "pet-beachcrab": "🦀", "pet-raccoon": "🦝", "pet-jester": "🤡" };
+  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-lion": "🦁", "pet-owl": "🦉", "pet-koala": "🐨", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉", "pet-penguin": "🐧", "pet-bunny": "🐰", "pet-turtle": "🐢", "pet-shark": "🦈", "pet-panda": "🐼", "pet-dino": "🦕", "pet-alien": "👾", "pet-narwhal": "🦄", "pet-phoenix": "🔥", "pet-crab": "🦀", "pet-jelly": "🪼", "pet-ghost": "👻", "pet-pumpkin": "🎃", "pet-elf": "🧝", "pet-snowman": "⛄", "pet-chick": "🐣", "pet-easterbunny": "🐰", "pet-beachcrab": "🦀", "pet-raccoon": "🦝", "pet-jester": "🤡", "pet-unicorn": "🦄" };
   const PET_TALK = ["Let's play!", "You're awesome!", "Beat your high score!", "I'm hungry...", "*happy noises*", "Go go go!", "Best friends!", "Try a new game!"];
   const petLv = (id) => Math.min(10, Math.floor(Math.sqrt(stat("px_" + id) / 3)) + 1);
   const petBonus = () => { const id = (prog.equip || {}).pet; return id && (prog.owned || []).includes(id) ? petLv(id) * .02 : 0; };
@@ -10369,6 +10378,7 @@ function fighterGame() {
     if (changed) { saveProg(); renderWallet(); if (rm.classList.contains("open")) renderRewards(); }
   }
   function sfxHub() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), g = ac.createGain(); g.connect(ac.destination); g.gain.value = .12; [660, 880, 1320].forEach((f, i) => { const o = ac.createOscillator(); o.type = "square"; o.frequency.value = f; o.connect(g); o.start(ac.currentTime + i * .08); o.stop(ac.currentTime + i * .08 + .07); }); setTimeout(() => ac.close(), 600); } catch {} }
+  function sfxLegendary() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), g = ac.createGain(); g.connect(ac.destination); g.gain.value = .15; [523, 659, 784, 1047, 1319, 1568].forEach((f, i) => { const o = ac.createOscillator(); o.type = "triangle"; o.frequency.value = f; o.connect(g); const t = ac.currentTime + i * .10; o.start(t); o.stop(t + .13); }); setTimeout(() => ac.close(), 1200); } catch {} }
   /* hooks */
   window.gblReward = (cur, s) => {
     if (!cur || !cur.g || !BUILTINS.some((b) => b.key === cur.g.key)) return;
@@ -10492,7 +10502,7 @@ function fighterGame() {
               el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); renderRewards(); } }));
             return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null }), el("b", { text: name }), rarBadge, el("small", { text: sub }), listen,
               has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [bgk]: id }; saveProg(); toast(name + " equipped"); renderRewards(); } })
-                : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...owned, id]; prog.equip = { ...eq, [bgk]: id }; saveProg(); renderWallet(); sfxHub(); toast("Unlocked " + name + "!"); if (window.gblConfetti) window.gblConfetti(70); renderRewards(); } }));
+                : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...owned, id]; prog.equip = { ...eq, [bgk]: id }; saveProg(); renderWallet(); if (rar === "l") { sfxLegendary(); if (window.gblConfetti) window.gblConfetti(160); } else { sfxHub(); if (window.gblConfetti) window.gblConfetti(70); } toast((rar === "l" ? "👑 LEGENDARY UNLOCKED: " : "Unlocked ") + name + "!"); renderRewards(); } }));
           })))));
     }
     rbody.replaceChildren(head, tabs, body);
