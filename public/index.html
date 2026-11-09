@@ -3336,6 +3336,57 @@ function golfGame() {
     { par: 4, start: [240, 565], cup: [240, 110], walls: [[[70,60],[410,60],[410,610],[70,610]],[[70,250],[303,250],[303,272],[70,272]],[[177,405],[410,405],[410,427],[177,427]]], bump: [[321,197,15],[249,185,17]], mill: [240,338.5,70,1.67129721455276] },
   ];
   const ALL = BASE.concat(EXTRA);
+  function genHole() {
+    const r = Math.random, p = (n) => n | 0;
+    const shape = r() < 0.35 ? 'L' : 'rect';
+    let wl = p(62 + r() * 28), wr = p(392 + r() * 26), wt = p(62 + r() * 18), wb = p(592 + r() * 18);
+    let walls;
+    if (shape === 'L') {
+      const jy = p(220 + r() * 180), mx = r() < .5 ? p(175 + r() * 75) : p(235 + r() * 75);
+      walls = r() < .5 ? [[[wl, wb],[mx, wb],[mx, jy],[wr, jy],[wr, wt],[wl, wt]]] : [[[wr, wb],[mx, wb],[mx, jy],[wl, jy],[wl, wt],[wr, wt]]];
+    } else {
+      walls = [Rc(wl, wt, wr, wb)];
+    }
+    const sx = p(wl + 25 + r() * (wr - wl - 50)), sy = p(wb - 44 - r() * 24);
+    const cx = p(wl + 25 + r() * (wr - wl - 50)), cy = p(wt + 30 + r() * 58);
+    const nB = p(r() * 3);
+    for (let i = 0; i < nB; i++) {
+      const by = p(wt + 110 + r() * (wb - wt - 230));
+      if (Math.abs(by - sy) < 55 || Math.abs(by - cy) < 55) continue;
+      const gw = p(62 + r() * 54), gx = p(wl + 20 + r() * (wr - wl - gw - 40));
+      if (gx > wl + 10) walls.push(Rc(wl, by - 10, gx, by + 10));
+      if (gx + gw < wr - 10) walls.push(Rc(gx + gw, by - 10, wr, by + 10));
+    }
+    const water = [];
+    if (r() < .45) {
+      const wx = p(wl + 15 + r() * 48), wy = p(wt + 72 + r() * (wb - wt - 218));
+      const wx2 = Math.min(wr - 15, wx + p(72 + r() * 108)), wy2 = Math.min(wb - 20, wy + p(52 + r() * 68));
+      if (!(sx > wx && sx < wx2 && sy > wy && sy < wy2) && !(cx > wx && cx < wx2 && cy > wy && cy < wy2)) water.push([wx, wy, wx2, wy2]);
+    }
+    const bump = [];
+    for (let i = 0, n = p(r() * 4); i < n; i++) {
+      const bx = p(wl + 35 + r() * (wr - wl - 70)), by = p(wt + 60 + r() * (wb - wt - 130)), br = p(13 + r() * 12);
+      if (Math.hypot(bx - sx, by - sy) > 50 && Math.hypot(bx - cx, by - cy) > 50) bump.push([bx, by, br]);
+    }
+    const sand = [];
+    if (r() < .4) {
+      const sw = p(wl + 15 + r() * 58), sh = p(wt + 72 + r() * (wb - wt - 218));
+      const sw2 = Math.min(wr - 15, sw + p(66 + r() * 92)), sh2 = Math.min(wb - 20, sh + p(52 + r() * 72));
+      if (!(cx > sw && cx < sw2 && cy > sh && cy < sh2)) sand.push([sw, sh, sw2, sh2]);
+    }
+    let mill = null;
+    if (r() < .28 && bump.length === 0) {
+      const mx = p(wl + 55 + r() * (wr - wl - 110)), my = p(wt + 90 + r() * (wb - wt - 218));
+      if (Math.hypot(mx - sx, my - sy) > 65 && Math.hypot(mx - cx, my - cy) > 65) mill = [mx, my, p(40 + r() * 28), (r() < .5 ? 1 : -1) * (1.4 + r() * 1.6)];
+    }
+    const par = Math.max(2, Math.min(5, 2 + (walls.length > 1 ? 1 : 0) + (water.length ? 1 : 0) + (mill ? 1 : 0)));
+    const h = { par, start: [sx, sy], cup: [cx, cy], walls };
+    if (water.length) h.water = water;
+    if (bump.length) h.bump = bump;
+    if (sand.length) h.sand = sand;
+    if (mill) h.mill = mill;
+    return h;
+  }
   let HOLES = [], hi, hole, SEGS, b, aim, power, drag, phase, wait, strokes, last, card, player, millA, bumpFx, golfRotL, golfRotR;
   const maxS = () => (S.practice ? 15 : 8);
   const sum = (a) => a.reduce((s, v) => s + (v || 0), 0);
@@ -3422,7 +3473,7 @@ function golfGame() {
     load(d) { if (Array.isArray(d.holes) && d.holes.length === 9 && d.holes.every((i) => ALL[i])) { HOLES = d.holes.map((i) => ({ ...ALL[i], id: i + 1 })); card = [(d.card || []).slice(), []]; loadHole(Math.min(8, d.hi || 0)); } },
     title: "Mini Golf", duo: "take turns on the same 9 random holes. Fewest total strokes wins.", easy: "water costs no strokes, 15 tries per hole, an aiming guide", w: W, h: H, color: "#3dffa8", bpm: 98,
     help: ["Drag back from the ball and release to shoot", "Tap ◀ ▶ buttons to rotate aim · Power bar shows shot strength", "Water costs a stroke. Sand slows you down.", "9 random holes out of 50 courses. Beat par for bonus points"],
-    init() { const ids = ALL.map((_, i) => i); for (let i = ids.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [ids[i], ids[j]] = [ids[j], ids[i]]; } HOLES = ids.slice(0, 9).map((i) => ({ ...ALL[i], id: i + 1 })); card = [[], []]; player = 0; bumpFx = []; loadHole(0); },
+    init() { const ids = ALL.map((_, i) => i); for (let i = ids.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [ids[i], ids[j]] = [ids[j], ids[i]]; } const picked = ids.slice(0, 3).map((i) => ({ ...ALL[i], id: i + 1 })); for (let i = 0; i < 6; i++) picked.push({ ...genHole(), id: ALL.length + i + 1 }); for (let i = picked.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [picked[i], picked[j]] = [picked[j], picked[i]]; } HOLES = picked; card = [[], []]; player = 0; bumpFx = []; loadHole(0); },
     hud() {
       if (S.duo) return "HOLE " + (hi + 1) + "/9  ·  PLAYER " + (player + 1) + "'S TURN  ·  P1 " + sum(card[0]) + "  ·  P2 " + sum(card[1]);
       const diff = sum(card[0]) - parSoFar();
@@ -7862,9 +7913,32 @@ function bowlGame() {
     [4, "Portal Maze", () => [PT(100, 420, 260, 220), PT(260, 420, 100, 220), SP(180, 320, 50, 1.6)]],
     [4, "Chaos Lane", () => [SL(240, 56, 2), SP(180, 340, 46, -2.2), SM(180, 430, 36), B(110, 300, 12), B(250, 300, 12)]],
   ];
+  function genBowlLane() {
+    const r = Math.random, cx = 180;
+    const adj = ["Wild","Neon","Storm","Chaos","Blitz","Surge","Vortex","Hyper","Frenzy","Turbo","Drift","Zap","Craze","Flux","Rogue","Nitro","Warp","Blaze","Nova","Apex"];
+    const noun = ["Shot","Spin","Run","Zone","Lane","Wave","Rush","Blast","Path","Line","Trip","Roll","Arc","Flow","Track","Course","Ramp","Loop","Drop","Ride"];
+    const name = adj[r() * adj.length | 0] + " " + noun[r() * noun.length | 0];
+    const snap = [], n = 1 + (r() * 3 | 0);
+    const pool = ["bump","slide","spin","portal","wall","boost","slime"], used = new Set();
+    for (let i = 0; i < n; i++) {
+      let t; for (let tries = 0; tries < 8; tries++) { t = pool[r() * pool.length | 0]; if (!used.has(t)) break; } used.add(t);
+      if (t === "bump") snap.push(B(p(80 + r() * 200), p(200 + r() * 220), p(10 + r() * 16)));
+      else if (t === "slide") snap.push(SL(p(260 + r() * 120), p(44 + r() * 32), 1 + r() * 1.6, r() < .5 ? 0 : Math.PI));
+      else if (t === "spin") snap.push(SP(p(cx + r() * 80 - 40), p(240 + r() * 120), p(40 + r() * 28), (r() < .5 ? -1 : 1) * (1.4 + r() * 1.2)));
+      else if (t === "portal") snap.push(PT(p(90 + r() * 60), p(380 + r() * 60), p(220 + r() * 60), p(210 + r() * 60)));
+      else if (t === "wall") { snap.push(WL(62, p(240 + r() * 100), p(120 + r() * 60), p(300 + r() * 100))); snap.push(WL(298, p(240 + r() * 100), p(220 - r() * 60), p(300 + r() * 100))); }
+      else if (t === "boost") snap.push(BO(p(cx + r() * 80 - 40), p(350 + r() * 100)));
+      else snap.push(SM(p(cx + r() * 80 - 40), p(280 + r() * 120), p(30 + r() * 25)));
+    }
+    return [1, name, () => snap.map((o) => ({ ...o }))];
+  }
+  const p = (n) => n | 0;
   function newLane() {
-    const tier = S.practice ? 1 : Math.min(4, 1 + Math.floor(frame / 2.5)), pool = LANES.filter((l) => l[0] <= tier && (frame < 3 || l[0] >= tier - 1));
-    const pick = pool[Math.random() * pool.length | 0]; obs = pick[2](); laneName = pick[1];
+    const tier = S.practice ? 1 : Math.min(4, 1 + Math.floor(frame / 2.5));
+    let pick;
+    if (Math.random() < 0.6) { pick = genBowlLane(); }
+    else { const pool = LANES.filter((l) => l[0] <= tier && (frame < 3 || l[0] >= tier - 1)); pick = pool[Math.random() * pool.length | 0]; }
+    obs = pick[2](); laneName = pick[1];
     banner("FRAME " + (frame + 1) + " · " + laneName.toUpperCase(), "#ff2bd6");
   }
   const segHit = (o, x1, y1, x2, y2, th, obj, rad) => {
