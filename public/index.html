@@ -991,6 +991,59 @@ html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 @keyframes crate-card { from { transform: scale(.5) translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
 @media (max-width: 600px) { .shop-top { flex-direction: column; align-items: stretch; } .crate-box { font-size: 5rem; } }
 
+/* ---------- Pets 2.0: animated characters ---------- */
+.pet { transition: left .05s linear; }
+.pet-hit { pointer-events: auto; background: none; border: 0; padding: 0; cursor: pointer; -webkit-tap-highlight-color: transparent; }
+.pet-char { position: relative; width: 84px; height: 84px; display: grid; justify-items: center; align-items: end; animation: petBob 2.2s ease-in-out infinite; transform-origin: 50% 100%; }
+.pet-char.lg { width: 120px; height: 120px; }
+.pet-char.jump { animation: petJump .55s ease; }
+.pet-shadow { position: absolute; bottom: 0; left: 50%; width: 56px; height: 12px; transform: translateX(-50%); border-radius: 50%; background: rgba(0,0,0,.45); filter: blur(2px); }
+.pet-body { position: relative; width: 66px; height: 60px; margin-bottom: 8px; border-radius: 48% 48% 44% 44%; background: var(--pc, #888); box-shadow: inset 0 -8px 14px rgba(0,0,0,.35), inset 0 6px 10px rgba(255,255,255,.25), 0 0 18px rgba(255,214,107,.3); display: grid; place-items: center; overflow: hidden; }
+.pet-char.lg .pet-body { width: 96px; height: 86px; margin-bottom: 12px; }
+.pet-emo { font-size: 2.1rem; line-height: 1; filter: drop-shadow(0 2px 2px rgba(0,0,0,.4)); transition: transform .2s; }
+.pet-char.lg .pet-emo { font-size: 3rem; }
+.pet-lid { position: absolute; left: 0; right: 0; top: 0; height: 0; background: var(--pc, #888); opacity: .85; animation: petBlink 4.6s linear infinite; }
+@keyframes petBlink { 0%, 92%, 100% { height: 0; } 95% { height: 100%; } }
+.pet-moodb { position: absolute; top: 2px; right: 4px; font-size: .95rem; line-height: 1; filter: drop-shadow(0 0 3px #000); }
+.pet-feet { position: absolute; bottom: 4px; display: flex; gap: 18px; }
+.pet-feet i { display: block; width: 16px; height: 9px; border-radius: 50%; background: rgba(10,4,24,.9); box-shadow: 0 0 0 1px rgba(255,255,255,.15); }
+.pet.walk .pet-feet i:first-child { animation: petStep .4s ease-in-out infinite; }
+.pet.walk .pet-feet i:last-child { animation: petStep .4s ease-in-out .2s infinite; }
+@keyframes petStep { 50% { transform: translateY(-6px); } }
+.pet.flip .pet-char { transform: scaleX(-1); }
+.pet.flip .pet-moodb { transform: scaleX(-1); }
+.pet.flip .pet-bub, .pet.flip .pet-tag, .pet.flip .pet-home { transform: none; }
+.pet-char.mood-hungry { filter: saturate(.55); animation-duration: 3.4s; }
+.pet-char.mood-hungry .pet-body { transform: rotate(-6deg); }
+.pet-char.mood-happy .pet-body { box-shadow: inset 0 -8px 14px rgba(0,0,0,.35), inset 0 6px 10px rgba(255,255,255,.3), 0 0 26px rgba(255,214,107,.6); }
+.pet-char.mood-bored .pet-emo { transform: translateY(3px) rotate(-8deg); }
+.pet.hungry .pet-tag { border-color: #ff2bd6; }
+.pet-home { position: absolute; left: 0; bottom: 100px; width: min(280px, calc(100vw - 28px)); display: grid; gap: 8px; padding: 12px 14px; border-radius: 16px; background: var(--panel-solid); border: 1px solid rgba(var(--a1-rgb), .5); box-shadow: 0 0 30px rgba(var(--a1-rgb), .3), 0 20px 50px rgba(0,0,0,.6); pointer-events: auto; animation: crate-card .3s var(--ease); z-index: 2; }
+.pet-home-h { display: flex; align-items: center; gap: 8px; } .pet-home-h b { flex: 1; font-size: 1.05rem; }
+.pet-mood-line { margin: 0; font-size: .82rem; color: var(--fg); }
+.pet-bar { display: grid; grid-template-columns: 82px 1fr 36px; align-items: center; gap: 8px; font-size: .72rem; color: var(--muted); } .pet-bar small { text-align: right; font-family: var(--f-mono); }
+.pet-bar .w-bar { display: block; }
+.pet-home-b { display: flex; gap: 6px; flex-wrap: wrap; }
+.pet-home-tip { color: var(--dim); font-size: .68rem; line-height: 1.35; }
+.pet.open { z-index: 95; }
+@media (max-width: 700px) { .pet-home { bottom: 92px; } }
+/* ---------- Profile page ---------- */
+.prof-head { display: flex; gap: 20px; align-items: center; flex-wrap: wrap; padding: 18px 20px; border-radius: 18px; border: 1px solid rgba(var(--a1-rgb), .4); background: var(--panel-solid); margin-bottom: 16px; }
+.prof-av .av.lg { width: 84px; height: 84px; font-size: 2.6rem; }
+.prof-id { flex: 1; min-width: 200px; display: grid; gap: 6px; } .prof-id h3 { margin: 0; font-family: var(--f-sign); font-size: 1.6rem; }
+.prof-pet { display: grid; justify-items: center; gap: 2px; font-size: .78rem; color: var(--muted); } .prof-pet b { color: var(--fg); }
+.prof-stats { margin-bottom: 18px; }
+.prof-shelf { margin-bottom: 18px; }
+.shelf-grid { grid-template-columns: repeat(3, minmax(120px, 1fr)); }
+.shelf-slot { cursor: pointer; font: inherit; color: inherit; text-align: left; } .shelf-slot.empty { border-style: dashed; opacity: .75; }
+.shelf-slot .sw { display: grid; place-items: center; font-size: 1.4rem; color: var(--muted); }
+.shelf-pick { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: rgba(var(--a1-rgb), .06); border-left: 2px solid var(--a1); }
+.prof-two { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; margin-bottom: 18px; }
+.prof-fav { display: grid; gap: 6px; justify-items: start; } .prof-fav b { font-size: 1.2rem; }
+.shop-grid.one { grid-template-columns: minmax(150px, 260px); }
+.prof-actions { margin-top: 16px; }
+@media (max-width: 700px) { .prof-two { grid-template-columns: 1fr; } .shelf-grid { grid-template-columns: repeat(3, 1fr); } }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -1069,6 +1122,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <nav class="links" aria-label="Sections">
       <a href="#library">Library</a>
       <a href="#shop">🛒 Shop</a>
+      <a href="#profile">Profile</a>
       <a href="#two-player">2 Players</a>
       <a href="#tournament">Tournament</a>
       <a href="#online">Online</a>
@@ -1144,6 +1198,19 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
         </div>
       </div>
       <div id="shop-page"></div>
+    </div>
+  </section>
+
+  <section id="profile">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">You</p>
+          <h2>Player Profile</h2>
+          <p class="lede">Your level, stats, pet, favourite game, rarest item and a shelf to show off your best stuff.</p>
+        </div>
+      </div>
+      <div id="profile-page"></div>
     </div>
   </section>
 
@@ -1350,6 +1417,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <nav class="foot-links" aria-label="Footer">
       <a href="#library">Library</a>
       <a href="#shop">🛒 Shop</a>
+      <a href="#profile">Profile</a>
       <a href="#two-player">2 Players</a>
       <a href="#tournament">Tournament</a>
       <a href="#online">Online</a>
@@ -1968,6 +2036,7 @@ function SHELL() {
     audio();
     if (k === "m") { cycleSound(); return; }
     if (k === "p") { togglePause(); return; }
+    if (k === "Escape") { if (S.paused || S.state === "title" || S.state === "over") { try { parent.postMessage({ type: "gbl:close" }, "*"); } catch (_) {} } else togglePause(); return; }
     if (S.paused) { if (k === " " || k === "Enter") togglePause(); return; }
     if (S.state === "title" || S.state === "over") { if (window.TOUR0) { if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(false, true); return; } if (k === "c" && SAVED && G.load && S.state === "title" && !e.repeat && canStart()) start(false, false, true); else if (k === "e" && !e.repeat && canStart()) start(true); else if (k === "2" && !window.ONLINE0 && !e.repeat && canStart()) start(false, true); else if ((k === " " || k === "Enter" || DIRS[k]) && !e.repeat && canStart()) start(...again()); return; }
     if (S.state !== "play") return;
@@ -10339,22 +10408,68 @@ function fighterGame() {
   const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-lion": "🦁", "pet-owl": "🦉", "pet-koala": "🐨", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉", "pet-penguin": "🐧", "pet-bunny": "🐰", "pet-turtle": "🐢", "pet-shark": "🦈", "pet-panda": "🐼", "pet-dino": "🦕", "pet-alien": "👾", "pet-narwhal": "🦄", "pet-phoenix": "🔥", "pet-crab": "🦀", "pet-jelly": "🪼", "pet-ghost": "👻", "pet-pumpkin": "🎃", "pet-elf": "🧝", "pet-snowman": "⛄", "pet-chick": "🐣", "pet-easterbunny": "🐰", "pet-beachcrab": "🦀", "pet-raccoon": "🦝", "pet-jester": "🤡", "pet-unicorn": "🦄", "pet-inferno": "🐉", "pet-sunbird": "🔥", "pet-kraken": "🐙", "pet-wolf": "🐺", "pet-tiger": "🐯", "pet-trex": "🦖", "pet-reaper": "💀", "pet-reindeer": "🦌", "pet-mermaid": "🧜" };
   const PET_TALK = ["Let's play!", "You're awesome!", "Beat your high score!", "I'm hungry...", "*happy noises*", "Go go go!", "Best friends!", "Try a new game!"];
   const petLv = (id) => Math.min(10, Math.floor(Math.sqrt(stat("px_" + id) / 3)) + 1);
-  const petBonus = () => { const id = (prog.equip || {}).pet; return id && (prog.owned || []).includes(id) ? petLv(id) * .02 : 0; };
-  let petMsg = null; const petEl = el("div", { class: "pet", hidden: true }); document.body.append(petEl);
+  const petBonus = () => { const id = (prog.equip || {}).pet; return id && (prog.owned || []).includes(id) && petFedOk(id) ? petLv(id) * .02 : 0; };
+  let petMsg = null, petHome = false, petDir = 1, petX = 14, petPause = 0, petWalking = false;
+  const petEl = el("div", { class: "pet", hidden: true }); document.body.append(petEl);
+  const PET_FEED_COST = 15, HR = 36e5;
+  const petData = (id) => { prog.pets = prog.pets || {}; if (!prog.pets[id]) prog.pets[id] = { fed: Date.now() - 10 * HR, played: Date.now() - 6 * HR }; return prog.pets[id]; };
+  const hungerPct = (id) => Math.max(0, Math.min(100, Math.round(100 - (Date.now() - petData(id).fed) / (24 * HR) * 100)));
+  const happyPct = (id) => Math.max(0, Math.min(100, Math.round(100 - (Date.now() - petData(id).played) / (18 * HR) * 100)));
+  const petMood = (id) => { const h = hungerPct(id), p = happyPct(id); return h < 25 ? "hungry" : p < 25 ? "bored" : h > 60 && p > 60 ? "happy" : "ok"; };
+  const petFedOk = (id) => hungerPct(id) >= 25;
+  const petXpInfo = (id) => { const px = stat("px_" + id), lv = petLv(id), lo = 3 * (lv - 1) * (lv - 1), hi = 3 * lv * lv; return { lv, px, k: lv >= 10 ? 1 : Math.max(0, Math.min(1, (px - lo) / (hi - lo))), need: hi - px }; };
+  const MOOD_EMO = { happy: "😋", ok: "🙂", bored: "🥱", hungry: "😢" };
+  function petSay(t, ms) { petMsg = { t, until: Date.now() + (ms || 2400) }; renderPet(); clearTimeout(petEl._t); petEl._t = setTimeout(renderPet, (ms || 2400) + 100); }
+  function petGainXp(id, n) { const lv0 = petLv(id); prog.stats["px_" + id] = stat("px_" + id) + n; if (petLv(id) > lv0) { setTimeout(() => { coinPop(PET_EMO[id] + " Your pet grew to level " + petLv(id) + "!", true); if (window.gblConfetti) window.gblConfetti(90); renderPet(); }, 600); } }
+  function feedPet(id) {
+    if (hungerPct(id) >= 92) return petSay("I'm full! 😋 Maybe later");
+    if (coins() < PET_FEED_COST) return petSay("Need " + PET_FEED_COST + " ⚡ for a snack…");
+    spend("", PET_FEED_COST); const d = petData(id); d.fed = Math.min(Date.now(), d.fed + 10 * HR); if (Date.now() - d.fed > 24 * HR) d.fed = Date.now() - 2 * HR; petGainXp(id, 3); saveProg(); sfxHub(); if (window.gblConfetti) window.gblConfetti(30);
+    petSay(["Yum! 🍖", "Delicious! 😋", "*munch munch*", "More please? 🥺", "Thanks, best friend! 💛"][Math.random() * 5 | 0]); petJump();
+  }
+  function playPet(id) {
+    const d = petData(id), gap = Date.now() - d.played; d.played = Date.now(); if (gap > 10 * 60e3) petGainXp(id, 2); saveProg(); sfxHub(); petJump();
+    petSay(PET_TALK[Math.random() * PET_TALK.length | 0]);
+  }
+  function petJump() { const f = petEl.querySelector(".pet-char"); if (f) { f.classList.remove("jump"); void f.offsetWidth; f.classList.add("jump"); } }
+  function petCharEl(id, size) {
+    const it = SHOP.find((q) => q[0] === id), col = it ? it[4] : "#888", mood = petMood(id);
+    return el("div", { class: "pet-char mood-" + mood + (size ? " " + size : ""), style: "--pc:" + (col.startsWith("#") || col.startsWith("linear") ? col : "#888") },
+      el("div", { class: "pet-shadow" }),
+      el("div", { class: "pet-body" }, el("span", { class: "pet-emo", text: PET_EMO[id] }), el("span", { class: "pet-lid" }), el("span", { class: "pet-moodb", text: MOOD_EMO[mood] })),
+      el("div", { class: "pet-feet" }, el("i"), el("i")));
+  }
   var renderPet = function () {
     const id = (prog.equip || {}).pet; if (!id || !PET_EMO[id] || !(prog.owned || []).includes(id)) { petEl.hidden = true; return; }
-    const it = SHOP.find((q) => q[0] === id), lv = petLv(id), fed = prog.stats.petFed === todayKey();
-    petEl.hidden = false;
+    const it = SHOP.find((q) => q[0] === id), lv = petLv(id), mood = petMood(id), xi = petXpInfo(id);
+    petEl.hidden = false; petEl.style.left = petX + "px";
     const bub = el("div", { class: "pet-bub", hidden: !(petMsg && petMsg.until > Date.now()), text: petMsg ? petMsg.t : "" });
-    const face = el("button", { class: "pet-face", type: "button", "aria-label": "Pet " + it[2], text: PET_EMO[id], onclick: () => {
-      face.classList.remove("jump"); void face.offsetWidth; face.classList.add("jump"); sfxHub();
-      if (prog.stats.petFed !== todayKey()) { prog.stats.petFed = todayKey(); const c = 20 * lv; petMsg = { t: "Yum! Here's " + c + " ⚡ for you!", until: Date.now() + 2400 }; addCoinsNoXp(c); saveProg(); if (window.gblConfetti) window.gblConfetti(50); }
-      else petMsg = { t: PET_TALK[Math.random() * PET_TALK.length | 0], until: Date.now() + 2200 };
-      renderPet(); const f2 = petEl.querySelector(".pet-face"); if (f2) f2.classList.add("jump"); clearTimeout(petEl._t); petEl._t = setTimeout(renderPet, 2500);
-    } });
-    petEl.replaceChildren(bub, face, el("div", { class: "pet-tag" }, el("b", { text: it[2] }), el("small", { text: "LV " + lv + " · +" + Math.round(petBonus() * 100) + "% coins" + (fed ? "" : " · tap to feed!") })));
-    petEl.classList.toggle("hungry", !fed);
+    const face = el("button", { class: "pet-hit", type: "button", "aria-label": (petHome ? "Close " : "Open ") + it[2] + "'s home", "aria-expanded": String(petHome), onclick: () => { petHome = !petHome; if (petHome) { playPet(id); } else renderPet(); } }, petCharEl(id));
+    const bar = (label, pct, col) => el("div", { class: "pet-bar" }, el("span", { text: label }), el("span", { class: "w-bar big" }, el("i", { style: "width:" + Math.round(pct) + "%;background:" + col })), el("small", { text: Math.round(pct) + "%" }));
+    const home = petHome ? el("div", { class: "pet-home" },
+      el("div", { class: "pet-home-h" }, el("b", { text: it[2] }), el("span", { class: "rar rar-" + (it[7] || "c"), text: RAR_LABEL[it[7] || "c"] }), el("button", { class: "btn sm", type: "button", "aria-label": "Close", text: "✕", onclick: () => { petHome = false; renderPet(); } })),
+      el("p", { class: "pet-mood-line", text: MOOD_EMO[mood] + " " + ({ happy: "Feeling great! +" + Math.round(petBonus() * 100) + "% coins", ok: "Doing fine. +" + Math.round(petBonus() * 100) + "% coins", bored: "Bored… play with me!", hungry: "So hungry! No coin bonus until fed" })[mood] }),
+      bar("🍖 Hunger", hungerPct(id), "#ff8a1f"), bar("💛 Happy", happyPct(id), "#ffd66b"), bar("⭐ LV " + lv + (lv >= 10 ? " MAX" : " · " + xi.need + " XP to go"), xi.k * 100, "#3dffa8"),
+      el("div", { class: "pet-home-b" },
+        el("button", { class: "btn sm hot", type: "button", text: "Feed · " + PET_FEED_COST + " ⚡", onclick: () => feedPet(id) }),
+        el("button", { class: "btn sm", type: "button", text: "Play 🎾", onclick: () => playPet(id) }),
+        el("button", { class: "btn sm", type: "button", text: "Pets 🐾", onclick: () => { petHome = false; if (window.gblShopTab) window.gblShopTab("inv"); location.hash = "#shop"; renderPet(); } })),
+      el("small", { class: "pet-home-tip", text: "Pets get hungry over a day and bored over an afternoon. Fed pets boost your coins; XP comes from playing games, snacks and playtime." })) : null;
+    petEl.replaceChildren(bub, face, el("div", { class: "pet-tag" }, el("b", { text: it[2] }), el("small", { text: "LV " + lv + " · " + (mood === "hungry" ? "hungry! tap me" : mood === "bored" ? "bored · tap me" : "+" + Math.round(petBonus() * 100) + "% coins") })), home);
+    petEl.classList.toggle("hungry", mood === "hungry"); petEl.classList.toggle("open", petHome);
   };
+  /* The pet wanders along the bottom of the hub. */
+  setInterval(() => {
+    if (petEl.hidden || petHome || document.documentElement.classList.contains("playing")) return;
+    if (petPause > 0) { petPause--; if (petWalking) { petWalking = false; petEl.classList.remove("walk"); } return; }
+    const maxX = Math.max(14, Math.min(260, innerWidth - 150));
+    petX += petDir * .9; if (petX > maxX) { petX = maxX; petDir = -1; } if (petX < 14) { petX = 14; petDir = 1; }
+    if (Math.random() < .006) petPause = 40 + Math.random() * 60 | 0;
+    if (!petWalking) { petWalking = true; petEl.classList.add("walk"); }
+    petEl.style.left = petX + "px"; petEl.classList.toggle("flip", petDir < 0);
+  }, 50);
+  setTimeout(() => { const id = (prog.equip || {}).pet; if (id && (prog.owned || []).includes(id) && petMood(id) === "hungry") petSay("I'm hungry! Tap me 🍖", 4000); }, 2500);
+  window.gblPetChar = petCharEl; window.gblPetInfo = (id) => ({ mood: petMood(id), hunger: hungerPct(id), happy: happyPct(id), ...petXpInfo(id) });
   const cost = (n) => n === 0 ? 0 : Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
   const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"]];
@@ -10985,6 +11100,44 @@ function fighterGame() {
     toast("🎲 Surprise! Let's play " + g.title); play({ ...g, slot: i + 1 });
   }
   document.querySelectorAll("[data-surprise]").forEach((b2) => b2.addEventListener("click", pickSurprise));
+  /* ---------- Player profile page ---------- */
+  let shelfPick = null;
+  function renderProfile() {
+    const root = document.getElementById("profile-page"); if (!root) return;
+    const owned = prog.owned || [], eq = prog.equip || {}, xp = xpOf(), lv = levelOf(xp), k = Math.min(1, (xp - xpFor(lv)) / Math.max(1, xpFor(lv + 1) - xpFor(lv)));
+    const item = (id) => SHOP.find((it) => it[0] === id);
+    const tt = eq.title && item(eq.title);
+    const played = prog.played || {}, total = Object.values(played).reduce((a, b2) => a + (+b2 || 0), 0);
+    const favKey = Object.keys(played).sort((a, b2) => (played[b2] || 0) - (played[a] || 0))[0], favG = favKey && BUILTINS.find((b2) => b2.key === favKey);
+    const ownedItems = owned.map(item).filter(Boolean), rank = (it) => RANK_ORDER[it[7]] || 0;
+    const rarest = ownedItems.slice().sort((a, b2) => rank(b2) - rank(a) || cost(b2[3]) - cost(a[3]))[0];
+    const counts = { c: 0, r: 0, e: 0, l: 0 }; ownedItems.forEach((it) => { if (it[7]) counts[it[7]]++; });
+    const got = ACH.filter((a) => prog.ach[a[0]]).length;
+    const miniCard = (it, label) => it ? el("div", { class: "shop-item rk-" + (it[7] || "c") }, el("span", { class: "sw" + (it[1] === "title" ? " ttl" : it[1] === "pet" ? " petsw" : ""), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null }), el("b", { text: it[2] }), it[7] ? el("span", { class: "rar rar-" + it[7], text: RAR_LABEL[it[7]] }) : null, el("small", { text: label || it[5] })) : null;
+    const cell = (v, l) => el("div", { class: "pc-cell" }, el("b", { text: v }), el("small", { text: l }));
+    const header = el("div", { class: "prof-head" },
+      el("div", { class: "prof-av" + (eq.frame ? " fr-" + eq.frame.slice(3) : "") }, avEl(me ? me.av : null, "lg")),
+      el("div", { class: "prof-id" },
+        el("h3", { text: me ? me.username : "Guest player" }),
+        tt ? el("span", { class: "rew-title", style: "--tc:" + (tt[4].startsWith("#") ? tt[4] : "#ffd66b"), text: "🏷 " + tt[2] }) : el("small", { class: "set-note", text: "No title equipped — grab one in the shop" }),
+        el("div", { class: "rew-lv" }, el("b", { text: "LEVEL " + lv }), el("span", { class: "w-bar big" }, el("i", { style: "width:" + Math.round(k * 100) + "%" })), el("small", { text: fmt(xp - xpFor(lv)) + " / " + fmt(xpFor(lv + 1) - xpFor(lv)) + " XP" })),
+        me ? null : el("small", { class: "set-note", text: "Log in to keep your profile on every device." })),
+      eq.pet && owned.includes(eq.pet) ? el("div", { class: "prof-pet" }, window.gblPetChar(eq.pet, "lg"), el("b", { text: item(eq.pet)[2] }), el("small", { text: "LV " + petLv(eq.pet) + " · " + window.gblPetInfo(eq.pet).mood })) : null);
+    const stats = el("div", { class: "pc-grid prof-stats" }, cell("⚡ " + fmt(coins()), "Coins"), cell("$" + fmt(cash()), "Cash"), cell("💎 " + fmt(gems()), "Gems"), cell(fmt(total), "Games played"), cell(got + "/" + ACH.length, "Badges"), cell("🔥 " + stat("streak"), "Day streak"), cell(fmt(stat("maxScore")), "Best score"), cell("⭐ " + totalStars() + "/" + starMax, "Stars"), cell(String(owned.length), "Items"), cell("👑 " + counts.l, "Legendaries"), cell(String(stat("crates")), "Crates opened"), cell(String(stat("onlineWins")), "Online wins"));
+    const shelf = prog.shelf || [null, null, null];
+    const shelfEl = el("div", { class: "prof-shelf" }, el("p", { class: "eyebrow set-h2", text: "✨ Show-off shelf" }), el("p", { class: "set-note", text: "Pick your 3 proudest items. Tap a slot to change it." }),
+      el("div", { class: "shop-grid shelf-grid" }, ...shelf.map((id, i) => { const it = id && item(id); return el("button", { class: "shop-item shelf-slot" + (it ? " rk-" + (it[7] || "c") : " empty") + (shelfPick === i ? " on" : ""), type: "button", onclick: () => { shelfPick = shelfPick === i ? null : i; renderProfile(); } },
+        it ? el("span", { class: "sw" + (it[1] === "title" ? " ttl" : it[1] === "pet" ? " petsw" : ""), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null }) : el("span", { class: "sw", style: "background:rgba(255,255,255,.08)", text: "+" }),
+        el("b", { text: it ? it[2] : "Empty slot " + (i + 1) }), it && it[7] ? el("span", { class: "rar rar-" + it[7], text: RAR_LABEL[it[7]] }) : null); })),
+      shelfPick != null ? el("div", { class: "shelf-pick" }, el("p", { class: "set-note", text: "Choose an item for slot " + (shelfPick + 1) + ":" }), el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", text: "Clear slot", onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = null; prog.shelf = s2; shelfPick = null; saveProg(); renderProfile(); } }), ...ownedItems.filter((it) => it[1] !== "boost").sort((a, b2) => rank(b2) - rank(a)).map((it) => el("button", { class: "chip", type: "button", text: (it[1] === "pet" ? PET_EMO[it[0]] + " " : "") + it[2] + (it[7] === "l" ? " 👑" : ""), onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = it[0]; prog.shelf = s2; shelfPick = null; saveProg(); sfxHub(); renderProfile(); } })))) : null);
+    const favEl = el("div", { class: "prof-two" },
+      el("div", {}, el("p", { class: "eyebrow set-h2", text: "🎮 Favourite game" }), favG ? el("div", { class: "pcard prof-fav" }, el("b", { text: favG.title }), el("small", { text: fmt(played[favKey]) + " plays · best " + fmt(myBest(favKey) || 0) + " · " + "★".repeat(window.gblStars(favKey)) + "☆".repeat(3 - window.gblStars(favKey)) }), el("button", { class: "btn sm hot", type: "button", text: "Play", onclick: () => { const i = BUILTINS.indexOf(favG); play({ ...favG, slot: i + 1 }); } })) : el("p", { class: "set-note", text: "Play some games and your favourite shows up here." })),
+      el("div", {}, el("p", { class: "eyebrow set-h2", text: "💎 Rarest item" }), rarest ? el("div", { class: "shop-grid one" }, miniCard(rarest)) : el("p", { class: "set-note", text: "Nothing yet — open a crate!" })));
+    const loadout = el("div", {}, el("p", { class: "eyebrow set-h2", text: "🎒 Equipped loadout" }), el("div", { class: "shop-grid" }, ...[["pet", "Pet"], ["title", "Title"], ["music", "Music"], ["fx", "Sparks"], ["frame", "Frame"], ["filter", "Filter"]].map(([gk, l]) => { const it = eq[gk] === "mu-shuffle" ? ["mu-shuffle", "music", "🔀 Shuffle", 0, "linear-gradient(135deg,#ff2bd6,#22e4ff,#ffd66b)", "Random owned song", "", "e"] : eq[gk] && item(eq[gk]); return it ? miniCard(it, l) : el("div", { class: "shop-item empty" }, el("span", { class: "sw", style: "background:rgba(255,255,255,.08)" }), el("b", { text: l }), el("small", { text: "Nothing equipped" })); })));
+    const share = el("button", { class: "btn sm", type: "button", text: "📋 Copy profile card", onclick: () => { const t = (me ? me.username : "Guest") + " · LV " + lv + (tt ? " · " + tt[2] : "") + " · ⭐ " + totalStars() + "/" + starMax + " · " + owned.length + " items (" + counts.l + " legendary)" + (favG ? " · fav: " + favG.title : "") + " — Games by Levi"; try { navigator.clipboard.writeText(t); toast("Copied!"); } catch { toast(t); } } });
+    root.replaceChildren(header, stats, shelfEl, favEl, loadout, el("div", { class: "prof-actions" }, share));
+  }
+  window.gblProfileShown = (on) => { if (on) renderProfile(); };
   function renderPCard() {
     const box = $("#pcard"); if (!box) return;
     const xp = xpOf(), total = Object.values(prog.played || {}).reduce((a, b2) => a + (+b2 || 0), 0), got = ACH.filter((a) => prog.ach[a[0]]).length;
@@ -11308,7 +11461,7 @@ function fighterGame() {
 (() => {
   const home = document.getElementById("home"), hub = document.getElementById("hub");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const HUB = ["games", "library", "shop", "two-player", "tournament", "online", "leaderboards", "badges", "admin", "submit", "queue"];
+  const HUB = ["games", "library", "shop", "profile", "two-player", "tournament", "online", "leaderboards", "badges", "admin", "submit", "queue"];
   let inHub = false;
   const setHash = (h) => { try { history.pushState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) {} };
   function showHub(target, animate) {
@@ -11343,6 +11496,7 @@ function fighterGame() {
     const id = ids.includes(target) ? target : "library";
     secs.forEach((s0) => s0.classList.toggle("page-off", s0.id !== id));
     if (window.gblShopShown) window.gblShopShown(id === "shop");
+    if (window.gblProfileShown) window.gblProfileShown(id === "profile");
     document.querySelectorAll('.links a, .foot-links a').forEach((a) => { const on = a.getAttribute("href") === "#" + id; a.classList.toggle("on", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     window.scrollTo(0, 0);
   }
