@@ -934,7 +934,7 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 #modal { touch-action: none; overscroll-behavior: contain; }
 html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 /* Touch screens: built-in games fill the whole screen (the close button is in the game's own bar) */
-@media (pointer: coarse) { #modal.shell-game .cab-bar { display: none; } #modal.shell-game { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); } #modal.shell-game .cabinet { width: 100%; height: 100%; max-height: none; border-radius: 0; border-width: 0; } #modal.shell-game .frame-box { aspect-ratio: auto; flex: 1; max-height: none; min-height: 0; } }
+@media (pointer: coarse), (any-pointer: coarse) { #modal.shell-game .cab-bar { display: none; } #modal.shell-game { padding: env(safe-area-inset-top, 0px) env(safe-area-inset-right, 0px) env(safe-area-inset-bottom, 0px) env(safe-area-inset-left, 0px); } #modal.shell-game .cabinet { width: 100%; height: 100%; max-height: none; border-radius: 0; border-width: 0; } #modal.shell-game .frame-box { aspect-ratio: auto; flex: 1; max-height: none; min-height: 0; } }
 /* Phones: a slim title bar so the game gets more of the screen */
 @media (pointer: coarse) and (max-width: 700px), (pointer: coarse) and (max-height: 540px) {
   #modal .cab-bar { padding: 5px 10px !important; gap: 8px; flex-wrap: nowrap; }
@@ -1612,7 +1612,7 @@ function SHELL() {
     x.globalCompositeOperation = "source-over"; glow(c, 22); x.fillStyle = "#ffffff"; x.fillText(s, X, Y); glow(); x.restore();
   }
   const SKN = window.SKIN0 || {};
-  const FXC = { "fx-rainbow": () => "hsl(" + Math.floor(Math.random() * 360) + ",100%,62%)", "fx-gold": () => ["#ffd66b", "#ffc23d", "#fff3c4"][Math.random() * 3 | 0], "fx-ice": () => ["#bff6ff", "#6af7ff", "#ffffff"][Math.random() * 3 | 0], "fx-diamond": () => ["#ffffff", "#e6fdff", "#9ff3ff", "#ffd0f6"][Math.random() * 4 | 0], "fx-fire": () => ["#ff2e4d", "#ff8a1f", "#ffd66b"][Math.random() * 3 | 0] }[SKN.fx];
+  const FXC = { "fx-rainbow": () => "hsl(" + Math.floor(Math.random() * 360) + ",100%,62%)", "fx-gold": () => ["#ffd66b", "#ffc23d", "#fff3c4"][Math.random() * 3 | 0], "fx-ice": () => ["#bff6ff", "#6af7ff", "#ffffff"][Math.random() * 3 | 0], "fx-diamond": () => ["#ffffff", "#e6fdff", "#9ff3ff", "#ffd0f6"][Math.random() * 4 | 0], "fx-fire": () => ["#ff2e4d", "#ff8a1f", "#ffd66b"][Math.random() * 3 | 0], "fx-hearts": () => ["#ff7be6", "#ff2bd6", "#ffc4f2"][Math.random() * 3 | 0], "fx-iceburst": () => ["#22e4ff", "#ffffff", "#bff6ff"][Math.random() * 3 | 0], "fx-goldshower": () => ["#ffd66b", "#ffc23d", "#ffffff"][Math.random() * 3 | 0], "fx-rainbowpop": () => "hsl(" + Math.floor(Math.random() * 360) + ",100%,65%)", "fx-legendary": () => ["#ffd66b", "#ffffff", "#ff2bd6", "#22e4ff"][Math.random() * 4 | 0], "fx-cosmos": () => ["#a35bff", "#22e4ff", "#ffffff", "#ff7be6"][Math.random() * 4 | 0], "fx-supernova": () => ["#ffffff", "#ffd66b", "#ff2e4d", "#ff8a1f"][Math.random() * 4 | 0] }[SKN.fx];
   function burst(X, Y, c, n, sp, life, size, ang, spread, g) {
     n = n || 14; sp = sp || 200; life = life || .6; size = size || 3;
     for (let i = 0; i < n; i++) {
@@ -1684,7 +1684,7 @@ function SHELL() {
   }
 
   /* ----- lifecycle ----- */
-  function fit() { if (!G) return; const edge = innerWidth < 700 || matchMedia("(pointer: coarse)").matches ? 4 : 12; const k = Math.min((innerWidth - edge - (S.padW || 0)) / G.w, (innerHeight - 30 - edge - (S.padRoom || 0)) / G.h); cv.style.width = G.w * k + "px"; cv.style.height = G.h * k + "px"; }
+  function fit() { if (!G) return; const edge = innerWidth < 700 || matchMedia("(any-pointer: coarse)").matches ? 4 : 12; const hudEl = document.getElementById("hud"), top = (hudEl ? hudEl.offsetHeight : 28) + 2; const vw = document.documentElement.clientWidth || innerWidth, vh = document.documentElement.clientHeight || innerHeight; const k = Math.min((vw - edge - (S.padW || 0)) / G.w, (vh - top - edge - (S.padRoom || 0)) / G.h); cv.style.width = G.w * k + "px"; cv.style.height = G.h * k + "px"; }
   function setup() {
     dpr = Math.min(window.devicePixelRatio || 1, 2);
     cv.width = Math.round(G.w * dpr); cv.height = Math.round(G.h * dpr);
@@ -1699,7 +1699,7 @@ function SHELL() {
     cv.style.borderColor = G.color + "66"; cv.style.boxShadow = "0 0 40px " + G.color + "40";
     if (SKN.frame === "fr-fire") { cv.style.borderColor = "#ff8a1f"; cv.style.boxShadow = "0 0 50px rgba(255,80,30,.75), inset 0 0 0 2px #ff2e4d"; }
     if (SKN.frame === "fr-gold") { cv.style.borderColor = "#ffd66b"; cv.style.boxShadow = "0 0 46px rgba(255,214,107,.7), inset 0 0 0 2px #ffd66b"; }
-    const FL = { "fl-noir": "grayscale(1) contrast(1.25)", "fl-sunset": "sepia(.45) saturate(1.7) hue-rotate(-18deg)", "fl-flip": "invert(1) hue-rotate(180deg)", "fl-neon": "saturate(1.9) contrast(1.12)", "fl-matrix": "grayscale(1) sepia(1) hue-rotate(70deg) saturate(3)", "fl-dream": "hue-rotate(95deg) saturate(1.4)" }[SKN.filter]; if (FL) cv.style.filter = FL;
+    const FL = { "fl-noir": "grayscale(1) contrast(1.25)", "fl-sunset": "sepia(.45) saturate(1.7) hue-rotate(-18deg)", "fl-flip": "invert(1) hue-rotate(180deg)", "fl-neon": "saturate(1.9) contrast(1.12)", "fl-matrix": "grayscale(1) sepia(1) hue-rotate(70deg) saturate(3)", "fl-dream": "hue-rotate(95deg) saturate(1.4)", "fl-hologram": "hue-rotate(160deg) saturate(2.1) contrast(1.08) brightness(1.08)" }[SKN.filter]; if (FL) cv.style.filter = FL;
     if (G.cursor) cv.style.cursor = G.cursor;
     document.documentElement.style.setProperty("--c", G.color);
     fit(); G.init(); requestAnimationFrame(loop);
@@ -1870,6 +1870,7 @@ function SHELL() {
     x.setTransform(1, 0, 0, 1, 0, 0); if (SET0.crt !== false) x.drawImage(ov, 0, 0);
     hud(); music();
     if (SKN.frame === "fr-diamond") { const k = .5 + .5 * Math.sin(S.clock * 3); cv.style.borderColor = "rgba(230,253,255," + (.6 + .4 * k) + ")"; cv.style.boxShadow = "0 0 " + (30 + 30 * k) + "px rgba(159,243,255,.75), inset 0 0 0 2px #ffffff"; }
+    if (SKN.frame === "fr-cosmic") { const h = 240 + Math.sin(S.clock * 1.5) * 50, k = .5 + .5 * Math.sin(S.clock * 2); cv.style.borderColor = "hsl(" + h + ",100%,70%)"; cv.style.boxShadow = "0 0 " + (34 + 26 * k) + "px hsla(" + h + ",100%,65%,.7), 0 0 90px rgba(34,228,255,.25), inset 0 0 0 2px #ffffff"; }
     if (SKN.frame === "fr-rainbow") { const h = Math.floor(S.clock * 90) % 360; cv.style.borderColor = "hsl(" + h + ",100%,60%)"; cv.style.boxShadow = "0 0 46px hsla(" + h + ",100%,60%,.6)"; }
     const menu = (S.state === "title" || (S.state === "over" && !window.TOUR0)) && performance.now() - S.overAt > 700;
     const showGo = S.paused || menu;
@@ -1905,7 +1906,7 @@ function SHELL() {
   onTap(pzBtn, (e) => { e.stopPropagation(); togglePause(); });
   // On touch screens the game fills the screen, so its own bar has the close button.
   const xqBtn = document.getElementById("xq");
-  if (xqBtn && matchMedia("(pointer: coarse)").matches) { xqBtn.hidden = false; onTap(xqBtn, (e) => { e.stopPropagation(); try { parent.postMessage({ type: "gbl:close" }, "*"); } catch (_) {} }); }
+  if (xqBtn) { xqBtn.hidden = false; onTap(xqBtn, (e) => { e.stopPropagation(); try { parent.postMessage({ type: "gbl:close" }, "*"); } catch (_) {} }); }
   addEventListener("keydown", (e) => {
     const k = keyOf(e);
     if (k.startsWith("Arrow") || k === " ") e.preventDefault();
@@ -9044,7 +9045,9 @@ function fighterGame() {
     "#duo{font:800 13px Orbitron,system-ui,sans-serif;letter-spacing:.18em;color:#ff7be6;background:rgba(10,4,24,.85);border:2px solid rgba(255,43,214,.6);border-radius:999px;padding:14px 26px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 14px rgba(255,43,214,.35)}" +
     "#go{font:800 15px Orbitron,system-ui,sans-serif;letter-spacing:.2em;color:#fff;background:rgba(10,4,24,.85);border:2px solid var(--c,#22e4ff);border-radius:999px;padding:14px 34px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 24px var(--c,#22e4ff),inset 0 0 14px rgba(255,255,255,.08);text-shadow:0 0 10px var(--c,#22e4ff)}" +
     "#go:active{transform:scale(.96)}#cont{font:800 14px Orbitron,system-ui,sans-serif;letter-spacing:.14em;color:#ffd66b;background:rgba(10,4,24,.85);border:2px solid #ffd66b;border-radius:999px;padding:14px 26px;cursor:pointer;touch-action:manipulation;box-shadow:0 0 22px rgba(255,214,107,.6);text-shadow:0 0 10px #ffd66b}#cont[hidden]{display:none}" +
-    "@media(max-width:520px){#hc{display:none}}";
+    "@media(max-width:520px){#hc{display:none}}" +
+    "@media(any-pointer:coarse){#hud{height:40px;font-size:13px;padding:0 10px}#wrap{inset:42px 0 0}#ctl{gap:8px}#ctl button{font-size:14px;padding:6px 12px;border-radius:6px}#ctl #xq{font-size:17px;padding:6px 16px}}" +
+    "html,body{position:fixed;inset:0;width:100%}";
   function buildGame(g, opts) {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
@@ -9972,142 +9975,142 @@ function fighterGame() {
 
   /* ---------- Rewards: coins, levels, daily missions, spin wheel, shop ---------- */
   const SHOP = [
-    ["sl-pink", "slither", "Bubblegum", 200, "#ff2bd6", "Pink snake for Neon Slither"],
-    ["sl-lime", "slither", "Toxic", 250, "#b6ff3b", "Lime snake for Neon Slither"],
-    ["sl-gold", "slither", "Golden", 500, "#ffc23d", "Shiny gold snake for Neon Slither"],
-    ["sl-fire", "slither", "Inferno", 750, "linear-gradient(90deg,#ff2e4d,#ff8a1f,#ffd66b)", "Burning flame colors"],
-    ["sl-galaxy", "slither", "Galaxy", 880, "linear-gradient(90deg,#a35bff,#ff7be6,#22e4ff)", "Swirling space colors"],
-    ["sl-pumpkin", "slither", "🎃 Pumpkin (event)", 380, "repeating-linear-gradient(90deg,#ff8a1f 0 12px,#1a0b24 12px 20px)", "Hiss-O-Ween only, until Oct 31"],
-    ["sl-rainbow", "slither", "Rainbow", 1250, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Every color, always moving"],
-    ["sn-ice", "snake", "Ice", 300, "#6af7ff", "Frozen blue Neon Snake"],
-    ["sn-gold", "snake", "Golden", 380, "#ffc23d", "Gold Neon Snake"],
-    ["sn-fire", "snake", "Inferno", 550, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Neon Snake on fire"],
-    ["sn-ghost", "snake", "Ghost", 650, "rgba(255,255,255,.5)", "See-through spooky snake"],
-    ["sn-rainbow", "snake", "Rainbow", 1000, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow Neon Snake"],
-    ["fx-ice", "fx", "Ice Sparks", 380, "linear-gradient(90deg,#bff6ff,#6af7ff)", "Every explosion turns icy blue, in all games"],
-    ["fx-gold", "fx", "Gold Sparks", 450, "linear-gradient(90deg,#ffd66b,#ffc23d)", "Golden sparks in all games"],
-    ["fx-rainbow", "fx", "Rainbow Sparks", 620, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow explosions in all games"],
-    ["fr-gold", "frame", "Gold Frame", 500, "#ffd66b", "A shining gold border around every game"],
-    ["fr-rainbow", "frame", "Rainbow Frame", 880, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-cycling border around every game"],
-    ["fl-noir", "filter", "Noir", 300, "linear-gradient(90deg,#222,#ddd)", "Black-and-white movie look"],
-    ["fl-sunset", "filter", "Sunset", 380, "linear-gradient(90deg,#ff8a1f,#ff2e88)", "Warm golden-hour colors"],
-    ["fl-flip", "filter", "Upside-Down Colors", 500, "linear-gradient(90deg,#00d4ff,#ff2bd6)", "Flip every color. Weird and fun!"],
-    ["fp-blue", "flap", "Blue Jay", 250, "#22e4ff", "A blue bird for Neon Flap"],
-    ["fp-pink", "flap", "Flamingo", 300, "#ff2bd6", "A pink bird for Neon Flap"],
-    ["fp-gold", "flap", "Golden Bird", 500, "#ffd66b", "A golden bird for Neon Flap"],
-    ["bl-lime", "blaster", "Toxic Ship", 300, "#b6ff3b", "A lime ship for Star Blaster"],
-    ["bl-pink", "blaster", "Pink Viper", 300, "#ff2bd6", "A pink ship for Star Blaster"],
-    ["bl-gold", "blaster", "Gold Falcon", 550, "#ffd66b", "A golden ship for Star Blaster"],
-    ["hp-pink", "hop", "Bubblegum", 250, "#ff2bd6", "A pink blob for Sky Hop"],
-    ["hp-cyan", "hop", "Frost", 250, "#22e4ff", "A blue blob for Sky Hop"],
-    ["hp-gold", "hop", "Golden", 500, "#ffd66b", "A golden blob for Sky Hop"],
-    ["gf-pink", "golf", "Pink Ball", 200, "#ff7be6", "A pink ball for Mini Golf"],
-    ["gf-gold", "golf", "Gold Ball", 380, "#ffd66b", "A golden ball for Mini Golf"],
-    ["gf-rainbow", "golf", "Rainbow Ball", 620, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing ball for Mini Golf"],
-    ["hb-blue", "hoops", "Ice Ball", 250, "#22e4ff", "A blue basketball for Hoop Shot"],
-    ["hb-gold", "hoops", "Gold Ball", 450, "#ffd66b", "A golden basketball for Hoop Shot"],
-    ["hb-rainbow", "hoops", "Rainbow Ball", 750, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing basketball for Hoop Shot"],
-    ["b-2x", "boost", "2× Coins (1 hour)", 75, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "Double coins from every game for 1 hour", "$"],
-    ["b-spin", "boost", "Extra Spin", 60, "conic-gradient(#22e4ff,#ff2bd6,#b6ff3b,#ffc23d,#22e4ff)", "One more spin on the wheel right now", "$"],
-    ["b-box", "boost", "Mystery Box", 30, "linear-gradient(135deg,#a35bff,#ff2bd6)", "Coins, dollars or diamonds inside!", "$"],
-    ["b-xp", "boost", "XP Potion", 4, "linear-gradient(135deg,#3dffa8,#22e4ff)", "+400 XP to level up faster", "d"],
-    ["b-mega", "boost", "Mega Chest", 10, "linear-gradient(135deg,#9ff3ff,#ffffff)", "1,000 coins and $50", "d"],
-    ["t-rookie", "title", "Rookie", 15, "#3dffa8", "Show off the title Rookie", "$"],
-    ["t-pro", "title", "Pro Gamer", 90, "#22e4ff", "Show off the title Pro Gamer", "$"],
-    ["t-snake", "title", "Snake King", 120, "#b6ff3b", "Show off the title Snake King", "$"],
-    ["t-speed", "title", "Speed Demon", 150, "#ff4d6d", "Show off the title Speed Demon", "$"],
-    ["t-brain", "title", "Big Brain", 180, "#a35bff", "Show off the title Big Brain", "$"],
-    ["t-legend", "title", "Legend", 20, "#ffd66b", "Show off the title Legend", "d"],
-    ["t-hacker", "title", "Hacker", 40, "#00ff88", "Show off the title Hacker", "d"],
-    ["pet-cat", "pet", "Neon Cat", 30, "#ff2bd6", "A purring pixel kitty", "$"],
-    ["pet-dog", "pet", "Laser Pup", 30, "#22e4ff", "A loyal glowing puppy", "$"],
-    ["pet-fox", "pet", "Glitch Fox", 60, "#ff8a1f", "A sneaky speedy fox", "$"],
-    ["pet-bot", "pet", "Mini Bot", 6, "#3dffa8", "A tiny helper robot", "d"],
-    ["pet-uni", "pet", "Rainbow Unicorn", 15, "linear-gradient(90deg,#ff2bd6,#ffd66b,#22e4ff)", "Magical and sparkly", "d"],
-    ["pet-dragon", "pet", "Neon Dragon", 30, "linear-gradient(90deg,#a35bff,#ff2bd6)", "The coolest pet in the hub", "d"],
-    ["t-lv5", "title", "Up-and-Comer", 5, "#b6ff3b", "Reach level 5 on the Level Road", "lv"],
-    ["t-lv10", "title", "Arcade Ace", 10, "#22e4ff", "Reach level 10 on the Level Road", "lv"],
-    ["t-lv20", "title", "Neon Knight", 20, "#ff2bd6", "Reach level 20 on the Level Road", "lv"],
-    ["t-lv30", "title", "Pixel Master", 30, "#a35bff", "Reach level 30 on the Level Road", "lv"],
-    ["t-lv40", "title", "Hub Hero", 40, "#ff8a1f", "Reach level 40 on the Level Road", "lv"],
-    ["t-lv50", "title", "Living Legend 👑", 50, "linear-gradient(90deg,#ffd66b,#ff2bd6,#22e4ff)", "Reach level 50 on the Level Road", "lv"],
-    ["t-goat", "title", "The GOAT 🐐", 100, "linear-gradient(90deg,#ffd66b,#ffffff,#9ff3ff)", "The best title in the hub", "d"],
-    ["fx-fire", "fx", "Fire Sparks", 60, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Fiery explosions in all games", "$"],
-    ["fx-diamond", "fx", "Diamond Sparks", 10, "linear-gradient(90deg,#ffffff,#9ff3ff,#ffd0f6)", "Sparkling diamond explosions in all games", "d"],
-    ["fr-fire", "frame", "Fire Frame", 105, "linear-gradient(90deg,#ff2e4d,#ff8a1f)", "A blazing border around every game", "$"],
-    ["fr-diamond", "frame", "Diamond Frame", 16, "linear-gradient(90deg,#ffffff,#9ff3ff)", "A twinkling diamond border", "d"],
-    ["fl-neon", "filter", "Super Neon", 45, "linear-gradient(90deg,#ff00e1,#00fff0)", "Extra bright and colorful", "$"],
-    ["fl-matrix", "filter", "Matrix", 75, "linear-gradient(90deg,#002b12,#00ff88)", "Green hacker vision", "$"],
-    ["fl-dream", "filter", "Dream World", 90, "linear-gradient(90deg,#3dffa8,#a35bff)", "Colors from another world", "$"],
-    ["bk-fire", "bricks", "Fire Paddle", 250, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "A fiery paddle for Neon Bricks"],
-    ["bk-lime", "bricks", "Toxic Paddle", 250, "linear-gradient(90deg,#3dffa8,#b6ff3b)", "A green paddle for Neon Bricks"],
-    ["bk-gold", "bricks", "Gold Paddle", 60, "linear-gradient(90deg,#ff8a1f,#ffd66b)", "A golden paddle for Neon Bricks", "$"],
-    ["bk-diamond", "bricks", "Diamond Paddle", 8, "linear-gradient(90deg,#9ff3ff,#ffffff)", "A diamond paddle for Neon Bricks", "d"],
-    ["rn-pink", "runner", "Pink Cube", 200, "#ff2bd6", "A pink cube for the runner"],
-    ["rn-lime", "runner", "Lime Cube", 200, "#b6ff3b", "A lime cube for the runner"],
-    ["rn-gold", "runner", "Gold Cube", 45, "#ffd66b", "A golden cube for the runner", "$"],
-    ["rn-rainbow", "runner", "Rainbow Cube", 6, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing cube", "d"],
-    ["rc-pink", "racer", "Pink Racer", 300, "#ff2bd6", "A pink car for the racer"],
-    ["rc-lime", "racer", "Lime Racer", 300, "#b6ff3b", "A lime car for the racer"],
-    ["rc-gold", "racer", "Gold Racer", 75, "#ffd66b", "A golden car for the racer", "$"],
-    ["rc-rainbow", "racer", "Rainbow Racer", 8, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing car", "d"],
-    ["dr-pink", "drift", "Pink Drifter", 250, "#ff2bd6", "A pink car for the drift game"],
-    ["dr-lime", "drift", "Lime Drifter", 250, "#b6ff3b", "A lime car for the drift game"],
-    ["dr-gold", "drift", "Gold Drifter", 60, "#ffd66b", "A golden car for the drift game", "$"],
-    ["vd-pink", "void", "Pink Fighter", 250, "#ff2bd6", "A pink ship for the space shooter"],
-    ["vd-lime", "void", "Lime Fighter", 250, "#b6ff3b", "A lime ship for the space shooter"],
-    ["vd-gold", "void", "Gold Fighter", 60, "#ffd66b", "A golden ship for the space shooter", "$"],
+    ["sl-pink", "slither", "Bubblegum", 200, "#ff2bd6", "Pink snake for Neon Slither", "", "r"],
+    ["sl-lime", "slither", "Toxic", 250, "#b6ff3b", "Lime snake for Neon Slither", "", "r"],
+    ["sl-gold", "slither", "Golden", 500, "#ffc23d", "Shiny gold snake for Neon Slither", "", "r"],
+    ["sl-fire", "slither", "Inferno", 750, "linear-gradient(90deg,#ff2e4d,#ff8a1f,#ffd66b)", "Burning flame colors", "", "e"],
+    ["sl-galaxy", "slither", "Galaxy", 880, "linear-gradient(90deg,#a35bff,#ff7be6,#22e4ff)", "Swirling space colors", "", "e"],
+    ["sl-pumpkin", "slither", "🎃 Pumpkin (event)", 380, "repeating-linear-gradient(90deg,#ff8a1f 0 12px,#1a0b24 12px 20px)", "Hiss-O-Ween only, until Oct 31", "", "r"],
+    ["sl-rainbow", "slither", "Rainbow", 1250, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Every color, always moving", "", "e"],
+    ["sn-ice", "snake", "Ice", 300, "#6af7ff", "Frozen blue Neon Snake", "", "r"],
+    ["sn-gold", "snake", "Golden", 380, "#ffc23d", "Gold Neon Snake", "", "r"],
+    ["sn-fire", "snake", "Inferno", 550, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Neon Snake on fire", "", "r"],
+    ["sn-ghost", "snake", "Ghost", 650, "rgba(255,255,255,.5)", "See-through spooky snake", "", "e"],
+    ["sn-rainbow", "snake", "Rainbow", 1000, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow Neon Snake", "", "e"],
+    ["fx-ice", "fx", "Ice Sparks", 380, "linear-gradient(90deg,#bff6ff,#6af7ff)", "Every explosion turns icy blue, in all games", "", "r"],
+    ["fx-gold", "fx", "Gold Sparks", 450, "linear-gradient(90deg,#ffd66b,#ffc23d)", "Golden sparks in all games", "", "r"],
+    ["fx-rainbow", "fx", "Rainbow Sparks", 620, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Rainbow explosions in all games", "", "e"],
+    ["fr-gold", "frame", "Gold Frame", 500, "#ffd66b", "A shining gold border around every game", "", "r"],
+    ["fr-rainbow", "frame", "Rainbow Frame", 880, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-cycling border around every game", "", "e"],
+    ["fl-noir", "filter", "Noir", 300, "linear-gradient(90deg,#222,#ddd)", "Black-and-white movie look", "", "r"],
+    ["fl-sunset", "filter", "Sunset", 380, "linear-gradient(90deg,#ff8a1f,#ff2e88)", "Warm golden-hour colors", "", "r"],
+    ["fl-flip", "filter", "Upside-Down Colors", 500, "linear-gradient(90deg,#00d4ff,#ff2bd6)", "Flip every color. Weird and fun!", "", "r"],
+    ["fp-blue", "flap", "Blue Jay", 250, "#22e4ff", "A blue bird for Neon Flap", "", "r"],
+    ["fp-pink", "flap", "Flamingo", 300, "#ff2bd6", "A pink bird for Neon Flap", "", "r"],
+    ["fp-gold", "flap", "Golden Bird", 500, "#ffd66b", "A golden bird for Neon Flap", "", "r"],
+    ["bl-lime", "blaster", "Toxic Ship", 300, "#b6ff3b", "A lime ship for Star Blaster", "", "r"],
+    ["bl-pink", "blaster", "Pink Viper", 300, "#ff2bd6", "A pink ship for Star Blaster", "", "r"],
+    ["bl-gold", "blaster", "Gold Falcon", 550, "#ffd66b", "A golden ship for Star Blaster", "", "r"],
+    ["hp-pink", "hop", "Bubblegum", 250, "#ff2bd6", "A pink blob for Sky Hop", "", "r"],
+    ["hp-cyan", "hop", "Frost", 250, "#22e4ff", "A blue blob for Sky Hop", "", "r"],
+    ["hp-gold", "hop", "Golden", 500, "#ffd66b", "A golden blob for Sky Hop", "", "r"],
+    ["gf-pink", "golf", "Pink Ball", 200, "#ff7be6", "A pink ball for Mini Golf", "", "r"],
+    ["gf-gold", "golf", "Gold Ball", 380, "#ffd66b", "A golden ball for Mini Golf", "", "r"],
+    ["gf-rainbow", "golf", "Rainbow Ball", 620, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing ball for Mini Golf", "", "e"],
+    ["hb-blue", "hoops", "Ice Ball", 250, "#22e4ff", "A blue basketball for Hoop Shot", "", "r"],
+    ["hb-gold", "hoops", "Gold Ball", 450, "#ffd66b", "A golden basketball for Hoop Shot", "", "r"],
+    ["hb-rainbow", "hoops", "Rainbow Ball", 750, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing basketball for Hoop Shot", "", "e"],
+    ["b-2x", "boost", "2× Coins (1 hour)", 75, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "Double coins from every game for 1 hour", "$", "r"],
+    ["b-spin", "boost", "Extra Spin", 60, "conic-gradient(#22e4ff,#ff2bd6,#b6ff3b,#ffc23d,#22e4ff)", "One more spin on the wheel right now", "$", "r"],
+    ["b-box", "boost", "Mystery Box", 30, "linear-gradient(135deg,#a35bff,#ff2bd6)", "Coins, dollars or diamonds inside!", "$", "r"],
+    ["b-xp", "boost", "XP Potion", 4, "linear-gradient(135deg,#3dffa8,#22e4ff)", "+400 XP to level up faster", "d", "r"],
+    ["b-mega", "boost", "Mega Chest", 10, "linear-gradient(135deg,#9ff3ff,#ffffff)", "1,000 coins and $50", "d", "r"],
+    ["t-rookie", "title", "Rookie", 15, "#3dffa8", "Show off the title Rookie", "$", "r"],
+    ["t-pro", "title", "Pro Gamer", 90, "#22e4ff", "Show off the title Pro Gamer", "$", "e"],
+    ["t-snake", "title", "Snake King", 120, "#b6ff3b", "Show off the title Snake King", "$", "l"],
+    ["t-speed", "title", "Speed Demon", 150, "#ff4d6d", "Show off the title Speed Demon", "$", "l"],
+    ["t-brain", "title", "Big Brain", 180, "#a35bff", "Show off the title Big Brain", "$", "l"],
+    ["t-legend", "title", "Legend", 20, "#ffd66b", "Show off the title Legend", "d", "e"],
+    ["t-hacker", "title", "Hacker", 40, "#00ff88", "Show off the title Hacker", "d", "l"],
+    ["pet-cat", "pet", "Neon Cat", 30, "#ff2bd6", "A purring pixel kitty", "$", "r"],
+    ["pet-dog", "pet", "Laser Pup", 30, "#22e4ff", "A loyal glowing puppy", "$", "r"],
+    ["pet-fox", "pet", "Glitch Fox", 60, "#ff8a1f", "A sneaky speedy fox", "$", "e"],
+    ["pet-bot", "pet", "Mini Bot", 6, "#3dffa8", "A tiny helper robot", "d", "r"],
+    ["pet-uni", "pet", "Rainbow Unicorn", 15, "linear-gradient(90deg,#ff2bd6,#ffd66b,#22e4ff)", "Magical and sparkly", "d", "e"],
+    ["pet-dragon", "pet", "Neon Dragon", 30, "linear-gradient(90deg,#a35bff,#ff2bd6)", "The coolest pet in the hub", "d", "l"],
+    ["t-lv5", "title", "Up-and-Comer", 5, "#b6ff3b", "Reach level 5 on the Level Road", "lv", "c"],
+    ["t-lv10", "title", "Arcade Ace", 10, "#22e4ff", "Reach level 10 on the Level Road", "lv", "r"],
+    ["t-lv20", "title", "Neon Knight", 20, "#ff2bd6", "Reach level 20 on the Level Road", "lv", "r"],
+    ["t-lv30", "title", "Pixel Master", 30, "#a35bff", "Reach level 30 on the Level Road", "lv", "e"],
+    ["t-lv40", "title", "Hub Hero", 40, "#ff8a1f", "Reach level 40 on the Level Road", "lv", "e"],
+    ["t-lv50", "title", "Living Legend 👑", 50, "linear-gradient(90deg,#ffd66b,#ff2bd6,#22e4ff)", "Reach level 50 on the Level Road", "lv", "l"],
+    ["t-goat", "title", "The GOAT 🐐", 100, "linear-gradient(90deg,#ffd66b,#ffffff,#9ff3ff)", "The best title in the hub", "d", "l"],
+    ["fx-fire", "fx", "Fire Sparks", 60, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "Fiery explosions in all games", "$", "e"],
+    ["fx-diamond", "fx", "Diamond Sparks", 10, "linear-gradient(90deg,#ffffff,#9ff3ff,#ffd0f6)", "Sparkling diamond explosions in all games", "d", "e"],
+    ["fr-fire", "frame", "Fire Frame", 105, "linear-gradient(90deg,#ff2e4d,#ff8a1f)", "A blazing border around every game", "$", "e"],
+    ["fr-diamond", "frame", "Diamond Frame", 16, "linear-gradient(90deg,#ffffff,#9ff3ff)", "A twinkling diamond border", "d", "e"],
+    ["fl-neon", "filter", "Super Neon", 45, "linear-gradient(90deg,#ff00e1,#00fff0)", "Extra bright and colorful", "$", "e"],
+    ["fl-matrix", "filter", "Matrix", 75, "linear-gradient(90deg,#002b12,#00ff88)", "Green hacker vision", "$", "e"],
+    ["fl-dream", "filter", "Dream World", 90, "linear-gradient(90deg,#3dffa8,#a35bff)", "Colors from another world", "$", "e"],
+    ["bk-fire", "bricks", "Fire Paddle", 250, "linear-gradient(90deg,#ff2e4d,#ffd66b)", "A fiery paddle for Neon Bricks", "", "r"],
+    ["bk-lime", "bricks", "Toxic Paddle", 250, "linear-gradient(90deg,#3dffa8,#b6ff3b)", "A green paddle for Neon Bricks", "", "r"],
+    ["bk-gold", "bricks", "Gold Paddle", 60, "linear-gradient(90deg,#ff8a1f,#ffd66b)", "A golden paddle for Neon Bricks", "$", "e"],
+    ["bk-diamond", "bricks", "Diamond Paddle", 8, "linear-gradient(90deg,#9ff3ff,#ffffff)", "A diamond paddle for Neon Bricks", "d", "e"],
+    ["rn-pink", "runner", "Pink Cube", 200, "#ff2bd6", "A pink cube for the runner", "", "r"],
+    ["rn-lime", "runner", "Lime Cube", 200, "#b6ff3b", "A lime cube for the runner", "", "r"],
+    ["rn-gold", "runner", "Gold Cube", 45, "#ffd66b", "A golden cube for the runner", "$", "e"],
+    ["rn-rainbow", "runner", "Rainbow Cube", 6, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing cube", "d", "e"],
+    ["rc-pink", "racer", "Pink Racer", 300, "#ff2bd6", "A pink car for the racer", "", "r"],
+    ["rc-lime", "racer", "Lime Racer", 300, "#b6ff3b", "A lime car for the racer", "", "r"],
+    ["rc-gold", "racer", "Gold Racer", 75, "#ffd66b", "A golden car for the racer", "$", "e"],
+    ["rc-rainbow", "racer", "Rainbow Racer", 8, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing car", "d", "e"],
+    ["dr-pink", "drift", "Pink Drifter", 250, "#ff2bd6", "A pink car for the drift game", "", "r"],
+    ["dr-lime", "drift", "Lime Drifter", 250, "#b6ff3b", "A lime car for the drift game", "", "r"],
+    ["dr-gold", "drift", "Gold Drifter", 60, "#ffd66b", "A golden car for the drift game", "$", "e"],
+    ["vd-pink", "void", "Pink Fighter", 250, "#ff2bd6", "A pink ship for the space shooter", "", "r"],
+    ["vd-lime", "void", "Lime Fighter", 250, "#b6ff3b", "A lime ship for the space shooter", "", "r"],
+    ["vd-gold", "void", "Gold Fighter", 60, "#ffd66b", "A golden ship for the space shooter", "$", "e"],
     // 🎵 Free base styles (always available, no purchase needed)
-    ["mu-synth", "music", "🎵 Synthwave", 0, "linear-gradient(135deg,#ff2bd6,#22e4ff)", "The classic neon sound: pulsing bass and arpeggios", "", "c"],
-    ["mu-chip", "music", "🎮 Chiptune", 0, "linear-gradient(135deg,#b6ff3b,#22e4ff)", "Bouncy 8-bit tunes, like an old game console", "", "c"],
-    ["mu-chill", "music", "😌 Lo-fi Chill", 0, "linear-gradient(135deg,#a35bff,#3dffa8)", "Soft chords and a lazy beat. Great for puzzles.", "", "c"],
-    ["mu-hyper", "music", "⚡ Hyper Drive", 0, "linear-gradient(135deg,#ffd66b,#ff4d6d)", "Fast drum and bass. Maximum energy.", "", "c"],
-    ["mu-space", "music", "🌌 Deep Space", 0, "linear-gradient(135deg,#1a0b24,#9ff3ff)", "Floating pads and twinkly bells.", "", "c"],
-    ["mu-rock", "music", "🎸 Arcade Rock", 0, "linear-gradient(135deg,#ff8a1f,#ff2e4d)", "Power chords and a stomping beat.", "", "c"],
+    ["mu-synth", "music", "🎵 Synthwave", 40, "linear-gradient(135deg,#ff2bd6,#22e4ff)", "The classic neon sound: pulsing bass and arpeggios", "", "c"],
+    ["mu-chip", "music", "🎮 Chiptune", 40, "linear-gradient(135deg,#b6ff3b,#22e4ff)", "Bouncy 8-bit tunes, like an old game console", "", "c"],
+    ["mu-chill", "music", "😌 Lo-fi Chill", 40, "linear-gradient(135deg,#a35bff,#3dffa8)", "Soft chords and a lazy beat. Great for puzzles.", "", "c"],
+    ["mu-hyper", "music", "⚡ Hyper Drive", 40, "linear-gradient(135deg,#ffd66b,#ff4d6d)", "Fast drum and bass. Maximum energy.", "", "c"],
+    ["mu-space", "music", "🌌 Deep Space", 40, "linear-gradient(135deg,#1a0b24,#9ff3ff)", "Floating pads and twinkly bells.", "", "c"],
+    ["mu-rock", "music", "🎸 Arcade Rock", 40, "linear-gradient(135deg,#ff8a1f,#ff2e4d)", "Power chords and a stomping beat.", "", "c"],
     // 🎵 Music for every game. 🔥 = most popular, so they cost more. Event songs can only be bought during their event.
-    ["mu-cozy", "music", "🌲 Cozy Farm", 400, "linear-gradient(135deg,#3dffa8,#ffd66b)", "Warm, happy acoustic tune"],
-    ["mu-lullaby", "music", "🌲 Block Lullaby", 400, "linear-gradient(135deg,#9ff3ff,#3dffa8)", "Soft dreamy piano, with singing"],
-    ["mu-docks", "music", "🌲 Deep Docks", 500, "linear-gradient(135deg,#22e4ff,#1a4bff)", "Relaxing underwater sounds"],
-    ["mu-canon", "music", "🎻 Canon in D", 450, "linear-gradient(135deg,#ffd0f6,#ffd66b)", "Peaceful classic, with a choir"],
-    ["mu-danube", "music", "🎻 Blue Danube", 500, "linear-gradient(135deg,#6af7ff,#ffffff)", "A fancy waltz. Funny with chaos!"],
-    ["mu-moonlight", "music", "🎻 Moonlight Sonata", 600, "linear-gradient(135deg,#1a1440,#9ff3ff)", "Slow, spooky and beautiful"],
-    ["mu-north", "music", "⚔️ Northern Town", 500, "linear-gradient(135deg,#a3b8ff,#3dffa8)", "Peaceful adventure town, with singing"],
-    ["mu-caves", "music", "⚔️ Hollow Caves", 600, "linear-gradient(135deg,#2b2b4a,#9a90c0)", "Dark, lonely and mysterious, with singing"],
-    ["mu-sunny", "music", "🕹️ Sunny Hills", 600, "linear-gradient(135deg,#3dffa8,#22e4ff)", "Bright and cheerful 8-bit"],
-    ["mu-gummy", "music", "🌮 Gummy Pop", 500, "linear-gradient(135deg,#ff2bd6,#b6ff3b)", "Super hyper candy pop"],
-    ["mu-starsynth", "music", "🌮 Shooting Star", 650, "linear-gradient(135deg,#a35bff,#22e4ff)", "Floaty space synth-pop, with singing"],
-    ["mu-jazz", "music", "⚔️ Jazz Hideout", 40, "linear-gradient(135deg,#ff2bd6,#1a1440)", "Smooth jazz for a secret hangout", "$"],
-    ["mu-highway", "music", "🏎️ Coast Highway", 45, "linear-gradient(135deg,#ff8a1f,#22e4ff)", "Fast driving music", "$"],
-    ["mu-toccata", "music", "🎻 Toccata (Bach)", 50, "linear-gradient(135deg,#1a0b24,#a35bff)", "Booming villain organ", "$"],
-    ["mu-valkyries", "music", "🎻 Ride of the Valkyries", 50, "linear-gradient(135deg,#ffd66b,#ff2e4d)", "Big heroic charge", "$"],
-    ["mu-nightdrive", "music", "🏎️ Night City Drive", 55, "linear-gradient(135deg,#ff2bd6,#ffd66b)", "Gritty future synth-rock", "$"],
-    ["mu-bumblebee", "music", "🎻 Flight of the Bumblebee", 60, "linear-gradient(135deg,#ffd66b,#1a1a1a)", "Crazy fast buzzing", "$"],
-    ["mu-rave", "music", "🌮 Neon Rave", 65, "linear-gradient(135deg,#00fff0,#ff00e1)", "Secret dance party", "$"],
-    ["mu-hamster", "music", "🌮 Hamster Hop 🔥", 70, "linear-gradient(135deg,#ffd0a0,#ff7be6)", "Silly squeaky fast song. Popular!", "$"],
+    ["mu-cozy", "music", "🌲 Cozy Farm", 400, "linear-gradient(135deg,#3dffa8,#ffd66b)", "Warm, happy acoustic tune", "", "r"],
+    ["mu-lullaby", "music", "🌲 Block Lullaby", 400, "linear-gradient(135deg,#9ff3ff,#3dffa8)", "Soft dreamy piano, with singing", "", "r"],
+    ["mu-docks", "music", "🌲 Deep Docks", 500, "linear-gradient(135deg,#22e4ff,#1a4bff)", "Relaxing underwater sounds", "", "r"],
+    ["mu-canon", "music", "🎻 Canon in D", 450, "linear-gradient(135deg,#ffd0f6,#ffd66b)", "Peaceful classic, with a choir", "", "r"],
+    ["mu-danube", "music", "🎻 Blue Danube", 500, "linear-gradient(135deg,#6af7ff,#ffffff)", "A fancy waltz. Funny with chaos!", "", "r"],
+    ["mu-moonlight", "music", "🎻 Moonlight Sonata", 600, "linear-gradient(135deg,#1a1440,#9ff3ff)", "Slow, spooky and beautiful", "", "r"],
+    ["mu-north", "music", "⚔️ Northern Town", 500, "linear-gradient(135deg,#a3b8ff,#3dffa8)", "Peaceful adventure town, with singing", "", "r"],
+    ["mu-caves", "music", "⚔️ Hollow Caves", 600, "linear-gradient(135deg,#2b2b4a,#9a90c0)", "Dark, lonely and mysterious, with singing", "", "r"],
+    ["mu-sunny", "music", "🕹️ Sunny Hills", 600, "linear-gradient(135deg,#3dffa8,#22e4ff)", "Bright and cheerful 8-bit", "", "r"],
+    ["mu-gummy", "music", "🌮 Gummy Pop", 500, "linear-gradient(135deg,#ff2bd6,#b6ff3b)", "Super hyper candy pop", "", "r"],
+    ["mu-starsynth", "music", "🌮 Shooting Star", 650, "linear-gradient(135deg,#a35bff,#22e4ff)", "Floaty space synth-pop, with singing", "", "e"],
+    ["mu-jazz", "music", "⚔️ Jazz Hideout", 40, "linear-gradient(135deg,#ff2bd6,#1a1440)", "Smooth jazz for a secret hangout", "$", "r"],
+    ["mu-highway", "music", "🏎️ Coast Highway", 45, "linear-gradient(135deg,#ff8a1f,#22e4ff)", "Fast driving music", "$", "e"],
+    ["mu-toccata", "music", "🎻 Toccata (Bach)", 50, "linear-gradient(135deg,#1a0b24,#a35bff)", "Booming villain organ", "$", "e"],
+    ["mu-valkyries", "music", "🎻 Ride of the Valkyries", 50, "linear-gradient(135deg,#ffd66b,#ff2e4d)", "Big heroic charge", "$", "e"],
+    ["mu-nightdrive", "music", "🏎️ Night City Drive", 55, "linear-gradient(135deg,#ff2bd6,#ffd66b)", "Gritty future synth-rock", "$", "e"],
+    ["mu-bumblebee", "music", "🎻 Flight of the Bumblebee", 60, "linear-gradient(135deg,#ffd66b,#1a1a1a)", "Crazy fast buzzing", "$", "e"],
+    ["mu-rave", "music", "🌮 Neon Rave", 65, "linear-gradient(135deg,#00fff0,#ff00e1)", "Secret dance party", "$", "e"],
+    ["mu-hamster", "music", "🌮 Hamster Hop 🔥", 70, "linear-gradient(135deg,#ffd0a0,#ff7be6)", "Silly squeaky fast song. Popular!", "$", "e"],
     ["mu-furelise", "music", "🎻 Für Elise 🔥", 90, "linear-gradient(135deg,#ffffff,#b6ff3b)", "The famous piano song. Popular!", "$", "l"],
     ["mu-mountain", "music", "🎻 Mountain King 🔥", 100, "linear-gradient(135deg,#a35bff,#ff4d6d)", "Sneaky, then panic! Popular!", "$", "l"],
-    ["mu-tacos", "music", "🌮 Taco Rain 🔥", 12, "linear-gradient(135deg,#ffc23d,#ff8a1f)", "Silly singing taco party. Popular!", "d"],
-    ["mu-rainbowcat", "music", "🌮 Rainbow Cat 🔥", 12, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Nonstop 8-bit space cat. Popular!", "d"],
-    ["mu-bossbass", "music", "🕹️ Boss Bass 🔥", 15, "linear-gradient(135deg,#ffffff,#22e4ff)", "Fast and frantic boss fight. Popular!", "d"],
-    ["mu-metal", "music", "🏎️ Rip & Tear 🔥", 18, "linear-gradient(135deg,#ff2e4d,#1a0000)", "HEAVY METAL battle music. Popular!", "d"],
-    ["mu-harvest", "music", "🦃 Harvest Hoedown (event)", 350, "linear-gradient(135deg,#ff8a1f,#8a4b1f)", "Harvest Fest only: November"],
-    ["mu-jingle", "music", "❄️ Jingle Bells (event)", 30, "linear-gradient(135deg,#ffffff,#ff2e4d)", "Winter Fest only: December, with singing", "$"],
-    ["mu-haunted", "music", "🎃 Haunted Holiday 🔥 (event)", 60, "linear-gradient(135deg,#a35bff,#1a0b24)", "Hiss-O-Ween only: October. Spooky singing! Popular!", "$"],
-    ["mu-monsterbash", "music", "🎃 Monster Bash (event)", 450, "linear-gradient(135deg,#3dffa8,#1a0b24)", "Hiss-O-Ween only: October. Retro monster dance", ""],
-    ["mu-ghostcatch", "music", "🎃 Ghost Catchers 🔥 (event)", 10, "linear-gradient(135deg,#ff4d6d,#ffffff)", "Hiss-O-Ween only: October. Catch those ghosts! Popular!", "d"],
-    ["mu-cursed", "music", "🎃 Cursed Town (event)", 500, "linear-gradient(135deg,#a35bff,#000000)", "Hiss-O-Ween only: October. Creepy 8-bit", ""],
-    ["mu-carol", "music", "❄️ Carol of the Bells 🔥 (event)", 70, "linear-gradient(135deg,#9ff3ff,#1a4bff)", "Winter Fest only: December. Epic, with singing. Popular!", "$"],
-    ["mu-sugarplum", "music", "❄️ Sugar Plum Fairy (event)", 500, "linear-gradient(135deg,#ffd0f6,#a35bff)", "Winter Fest only: December. Magic toy workshop", ""],
-    ["mu-holidayhit", "music", "❄️ Holiday Hit 🔥 (event)", 12, "linear-gradient(135deg,#ff2e4d,#ffd66b)", "Winter Fest only: December. Big holiday pop, with singing. Popular!", "d"],
-    ["mu-snowrock", "music", "❄️ Snow Town Rock (event)", 450, "linear-gradient(135deg,#ffffff,#3dffa8)", "Winter Fest only: December. Cozy holiday rock", ""],
-    ["mu-sleigh", "music", "❄️ Sleigh Racer (event)", 40, "linear-gradient(135deg,#ff2e4d,#ffffff)", "Winter Fest only: December. Bells and whip cracks!", "$"],
-    ["mu-surf", "music", "☀️ Surf Party (event)", 450, "linear-gradient(135deg,#ffd66b,#22e4ff)", "Summer only: June to August. Beach surf rock", ""],
-    ["mu-mallrush", "music", "☀️ Mall Rush 🔥 (event)", 12, "linear-gradient(135deg,#3dffa8,#ffd66b)", "Summer only: June to August. Crazy fast and fun! Popular!", "d"],
-    ["mu-reef", "music", "☀️ Steel Drum Reef (event)", 500, "linear-gradient(135deg,#22e4ff,#3dffa8)", "Summer only: June to August. Island steel drums", ""],
-    ["mu-poolside", "music", "☀️ Poolside 80s (event)", 40, "linear-gradient(135deg,#ff7be6,#22e4ff)", "Summer only: June to August. Chill pool party", "$"],
-    ["mu-gladiators", "music", "🤡 Circus Clowns 🔥 (event)", 50, "linear-gradient(90deg,#ff2e4d,#ffffff,#ff2e4d)", "April Fools only: April. The real circus song! Popular!", "$"],
-    ["mu-leaves", "music", "🍂 Falling Leaves (event)", 400, "linear-gradient(135deg,#ff8a1f,#ffd66b)", "Harvest Fest only: November. Cozy autumn jazz, with singing", ""],
-    ["mu-spooky", "music", "🎃 Spooky Bones (event)", 380, "linear-gradient(135deg,#ff8a1f,#1a0b24)", "Hiss-O-Ween only: October, with singing"],
+    ["mu-tacos", "music", "🌮 Taco Rain 🔥", 12, "linear-gradient(135deg,#ffc23d,#ff8a1f)", "Silly singing taco party. Popular!", "d", "e"],
+    ["mu-rainbowcat", "music", "🌮 Rainbow Cat 🔥", 12, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Nonstop 8-bit space cat. Popular!", "d", "e"],
+    ["mu-bossbass", "music", "🕹️ Boss Bass 🔥", 15, "linear-gradient(135deg,#ffffff,#22e4ff)", "Fast and frantic boss fight. Popular!", "d", "e"],
+    ["mu-metal", "music", "🏎️ Rip & Tear 🔥", 18, "linear-gradient(135deg,#ff2e4d,#1a0000)", "HEAVY METAL battle music. Popular!", "d", "e"],
+    ["mu-harvest", "music", "🦃 Harvest Hoedown (event)", 350, "linear-gradient(135deg,#ff8a1f,#8a4b1f)", "Harvest Fest only: November", "", "r"],
+    ["mu-jingle", "music", "❄️ Jingle Bells (event)", 30, "linear-gradient(135deg,#ffffff,#ff2e4d)", "Winter Fest only: December, with singing", "$", "r"],
+    ["mu-haunted", "music", "🎃 Haunted Holiday 🔥 (event)", 60, "linear-gradient(135deg,#a35bff,#1a0b24)", "Hiss-O-Ween only: October. Spooky singing! Popular!", "$", "l"],
+    ["mu-monsterbash", "music", "🎃 Monster Bash (event)", 450, "linear-gradient(135deg,#3dffa8,#1a0b24)", "Hiss-O-Ween only: October. Retro monster dance", "", "r"],
+    ["mu-ghostcatch", "music", "🎃 Ghost Catchers 🔥 (event)", 10, "linear-gradient(135deg,#ff4d6d,#ffffff)", "Hiss-O-Ween only: October. Catch those ghosts! Popular!", "d", "l"],
+    ["mu-cursed", "music", "🎃 Cursed Town (event)", 500, "linear-gradient(135deg,#a35bff,#000000)", "Hiss-O-Ween only: October. Creepy 8-bit", "", "r"],
+    ["mu-carol", "music", "❄️ Carol of the Bells 🔥 (event)", 70, "linear-gradient(135deg,#9ff3ff,#1a4bff)", "Winter Fest only: December. Epic, with singing. Popular!", "$", "l"],
+    ["mu-sugarplum", "music", "❄️ Sugar Plum Fairy (event)", 500, "linear-gradient(135deg,#ffd0f6,#a35bff)", "Winter Fest only: December. Magic toy workshop", "", "r"],
+    ["mu-holidayhit", "music", "❄️ Holiday Hit 🔥 (event)", 12, "linear-gradient(135deg,#ff2e4d,#ffd66b)", "Winter Fest only: December. Big holiday pop, with singing. Popular!", "d", "l"],
+    ["mu-snowrock", "music", "❄️ Snow Town Rock (event)", 450, "linear-gradient(135deg,#ffffff,#3dffa8)", "Winter Fest only: December. Cozy holiday rock", "", "r"],
+    ["mu-sleigh", "music", "❄️ Sleigh Racer (event)", 40, "linear-gradient(135deg,#ff2e4d,#ffffff)", "Winter Fest only: December. Bells and whip cracks!", "$", "r"],
+    ["mu-surf", "music", "☀️ Surf Party (event)", 450, "linear-gradient(135deg,#ffd66b,#22e4ff)", "Summer only: June to August. Beach surf rock", "", "r"],
+    ["mu-mallrush", "music", "☀️ Mall Rush 🔥 (event)", 12, "linear-gradient(135deg,#3dffa8,#ffd66b)", "Summer only: June to August. Crazy fast and fun! Popular!", "d", "l"],
+    ["mu-reef", "music", "☀️ Steel Drum Reef (event)", 500, "linear-gradient(135deg,#22e4ff,#3dffa8)", "Summer only: June to August. Island steel drums", "", "r"],
+    ["mu-poolside", "music", "☀️ Poolside 80s (event)", 40, "linear-gradient(135deg,#ff7be6,#22e4ff)", "Summer only: June to August. Chill pool party", "$", "r"],
+    ["mu-gladiators", "music", "🤡 Circus Clowns 🔥 (event)", 50, "linear-gradient(90deg,#ff2e4d,#ffffff,#ff2e4d)", "April Fools only: April. The real circus song! Popular!", "$", "l"],
+    ["mu-leaves", "music", "🍂 Falling Leaves (event)", 400, "linear-gradient(135deg,#ff8a1f,#ffd66b)", "Harvest Fest only: November. Cozy autumn jazz, with singing", "", "r"],
+    ["mu-spooky", "music", "🎃 Spooky Bones (event)", 380, "linear-gradient(135deg,#ff8a1f,#1a0b24)", "Hiss-O-Ween only: October, with singing", "", "r"],
     ["mu-tunak", "music", "🕺 Tunak Tunak Tun 👑", 9999, "linear-gradient(135deg,#ff8a1f,#ff2bd6,#ffd66b)", "DA DA DA DA — the legendary Indian meme song. LEGENDARY!", "", "l"],
     // 🐾 More pets — common / rare / epic / legendary (index 7 = rarity)
     ["pet-penguin", "pet", "Cozy Penguin", 20, "#9ff3ff", "A waddling pixel penguin", "$", "c"],
@@ -10199,28 +10202,45 @@ function fighterGame() {
     ["fx-goldshower", "fx", "Gold Shower 🌟", 500, "linear-gradient(135deg,#ffd66b,#ffc23d)", "Gold star sparks — make it rain!", "", "r"],
     ["fx-rainbowpop", "fx", "Rainbow Pop 🌈", 800, "linear-gradient(135deg,#ff2bd6,#ffd66b,#22e4ff)", "Neon rainbow every time you score. Epic!", "", "e"],
     // 🏆 LEGENDARIES
-    ["pet-dragon", "pet", "Dragon 🐉", 8000, "linear-gradient(135deg,#ff4d00,#ffd66b,#ff2bd6)", "Ancient fire breather. The rarest pet.", "", "l"],
-    ["pet-phoenix", "pet", "Phoenix 🔥", 6500, "linear-gradient(135deg,#ff6b00,#ffd66b,#ff2bd6)", "Rises from the ashes. Never dies.", "", "l"],
+    ["pet-inferno", "pet", "Inferno Dragon 🐉", 8000, "linear-gradient(135deg,#ff4d00,#ffd66b,#ff2bd6)", "Ancient fire breather. The rarest pet.", "", "l"],
+    ["pet-sunbird", "pet", "Sun Phoenix 🔥", 6500, "linear-gradient(135deg,#ff6b00,#ffd66b,#ff2bd6)", "Rises from the ashes. Never dies.", "", "l"],
     ["pet-unicorn", "pet", "Unicorn 🦄", 5500, "linear-gradient(135deg,#ff7be6,#a35bff,#22e4ff)", "Pure magic. One of a kind.", "", "l"],
-    ["t-goat", "title", "THE GOAT 🐐", 10000, "linear-gradient(135deg,#ffd66b,#ffffff,#ffd66b)", "Greatest of all time. No debate.", "", "l"],
+    ["t-goatsupreme", "title", "GOAT SUPREME 🐐", 10000, "linear-gradient(135deg,#ffd66b,#ffffff,#ffd66b)", "Greatest of all time. No debate.", "", "l"],
     ["t-chosen", "title", "The Chosen One", 7500, "linear-gradient(135deg,#22e4ff,#ffffff,#22e4ff)", "Destined for greatness.", "", "l"],
     ["t-omega", "title", "OMEGA ✦", 9000, "linear-gradient(135deg,#a35bff,#ff2bd6,#ffd66b)", "The final form. Beyond epic.", "", "l"],
     ["fx-legendary", "fx", "Legendary Blast 👑", 6000, "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)", "Crown explosion on every score. Legendary only.", "", "l"],
     ["fx-cosmos", "fx", "Cosmos FX 🌌", 7000, "linear-gradient(135deg,#1a0b24,#a35bff,#22e4ff)", "Stars and galaxies erupt around you.", "", "l"],
+    // 👑 More legendaries
+    ["pet-kraken", "pet", "Kraken 🐙", 7000, "linear-gradient(135deg,#0b2a4a,#22e4ff,#a35bff)", "Lord of the deep. Tentacles everywhere.", "", "l"],
+    ["pet-wolf", "pet", "Shadow Wolf 🐺", 6000, "linear-gradient(135deg,#1a1a2e,#a35bff,#ffffff)", "Hunts by moonlight. Howls at high scores.", "", "l"],
+    ["pet-tiger", "pet", "Neon Tiger 🐯", 6500, "linear-gradient(135deg,#ff8a1f,#ffd66b,#000000)", "Striped, fierce, glowing.", "", "l"],
+    ["pet-trex", "pet", "T-Rex Titan 🦖", 8500, "linear-gradient(135deg,#3dffa8,#ffd66b,#ff4d6d)", "King of the dinos. Stomps the leaderboard.", "", "l"],
+    ["t-immortal", "title", "IMMORTAL ☠️", 8000, "linear-gradient(135deg,#ffffff,#a35bff,#000000)", "Cannot be beaten. Ever.", "", "l"],
+    ["t-godmode", "title", "GOD MODE", 9500, "linear-gradient(135deg,#ffd66b,#ffffff,#22e4ff)", "Cheat codes not needed.", "", "l"],
+    ["t-glitchking", "title", "Glitch King 👾", 7000, "linear-gradient(135deg,#b6ff3b,#ff2bd6,#22e4ff)", "Rules the broken pixels.", "", "l"],
+    ["fx-supernova", "fx", "Supernova 💥", 8000, "linear-gradient(135deg,#ffffff,#ffd66b,#ff2e4d)", "A star explodes on every score.", "", "l"],
+    ["fr-cosmic", "frame", "Cosmic Frame 🌌", 6000, "linear-gradient(135deg,#1a0b24,#a35bff,#22e4ff)", "A swirling galaxy border in every game.", "", "l"],
+    ["fl-hologram", "filter", "Hologram 🔮", 5500, "linear-gradient(135deg,#22e4ff,#ff7be6,#ffffff)", "See every game as a glowing hologram.", "", "l"],
+    // 👑 Legendary event surprises
+    ["pet-reaper", "pet", "Grim Reaper 💀", 7000, "linear-gradient(135deg,#000000,#a35bff,#ff2bd6)", "Hiss-O-Ween only. The scariest pet of all.", "", "l"],
+    ["pet-reindeer", "pet", "Golden Reindeer 🦌", 7000, "linear-gradient(135deg,#ffd66b,#ffffff,#9ff3ff)", "Winter Fest only. Pulls the legendary sleigh.", "", "l"],
+    ["pet-mermaid", "pet", "Neon Mermaid 🧜", 7000, "linear-gradient(135deg,#22e4ff,#3dffa8,#ff7be6)", "Summer Splash only. Sings from the reef.", "", "l"],
+    ["t-pumpkinking", "title", "Pumpkin King 🎃", 6000, "linear-gradient(135deg,#ff8a1f,#000000,#ff8a1f)", "Hiss-O-Ween only. Rules the haunted arcade.", "", "l"],
+    ["t-northpole", "title", "North Pole Legend ❄️", 6000, "linear-gradient(135deg,#9ff3ff,#ffffff,#ff4d6d)", "Winter Fest only. Santa's top gamer.", "", "l"],
   ];
   // Event songs: the month (0 = January) they can be bought.
   const EVENT_MONTH = {
     // halloween (month 9 = October)
     "sl-pumpkin":[9],"mu-spooky":[9],"mu-haunted":[9],"mu-monsterbash":[9],"mu-ghostcatch":[9],"mu-cursed":[9],
-    "pet-ghost":[9],"pet-pumpkin":[9],"t-spooky":[9],"t-witch":[9],"t-vampire":[9],"hw-cape":[9],"hw-skull":[9],"hw-spider":[9],
+    "pet-ghost":[9],"pet-pumpkin":[9],"pet-reaper":[9],"t-pumpkinking":[9],"t-spooky":[9],"t-witch":[9],"t-vampire":[9],"hw-cape":[9],"hw-skull":[9],"hw-spider":[9],
     // harvest (month 10 = November)
     "mu-harvest":[10],"mu-leaves":[10],"pet-raccoon":[10],"t-harvest":[10],"ha-leaf":[10],"ha-lantern":[10],
     // winter (month 11 = December)
     "mu-jingle":[11],"mu-carol":[11],"mu-sugarplum":[11],"mu-holidayhit":[11],"mu-snowrock":[11],"mu-sleigh":[11],
-    "pet-elf":[11],"pet-snowman":[11],"t-santa":[11],"t-frozen":[11],"t-winterchamp":[11],"wn-wreath":[11],"wn-snow":[11],"wn-gift":[11],
+    "pet-elf":[11],"pet-snowman":[11],"pet-reindeer":[11],"t-northpole":[11],"t-santa":[11],"t-frozen":[11],"t-winterchamp":[11],"wn-wreath":[11],"wn-snow":[11],"wn-gift":[11],
     // summer (months 5,6,7 = June-August)
     "mu-surf":[5,6,7],"mu-mallrush":[5,6,7],"mu-reef":[5,6,7],"mu-poolside":[5,6,7],
-    "pet-beachcrab":[5,6,7],"t-surf":[5,6,7],"t-sunbum":[5,6,7],"su-shades":[5,6,7],"su-wave":[5,6,7],"su-surf":[5,6,7],
+    "pet-beachcrab":[5,6,7],"pet-mermaid":[5,6,7],"t-surf":[5,6,7],"t-sunbum":[5,6,7],"su-shades":[5,6,7],"su-wave":[5,6,7],"su-surf":[5,6,7],
     // april fools (month 3 = April)
     "mu-gladiators":[3],"pet-jester":[3],"t-trickster":[3],"af-pie":[3],"af-banana":[3],
     // easter (month 2 = March)
@@ -10243,7 +10263,7 @@ function fighterGame() {
   window.gblEventActive = eventActive;
   const inSeason = (id) => !EVENT_OF[id] || activeEvent() === EVENT_OF[id];
   // The song games play: a shop song you equipped, otherwise the style picked in Settings.
-  window.gblMusicPick = () => { try { const m = prog.equip && prog.equip.music; if (m) return m.slice(3); if (settings.music === "off") return "off"; return settings.music || "synth"; } catch (e) { return "synth"; } };
+  window.gblMusicPick = () => { try { const m = prog.equip && prog.equip.music; if (m === "mu-shuffle") { const own = (prog.owned || []).filter((id) => id.startsWith("mu-")); own.push("mu-synth"); return own[Math.random() * own.length | 0].slice(3); } if (m) return m.slice(3); if (settings.music === "off") return "off"; return settings.music || "synth"; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
   const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
@@ -10262,7 +10282,7 @@ function fighterGame() {
     }
   }
   /* ---------- Pets: they live in the corner, level up as you play and give bonus coins ---------- */
-  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-lion": "🦁", "pet-owl": "🦉", "pet-koala": "🐨", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉", "pet-penguin": "🐧", "pet-bunny": "🐰", "pet-turtle": "🐢", "pet-shark": "🦈", "pet-panda": "🐼", "pet-dino": "🦕", "pet-alien": "👾", "pet-narwhal": "🦄", "pet-phoenix": "🔥", "pet-crab": "🦀", "pet-jelly": "🪼", "pet-ghost": "👻", "pet-pumpkin": "🎃", "pet-elf": "🧝", "pet-snowman": "⛄", "pet-chick": "🐣", "pet-easterbunny": "🐰", "pet-beachcrab": "🦀", "pet-raccoon": "🦝", "pet-jester": "🤡", "pet-unicorn": "🦄" };
+  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-lion": "🦁", "pet-owl": "🦉", "pet-koala": "🐨", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉", "pet-penguin": "🐧", "pet-bunny": "🐰", "pet-turtle": "🐢", "pet-shark": "🦈", "pet-panda": "🐼", "pet-dino": "🦕", "pet-alien": "👾", "pet-narwhal": "🦄", "pet-phoenix": "🔥", "pet-crab": "🦀", "pet-jelly": "🪼", "pet-ghost": "👻", "pet-pumpkin": "🎃", "pet-elf": "🧝", "pet-snowman": "⛄", "pet-chick": "🐣", "pet-easterbunny": "🐰", "pet-beachcrab": "🦀", "pet-raccoon": "🦝", "pet-jester": "🤡", "pet-unicorn": "🦄", "pet-inferno": "🐉", "pet-sunbird": "🔥", "pet-kraken": "🐙", "pet-wolf": "🐺", "pet-tiger": "🐯", "pet-trex": "🦖", "pet-reaper": "💀", "pet-reindeer": "🦌", "pet-mermaid": "🧜" };
   const PET_TALK = ["Let's play!", "You're awesome!", "Beat your high score!", "I'm hungry...", "*happy noises*", "Go go go!", "Best friends!", "Try a new game!"];
   const petLv = (id) => Math.min(10, Math.floor(Math.sqrt(stat("px_" + id) / 3)) + 1);
   const petBonus = () => { const id = (prog.equip || {}).pet; return id && (prog.owned || []).includes(id) ? petLv(id) * .02 : 0; };
@@ -10536,7 +10556,7 @@ function fighterGame() {
         if (!items.length) return null;
         return el("div", { class: "inv-section" },
           el("p", { class: "eyebrow", text: gname2 }),
-          el("div", { class: "shop-grid" }, ...items.map(([id, igrp, name, , col, sub, , rar]) => {
+          el("div", { class: "shop-grid" }, gk === "music" ? (() => { const on = eq2.music === "mu-shuffle"; return el("div", { class: "shop-item" + (on ? " on" : "") }, el("span", { class: "sw", style: "background:linear-gradient(135deg,#ff2bd6,#22e4ff,#ffd66b)" }), el("b", { text: "🔀 Shuffle" }), el("small", { text: "A random song you own, every game and every visit" }), el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "✓ Equipped" : "Equip", onclick: () => { prog.equip = { ...eq2, music: "mu-shuffle" }; saveProg(); toast("Shuffle on 🔀"); renderRewards(); if (typeof stopHubMusic === "function") stopHubMusic(); } })); })() : null, ...items.map(([id, igrp, name, , col, sub, , rar]) => {
             const bgk = igrp; const on = eq2[bgk] === id;
             const rarBadge = rar ? el("span", { class: "rar rar-" + rar, text: RAR_LABEL[rar] }) : null;
             const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null });
