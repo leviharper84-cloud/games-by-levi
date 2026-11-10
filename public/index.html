@@ -952,6 +952,45 @@ html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 }
 .cab-foot { padding: 8px 16px; font-size: .74rem; color: var(--dim); border-top: 1px solid var(--line); }
 
+/* ---------- Shop page ---------- */
+.shop-top { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.shop-search { flex: 1; min-width: 220px; font: inherit; font-size: 1rem; color: var(--fg); background: rgba(7,4,15,.7); border: 1px solid var(--line-2); border-radius: 999px; padding: 12px 18px; outline: none; }
+.shop-search:focus { border-color: var(--a1); box-shadow: 0 0 14px rgba(var(--a1-rgb), .35); }
+.shop-wallet { display: flex; gap: 12px; align-items: center; font-family: var(--f-mono); font-weight: 800; }
+.shop-wallet .rew-coins { color: var(--gold); } .shop-wallet .rew-cash { color: #3dffa8; } .shop-wallet .rew-gems { color: #22e4ff; }
+.shop-tabs { align-items: center; justify-content: space-between; }
+.shop-tabs > .rew-tabs { margin-bottom: 0; }
+.shop-filters { display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: center; margin: 2px 0 10px; }
+.shop-filters .rew-tabs { margin-bottom: 0; }
+.shop-filters .chip.rar { font-size: .68rem; }
+.shop-sort { font: inherit; font-size: .78rem; color: var(--fg); background: rgba(7,4,15,.7); border: 1px solid var(--line-2); border-radius: 999px; padding: 6px 12px; }
+.game-chips { padding: 8px 10px; border-left: 2px solid var(--a1); background: rgba(var(--a1-rgb), .06); border-radius: 0 12px 12px 0; }
+.shop-section { margin-bottom: 18px; }
+.shop-item.rk-r { border-color: rgba(34,228,255,.35); }
+.shop-item.rk-e { border-color: rgba(163,91,255,.5); box-shadow: 0 0 12px rgba(163,91,255,.15); }
+.shop-item.rk-l { border-color: rgba(255,214,107,.6); box-shadow: 0 0 16px rgba(255,214,107,.25), inset 0 0 20px rgba(255,214,107,.05); }
+.shop-item.deal { border-color: #ff4d6d; box-shadow: 0 0 16px rgba(255,77,109,.3); }
+.new-badge { display: inline-block; padding: 1px 7px; border-radius: 20px; font-size: .6rem; font-weight: 900; letter-spacing: .1em; background: #ff2e4d; color: #fff; box-shadow: 0 0 10px rgba(255,46,77,.6); }
+.deal-tag { display: inline-block; padding: 1px 8px; border-radius: 20px; font-size: .66rem; font-weight: 900; background: #ff4d6d; color: #fff; }
+.deal-price { display: flex; gap: 8px; align-items: baseline; font-family: var(--f-mono); } .deal-price s { color: var(--dim); font-size: .8rem; } .deal-price b { color: var(--gold); }
+.sw.big { width: 64px; height: 64px; font-size: 2.2rem; }
+.shop-item.crate { justify-items: center; text-align: center; }
+.crate-emo { display: grid; place-items: center; }
+.crate-ov { position: fixed; inset: 0; z-index: 120; display: grid; place-items: center; background: rgba(4,2,10,.85); backdrop-filter: blur(6px); animation: crate-in .25s var(--ease); }
+@keyframes crate-in { from { opacity: 0; } to { opacity: 1; } }
+.crate-lbl { position: absolute; top: 12%; font-family: var(--f-sign); font-size: 1.4rem; color: var(--fg); text-shadow: 0 0 12px rgba(var(--a1-rgb), .8); }
+.crate-box { font-size: 7rem; animation: crate-shake .9s ease-in-out infinite; filter: drop-shadow(0 0 24px rgba(255,214,107,.6)); }
+.crate-box.pop { animation: crate-pop .5s var(--ease) forwards; }
+@keyframes crate-shake { 0%, 100% { transform: rotate(-6deg) scale(1); } 25% { transform: rotate(6deg) scale(1.04); } 50% { transform: rotate(-8deg) scale(1.08); } 75% { transform: rotate(8deg) scale(1.04); } }
+@keyframes crate-pop { to { transform: scale(2.4); opacity: 0; } }
+.crate-card { display: grid; gap: 10px; justify-items: center; text-align: center; padding: 26px 34px; border-radius: 20px; border: 2px solid var(--line-2); background: var(--panel-solid); animation: crate-card .5s var(--ease); max-width: min(92vw, 360px); }
+.crate-card b { font-size: 1.3rem; }
+.crate-card.rk-l { border-color: #ffd66b; box-shadow: 0 0 60px rgba(255,214,107,.5); }
+.crate-card.rk-e { border-color: #a35bff; box-shadow: 0 0 50px rgba(163,91,255,.5); }
+.crate-card.rk-r { border-color: #22e4ff; box-shadow: 0 0 40px rgba(34,228,255,.4); }
+@keyframes crate-card { from { transform: scale(.5) translateY(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@media (max-width: 600px) { .shop-top { flex-direction: column; align-items: stretch; } .crate-box { font-size: 5rem; } }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -1029,6 +1068,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <a class="brand" href="#home" title="Back to the home screen">Games <b>by Levi</b></a>
     <nav class="links" aria-label="Sections">
       <a href="#library">Library</a>
+      <a href="#shop">🛒 Shop</a>
       <a href="#two-player">2 Players</a>
       <a href="#tournament">Tournament</a>
       <a href="#online">Online</a>
@@ -1091,6 +1131,19 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       </div>
       <div class="grid" id="grid"></div>
       <div class="more"><button class="btn sm" id="more" type="button">Show 100 more slots</button></div>
+    </div>
+  </section>
+
+  <section id="shop">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">Spend your coins</p>
+          <h2>Neon Shop</h2>
+          <p class="lede">Music, pets, titles, sparks, frames, filters and skins for every game. Daily deals, mystery crates and your inventory live here too.</p>
+        </div>
+      </div>
+      <div id="shop-page"></div>
     </div>
   </section>
 
@@ -1296,6 +1349,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
     <a class="brand" href="#home">Games <b>by Levi</b></a>
     <nav class="foot-links" aria-label="Footer">
       <a href="#library">Library</a>
+      <a href="#shop">🛒 Shop</a>
       <a href="#two-player">2 Players</a>
       <a href="#tournament">Tournament</a>
       <a href="#online">Online</a>
@@ -10494,6 +10548,7 @@ function fighterGame() {
   /* rewards modal */
   const rm = $("#rew-modal"), rbody = $("#rew-body");
   let rtab = "missions", spinning = false, shopGroup = "all";
+  const RAR_LABEL = { c: "Common", r: "Rare", e: "Epic", l: "Legendary" };
   function renderRewards() {
     const xp = xpOf(), lv = levelOf(xp), k = Math.min(1, (xp - xpFor(lv)) / Math.max(1, xpFor(lv + 1) - xpFor(lv)));
     const head = el("div", { class: "rew-head" },
@@ -10503,8 +10558,7 @@ function fighterGame() {
     if (tt) head.firstChild.append(el("span", { class: "rew-title", style: "--tc:" + (tt[4].startsWith("#") ? tt[4] : "#ffd66b"), text: "🏷 " + tt[2] }));
     const ae = activeEvent();
     const advDue = ae === "winter" && advCalDue();
-    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["bonus", "🎁 Bonus"], ["road", "🛣 Levels"], ["spin", "🎡 Daily spin"], ...(ae === "winter" ? [["advent", "🎄 Advent"]] : []), ["shop", "🛒 Shop"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + ((id === "bonus" && bonusDue()) || (id === "road" && roadDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) || (id === "advent" && advDue) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { rtab = id; renderRewards(); } })));
-    const RAR_LABEL = { c: "Common", r: "Rare", e: "Epic", l: "Legendary" };
+    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["bonus", "🎁 Bonus"], ["road", "🛣 Levels"], ["spin", "🎡 Daily spin"], ...(ae === "winter" ? [["advent", "🎄 Advent"]] : []), ["shop", "🛒 Shop"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + ((id === "bonus" && bonusDue()) || (id === "road" && roadDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) || (id === "advent" && advDue) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { if (id === "shop" || id === "inv") { window.gblShopTab && window.gblShopTab(id); closeRewards(); location.hash = "#shop"; return; } rtab = id; renderRewards(); } })));
     let body;
     if (rtab === "missions") {
       body = el("div", { class: "rew-list" }, ...missions().map((m) => el("div", { class: "mission" + (m.done ? " done" : "") },
@@ -10548,64 +10602,152 @@ function fighterGame() {
         } : null }, el("div", { class: "adv-num", text: String(i + 1) }), el("div", { class: "adv-lab", text: lab }));
       });
       body = el("div", { class: "adv-wrap" }, el("h3", { class: "rew-head", text: "🎄 Advent Calendar" }), el("p", { class: "set-note", text: "Open one gift per day in December! Come back every day for 24 days." }), el("div", { class: "adv-grid" }, ...cells));
-    } else if (rtab === "inv") {
-      const owned2 = prog.owned || [], eq2 = prog.equip || {};
-      const INV_GROUPS = [["pet","🐾 Pets"],["title","🏷 Titles"],["music","🎵 Music"],["fx","✨ Sparks"],["frame","🖼 Frames"],["filter","🎞 Filters"]];
-      const invSections = INV_GROUPS.map(([gk, gname2]) => {
-        const items = owned2.map((id) => SHOP.find((it) => it[0] === id)).filter((it) => it && it[1] === gk);
-        if (!items.length) return null;
-        return el("div", { class: "inv-section" },
-          el("p", { class: "eyebrow", text: gname2 }),
-          el("div", { class: "shop-grid" }, gk === "music" ? (() => { const on = eq2.music === "mu-shuffle"; return el("div", { class: "shop-item" + (on ? " on" : "") }, el("span", { class: "sw", style: "background:linear-gradient(135deg,#ff2bd6,#22e4ff,#ffd66b)" }), el("b", { text: "🔀 Shuffle" }), el("small", { text: "A random song you own, every game and every visit" }), el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "✓ Equipped" : "Equip", onclick: () => { prog.equip = { ...eq2, music: "mu-shuffle" }; saveProg(); toast("Shuffle on 🔀"); renderRewards(); if (typeof stopHubMusic === "function") stopHubMusic(); } })); })() : null, ...items.map(([id, igrp, name, , col, sub, , rar]) => {
-            const bgk = igrp; const on = eq2[bgk] === id;
-            const rarBadge = rar ? el("span", { class: "rar rar-" + rar, text: RAR_LABEL[rar] }) : null;
-            const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null });
-            const listen = igrp === "music" ? el("button", { class: "btn sm shop-listen", type: "button", text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
-            return el("div", { class: "shop-item" + (on ? " on" : "") },
-              icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), listen,
-              el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "✓ Equipped" : "Equip",
-                onclick: () => { prog.equip = { ...eq2, [bgk]: on ? null : id }; saveProg(); toast(on ? name + " removed" : name + " equipped"); renderRewards(); } }));
-          })));
-      }).filter(Boolean);
-      body = el("div", { class: "shop" },
-        el("h3", { class: "rew-head", text: "🎒 Inventory" }),
-        el("p", { class: "set-note", text: "Everything you've unlocked. Equip items here or in the Shop." }),
-        ...(invSections.length ? invSections : [el("p", { class: "set-note", text: "Nothing owned yet — head to the Shop to get started!" })]));
-    } else {
-      const owned = new Set(prog.owned || []), eq = prog.equip || {};
-      const SG = getShopGroups();
-      const groups = SG.filter(([gk]) => shopGroup === "all" || shopGroup === gk);
-      const gchips = el("div", { class: "rew-tabs shop-chips" }, ...[["all", "All"], ...SG.map(([gk, t]) => [gk, t.replace(/ \(all games\)/g, "").replace(/ Event Shop ✨/, " ✨")])].map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopGroup === gk), text: t, onclick: () => { shopGroup = gk; renderRewards(); } })));
-      const smOn = shopMusicOn();
-      const smBtn = el("button", { class: "chip", type: "button", "aria-pressed": String(smOn), text: smOn ? "🔊 Shop music on" : "🔇 Shop music off", onclick: () => { try { localStorage.setItem("gbl-shopmus", smOn ? "0" : "1"); } catch (e) {} if (smOn) stopPreview(); else preview("shopjam", null, true); renderRewards(); } });
-      /* determine actual shop-group for equip/unequip: ev-* groups don't have equip slots */
-      const baseGk = (gk) => gk.startsWith("ev-") ? null : gk;
-      /* items for a group: ev-* shows all event-tagged items for the active event */
-      const groupItems = (gk) => gk.startsWith("ev-") ? SHOP.filter((it) => EVENT_OF[it[0]] === activeEvent()) : SHOP.filter((it) => it[1] === gk);
-      body = el("div", { class: "shop" }, el("div", { class: "rew-tabs shop-chips" }, smBtn), gchips, ...groups.map(([gk, title, base]) => el("div", {},
-        el("p", { class: "eyebrow set-h2", text: title }),
-        el("div", { class: "shop-grid" },
-          (gk === "boost" || gk.startsWith("ev-")) ? null : el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : gk === "music" ? "Default music" : "Classic" }), el("small", { text: gk === "music" ? "Synth style – free" : "Free" }),
-            el("button", { class: "btn sm", type: "button", disabled: !eq[gk], text: !eq[gk] ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: null }; saveProg(); renderRewards(); } })),
-          ...groupItems(gk).map(([id, igrp, name, price0, col, sub, cur, rar]) => {
-            const bgk = baseGk(gk) || igrp;
-            const price = cost(price0), has = owned.has(id), on = eq[bgk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = cur === "d" ? " gem" : cur === "$" ? " cash" : "";
-            const rarBadge = rar ? el("span", { class: "rar rar-" + rar, text: RAR_LABEL[rar] || "" }) : null;
-            const listen = igrp === "music" ? el("button", { class: "btn sm shop-listen", type: "button", "aria-label": "Listen to " + name, text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
-            if (!has && !inSeason(id)) return null;
-            if (cur === "lv" && !has) return el("div", { class: "shop-item locked" }, el("span", { class: "sw ttl", style: "background:" + col }), el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
-            if (igrp === "boost") return el("div", { class: "shop-item" + tag }, el("span", { class: "sw", style: "background:" + col }), el("b", { text: name }), rarBadge, el("small", { text: sub }),
-              el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); renderRewards(); } }));
-            return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null }), el("b", { text: name }), rarBadge, el("small", { text: sub }), listen,
-              has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [bgk]: id }; saveProg(); toast(name + " equipped"); renderRewards(); } })
-                : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...owned, id]; prog.equip = { ...eq, [bgk]: id }; saveProg(); renderWallet(); if (rar === "l") { sfxLegendary(); if (window.gblConfetti) window.gblConfetti(160); } else { sfxHub(); if (window.gblConfetti) window.gblConfetti(70); } toast((rar === "l" ? "👑 LEGENDARY UNLOCKED: " : "Unlocked ") + name + "!"); renderRewards(); } }));
-          })))));
-    }
+    } else { body = el("p", { class: "set-note", text: "The shop has moved to its own page." }); }
     rbody.replaceChildren(head, tabs, body);
     // Cool background music while you browse the shop.
     if (rtab === "shop" && rm.classList.contains("open") && shopMusicOn() && !prev) preview("shopjam", null, true);
     if (rtab !== "shop" && prev && prev.shop) stopPreview();
   }
+  /* ---------- Shop page (own hub section): search, categories, game picker, deals and crates ---------- */
+  const RANK_ORDER = { c: 0, r: 1, e: 2, l: 3 };
+  const SLOT_GROUPS = ["music", "pet", "title", "fx", "frame", "filter"];
+  const GAME_GROUPS = () => SHOP_GROUPS_BASE.filter(([gk]) => gk !== "boost" && !SLOT_GROUPS.includes(gk));
+  let shopTab = "shop", shopCat = "all", shopGame = "all", shopRank = "all", shopOwn = "all", shopSort = "default", shopQuery = "", shopNewIds = new Set(), shopSearchEl = null;
+  function sfxRare() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), g = ac.createGain(); g.connect(ac.destination); g.gain.value = .12; [659, 880, 1175, 1319].forEach((f, i) => { const o = ac.createOscillator(); o.type = "square"; o.frequency.value = f; o.connect(g); const t = ac.currentTime + i * .09; o.start(t); o.stop(t + .12); }); setTimeout(() => ac.close(), 900); } catch {} }
+  function sfxEpic() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), g = ac.createGain(); g.connect(ac.destination); g.gain.value = .14; [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => { const o = ac.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; o.connect(g); const t = ac.currentTime + i * .08; o.start(t); o.stop(t + .11); }); setTimeout(() => ac.close(), 1100); } catch {} }
+  function buyFanfare(rar) { if (rar === "l") { sfxLegendary(); if (window.gblConfetti) window.gblConfetti(160); } else if (rar === "e") { sfxEpic(); if (window.gblConfetti) window.gblConfetti(110); } else if (rar === "r") { sfxRare(); if (window.gblConfetti) window.gblConfetti(80); } else { sfxHub(); if (window.gblConfetti) window.gblConfetti(50); } }
+  function unlockToast(rar, name) { toast((rar === "l" ? "👑 LEGENDARY UNLOCKED: " : rar === "e" ? "💜 EPIC UNLOCKED: " : rar === "r" ? "💙 RARE UNLOCKED: " : "Unlocked ") + name + "!"); }
+  /* One shop card. o = { owned, eq, bgk, rerender, price, dealPct } */
+  function shopItemCard(it, o) {
+    const [id, igrp, name, price0, col, sub, cur, rar] = it, owned = o.owned, eq = o.eq, bgk = o.bgk || igrp, rerender = o.rerender || renderRewards;
+    const price = o.price != null ? o.price : cost(price0), has = owned.has(id), on = eq[bgk] === id, pl = priceLab(cur, price), poor = balOf(cur) < price, tag = (cur === "d" ? " gem" : cur === "$" ? " cash" : "") + (rar ? " rk-" + rar : "") + (o.dealPct ? " deal" : "");
+    const rarBadge = rar ? el("span", { class: "rar rar-" + rar, text: RAR_LABEL[rar] || "" }) : null;
+    const newBadge = shopNewIds.has(id) && !has ? el("span", { class: "new-badge", text: "NEW" }) : null;
+    const dealTag = o.dealPct ? el("span", { class: "deal-tag", text: "-" + o.dealPct + "%" }) : null;
+    const listen = igrp === "music" ? el("button", { class: "btn sm shop-listen", type: "button", "aria-label": "Listen to " + name, text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
+    if (!has && !inSeason(id)) return null;
+    const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null });
+    if (cur === "lv" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
+    if (igrp === "boost") return el("div", { class: "shop-item" + tag }, icon, el("b", { text: name }), rarBadge, newBadge, el("small", { text: sub }),
+      el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); rerender(); } }));
+    const priceEl = o.dealPct ? el("span", { class: "deal-price" }, el("s", { text: priceLab(cur, cost(price0)) }), el("b", { text: pl })) : null;
+    return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, icon, el("b", { text: name }), rarBadge, newBadge, dealTag, el("small", { text: sub }), priceEl, listen,
+      has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...(prog.equip || {}), [bgk]: id }; saveProg(); toast(name + " equipped"); rerender(); } })
+        : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...(prog.owned || []), id]; prog.equip = { ...(prog.equip || {}), [bgk]: id }; saveProg(); renderWallet(); buyFanfare(rar); unlockToast(rar, name); rerender(); } }));
+  }
+  function defaultCard(gk, base, eq, rerender) {
+    return el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : gk === "music" ? "Default music" : "Classic" }), el("small", { text: gk === "music" ? "Synth style – free" : "Free" }),
+      el("button", { class: "btn sm", type: "button", disabled: !eq[gk], text: !eq[gk] ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...eq, [gk]: null }; saveProg(); rerender(); } }));
+  }
+  function inventoryBody(rerender) {
+    const owned2 = prog.owned || [], eq2 = prog.equip || {};
+    const INV_GROUPS = [["pet", "🐾 Pets"], ["title", "🏷 Titles"], ["music", "🎵 Music"], ["fx", "✨ Sparks"], ["frame", "🖼 Frames"], ["filter", "🎞 Filters"], ...GAME_GROUPS().map(([gk, t]) => [gk, t])];
+    const invSections = INV_GROUPS.map(([gk, gname2]) => {
+      const items = owned2.map((id) => SHOP.find((it) => it[0] === id)).filter((it) => it && it[1] === gk);
+      if (!items.length) return null;
+      const shuffle = gk === "music" ? (() => { const on = eq2.music === "mu-shuffle"; return el("div", { class: "shop-item" + (on ? " on" : "") }, el("span", { class: "sw", style: "background:linear-gradient(135deg,#ff2bd6,#22e4ff,#ffd66b)" }), el("b", { text: "🔀 Shuffle" }), el("small", { text: "A random song you own, every game and every visit" }), el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "✓ Equipped" : "Equip", onclick: () => { prog.equip = { ...eq2, music: "mu-shuffle" }; saveProg(); toast("Shuffle on 🔀"); rerender(); if (typeof stopHubMusic === "function") stopHubMusic(); } })); })() : null;
+      return el("div", { class: "inv-section" }, el("p", { class: "eyebrow", text: gname2 + " · " + items.length }),
+        el("div", { class: "shop-grid" }, shuffle, ...items.map(([id, igrp, name, , col, sub, , rar]) => {
+          const on = eq2[igrp] === id;
+          const rarBadge = rar ? el("span", { class: "rar rar-" + rar, text: RAR_LABEL[rar] }) : null;
+          const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null });
+          const listen = igrp === "music" ? el("button", { class: "btn sm shop-listen", type: "button", text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
+          return el("div", { class: "shop-item" + (on ? " on" : "") + (rar ? " rk-" + rar : "") }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), listen,
+            el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", text: on ? "Unequip" : "Equip", onclick: () => { prog.equip = { ...eq2, [igrp]: on ? null : id }; saveProg(); toast(on ? name + " removed" : name + " equipped"); rerender(); } }));
+        })));
+    }).filter(Boolean);
+    const counts = { c: 0, r: 0, e: 0, l: 0 }; owned2.forEach((id) => { const it = SHOP.find((q) => q[0] === id); if (it && it[7]) counts[it[7]]++; });
+    return el("div", { class: "shop" },
+      el("p", { class: "set-note", text: "Everything you've unlocked · " + owned2.length + " items  ·  " + counts.l + " legendary · " + counts.e + " epic · " + counts.r + " rare · " + counts.c + " common" }),
+      ...(invSections.length ? invSections : [el("p", { class: "set-note", text: "Nothing owned yet — grab something in the Shop or open a crate!" })]));
+  }
+  /* Daily deals: 3 items at 30–50% off, same for everyone all day, new ones at midnight (UTC). */
+  function seededRng(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h += 0x6D2B79F5; let t = Math.imul(h ^ (h >>> 15), 1 | h); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
+  const dealEligible = (it) => it[1] !== "boost" && it[6] !== "lv" && inSeason(it[0]) && (it[6] ? cost(it[3]) >= 3 : cost(it[3]) >= 20);
+  function todaysDeals() {
+    const r = seededRng("deals-" + todayKey()), pool = SHOP.filter(dealEligible), legendaryOk = r() < .18;
+    const pick = pool.filter((it) => legendaryOk || it[7] !== "l"), out = [];
+    while (out.length < 3 && pick.length) { const i = r() * pick.length | 0; const it = pick.splice(i, 1)[0]; const pct = [30, 40, 50][r() * 3 | 0]; out.push({ it, pct, price: Math.max(1, Math.round(cost(it[3]) * (100 - pct) / 100)) }); }
+    return out;
+  }
+  const untilMidnight = () => { const n = new Date(), m = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1) - n.getTime(); return Math.floor(m / 36e5) + "h " + Math.floor((m % 36e5) / 6e4) + "m"; };
+  /* Mystery crates: a random unowned item of that rank. */
+  const CRATES = [["c", "Common Crate", 200, "📦", "linear-gradient(135deg,#777,#bbb)"], ["r", "Rare Crate", 800, "🎁", "linear-gradient(135deg,#22e4ff,#6b7dff)"], ["e", "Epic Crate", 3000, "💎", "linear-gradient(135deg,#a35bff,#ff2bd6)"], ["l", "Legendary Crate", 9000, "👑", "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)"]];
+  const cratePool = (rank) => { const owned = new Set(prog.owned || []); return SHOP.filter((it) => it[7] === rank && !owned.has(it[0]) && it[1] !== "boost" && it[6] !== "lv" && inSeason(it[0])); };
+  function openCrate(rank, price, label) {
+    const pool = cratePool(rank); if (!pool.length) { toast("You own every " + RAR_LABEL[rank] + " item already!"); return; }
+    if (coins() < price) { toast("Not enough coins"); return; }
+    spend("", price); const it = pool[Math.random() * pool.length | 0], [id, igrp, name, , col, sub] = it;
+    prog.owned = [...(prog.owned || []), id]; if (SLOT_GROUPS.includes(igrp) && !(prog.equip || {})[igrp]) prog.equip = { ...(prog.equip || {}), [igrp]: id }; saveProg(); renderWallet();
+    prog.stats = prog.stats || {}; prog.stats.crates = (prog.stats.crates || 0) + 1; saveProg();
+    const ov = el("div", { class: "crate-ov", role: "dialog", "aria-label": "Crate opening" });
+    const box = el("div", { class: "crate-box", text: CRATES.find((c) => c[0] === rank)[3] }), card = el("div", { class: "crate-card rk-" + rank, hidden: true },
+      el("p", { class: "eyebrow", text: "You got a " + RAR_LABEL[rank] + "!" }),
+      el("span", { class: "sw big" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null }),
+      el("b", { text: name }), el("span", { class: "rar rar-" + rank, text: RAR_LABEL[rank] }), el("small", { text: sub }),
+      el("button", { class: "btn sm hot", type: "button", text: "Sweet!", onclick: () => ov.remove() }));
+    ov.append(el("p", { class: "crate-lbl", text: label }), box, card); document.body.append(ov); sfxHub();
+    setTimeout(() => { box.classList.add("pop"); }, 900);
+    setTimeout(() => { box.hidden = true; card.hidden = false; buyFanfare(rank); unlockToast(rank, name); renderShopPage(); }, 1400);
+    ov.addEventListener("click", (e) => { if (e.target === ov && !card.hidden) ov.remove(); });
+  }
+  function renderShopPage() {
+    const root = document.getElementById("shop-page"); if (!root) return;
+    const owned = new Set(prog.owned || []), eq = prog.equip || {}, rerender = renderShopPage;
+    const wallet = el("div", { class: "shop-wallet" }, el("span", { class: "rew-coins", text: "⚡ " + fmt(coins()) }), el("span", { class: "rew-cash", text: "$" + fmt(cash()) }), el("span", { class: "rew-gems", text: "💎 " + fmt(gems()) }));
+    const tabs = el("div", { class: "rew-tabs" }, ...[["shop", "🛒 Shop"], ["deals", "🔥 Daily Deals"], ["crates", "📦 Crates"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + (id === "deals" ? " dot" : ""), type: "button", "aria-pressed": String(shopTab === id), text: t, onclick: () => { shopTab = id; rerender(); } })));
+    const smOn = shopMusicOn();
+    const smBtn = el("button", { class: "chip", type: "button", "aria-pressed": String(smOn), text: smOn ? "🔊 Shop music on" : "🔇 Shop music off", onclick: () => { try { localStorage.setItem("gbl-shopmus", smOn ? "0" : "1"); } catch (e) {} if (smOn) stopPreview(); else preview("shopjam", null, true); rerender(); } });
+    let body;
+    if (shopTab === "inv") body = inventoryBody(rerender);
+    else if (shopTab === "deals") {
+      const deals = todaysDeals();
+      body = el("div", { class: "shop" }, el("p", { class: "set-note", text: "Three items at a big discount. New deals in " + untilMidnight() + " — legendaries show up here sometimes!" }),
+        el("div", { class: "shop-grid deals-grid" }, ...deals.map((d) => shopItemCard(d.it, { owned, eq, rerender, price: d.price, dealPct: d.pct }))));
+    } else if (shopTab === "crates") {
+      body = el("div", { class: "shop" }, el("p", { class: "set-note", text: "Open a crate for a random item of that rank you don't own yet. Opened so far: " + ((prog.stats || {}).crates || 0) }),
+        el("div", { class: "shop-grid crates-grid" }, ...CRATES.map(([rank, label, price, emo, col]) => { const left = cratePool(rank).length, poor = coins() < price; return el("div", { class: "shop-item crate rk-" + rank }, el("span", { class: "sw big crate-emo", style: "background:" + col, text: emo }), el("b", { text: label }), el("span", { class: "rar rar-" + rank, text: RAR_LABEL[rank] }), el("small", { text: left ? left + " possible items" : "You own them all!" }), el("button", { class: "btn sm hot", type: "button", disabled: poor || !left, text: left ? "Open · " + fmt(price) + " ⚡" : "Complete ✓", onclick: () => openCrate(rank, price, label) })); })));
+    } else {
+      const SG = getShopGroups(), ev = SG.find(([gk]) => gk.startsWith("ev-"));
+      const cats = [["all", "All"], ...(ev ? [[ev[0], ev[1].replace(/ Event Shop ✨/, " ✨")]] : []), ["music", "🎵 Music"], ["pet", "🐾 Pets"], ["title", "🏷 Titles"], ["fx", "✨ Sparks"], ["frame", "🖼 Frames"], ["filter", "🎞 Filters"], ["boost", "🚀 Boosts"], ["games", "🎮 Games"]];
+      const catChips = el("div", { class: "rew-tabs shop-chips" }, ...cats.map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopCat === gk), text: t, onclick: () => { shopCat = gk; shopGame = "all"; rerender(); } })));
+      const gameChips = shopCat === "games" ? el("div", { class: "rew-tabs shop-chips game-chips" }, ...[["all", "All games"], ...GAME_GROUPS().map(([gk, t]) => [gk, t])].map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopGame === gk), text: t, onclick: () => { shopGame = gk; rerender(); } }))) : null;
+      const filt = el("div", { class: "shop-filters" },
+        el("div", { class: "rew-tabs shop-chips" }, ...[["all", "Any rank"], ["c", "⚪ Common"], ["r", "🔵 Rare"], ["e", "🟣 Epic"], ["l", "👑 Legendary"]].map(([k, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopRank === k), text: t, onclick: () => { shopRank = k; rerender(); } }))),
+        el("div", { class: "rew-tabs shop-chips" }, ...[["all", "Owned + new"], ["no", "Not owned"], ["yes", "Owned"]].map(([k, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopOwn === k), text: t, onclick: () => { shopOwn = k; rerender(); } })),
+          el("select", { class: "shop-sort", "aria-label": "Sort", onchange: (e) => { shopSort = e.target.value; rerender(); } }, ...[["default", "Sort: Featured"], ["lo", "Price: low → high"], ["hi", "Price: high → low"], ["rank", "Rank: legendary first"], ["name", "Name A → Z"]].map(([v, t]) => el("option", { value: v, selected: shopSort === v, text: t })))));
+      const q = shopQuery.trim().toLowerCase();
+      const matches = (it) => { if (!q) return true; const [id, , name, , , sub, , rar] = it; return (name + " " + sub + " " + id + " " + (RAR_LABEL[rar] || "")).toLowerCase().includes(q); };
+      const passes = (it) => matches(it) && (shopRank === "all" || it[7] === shopRank) && (shopOwn === "all" || (shopOwn === "yes") === owned.has(it[0]));
+      const sorter = (a, b) => shopSort === "lo" ? cost(a[3]) - cost(b[3]) : shopSort === "hi" ? cost(b[3]) - cost(a[3]) : shopSort === "rank" ? (RANK_ORDER[b[7]] || 0) - (RANK_ORDER[a[7]] || 0) : shopSort === "name" ? a[2].localeCompare(b[2]) : 0;
+      const groupItems = (gk) => (gk.startsWith("ev-") ? SHOP.filter((it) => EVENT_OF[it[0]] === activeEvent()) : SHOP.filter((it) => it[1] === gk)).filter(passes).sort(sorter);
+      let groups;
+      if (shopCat === "all") groups = SG;
+      else if (shopCat === "games") groups = shopGame === "all" ? GAME_GROUPS() : GAME_GROUPS().filter(([gk]) => gk === shopGame);
+      else groups = SG.filter(([gk]) => gk === shopCat);
+      const single = groups.length === 1 && !q && shopRank === "all" && shopOwn === "all";
+      const sections = groups.map(([gk, title, base]) => {
+        const items = groupItems(gk), cards = items.map((it) => shopItemCard(it, { owned, eq, bgk: gk.startsWith("ev-") ? it[1] : gk, rerender })).filter(Boolean);
+        if (!cards.length && !single) return null;
+        return el("div", { class: "shop-section" }, el("p", { class: "eyebrow set-h2", text: title + (cards.length ? " · " + cards.length : "") }),
+          el("div", { class: "shop-grid" }, single && gk !== "boost" && !gk.startsWith("ev-") ? defaultCard(gk, base, eq, rerender) : null, ...cards));
+      }).filter(Boolean);
+      body = el("div", { class: "shop" }, catChips, gameChips, filt, ...(sections.length ? sections : [el("p", { class: "set-note", text: "Nothing matches — try another search or filter." })]));
+    }
+    const search = el("input", { class: "shop-search", type: "search", placeholder: "Search the shop… (try \"legendary\", \"fire\", \"🎃\")", value: shopQuery, "aria-label": "Search the shop", oninput: (e) => { shopQuery = e.target.value; shopTab = "shop"; const pos = e.target.selectionStart; rerender(); if (shopSearchEl) { shopSearchEl.focus(); try { shopSearchEl.setSelectionRange(pos, pos); } catch {} } } });
+    shopSearchEl = search;
+    root.replaceChildren(el("div", { class: "shop-top" }, search, wallet), el("div", { class: "rew-tabs shop-tabs" }, tabs, smBtn), body);
+  }
+  window.gblShopShown = (on) => {
+    if (on) {
+      try { const seen = new Set(JSON.parse(localStorage.getItem("gbl-shopseen") || "[]")); shopNewIds = seen.size ? new Set(SHOP.map((it) => it[0]).filter((id) => !seen.has(id))) : new Set(); localStorage.setItem("gbl-shopseen", JSON.stringify(SHOP.map((it) => it[0]))); } catch {}
+      if (typeof stopHubMusic === "function") stopHubMusic();
+      renderShopPage();
+      if (shopMusicOn() && !prev) preview("shopjam", null, true);
+    } else { if (prev && prev.shop) stopPreview(); setTimeout(() => { if (typeof startHubMusic === "function" && !document.querySelector(".modal.open")) { hubStarted = true; startHubMusic(); } }, 400); }
+  };
+  window.gblRenderShop = renderShopPage;
+  window.gblShopTab = (id) => { shopTab = id === "inv" ? "inv" : "shop"; };
   function shopMusicOn() { let v = null; try { v = localStorage.getItem("gbl-shopmus"); } catch (e) {} return v !== "0" && settings.music !== "off" && settings.mvol > 0; }
   function openRewards(tab) { if (tab) rtab = tab; stopHubMusic(); rm.classList.add("open"); renderRewards(); rm.setAttribute("aria-hidden", "false"); $("#rew-close").focus(); }
   function closeRewards() { if (prev) stopPreview(); rm.classList.remove("open"); rm.setAttribute("aria-hidden", "true"); setTimeout(() => { hubStarted = true; startHubMusic(); }, 400); }
@@ -11166,7 +11308,7 @@ function fighterGame() {
 (() => {
   const home = document.getElementById("home"), hub = document.getElementById("hub");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const HUB = ["games", "library", "two-player", "tournament", "online", "leaderboards", "badges", "admin", "submit", "queue"];
+  const HUB = ["games", "library", "shop", "two-player", "tournament", "online", "leaderboards", "badges", "admin", "submit", "queue"];
   let inHub = false;
   const setHash = (h) => { try { history.pushState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) {} };
   function showHub(target, animate) {
@@ -11200,6 +11342,7 @@ function fighterGame() {
     const secs = [...document.querySelectorAll("#top > section")], ids = secs.map((s0) => s0.id);
     const id = ids.includes(target) ? target : "library";
     secs.forEach((s0) => s0.classList.toggle("page-off", s0.id !== id));
+    if (window.gblShopShown) window.gblShopShown(id === "shop");
     document.querySelectorAll('.links a, .foot-links a').forEach((a) => { const on = a.getAttribute("href") === "#" + id; a.classList.toggle("on", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     window.scrollTo(0, 0);
   }
