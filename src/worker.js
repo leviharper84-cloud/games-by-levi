@@ -496,7 +496,7 @@ async function postScores(request, env, user) {
   const now = Date.now(), games = [], stmts = [];
   for (const [game, raw] of entries) {
     const score = Math.floor(Number(raw));
-    if (!(BUILTIN_GAMES.has(game) || approved.has(game))) continue;
+    if (!(BUILTIN_GAMES.has(game) || approved.has(game) || (game.endsWith("-qp") && BUILTIN_GAMES.has(game.slice(0, -3))))) continue;
     if (!Number.isFinite(score) || score < 0 || score > MAX_SCORE) continue;
     games.push(game);
     stmts.push(env.DB.prepare(`

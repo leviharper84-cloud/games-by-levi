@@ -1128,6 +1128,8 @@ html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 @keyframes whoShine { 50% { filter: brightness(1.5); } }
 .who-lv { font-size: .6rem; color: var(--muted); font-family: var(--f-mono); }
 
+.lb-mode { margin: 8px 0 0; } .lb-mode[hidden] { display: none; }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -1901,6 +1903,7 @@ function SHELL() {
     g.addColorStop(0, "rgba(0,0,0,0)"); g.addColorStop(1, "rgba(0,0,0,.5)"); ox.fillStyle = g; ox.fillRect(0, 0, ov.width, ov.height);
   }
   function game(def) {
+    if (!def.load) { def.load = () => {}; def.autoCk = true; }
     G = def; setup();
     cv.style.borderColor = G.color + "66"; cv.style.boxShadow = "0 0 40px " + G.color + "40";
     if (SKN.frame === "fr-fire") { cv.style.borderColor = "#ff8a1f"; cv.style.boxShadow = "0 0 50px rgba(255,80,30,.75), inset 0 0 0 2px #ff2e4d"; }
@@ -1912,14 +1915,19 @@ function SHELL() {
   }
   let SAVED = window.SAVE0 || null;
   const contBtn = document.getElementById("cont");
-  function saveGame(d) { if (S.practice || S.duo || S.tt) return; SAVED = d ? { ...d, score: Math.floor(S.score) } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); } catch (e) {} }
-  function start(practice, duo, cont) {
+  let ckT = 0;
+  function saveGame(d) { if (S.practice || S.duo || S.tt || S.quick) return; SAVED = d ? { ...d, score: Math.floor(S.score) } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); if (SAVED && SAVED.score > 0) parent.postMessage({ type: "gbl:ckpt", score: SAVED.score }, "*"); } catch (e) {} }
+  function start(practice, duo, cont, quick) {
     if (window.TOUR0) { duo = true; practice = false; }
+    S.quick = !!quick && !duo && !practice && !window.TOUR0 && !window.ONLINE0; S.qpT = 90; ckT = 0;
+    if (S.bestN == null) S.bestN = S.best;
+    S.best = S.quick ? (window.QPBEST0 | 0) : S.bestN;
     const wantTT = !!duo && !G.duo && !window.ONLINE0 && !window.TOUR0;
     if (wantTT) { if (S.tt && !S.tt.done && S.tt.s[0] != null && S.tt.p === 1) S.tt.p = 2; else S.tt = { p: 1, s: [null, null] }; } else S.tt = null;
     S.duo = !!(duo && G.duo); S.practice = !!practice && !S.duo && !S.tt; S.bot = S.duo && !!window.BOT0 && !window.ONLINE0; S.online = S.duo ? (window.ONLINE0 || 0) : 0; RQ.length = 0;
     S.score = 0; S.t = 0; S.keys = {}; S.newBest = false; S.parts = []; S.pops = []; S.rings = []; S.banner = null; S.paused = false;
-    G.init(); if (cont && SAVED && G.load && !S.duo && !S.practice && !S.tt) { G.load(SAVED); S.score = SAVED.score || 0; banner("WELCOME BACK", G.color); }
+    G.init(); if (cont && SAVED && G.load && !S.duo && !S.practice && !S.tt && !S.quick) { G.load(SAVED); S.score = SAVED.score || 0; banner(G.autoCk ? "BACK AT YOUR CHECKPOINT" : "WELCOME BACK", G.color); }
+    if (S.quick) banner("⚡ QUICK PLAY · 90 SECONDS", "#ffd66b");
     S.state = "count"; S.cd = 1.2; audio(); sfx("tick");
   }
   function over(text) {
@@ -1938,10 +1946,10 @@ function SHELL() {
     if (S.online && text) { const m2 = /PLAYER (\d) WINS/.exec(text); if (m2) text = +m2[1] === S.online ? "YOU WIN!" : "YOU LOSE"; }
     S.state = "over"; S.end = text || "GAME OVER"; S.overAt = performance.now();
     S.score = Math.floor(S.score); S.shown = 0;
-    S.newBest = !S.practice && !S.duo && S.score > S.best && S.score > 0; if (S.newBest) S.best = S.score;
+    S.newBest = !S.practice && !S.duo && S.score > S.best && S.score > 0; if (S.newBest) { S.best = S.score; if (S.quick) window.QPBEST0 = S.score; else S.bestN = S.score; }
     sfx("over"); if (S.newBest) setTimeout(() => sfx("level"), 700);
-    if (!S.practice && !S.duo && SAVED && G.load) saveGame(null);
-    if (!S.practice && !S.duo) { try { parent.postMessage({ type: "gbl:score", score: S.score }, "*"); } catch (e) {} }
+    if (!S.practice && !S.duo && !S.quick && SAVED && G.load) saveGame(null);
+    if (!S.practice && !S.duo) { try { parent.postMessage({ type: "gbl:score", score: S.score, quick: !!S.quick }, "*"); } catch (e) {} }
   }
   const canStart = () => (S.state === "title" || (S.state === "over" && !window.TOUR0)) && performance.now() - S.overAt > 700;
   function togglePause() { if (S.state === "play" || S.state === "count") { S.paused = !S.paused; S.keys = {}; pzBtn.textContent = S.paused ? "▶" : "II"; if (!S.paused && ac) seqT = ac.currentTime + .03; } }
@@ -2004,7 +2012,7 @@ function SHELL() {
       if (S.tt && !S.tt.done) L.push(["PLAYER 1 SCORED", 14 * u, "#8f86b5"], [fmt(S.shown), 44 * u, "#22e4ff", "d"], ["", 6 * u], ["NOW PASS IT TO PLAYER 2!", 22 * u, "#ff2bd6", "g"], ["Beat " + fmt(S.tt.s[0]) + " to win", 13 * u, "#d8d0f5"]);
       else if (S.tt) L.push([S.end, 30 * u, S.end.includes("1") ? "#22e4ff" : S.end.includes("2") ? "#ff2bd6" : G.color, "g"], ["PLAYER 1  " + fmt(S.tt.s[0]) + "   ·   " + fmt(S.tt.s[1]) + "  PLAYER 2", 16 * u, "#ffffff", "d"], ["TAKE-TURNS 2-PLAYER MATCH", 12 * u, "#8f86b5"]);
       else if (S.duo) L.push([S.end, 30 * u, G.color, "g"], [window.BOT0 ? "MATCH VS BOT" : "2-PLAYER MATCH", 12 * u, "#8f86b5"]);
-      else L.push([S.end, 30 * u, G.color, "g"], ["FINAL SCORE", 12 * u, "#8f86b5"], [fmt(S.shown), 40 * u, "#ffffff", "d"]);
+      else L.push([S.end, 30 * u, G.color, "g"], [S.quick ? "⚡ QUICK PLAY SCORE" : "FINAL SCORE", 12 * u, S.quick ? "#ffd66b" : "#8f86b5"], [fmt(S.shown), 40 * u, "#ffffff", "d"]);
       if (S.newBest && !S.tt) L.push(["★ NEW RECORD ★", 15 * u, Math.floor(S.clock * 4) % 2 ? "#ffd66b" : "#fff3c4", "d"]);
       (G.summary ? G.summary() : []).forEach((s) => L.push([s, 12 * u, "#d8d0f5"]));
       if (S.tt && !S.tt.done) L.push(["", 6 * u], [Math.floor(S.clock * 2) % 2 ? "▶ TAP WHEN PLAYER 2 IS READY" : "", 13 * u, "#ff2bd6"]);
@@ -2046,7 +2054,7 @@ function SHELL() {
   }
   function hud() {
     const live = S.state === "play" || S.state === "count";
-    const l = S.tt && S.state !== "title" ? "PLAYER " + S.tt.p + " · SCORE " + fmt(S.score) : S.duo && S.state !== "title" ? "2 PLAYERS" : (S.practice && live ? "PRACTICE · " : "") + "SCORE " + fmt(S.score), c = live && G.hud ? G.hud() : G.title.toUpperCase(), r = "HI " + fmt(Math.max(S.best, S.score));
+    const l = S.tt && S.state !== "title" ? "PLAYER " + S.tt.p + " · SCORE " + fmt(S.score) : S.duo && S.state !== "title" ? "2 PLAYERS" : (S.practice && live ? "PRACTICE · " : "") + (S.quick && live ? "⚡ " + Math.ceil(S.qpT) + "s · " : "") + "SCORE " + fmt(S.score), c = live && G.hud ? G.hud() : G.title.toUpperCase(), r = "HI " + fmt(Math.max(S.best, S.score));
     const key = l + "|" + c + "|" + r;
     if (key !== hudCache) { hudCache = key; hl.textContent = l; hc.textContent = c; hr.textContent = r; }
   }
@@ -2059,7 +2067,11 @@ function SHELL() {
       const before = Math.ceil(S.cd / .4); S.cd -= dt;
       if (S.cd > 0 && Math.ceil(S.cd / .4) !== before) sfx("tick");
       if (S.cd <= 0) { S.state = "play"; sfx("start"); if (ac) { seqT = ac.currentTime + .05; step = 0; } }
-    } else if (S.state === "play" && dt > 0) { S.t += dt; if (RQ.length && G.remote && G.remote(RQ[0])) RQ.shift(); G.update(dt); }
+    } else if (S.state === "play" && dt > 0) {
+      S.t += dt; if (RQ.length && G.remote && G.remote(RQ[0])) RQ.shift(); G.update(dt);
+      if (S.state === "play" && S.quick) { S.qpT -= dt; if (S.qpT <= 0) { S.qpT = 0; over("TIME'S UP!"); } }
+      else if (S.state === "play" && G.autoCk && !S.practice && !S.duo && !S.tt) { ckT += dt; if (ckT >= 20) { ckT = 0; if (S.score > 0) { saveGame({ auto: 1, label: "SCORE " + fmt(Math.floor(S.score)) }); pop(G.w / 2, 70, "✓ CHECKPOINT", "#3dffa8"); } } }
+    }
     stepFx(dt);
     x.setTransform(dpr, 0, 0, dpr, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = "source-over"; x.shadowBlur = 0;
     x.save();
@@ -2083,6 +2095,7 @@ function SHELL() {
     if (btns.hidden === showGo) btns.hidden = !showGo;
     const showP = menu && !S.paused && !window.TOUR0, showD = showP && !window.ONLINE0, isOver = S.state === "over";
     if (pracBtn.hidden === showP) pracBtn.hidden = !showP;
+    const qpBtn = document.getElementById("qp"); if (qpBtn) { const showQ = showP && !window.ONLINE0 && !(isOver && (S.duo || S.tt)) && !duoDefault(); if (qpBtn.hidden === showQ) qpBtn.hidden = !showQ; const ql = isOver && S.quick ? "⚡ QUICK AGAIN" : "⚡ QUICK PLAY"; if (qpBtn.textContent !== ql) qpBtn.textContent = ql; }
     if (contBtn) { const showC = showP && S.state === "title" && !!SAVED && !!G.load; if (contBtn.hidden === showC) contBtn.hidden = !showC; const cl = "▶ CONTINUE" + (SAVED && SAVED.label ? " · " + SAVED.label : ""); if (showC && contBtn.textContent !== cl) contBtn.textContent = cl; }
     if (duoBtn.hidden === showD) duoBtn.hidden = !showD;
     const label = S.paused ? "▶ RESUME" : isOver && S.tt && !S.tt.done ? "▶ PLAYER 2 GO!" : isOver ? (S.duo || S.tt ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? (window.ONLINE0 ? "▶ START ONLINE MATCH" : window.BOT0 ? "▶ START VS BOT" : "▶ START 2 PLAYERS") : "▶ START";
@@ -2104,6 +2117,7 @@ function SHELL() {
   onTap(goBtn, (e) => { e.stopPropagation(); audio(); if (S.paused) togglePause(); else if (canStart()) start(...again()); });
   if (contBtn) onTap(contBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, false, true); });
   onTap(pracBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(!(S.state === "over" && S.practice), false); });
+  onTap(document.getElementById("qp"), (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, false, false, true); });
   onTap(duoBtn, (e) => { e.stopPropagation(); audio(); if (canStart()) start(false, !(S.state === "over" ? (S.duo || !!S.tt) : duoDefault())); });
   const noScroll = (e) => { if (!(e.target.closest && e.target.closest("button"))) e.preventDefault(); };
   addEventListener("touchstart", noScroll, { passive: false });
@@ -9350,7 +9364,8 @@ function fighterGame() {
     "#hud{position:fixed;top:0;left:0;right:0;height:28px;display:flex;align-items:center;gap:10px;padding:0 8px;font-size:12px;letter-spacing:.14em;color:var(--c,#22e4ff);text-shadow:0 0 8px var(--c,#22e4ff);white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.07);background:linear-gradient(#0b0619,#03020a)}" +
     "#hud span{overflow:hidden;text-overflow:ellipsis;min-width:0}#hl{flex:1}#hc{flex:1.6;text-align:center;color:#e9e4ff;text-shadow:none}#hr{flex:1;text-align:right}" +
     "#ctl{display:flex;gap:6px;flex:none}#ctl button{font:inherit;font-size:11px;letter-spacing:.1em;color:#d8d0f5;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.16);border-radius:4px;padding:2px 7px;cursor:pointer}#ctl button:hover{border-color:var(--c,#22e4ff);color:#fff}#ctl #xq{color:#fff;background:rgba(255,43,214,.25);border-color:#ff2bd6;font-weight:800;padding:2px 10px}#ctl #xq[hidden]{display:none}" +
-    "#btns{position:fixed;left:0;right:0;bottom:6%;z-index:5;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:0 12px}#btns[hidden],#prac[hidden],#duo[hidden]{display:none}" +
+    "#btns{position:fixed;left:0;right:0;bottom:6%;z-index:5;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:0 12px}#btns[hidden],#prac[hidden],#duo[hidden],#qp[hidden]{display:none}" +
+    "#qp{font:800 13px Orbitron,system-ui,sans-serif;letter-spacing:.16em;color:#ffd66b;background:rgba(10,4,24,.85);border:2px solid rgba(255,214,107,.7);border-radius:999px;padding:14px 22px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 14px rgba(255,214,107,.35)}#qp:active{transform:scale(.96)}" +
     "#prac{font:800 13px Orbitron,system-ui,sans-serif;letter-spacing:.18em;color:#3dffa8;background:rgba(10,4,24,.85);border:2px solid rgba(61,255,168,.6);border-radius:999px;padding:14px 26px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 14px rgba(61,255,168,.35)}#prac:active,#duo:active{transform:scale(.96)}" +
     "#duo{font:800 13px Orbitron,system-ui,sans-serif;letter-spacing:.18em;color:#ff7be6;background:rgba(10,4,24,.85);border:2px solid rgba(255,43,214,.6);border-radius:999px;padding:14px 26px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 14px rgba(255,43,214,.35)}" +
     "#go{font:800 15px Orbitron,system-ui,sans-serif;letter-spacing:.2em;color:#fff;background:rgba(10,4,24,.85);border:2px solid var(--c,#22e4ff);border-radius:999px;padding:14px 34px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 24px var(--c,#22e4ff),inset 0 0 14px rgba(255,255,255,.08);text-shadow:0 0 10px var(--c,#22e4ff)}" +
@@ -9362,7 +9377,7 @@ function fighterGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button><button id="xq" type="button" title="Close" hidden>✕</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (window.gblEventActive && window.gblEventActive("halloween") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="qp" type="button">⚡ QUICK PLAY</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";window.QPBEST0=" + (myBest(g.key + "-qp") | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (window.gblEventActive && window.gblEventActive("halloween") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -9432,7 +9447,7 @@ function fighterGame() {
   let online = false;                // server reachable
   let subs = [];                     // submitted games (no code)
   let scoreDocs = [];                // [{ uid, tag, av, joined, best: { game: { s, at } } }]
-  let showAll = 0, genre = "All", query = "", lbKey = "snake", libReady = false;
+  let showAll = 0, genre = "All", query = "", lbKey = "snake", libReady = false, lbMode = "normal";
   { const lbq = document.getElementById("lb-q"); if (lbq) { let t0 = 0; lbq.addEventListener("input", () => { clearTimeout(t0); t0 = setTimeout(() => renderBoard(), 120); }); lbq.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); lbq.blur(); } }); } }
 
   const readJsonStore = (k) => { try { return JSON.parse(store.get(k) || "{}") || {}; } catch { return {}; } };
@@ -9574,10 +9589,16 @@ function fighterGame() {
     }));
 
     $("#lb-title").textContent = game.title;
-    const all = entries(lbKey), rows = all.slice(0, 10), mine = all.findIndex(isMe);
+    const isBuiltin = BUILTINS.some((b2) => b2.key === lbKey); if (!isBuiltin) lbMode = "normal";
+    const bKey = lbMode === "qp" ? lbKey + "-qp" : lbKey;
+    const all = entries(bKey), rows = all.slice(0, 10), mine = all.findIndex(isMe);
     const sub = $("#lb-sub");
     sub.replaceChildren();
-    const best = myBest(lbKey);
+    let modeRow = document.getElementById("lb-mode");
+    if (!modeRow) { modeRow = el("div", { class: "rew-tabs lb-mode", id: "lb-mode" }); sub.parentNode.insertBefore(modeRow, sub.nextSibling); }
+    modeRow.hidden = !isBuiltin;
+    modeRow.replaceChildren(...[["normal", "🐢 Full game"], ["qp", "⚡ Quick Play (90s)"]].map(([m, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(lbMode === m), text: t, onclick: () => { lbMode = m; renderBoard(); } })));
+    const best = myBest(bKey);
     if (best) sub.append("Your best ", el("b", { text: fmt(best) }), mine >= 0 ? `  ·  rank #${mine + 1} of ${all.length}` : "");
     else sub.append("You haven't played this one yet.");
 
@@ -9858,9 +9879,16 @@ function fighterGame() {
     if (d && d.type === "gbl:save") { if (window.gblOnSave) window.gblOnSave(current.g, d.data); return; }
     if (d && d.type === "gbl:move") { if (current.onMove) current.onMove(d.move); return; }
     if (d && d.type === "gbl:match") { if (window.gblOnMatch) window.gblOnMatch(current, d.winner | 0); if (current.onMatch) { const f = current.onMatch; current.onMatch = null; f(d.winner | 0); } return; }
+    if (d && d.type === "gbl:ckpt") {
+      const s = Math.floor(Number(d.score)); if (!current.ranked || !Number.isFinite(s) || s <= 0 || s > 1e7) return;
+      const key = current.g.key, prevBest = myBest(key), top = topScore(key);
+      if (s > prevBest) { saveScore(key, s); if (top > 0 && s > top && !current.ckTop) { current.ckTop = true; coinPop("🏆 Checkpoint: you just passed the #1 score on the leaderboard!", true); } }
+      return;
+    }
     if (!d || d.type !== "gbl:score") return;
     const s = Math.floor(Number(d.score));
     if (!Number.isFinite(s) || s < 0 || s > 1e7) return;
+    if (d.quick) { if (window.gblOnScore) window.gblOnScore(current, s); if (current.ranked) { saveScore(current.g.key + "-qp", s); setCabSub(current.g); } else toast(`Test run score: ${fmt(s)}`); return; }
     if (window.gblOnScore) window.gblOnScore(current, s);
     if (current.onScore) { const f = current.onScore; current.onScore = null; f(s); }
     if (!current.ranked) { toast(`Test run score: ${fmt(s)}`); return; }
