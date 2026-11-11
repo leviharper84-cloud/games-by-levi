@@ -4,7 +4,7 @@
  * with accounts, leaderboards and game submissions stored in a D1 database.
  */
 
-const BUILTIN_GAMES = new Set(["snake", "bricks", "pong", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "pingpong", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "connect4", "reversi", "beat", "simon", "chess", "guesswho", "slither", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "tug", "clash", "thief", "stack", "crossing", "airhockey", "whack", "bowling", "merge", "colordash", "blades", "ttt", "dots", "solitaire", "fighters"]);
+const BUILTIN_GAMES = new Set(["snake", "bricks", "pong", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "pingpong", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "connect4", "reversi", "beat", "simon", "chess", "guesswho", "slither", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "math", "clash", "thief", "stack", "crossing", "airhockey", "whack", "bowling", "merge", "colordash", "blades", "ttt", "dots", "solitaire", "fighters"]);
 const GENRES = new Set(["Arcade", "Action", "Puzzle", "Racing", "Platformer", "Sports", "Strategy", "Other"]);
 const USER_RE = /^[A-Za-z0-9 _.\-]{3,16}$/;
 const MAX_CODE_BYTES = 200 * 1024;
@@ -50,6 +50,7 @@ const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS daily (day TEXT NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, score INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (day, user_id))",
   "CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, game TEXT NOT NULL, host_id INTEGER NOT NULL, guest_id INTEGER, moves TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS rate (key TEXT PRIMARY KEY, count INTEGER NOT NULL, since INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS tours (code TEXT PRIMARY KEY, host_id INTEGER NOT NULL, games TEXT NOT NULL, players TEXT NOT NULL DEFAULT '[]', scores TEXT NOT NULL DEFAULT '{}', status TEXT NOT NULL DEFAULT 'lobby', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS diag (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, who TEXT, body TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS likes (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, PRIMARY KEY (user_id, game))",
@@ -110,6 +111,9 @@ async function handle(request, env, url) {
   if ((m = path.match(/^\/api\/rooms\/([A-Z]{4})\/move$/)) && method === "POST") return roomMove(request, env, user, m[1]);
   if ((m = path.match(/^\/api\/rooms\/([A-Z]{4})\/leave$/)) && method === "POST") return leaveRoom(env, user, m[1]);
 
+  if (path === "/api/tours" && method === "POST") return createTour(env, user);
+  if ((m = path.match(/^\/api\/tours\/([A-Z]{4})$/)) && method === "GET") return getTour(env, user, m[1]);
+  if ((m = path.match(/^\/api\/tours\/([A-Z]{4})\/(join|start|score|leave)$/)) && method === "POST") return tourAction(request, env, user, m[1], m[2]);
   if (path === "/api/scores" && method === "GET") return getScores(env, user);
   if (path === "/api/scores" && method === "POST") return postScores(request, env, user);
 
@@ -374,6 +378,80 @@ async function leaveRoom(env, user, code) {
   const r = await roomFor(env, code);
   if (seatOf(r, user)) await env.DB.prepare("UPDATE rooms SET status = 'left', updated_at = ? WHERE code = ?").bind(Date.now(), code).run();
   return json({ ok: true });
+}
+
+/* ------------------------------------------------------------------ */
+/* Online tournaments: 2-5 players, the same 5 quick games, ranked     */
+/* ------------------------------------------------------------------ */
+
+const TOUR_GAMES = ["snake", "bricks", "flap", "blaster", "memory", "runner", "racer", "targets", "hop", "flip", "hoops", "beat", "simon", "stack", "crossing", "whack", "colordash", "blades", "math", "slice", "tunnel", "orbit"];
+const TOUR_MAX = 5, TOUR_ROUNDS = 5;
+const tourView = (t, user) => {
+  const players = JSON.parse(t.players), scores = JSON.parse(t.scores);
+  const me = user ? players.findIndex((p) => p.id === user.id) : -1;
+  const done = t.status !== "lobby" && players.length > 0 && players.every((p) => (scores[p.id] || []).filter((v) => v != null).length >= TOUR_ROUNDS);
+  return { code: t.code, games: JSON.parse(t.games), players: players.map((p) => ({ id: p.id, name: p.name, scores: scores[p.id] || [] })), status: done ? "done" : t.status, host: players[0] ? players[0].id : t.host_id, me: me >= 0 ? players[me].id : null, max: TOUR_MAX };
+};
+async function tourFor(env, code) {
+  const t = await env.DB.prepare("SELECT * FROM tours WHERE code = ?").bind(code).first();
+  if (!t) fail(404, "No tournament with that code. Check the letters and try again.");
+  return t;
+}
+async function createTour(env, user) {
+  if (!user) fail(401, "Log in to play an online tournament.");
+  await limit(env, "tour:" + user.id, 10, 10 * MIN, "You've made a lot of tournaments. Try again in a few minutes.");
+  const now = Date.now();
+  await env.DB.prepare("DELETE FROM tours WHERE updated_at < ?").bind(now - 12 * HOUR).run();
+  const pool = TOUR_GAMES.filter((k) => BUILTIN_GAMES.has(k)), games = [];
+  while (games.length < TOUR_ROUNDS && pool.length) games.push(pool.splice(crypto.getRandomValues(new Uint32Array(1))[0] % pool.length, 1)[0]);
+  const players = JSON.stringify([{ id: user.id, name: user.username }]);
+  const A = "ABCDEFGHJKLMNPQRSTUVWXYZ";
+  for (let i = 0; i < 8; i++) {
+    const code = [...crypto.getRandomValues(new Uint8Array(4))].map((x) => A[x % A.length]).join("");
+    try {
+      await env.DB.prepare("INSERT INTO tours (code, host_id, games, players, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)").bind(code, user.id, JSON.stringify(games), players, now, now).run();
+      return json(tourView(await tourFor(env, code), user));
+    } catch (e) { if (!/UNIQUE|PRIMARY/i.test(String(e))) throw e; }
+  }
+  fail(500, "Couldn't make a tournament. Try again.");
+}
+async function getTour(env, user, code) { return json(tourView(await tourFor(env, code), user)); }
+async function tourAction(request, env, user, code, act) {
+  if (!user) fail(401, "Log in to play an online tournament.");
+  await limit(env, "touract:" + user.id, 60, MIN, "Slow down a little.");
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const t = await tourFor(env, code), players = JSON.parse(t.players), scores = JSON.parse(t.scores);
+    const idx = players.findIndex((p) => p.id === user.id);
+    let status = t.status;
+    if (act === "join") {
+      if (idx < 0) {
+        if (status !== "lobby") fail(409, "That tournament has already started.");
+        if (players.length >= TOUR_MAX) fail(409, "That tournament is full (" + TOUR_MAX + " players).");
+        players.push({ id: user.id, name: user.username });
+      }
+    } else if (act === "leave") {
+      if (idx < 0) return json(tourView(t, user));
+      if (status === "lobby") players.splice(idx, 1);
+      else { scores[user.id] = Array.from({ length: TOUR_ROUNDS }, (_, i) => (scores[user.id] || [])[i] ?? 0); }
+    } else if (act === "start") {
+      if (idx !== 0) fail(403, "Only the host can start the tournament.");
+      if (players.length < 2) fail(409, "Wait for at least one more player to join.");
+      status = "playing";
+    } else if (act === "score") {
+      if (idx < 0) fail(403, "You're not in this tournament.");
+      if (status !== "playing") fail(409, "The tournament hasn't started yet.");
+      const b = await readJson(request), round = Math.floor(Number(b.round)), score = Math.floor(Number(b.score));
+      if (!(round >= 0 && round < TOUR_ROUNDS)) fail(400, "That round doesn't exist.");
+      if (!Number.isFinite(score) || score < 0 || score > 1e7) fail(400, "That score isn't valid.");
+      const mine = scores[user.id] || [];
+      if (mine[round] != null) return json(tourView(t, user));
+      mine[round] = score; scores[user.id] = mine;
+    }
+    const res = await env.DB.prepare("UPDATE tours SET players = ?, scores = ?, status = ?, updated_at = ? WHERE code = ? AND players = ? AND scores = ? AND status = ?")
+      .bind(JSON.stringify(players), JSON.stringify(scores), status, Date.now(), code, t.players, t.scores, t.status).run();
+    if (res.meta && res.meta.changes) return json(tourView(await tourFor(env, code), user));
+  }
+  fail(409, "Lots happening at once. Try again.");
 }
 
 /* ------------------------------------------------------------------ */

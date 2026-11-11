@@ -87,3 +87,15 @@ CREATE TABLE IF NOT EXISTS rooms (
 );
 CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS likes (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, PRIMARY KEY (user_id, game));
+
+-- Online tournaments (2-5 players, same games, ranked per round).
+CREATE TABLE IF NOT EXISTS tours (
+  code TEXT PRIMARY KEY,
+  host_id INTEGER NOT NULL,
+  games TEXT NOT NULL,
+  players TEXT NOT NULL DEFAULT '[]',
+  scores TEXT NOT NULL DEFAULT '{}',
+  status TEXT NOT NULL DEFAULT 'lobby',
+  created_at INTEGER NOT NULL,
+  updated_at INTEGER NOT NULL
+);

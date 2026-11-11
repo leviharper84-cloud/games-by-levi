@@ -1062,6 +1062,27 @@ html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 .weekly-grand { border-color: rgba(255,214,107,.5); }
 @media (max-width: 600px) { .tcard-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; } .tcard { padding: 6px 4px 8px; } .tcard b { font-size: .62rem; } .tcard .rar { font-size: .5rem; padding: 0 4px; } }
 
+.tour-games { margin: 6px 0 12px; padding: 10px 14px; border-radius: 14px; border: 1px solid var(--line-2); background: rgba(7,4,15,.5); }
+.tour-games summary { cursor: pointer; font-weight: 800; letter-spacing: .06em; }
+.tour-games .chip[aria-pressed="false"] { opacity: .45; text-decoration: line-through; }
+.tour-bulk { display: flex; gap: 14px; margin: 4px 0 8px; }
+
+.ot-start { display: grid; gap: 12px; justify-items: start; margin: 4px 0 10px; }
+.ot-start[hidden] { display: none; }
+.ot-join { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; color: var(--muted); font-size: .85rem; }
+.ot-join .room-in { width: 110px; text-transform: uppercase; letter-spacing: .3em; text-align: center; }
+.ot-head { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.ot-head .tour-h { margin: 0; flex: 1; }
+.ot-code { display: grid; text-align: center; } .ot-code small { font-size: .6rem; letter-spacing: .2em; color: var(--muted); } .ot-code b { font-family: var(--f-mono); font-size: 1.8rem; letter-spacing: .3em; color: var(--gold); text-shadow: 0 0 12px rgba(255,214,107,.6); }
+.ot-rounds { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin: 12px 0; }
+.ot-round { display: grid; gap: 2px; padding: 8px 10px; border-radius: 10px; border: 1px solid var(--line-2); font-size: .8rem; } .ot-round small { color: var(--muted); }
+.ot-round.now { border-color: var(--a1); box-shadow: 0 0 12px rgba(var(--a1-rgb), .35); } .ot-round.done { border-color: rgba(61,255,168,.5); }
+.ot-table { width: 100%; border-collapse: collapse; margin: 6px 0 14px; font-size: .85rem; }
+.ot-table th, .ot-table td { padding: 7px 8px; text-align: center; border-bottom: 1px solid var(--line); } .ot-table th:first-child, .ot-table td:first-child { text-align: left; }
+.ot-table tr.me td { color: var(--a2, #22e4ff); } .ot-table tr.champ td { color: var(--gold); font-weight: 800; } .ot-pts { font-weight: 900; font-family: var(--f-mono); }
+.ot-win { font-family: var(--f-sign); font-size: 1.4rem; color: var(--gold); text-shadow: 0 0 14px rgba(255,214,107,.6); }
+.tour-games[hidden], .tour-names[hidden], .tour-rules[hidden] { display: none; }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -7538,63 +7559,82 @@ function curlGame() {
   });
 }
 
-/* ---------- 46 Pulse Tug ---------- */
-function tugGame() {
-  const W = 640, H = 360, CY = 200;
-  let pos, lit, litT, wins, round, roundT, presses, botT, lvl, flashP;
-  const POW = .03;
-  function newRound() { pos = 0; roundT = 1.4; presses = [0, 0]; lit = [true, false]; litT = [.6, .9]; }
-  const cpu = () => S.duo ? (S.bot ? BK() : -1) : Math.min(3, Math.floor((lvl - 1) / 2) + (lvl > 1 ? 1 : 0));
-  function press(i) {
-    if (S.state !== "play" || roundT > 0) return;
-    const m = lit[i] ? 1.6 : .55; pos += (i === 0 ? -1 : 1) * POW * m; presses[i]++; flashP[i] = .12;
-    sfx("tick", lit[i] ? 1 : .6); burst(W / 2 + pos * (W / 2 - 60), CY, i === 0 ? "#22e4ff" : "#ff2bd6", 3, 120, .3, 2, i === 0 ? Math.PI : 0, 1);
-    if (pos <= -1 || pos >= 1) roundWin(pos <= -1 ? 0 : 1);
+/* ---------- 46 Quick Math Facts ---------- */
+function mathGame() {
+  const W = 480, H = 640, PER = 10, BX = 30, BY = 400, BW = 200, BH = 92, GAP = 20;
+  let lvl, lives, right, q, choices, qT, qMax, typed, fb, streak, best;
+  const lo = () => (lvl - 1) * 5 + 1, hi = () => lvl * 5;
+  const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
+  function makeQ() {
+    const ops = lvl === 1 ? ["+", "+", "-", "×"] : ["+", "-", "×", "×", "÷"];
+    const op = ops[Math.random() * ops.length | 0];
+    let a = rnd(lo(), hi()), b = rnd(lo(), hi()), ans;
+    if (op === "+") ans = a + b;
+    else if (op === "-") { if (b > a) [a, b] = [b, a]; ans = a - b; }
+    else if (op === "×") ans = a * b;
+    else { const p = a * b; ans = a; a = p; }
+    q = { a, b, op, ans };
+    const set = new Set([ans]), spread = Math.max(3, Math.round(Math.abs(ans) * .25));
+    let guard = 0;
+    while (set.size < 4 && guard++ < 50) { const w = ans + (Math.random() < .5 ? -1 : 1) * rnd(1, spread); if (w >= 0) set.add(w); }
+    while (set.size < 4) set.add(ans + set.size * 2);
+    choices = [...set].sort(() => Math.random() - .5);
+    qMax = S.practice ? 0 : Math.max(4, 11 - lvl * .8); qT = qMax; typed = "";
   }
-  function roundWin(w) {
-    wins[w]++; flash(w === 0 ? "#22e4ff" : "#ff2bd6", .3); shake(8, .3); sfx("boom"); burst(w === 0 ? 60 : W - 60, CY, w === 0 ? "#22e4ff" : "#ff2bd6", 40, 300, .8, 3);
-    if (S.duo) { if (wins[w] >= 2) return over("PLAYER " + (w + 1) + " WINS"); banner("ROUND TO PLAYER " + (w + 1), w === 0 ? "#22e4ff" : "#ff2bd6"); round++; newRound(); return; }
-    if (w === 0) S.score += 100 * lvl;
-    if (wins[0] >= 2) { S.score += 250 * lvl; lvl++; wins = [0, 0]; banner("YOU WIN!  LEVEL " + lvl + " · STRONGER CPU", "#3dffa8"); sfx("level"); }
-    else if (wins[1] >= 2) return over("THE CPU WAS STRONGER");
-    else banner(w === 0 ? "ROUND TO YOU!" : "ROUND TO CPU", w === 0 ? "#22e4ff" : "#ff2bd6");
-    round++; newRound();
+  const box = (i) => [BX + (i % 2) * (BW + GAP), BY + Math.floor(i / 2) * (BH + GAP)];
+  function answer(v) {
+    if (S.state !== "play" || !q || fb) return;
+    if (v === q.ans) {
+      right++; streak++; best = Math.max(best, streak);
+      const pts = 10 * lvl + Math.round(qMax ? 10 * qT / qMax : 0) + Math.min(50, streak * 2);
+      S.score += pts; pop(W / 2, 190, "+" + pts, "#3dffa8"); burst(W / 2, 190, "#3dffa8", 18, 200, .45, 3); sfx("score");
+      fb = { ok: true, t: .45, v };
+      if (right >= PER) {
+        lvl++; right = 0; if (!S.practice) lives = Math.min(5, lives + 1);
+        banner("LEVEL " + lvl + " · NUMBERS " + lo() + "–" + hi(), "#ffd66b"); sfx("level"); flash("#ffd66b", .25);
+        saveGame({ lvl, lives, best, label: "LEVEL " + lvl + " (" + lo() + "–" + hi() + ")" });
+      }
+    } else miss(v);
+  }
+  function miss(v) {
+    streak = 0; fb = { ok: false, t: .9, v }; sfx("bad"); shake(6, .25);
+    pop(W / 2, 190, v == null ? "TIME! " + q.ans : "IT WAS " + q.ans, "#ff4d6d");
+    if (!S.practice) { lives--; if (lives <= 0) { fb.t = 1.1; fb.end = true; } }
   }
   game({
-    title: "Pulse Tug", w: W, h: H, color: "#ff2bd6", bpm: 160, easy: "a very sleepy CPU",
-    duo: "P1 mashes W, P2 mashes ↑ (or each tap your own side). Pull the pulse to your side. Best of 3.",
-    help: ["Tug of war! MASH to pull the energy ball your way", "W, Space or tap to pull (P2 uses ↑ or the right side)", "Your light flashes GREEN = super strong pulls", "RED = weak pulls. Time your mashing!"],
-    init() { wins = [0, 0]; round = 1; lvl = 1; flashP = [0, 0]; botT = 0; newRound(); roundT = 0; },
-    hud() { return S.duo ? "P1 " + wins[0] + " : " + wins[1] + " P2  ·  FIRST TO 2" : "LEVEL " + lvl + "  ·  ROUNDS YOU " + wins[0] + " : " + wins[1] + " CPU"; },
-    key(k, rep) { if (rep) return; if (k === "w" || ((!S.duo || S.bot) && (k === " " || k === "ArrowUp"))) press(0); else if (S.duo && !S.bot && k === "ArrowUp") press(1); },
-    down(mx) { if (S.duo && !S.bot && mx >= W / 2) press(1); else press(0); },
+    title: "Quick Math Facts", w: W, h: H, color: "#3dffa8", bpm: 120, easy: "no timer and no lives lost",
+    help: ["Tap the right answer (or press 1-4, or type it + Enter)", "Level 1 uses numbers 1–5, level 2 uses 6–10, and so on", "10 right answers clears a level. Faster answers = more points", "Wrong or too slow loses a heart. Each new level is a save point"],
+    load(d) { if (d && d.lvl > 1) { lvl = d.lvl | 0; lives = Math.max(1, d.lives | 0 || 3); best = d.best | 0; right = 0; makeQ(); } },
+    init() { lvl = 1; lives = 3; right = 0; streak = 0; best = 0; fb = null; makeQ(); },
+    hud() { return "LEVEL " + lvl + " (" + lo() + "–" + hi() + ")  ·  " + right + "/" + PER + "  ·  " + (S.practice ? "∞" : "♥".repeat(Math.max(0, lives))); },
+    summary() { return ["REACHED LEVEL " + lvl + " (NUMBERS " + lo() + "–" + hi() + ")", "BEST STREAK " + best]; },
+    down(px, py) { for (let i = 0; i < 4; i++) { const [X, Y] = box(i); if (px >= X && px <= X + BW && py >= Y && py <= Y + BH) return answer(choices[i]); } },
+    key(k, rep) {
+      if (rep) return;
+      if (/^[0-9]$/.test(k)) { if (typed === "" && k >= "1" && k <= "4" && !choices.some((c) => String(c).startsWith(k))) return answer(choices[+k - 1]); typed = (typed + k).slice(0, 4); return; }
+      if (k === "Backspace") { typed = typed.slice(0, -1); return; }
+      if (k === "Enter" && typed) { const v = +typed; typed = ""; answer(v); }
+    },
     update(dt) {
-      flashP = flashP.map((v) => Math.max(0, v - dt));
-      if (roundT > 0) { const b0 = Math.ceil(roundT / .45); roundT -= dt; if (roundT <= 0) { banner("PULL!", "#ffd66b"); sfx("start"); } else if (Math.ceil(roundT / .45) !== b0) sfx("tick"); return; }
-      for (let i = 0; i < 2; i++) { litT[i] -= dt; if (litT[i] <= 0) { lit[i] = !lit[i]; litT[i] = (lit[i] ? .5 : .4) + Math.random() * .8; } }
-      const c = cpu();
-      if (c >= 0) {
-        const rate = S.practice ? 3 : [5.5, 7.5, 9.5, 12.5][c] + (S.duo ? 0 : Math.max(0, lvl - 7) * .5), smart = [0, .3, .6, .95][c];
-        botT -= dt; if (botT <= 0) { const want = !lit[1] && Math.random() < smart; botT = (1 / rate) * (want ? 1.8 : 1) * (.7 + Math.random() * .6); if (!want) press(1); }
-      }
+      if (fb) { fb.t -= dt; if (fb.t <= 0) { const end = fb.end; fb = null; if (end) return over("OUT OF HEARTS"); makeQ(); } return; }
+      if (qMax) { qT -= dt; if (qT <= 0) miss(null); }
     },
     draw() {
-      techBg("#ff2bd6");
-      const X = W / 2 + pos * (W / 2 - 60);
-      x.lineWidth = 6; glow("#22e4ff", 14); x.strokeStyle = "#22e4ff"; x.beginPath(); x.moveTo(40, CY); for (let i = 40; i <= X; i += 6) x.lineTo(i, CY + Math.sin(i * .08 - S.clock * 14) * 6); x.stroke();
-      glow("#ff2bd6", 14); x.strokeStyle = "#ff2bd6"; x.beginPath(); x.moveTo(X, CY); for (let i = X; i <= W - 40; i += 6) x.lineTo(i, CY + Math.sin(i * .08 + S.clock * 14) * 6); x.stroke(); glow();
-      x.strokeStyle = "rgba(255,255,255,.3)"; x.lineWidth = 2; x.setLineDash([5, 6]); x.beginPath(); x.moveTo(W / 2, CY - 60); x.lineTo(W / 2, CY + 60); x.moveTo(60, CY - 60); x.lineTo(60, CY + 60); x.moveTo(W - 60, CY - 60); x.lineTo(W - 60, CY + 60); x.stroke(); x.setLineDash([]);
-      const g = x.createRadialGradient(X, CY, 2, X, CY, 30); g.addColorStop(0, "#ffffff"); g.addColorStop(.4, "#ffd66b"); g.addColorStop(1, "rgba(255,214,107,0)"); x.fillStyle = g; x.beginPath(); x.arc(X, CY, 30 + Math.sin(S.clock * 20) * 3, 0, 7); x.fill();
-      for (let i = 0; i < 2; i++) {
-        const LX = i ? W - 90 : 90, c = lit[i] ? "#3dffa8" : "#ff4d6d";
-        glow(c, 20 + flashP[i] * 100); x.fillStyle = c; x.beginPath(); x.arc(LX, 80, 18 + flashP[i] * 30, 0, 7); x.fill(); glow();
-        txt(lit[i] ? "x1.6 POWER" : "x0.5 WEAK", LX, 116, 12, c, "center", "d");
-        txt(i ? (S.duo && !S.bot ? "PLAYER 2" : "CPU") : (S.duo && !S.bot ? "PLAYER 1" : "YOU"), LX, 46, 13, i ? "#ff2bd6" : "#22e4ff", "center", "d");
-        for (let k = 0; k < 2; k++) { x.fillStyle = wins[i] > k ? (i ? "#ff2bd6" : "#22e4ff") : "rgba(255,255,255,.15)"; x.fillRect(LX - 16 + k * 20, 140, 12, 12); }
-        txt(String(presses[i]), LX, H - 40, 22, "#ffffff", "center", "d");
-      }
-      if (roundT > 0) txt(roundT > .9 ? "READY..." : "SET...", W / 2, 120, 26, "#ffd66b", "center", "d");
-      txt(S.duo && !S.bot ? "P1: W or tap left  ·  P2: ↑ or tap right" : "MASH W, SPACE OR TAP!", W / 2, H - 16, 12, "#9a90c0", "center");
+      techBg("#3dffa8");
+      txt("LEVEL " + lvl, W / 2, 50, 18, "#ffd66b", "center", "d");
+      txt("numbers " + lo() + " – " + hi(), W / 2, 76, 13, "#9a90c0", "center");
+      for (let i = 0; i < PER; i++) { x.fillStyle = i < right ? "#3dffa8" : "rgba(255,255,255,.12)"; x.beginPath(); x.arc(W / 2 - (PER - 1) * 11 + i * 22, 104, 6, 0, 7); x.fill(); }
+      const qs = q.a + " " + q.op + " " + q.b + " = ?";
+      glow("#3dffa8", 18); txt(qs, W / 2, 230, qs.length > 12 ? 50 : 62, "#ffffff", "center", "d"); glow();
+      if (typed) txt(typed, W / 2, 300, 34, "#22e4ff", "center", "d");
+      if (qMax) { const k = Math.max(0, qT / qMax); x.fillStyle = "rgba(255,255,255,.1)"; x.fillRect(40, 340, W - 80, 10); x.fillStyle = k < .3 ? "#ff4d6d" : k < .6 ? "#ffd66b" : "#3dffa8"; x.fillRect(40, 340, (W - 80) * k, 10); }
+      choices.forEach((c, i) => {
+        const [X, Y] = box(i), isAns = c === q.ans, show = fb && (isAns || c === fb.v), col = show ? (isAns ? "#3dffa8" : "#ff4d6d") : "#22e4ff";
+        glow(col, show ? 24 : 10); x.fillStyle = show ? ca(col, .3) : "rgba(10,4,24,.75)"; x.strokeStyle = col; x.lineWidth = 3; rr(X, Y, BW, BH, 18); x.fill(); x.stroke(); glow();
+        txt(String(c), X + BW / 2, Y + BH / 2 + 2, 38, "#ffffff", "center", "d");
+        txt(String(i + 1), X + 16, Y + 18, 11, "rgba(255,255,255,.4)", "left");
+      });
+      if (streak >= 3) txt("🔥 STREAK " + streak, W / 2, 380, 13, "#ff8a1f", "center", "d");
     },
   });
 }
@@ -9136,7 +9176,7 @@ function fighterGame() {
     { key: "overdrive", title: "Horizon Overdrive", genre: "Racing", fn: overdriveGame },
     { key: "squash", title: "Cyber Paddle", genre: "Sports", fn: squashGame },
     { key: "curling", title: "Neon Curling", genre: "Sports", fn: curlGame },
-    { key: "tug", title: "Pulse Tug", genre: "Other", fn: tugGame },
+    { key: "math", title: "Quick Math Facts", genre: "Puzzle", fn: mathGame },
     { key: "clash", title: "Arena Clash", genre: "Action", fn: clashGame },
     { key: "thief", title: "Grid Thief", genre: "Strategy", fn: thiefGame },
     { key: "stack", title: "Neon Stack", genre: "Arcade", fn: stackGame },
@@ -9169,7 +9209,6 @@ function fighterGame() {
     { key: "ttt", how: "Classic tic-tac-toe. Get 3 in a row to win.", keys: "Tap a square, or 1-9", touch: "Tap a square, then pass the iPad" },
     { key: "dots", how: "Take turns drawing lines. Close a box to score it and go again. Most boxes wins.", keys: "Tap between two dots", touch: "Tap a line, then pass the iPad" },
     { key: "airhockey", how: "Real air hockey on one screen. Each player drags their own paddle. First to 7 goals wins.", keys: "P1 W A S D  ·  P2 arrow keys", touch: "Each player drags on their own half" },
-    { key: "tug", how: "Tug of war! Mash to pull the energy ball to your side. Mash when your light is GREEN for super pulls. Best of 3.", keys: "P1 mashes W  ·  P2 mashes ↑", touch: "Each player taps their own half" },
     { key: "clash", how: "Light cycles with laser pulses. Make your rival crash into a wall. Pulses blast holes in walls. First to 3.", keys: "P1 W A S D + F fires  ·  P2 arrows + Enter fires", touch: "Swipe your half to turn, tap to fire" },
     { key: "thief", how: "Paint tiles your color and steal your rival's. Most of the board after 30 seconds wins.", keys: "P1 W A S D  ·  P2 arrow keys", touch: "Swipe on your own half" },
     { key: "penalty", how: "Kicker picks a secret spot, keeper guesses where to dive. 5 kicks each.", keys: "Arrows aim, Space confirms", touch: "Tap the goal, then hand the iPad to the keeper" },
@@ -11362,7 +11401,8 @@ function fighterGame() {
   document.querySelectorAll("[data-settings]").forEach((b2) => b2.addEventListener("click", openSettings));
 
   /* ---------- Tournament ---------- */
-  const TOUR_BOT = ["pong", "snake", "memory", "targets", "pingpong", "connect4", "reversi", "hoops", "penalty", "chess", "guesswho"];
+  const TOUR_LONG = new Set(["chess", "reversi", "guesswho", "solitaire", "quest", "tower", "golf", "bowling", "2048", "mines", "slide", "merge", "dots", "muncher"]);
+  const TOUR_BOT = ["pong", "snake", "memory", "targets", "pingpong", "connect4", "hoops", "penalty", "ttt", "airhockey"];
   const TOUR_KEY = "gbl-tour", ROUNDS = 7;
   let tour = null, tourMode = "bot", tourLvl = 1;
   const BOT_LV = ["Easy", "Medium", "Hard", "Hacker"];
@@ -11370,24 +11410,29 @@ function fighterGame() {
   const saveTour = () => store.set(TOUR_KEY, JSON.stringify(tour));
   const gameOf = (key) => { const i = BUILTINS.findIndex((b) => b.key === key); return i < 0 ? null : { ...BUILTINS[i], slot: i + 1 }; };
   const shuffled = (a) => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
-  const tourPool = (bot) => (bot ? TOUR_BOT : DUO.map((d) => d.key)).filter((k) => gameOf(k));
+  let tourOff = new Set(); try { tourOff = new Set(JSON.parse(store.get("gbl-tour-off") || "[]")); } catch {}
+  const saveTourOff = () => store.set("gbl-tour-off", JSON.stringify([...tourOff]));
+  const tourPool = (bot) => (bot ? TOUR_BOT : DUO.map((d) => d.key)).filter((k) => gameOf(k) && !tourOff.has(k) && !TOUR_LONG.has(k));
   const tally = () => [1, 2].map((p) => tour.rounds.filter((r) => r.w === p).reduce((t, r) => t + (r.mult || 1), 0));
-  const duelPool = () => BUILTINS.map((b) => b.key).filter((k) => !DUO_KEYS.has(k));
+  const duelPool = () => BUILTINS.map((b) => b.key).filter((k) => !DUO_KEYS.has(k) && !tourOff.has(k) && !TOUR_LONG.has(k));
   const nextRound = () => tour.rounds.findIndex((r) => r.w === null);
   function startTour(bot, names, lvl) {
     let last = []; try { last = JSON.parse(store.get("gbl-tour-last") || "[]"); } catch {}
     const fresh = (arr) => { const a2 = shuffled(arr); return [...a2.filter((k) => !last.includes(k)), ...a2.filter((k) => last.includes(k))]; };
-    const heads = fresh(tourPool(bot)), duels = fresh(duelPool()), nHead = 3 + Math.floor(Math.random() * 3);
+    const heads = fresh(tourPool(bot)), duels = fresh(duelPool());
+    let nHead = Math.min(heads.length, 3 + Math.floor(Math.random() * 3)), nDuel = Math.min(duels.length, ROUNDS - nHead);
+    nHead = Math.min(heads.length, ROUNDS - nDuel);
+    if (nHead + nDuel < ROUNDS) { toast("Turn on at least " + ROUNDS + " games to start a tournament"); return; }
     const lv = lvl == null ? 1 : lvl, mk = (key, duel) => {
       const r = { key, w: null, duel: !!duel };
       if (duel && bot) { const base = Math.max(typeof myBest === "function" ? myBest(key) || 0 : 0, typeof topScore === "function" ? topScore(key) || 0 : 0); r.bt = base > 0 ? Math.max(1, Math.round(base * [.3, .5, .7, .92][lv] * (.85 + Math.random() * .3))) : 40 * (lv + 1); }
       return r;
     };
-    const rounds = shuffled([...heads.slice(0, nHead).map((k) => mk(k, false)), ...duels.slice(0, ROUNDS - nHead).map((k) => mk(k, true))]);
+    const rounds = shuffled([...heads.slice(0, nHead).map((k) => mk(k, false)), ...duels.slice(0, nDuel).map((k) => mk(k, true))]);
     if (Math.random() < .6) rounds[Math.floor(Math.random() * (ROUNDS - 1))].mult = 2;
     rounds[ROUNDS - 1].mult = 2;
     store.set("gbl-tour-last", JSON.stringify(rounds.map((r) => r.key)));
-    tour = { bot, names, lvl: lv, rounds, spare: [...heads.slice(nHead), ...duels.slice(ROUNDS - nHead)] };
+    tour = { bot, names, lvl: lv, rounds, spare: [...heads.slice(nHead), ...duels.slice(nDuel)] };
     saveTour(); renderTour();
     $("#tournament").scrollIntoView({ behavior: "smooth", block: "start" });
   }
@@ -11424,32 +11469,98 @@ function fighterGame() {
       setTimeout(() => { if (current && current.g.key === g.key) closeModal(); }, 2600);
     } });
   }
+
+  /* ---------- Online tournament (2-5 players, server-side) ---------- */
+  let otour = null, otPoll = null, otCode = null;
+  try { otCode = store.get("gbl-otour") || null; } catch {}
+  const otPoints = (t) => {
+    const pts = {}; t.players.forEach((p) => { pts[p.id] = 0; });
+    for (let r = 0; r < t.games.length; r++) { const got = t.players.filter((p) => p.scores[r] != null); got.forEach((p) => { pts[p.id] += got.filter((q) => q.scores[r] < p.scores[r]).length; }); }
+    return pts;
+  };
+  async function otRefresh(quiet) {
+    if (!otCode) { otour = null; return renderTour(); }
+    try { otour = await api("/tours/" + otCode); } catch (e) { if (!quiet) toast(e.message); if (/No tournament/.test(e.message)) { otCode = null; store.set("gbl-otour", ""); otour = null; } }
+    renderTour();
+  }
+  async function otAct(act, body) { try { otour = await api("/tours/" + otCode + "/" + act, { method: "POST", body: body || {} }); } catch (e) { toast(e.message); } renderTour(); }
+  function otStartPolling() {
+    clearInterval(otPoll);
+    otPoll = setInterval(() => { const sec = document.getElementById("tournament"); if (!otCode || !sec || sec.classList.contains("page-off") || document.hidden || (otour && otour.status === "done") || document.querySelector(".modal.open")) return; otRefresh(true); }, 3000);
+  }
+  async function otCreate() { if (!me) return toast("Log in to play an online tournament"); try { otour = await api("/tours", { method: "POST", body: {} }); otCode = otour.code; store.set("gbl-otour", otCode); otStartPolling(); } catch (e) { toast(e.message); } renderTour(); }
+  async function otJoin(code) { if (!me) return toast("Log in to play an online tournament"); code = String(code || "").toUpperCase().replace(/[^A-Z]/g, ""); if (code.length !== 4) return toast("Codes are 4 letters"); try { otour = await api("/tours/" + code + "/join", { method: "POST", body: {} }); otCode = code; store.set("gbl-otour", otCode); otStartPolling(); } catch (e) { toast(e.message); } renderTour(); }
+  function otPlay(r) {
+    const g = gameOf(otour.games[r]); if (!g) return;
+    play(g, null, { tour: true, onScore: async (sc) => { await otAct("score", { round: r, score: sc }); toast("Round " + (r + 1) + ": " + fmt(sc) + " sent!"); setTimeout(() => { if (current && current.g.key === g.key) closeModal(); }, 2400); } });
+  }
+  function renderOnlineTour(box) {
+    const t = otour;
+    if (!t) { box.replaceChildren(el("div", { class: "panel lit tour-setup" }, el("p", { class: "set-note", text: "Loading tournament " + otCode + "…" }))); otRefresh(true); return; }
+    const pts = otPoints(t), isHost = t.me === t.host, mine = t.players.find((p) => p.id === t.me), nextR = mine ? t.games.findIndex((_, i) => mine.scores[i] == null) : -1;
+    const ranked = t.players.slice().sort((a, b2) => pts[b2.id] - pts[a.id]);
+    const table = el("table", { class: "ot-table" },
+      el("thead", {}, el("tr", {}, el("th", { text: "Player" }), ...t.games.map((k, i) => el("th", { title: (gameOf(k) || {}).title, text: "R" + (i + 1) })), el("th", { text: "Pts" }))),
+      el("tbody", {}, ...ranked.map((p, i) => el("tr", { class: (p.id === t.me ? "me" : "") + (t.status === "done" && pts[p.id] === pts[ranked[0].id] ? " champ" : "") }, el("td", { text: (t.status === "done" && pts[p.id] === pts[ranked[0].id] ? "🏆 " : "") + p.name + (p.id === t.host ? " (host)" : "") }), ...t.games.map((_, r) => el("td", { text: p.scores[r] == null ? "·" : fmt(p.scores[r]) })), el("td", { class: "ot-pts", text: String(pts[p.id]) })))));
+    const rounds = el("div", { class: "ot-rounds" }, ...t.games.map((k, i) => { const g = gameOf(k) || { title: k }, done = mine && mine.scores[i] != null; return el("div", { class: "ot-round" + (done ? " done" : i === nextR ? " now" : "") }, el("b", { text: "R" + (i + 1) + " · " + g.title }), el("small", { text: done ? "Your score: " + fmt(mine.scores[i]) : i === nextR && t.status === "playing" ? "Your turn!" : "" })); }));
+    let action;
+    if (t.status === "lobby") action = isHost ? el("button", { class: "btn hot", type: "button", disabled: t.players.length < 2, text: t.players.length < 2 ? "Waiting for players…" : "Start tournament ▸ (" + t.players.length + " players)", onclick: () => otAct("start") }) : el("p", { class: "set-note", text: mine ? "You're in! Waiting for the host to start…" : "" });
+    else if (t.status === "playing") action = nextR >= 0 ? el("button", { class: "btn hot", type: "button", text: "Play round " + (nextR + 1) + ": " + (gameOf(t.games[nextR]) || {}).title + " ▸", onclick: () => otPlay(nextR) }) : el("p", { class: "set-note", text: "You've played every round. Waiting for the others…" });
+    else { const top = pts[ranked[0].id], tied = ranked.filter((p) => pts[p.id] === top); action = el("p", { class: "ot-win", text: tied.length > 1 ? "🤝 It's a tie! " + tied.map((p) => p.name).join(" & ") + " share the win with " + top + " points" : "🏆 " + ranked[0].name + " wins with " + top + " points!" }); }
+    box.replaceChildren(el("div", { class: "panel lit tour-setup ot" },
+      el("div", { class: "ot-head" }, el("h3", { class: "tour-h", text: "🌐 Online tournament" }), el("div", { class: "ot-code" }, el("small", { text: "ROOM CODE" }), el("b", { text: t.code })),
+        el("button", { class: "btn sm", type: "button", text: "📋 Copy code", onclick: () => { try { navigator.clipboard.writeText(t.code); toast("Copied " + t.code); } catch { toast(t.code); } } })),
+      el("p", { class: "set-note", text: t.status === "lobby" ? "Share the code — up to " + t.max + " players (" + t.players.length + "/" + t.max + " joined). Everyone plays the same 5 games in their own time. Beat a player's score in a round to earn a point." : "Beat a player's score in a round to earn a point. Most points after 5 rounds wins." }),
+      rounds, table, action,
+      el("div", { class: "tour-quit" }, el("button", { class: "linkbtn", type: "button", text: t.status === "done" ? "Close this tournament" : "Leave tournament", onclick: async () => { if (t.status !== "done" && !confirm("Leave this online tournament?")) return; if (t.status !== "done") { try { await api("/tours/" + otCode + "/leave", { method: "POST", body: {} }); } catch {} } otCode = null; otour = null; store.set("gbl-otour", ""); clearInterval(otPoll); renderTour(); } }))));
+  }
+  if (otCode) otStartPolling();
   function renderTour() {
     const box = $("#tour"); if (!box) return;
+    if (!tour && otCode) return renderOnlineTour(box);
     if (!tour) {
       const n1 = el("input", { class: "search", id: "t-p1", maxlength: "16", placeholder: "Player 1", value: (typeof me !== "undefined" && me && me.username) || "" });
       const n2 = el("input", { class: "search", id: "t-p2", maxlength: "16", placeholder: "Player 2" });
       const f2 = el("label", { class: "tour-field" }, el("span", { text: "Player 2 name" }), n2);
       const lvBtns = BOT_LV.map((n, i) => el("button", { class: "chip", type: "button", "aria-pressed": String(i === tourLvl), text: n, onclick: () => { tourLvl = i; lvBtns.forEach((b2, j) => b2.setAttribute("aria-pressed", String(j === i))); } }));
       const lvRow = el("div", { class: "tour-lv" }, el("span", { text: "Bot level" }), ...lvBtns);
-      const pick = (mode) => { tourMode = mode; opts.forEach((o) => o.classList.toggle("on", o.dataset.mode === mode)); f2.hidden = mode === "bot"; lvRow.hidden = mode !== "bot"; };
+      const pick = (mode) => { tourMode = mode; opts.forEach((o) => o.classList.toggle("on", o.dataset.mode === mode)); f2.hidden = mode !== "friend"; lvRow.hidden = mode !== "bot"; onBox.hidden = mode !== "online"; offBits.forEach((b2) => { b2.hidden = mode === "online"; }); };
       const opt = (mode, icon, title, sub) => el("button", { class: "tour-opt", type: "button", "data-mode": mode, onclick: () => pick(mode) },
         el("span", { class: "tour-ico", text: icon }), el("b", { text: title }), el("span", { text: sub }));
       const opts = [opt("bot", "⚙", "VS the bot", "Just you against the computer. " + tourPool(true).length + " games it can play."),
-        opt("friend", "⚔", "VS a friend", "Two players, one screen. Share the keyboard or the iPad.")];
+        opt("friend", "⚔", "VS a friend", "Two players, one screen. Share the keyboard or the iPad."),
+        opt("online", "🌐", "Online", "2 to 5 players on their own devices, joined by a room code.")];
+      const codeIn = el("input", { class: "search room-in", maxlength: "4", placeholder: "ABCD", autocapitalize: "characters", autocomplete: "off", spellcheck: "false", "aria-label": "Tournament code" });
+      const onBox = el("div", { class: "ot-start" },
+        me ? null : el("p", { class: "set-note", text: "Log in first — online tournaments need an account so scores go to the right player." }),
+        el("button", { class: "btn hot", type: "button", text: "Create online tournament ▸", onclick: otCreate }),
+        el("div", { class: "ot-join" }, el("span", { text: "or join with a code" }), codeIn, el("button", { class: "btn", type: "button", text: "Join", onclick: () => otJoin(codeIn.value) })),
+        el("ul", { class: "tour-rules" }, el("li", { text: "Up to 5 players. Everyone plays the same 5 quick games on their own device." }), el("li", { text: "Each round, you get a point for every player you out-score. Most points wins." })));
+      codeIn.addEventListener("keydown", (e) => { if (e.key === "Enter") otJoin(codeIn.value); });
+      const offBits = [];
+      const off = (n) => { offBits.push(n); return n; };
       box.replaceChildren(el("div", { class: "panel lit tour-setup" },
         el("h3", { class: "tour-h", text: "Start a tournament" }),
         el("div", { class: "tour-opts" }, ...opts),
-        lvRow,
-        el("div", { class: "tour-names" }, el("label", { class: "tour-field" }, el("span", { text: "Player 1 name (you)" }), n1), f2),
-        el("ul", { class: "tour-rules" },
+        lvRow, onBox,
+        off(el("div", { class: "tour-names" }, el("label", { class: "tour-field" }, el("span", { text: "Player 1 name (you)" }), n1), f2)),
+        (() => {
+          const all = [...new Set([...TOUR_BOT, ...DUO.map((d) => d.key), ...BUILTINS.map((b2) => b2.key)])].filter((k) => gameOf(k) && !TOUR_LONG.has(k));
+          const sum = el("summary", {});
+          const upd = () => { const on = all.length - all.filter((k) => tourOff.has(k)).length; sum.textContent = "🎮 Choose games · " + on + " of " + all.length + " on"; };
+          const chips = all.map((k) => { const c = el("button", { class: "chip", type: "button", "aria-pressed": String(!tourOff.has(k)), text: (DUO_KEYS.has(k) || TOUR_BOT.includes(k) ? "⚔ " : "") + gameOf(k).title, onclick: () => { if (tourOff.has(k)) tourOff.delete(k); else tourOff.add(k); c.setAttribute("aria-pressed", String(!tourOff.has(k))); saveTourOff(); upd(); } }); return c; });
+          const bulk = (off) => el("button", { class: "linkbtn", type: "button", text: off ? "Turn all off" : "Turn all on", onclick: () => { tourOff = new Set(off ? all : []); chips.forEach((c, i) => c.setAttribute("aria-pressed", String(!tourOff.has(all[i])))); saveTourOff(); upd(); } });
+          upd();
+          return off(el("details", { class: "tour-games" }, sum, el("p", { class: "set-note", text: "Tap a game to switch it off. ⚔ = head-to-head game. Others are score duels. You need at least " + ROUNDS + " on. Long games (chess, golf, bowling…) are never in tournaments." }), el("div", { class: "tour-bulk" }, bulk(false), bulk(true)), el("div", { class: "rew-tabs shop-chips" }, ...chips)));
+        })(),
+        off(el("ul", { class: "tour-rules" },
           el("li", { text: "7 rounds, different every time: head-to-head games plus score duels in any game." }),
           el("li", { text: "Win a round to score a point. Some rounds are worth double, and the final round always is." }),
-          el("li", { text: "Tied at the end? A sudden-death round decides the champion." })),
-        el("button", { class: "btn hot", type: "button", text: "Start tournament ▸", onclick: () => {
+          el("li", { text: "Tied at the end? A sudden-death round decides the champion." }))),
+        off(el("button", { class: "btn hot", type: "button", text: "Start tournament ▸", onclick: () => {
           const a = (n1.value.trim() || "Player 1").slice(0, 16), b = tourMode === "bot" ? BOT_LV[tourLvl] + " Bot" : (n2.value.trim() || "Player 2").slice(0, 16);
           startTour(tourMode === "bot", [a, b], tourLvl);
-        } })));
+        } }))));
       pick(tourMode);
       return;
     }
