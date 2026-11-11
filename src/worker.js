@@ -287,7 +287,7 @@ async function putProgress(request, env, user) {
   if (!user) fail(401, "Log in first.");
   await limit(env, "prog:" + user.id, 120, MIN, "Slow down a little.");
   const b = await readJson(request), text = JSON.stringify(b.progress && typeof b.progress === "object" ? b.progress : {});
-  if (text.length > 20000) fail(413, "That's too much data.");
+  if (text.length > 120000) fail(413, "That's too much data.");
   const old = await env.DB.prepare("SELECT data FROM progress WHERE user_id = ?").bind(user.id).first();
   if (old) { let o = null; try { o = JSON.parse(old.data); } catch {} if (o && +o.adminAt > (+(b.progress || {}).adminSeen || 0)) return json({ ok: false, reload: true }); }
   await env.DB.prepare("INSERT INTO progress (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data, at = excluded.at").bind(user.id, text, Date.now()).run();
@@ -322,7 +322,7 @@ async function postDaily(request, env, user) {
 /* Online rooms for turn-based 2-player games                          */
 /* ------------------------------------------------------------------ */
 
-const ONLINE_GAMES = new Set(["ttt", "dots", "connect4", "reversi", "chess", "penalty", "memory", "guesswho"]);
+const ONLINE_GAMES = new Set(["ttt", "dots", "connect4", "reversi", "chess", "penalty", "memory", "guesswho", "golf"]);
 async function createRoom(request, env, user) {
   if (!user) fail(401, "Log in to play online.");
   await limit(env, "room:" + user.id, 20, 10 * MIN, "You've made a lot of rooms. Try again in a few minutes.");
@@ -461,20 +461,26 @@ async function tourAction(request, env, user, code, act) {
 async function getScores(env, user) {
   // Top 100 per game, plus every score of the signed-in player.
   const { results } = await env.DB.prepare(`
-    SELECT s.user_id, s.game, s.score, s.at, u.username, u.avatar_i, u.avatar_c, u.created_at
+    SELECT s.user_id, s.game, s.score, s.at, u.username, u.avatar_i, u.avatar_c, u.created_at,
+           json_extract(p.data, '$.equip.title') AS eq_title, json_extract(p.data, '$.equip.pet') AS eq_pet, json_extract(p.data, '$.stats.xp') AS xp
     FROM (
       SELECT user_id, game, score, at,
              ROW_NUMBER() OVER (PARTITION BY game ORDER BY score DESC, at ASC) AS rn
       FROM scores
     ) s
     JOIN users u ON u.id = s.user_id
+    LEFT JOIN progress p ON p.user_id = s.user_id
     WHERE s.rn <= 100 OR s.user_id = ?
   `).bind(user ? user.id : -1).all();
 
   const players = new Map();
   for (const r of results) {
     let p = players.get(r.user_id);
-    if (!p) { p = { uid: r.user_id, tag: r.username, av: { i: r.avatar_i, c: r.avatar_c }, joined: r.created_at, best: {} }; players.set(r.user_id, p); }
+    if (!p) {
+      const item = (v, pre) => (typeof v === "string" && v.startsWith(pre) && v.length < 40 && /^[a-z0-9-]+$/.test(v) ? v : null);
+      p = { uid: r.user_id, tag: r.username, av: { i: r.avatar_i, c: r.avatar_c }, joined: r.created_at, title: item(r.eq_title, "t-"), pet: item(r.eq_pet, "pet-"), lv: Math.floor(Math.sqrt(Math.max(0, +r.xp || 0) / 40)) + 1, best: {} };
+      players.set(r.user_id, p);
+    }
     p.best[r.game] = { s: r.score, at: r.at };
   }
   return json({ players: [...players.values()] });
