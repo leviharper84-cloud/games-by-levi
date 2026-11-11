@@ -5827,24 +5827,51 @@ function penaltyGame() {
 /* ---------- 29 Tower Defense ---------- */
 function towerGame() {
   const W = 520, H = 560, Z = 40, GC = 13, GRW = 12, BAR = 480;
-  const WPC = [[-1, 2], [9, 2], [9, 6], [2, 6], [2, 10], [13, 10]], WP = WPC.map(([c, r]) => [c * Z + Z / 2, r * Z + Z / 2]);
-  const SEGL = []; let TOT = 0; for (let i = 0; i < WP.length - 1; i++) { const l = Math.hypot(WP[i + 1][0] - WP[i][0], WP[i + 1][1] - WP[i][1]); SEGL.push(l); TOT += l; }
-  const PATH = new Set(); for (let i = 0; i < WPC.length - 1; i++) { let [c, r] = WPC[i]; const [c2, r2] = WPC[i + 1]; while (true) { PATH.add(c + "," + r); if (c === c2 && r === r2) break; c += Math.sign(c2 - c); r += Math.sign(r2 - r); } }
+  /* A new map every 20 waves (cycling after the last one). */
+  const MAPS = [
+    { name: "NEON CIRCUIT", col: "#ff4d6d", wp: [[-1, 2], [9, 2], [9, 6], [2, 6], [2, 10], [13, 10]] },
+    { name: "ZIGZAG CANYON", col: "#22e4ff", wp: [[-1, 9], [3, 9], [3, 2], [7, 2], [7, 9], [11, 9], [11, 3], [13, 3]] },
+    { name: "SERPENT RUN", col: "#b6ff3b", wp: [[-1, 1], [3, 1], [3, 10], [6, 10], [6, 1], [9, 1], [9, 10], [13, 10]] },
+    { name: "THE FORTRESS", col: "#ffd66b", wp: [[-1, 6], [6, 6], [6, 2], [11, 2], [11, 10], [13, 10]] },
+  ];
+  let mapI = -1, WPC, WP, SEGL, TOT, PATH;
+  const mapFor = (wv) => Math.floor(Math.max(0, wv) / 20) % MAPS.length;
+  function setMap(i) {
+    mapI = i; WPC = MAPS[i].wp; WP = WPC.map(([c, r]) => [c * Z + Z / 2, r * Z + Z / 2]);
+    SEGL = []; TOT = 0; for (let k = 0; k < WP.length - 1; k++) { const l = Math.hypot(WP[k + 1][0] - WP[k][0], WP[k + 1][1] - WP[k][1]); SEGL.push(l); TOT += l; }
+    PATH = new Set(); for (let k = 0; k < WPC.length - 1; k++) { let [c, r] = WPC[k]; const [c2, r2] = WPC[k + 1]; while (true) { PATH.add(c + "," + r); if (c === c2 && r === r2) break; c += Math.sign(c2 - c); r += Math.sign(r2 - r); } }
+  }
+  setMap(0);
   const TT = {
     L: { name: "LASER", cost: 50, range: 95, rate: .3, dmg: 8, c: "#22e4ff" },
     C: { name: "CANNON", cost: 90, range: 115, rate: 1.15, dmg: 30, splash: 50, c: "#ff8a1f" },
     F: { name: "FROST", cost: 70, range: 80, rate: .9, dmg: 4, slow: 1.6, c: "#a35bff" },
+    T: { name: "TESLA", cost: 140, range: 100, rate: .8, dmg: 16, chain: 3, c: "#9ff3ff", at: 10 },
+    S: { name: "SNIPER", cost: 180, range: 260, rate: 2.1, dmg: 95, c: "#ffffff", at: 20 },
+    M: { name: "MISSILE", cost: 230, range: 160, rate: 1.7, dmg: 60, splash: 72, c: "#ff2bd6", at: 30 },
+    P: { name: "PRISM", cost: 300, range: 150, rate: .12, dmg: 7, c: "#ffd66b", at: 40 },
   };
-  const BTNS = [["L", 8, 112], ["C", 124, 112], ["F", 240, 112], ["W", 360, 152]];
+  const ORDER = ["L", "C", "F", "T", "S", "M", "P"], BW2 = 61;
+  const BTNS = [...ORDER.map((k, i) => [k, 4 + i * (BW2 + 3), BW2]), ["W", 4 + 7 * (BW2 + 3), W - 8 - 7 * (BW2 + 3)]];
+  const unlocked = (k) => !TT[k].at || wave >= TT[k].at || S.practice;
   let towers, ens, shots, money, lives, wave, spawnQ, spawnT, between, selType, cur, kills, info;
   const posAt = (d) => { let i = 0; while (i < SEGL.length - 1 && d > SEGL[i]) { d -= SEGL[i]; i++; } const a = WP[i], b = WP[i + 1], k = Math.max(0, Math.min(1, d / SEGL[i])); return [a[0] + (b[0] - a[0]) * k, a[1] + (b[1] - a[1]) * k]; };
-  const stat = (t) => { const b = TT[t.t], m = Math.pow(1.6, t.lvl - 1); return { range: b.range + (t.lvl - 1) * 14, rate: b.rate * Math.pow(.88, t.lvl - 1), dmg: b.dmg * m, splash: b.splash, slow: b.slow }; };
+  const stat = (t) => { const b = TT[t.t], m = Math.pow(1.6, t.lvl - 1); return { range: b.range + (t.lvl - 1) * 14, rate: b.rate * Math.pow(.88, t.lvl - 1), dmg: b.dmg * m, splash: b.splash, slow: b.slow, chain: b.chain }; };
+  const spent = (t) => TT[t.t].cost + (t.lvl >= 2 ? Math.round(TT[t.t].cost * .9) : 0) + (t.lvl >= 3 ? Math.round(TT[t.t].cost * 1.4) : 0);
+  /* Switch map: towers sitting on the new road are refunded in full. */
+  function changeMap(i, quiet) {
+    setMap(i); let refund = 0, n = 0;
+    for (const [k, t] of towers) if (PATH.has(k)) { refund += spent(t); n++; towers.delete(k); }
+    money += refund;
+    if (!quiet) { flash(MAPS[i].col, .35); shake(6, .4); sfx("power"); if (n) pop(W / 2, 220, n + " TOWER" + (n > 1 ? "S" : "") + " REFUNDED  +$" + refund, "#3dffa8"); }
+  }
   const upCost = (t) => Math.round(TT[t.t].cost * (t.lvl === 1 ? .9 : 1.4));
   function startWave() {
     if (spawnQ.length || ens.length) return;
-    wave++; const n = 8 + wave * 2; spawnQ = [];
+    wave++; const newMap = mapFor(wave) !== mapI; if (newMap) changeMap(mapFor(wave));
+    const n = 8 + wave * 2; spawnQ = [];
     for (let i = 0; i < n; i++) spawnQ.push(wave % 5 === 0 && i === n - 1 ? "boss" : wave >= 4 && i % 4 === 3 ? "tank" : wave >= 2 && i % 3 === 1 ? "fast" : "n");
-    spawnT = 0; between = -1; banner("WAVE " + wave, "#ff4d6d"); sfx("level");
+    spawnT = 0; between = -1; banner(newMap ? "WAVE " + wave + " · NEW MAP: " + MAPS[mapI].name : "WAVE " + wave, newMap ? MAPS[mapI].col : "#ff4d6d"); sfx("level");
   }
   function spawn(type) {
     const hp0 = 24 * Math.pow(1.19, wave - 1), S2 = { n: [1, 44, "#ff2bd6", 9], fast: [.55, 82, "#b6ff3b", 7], tank: [2.9, 30, "#ffc23d", 12], boss: [14, 25, "#ff4d6d", 17] }[type];
@@ -5867,22 +5894,23 @@ function towerGame() {
       money -= cost; t.lvl++; sfx("power"); ring(c * Z + Z / 2, r * Z + Z / 2, TT[t.t].c, 8, 50, .4); pop(c * Z + Z / 2, r * Z, "LEVEL " + t.lvl, TT[t.t].c); return;
     }
     if (PATH.has(k) || c < 0 || r < 0 || c >= GC || r >= GRW) { sfx("bad"); return; }
+    if (!unlocked(selType)) { info = { t: TT[selType].name + " UNLOCKS AT WAVE " + TT[selType].at, l: 1.4 }; sfx("bad"); return; }
     const cost = TT[selType].cost; if (money < cost) { info = { t: "NEED $" + cost, l: 1 }; sfx("bad"); return; }
     money -= cost; towers.set(k, { t: selType, lvl: 1, cd: 0, c, r, ang: 0, beam: null }); sfx("blip"); burst(c * Z + Z / 2, r * Z + Z / 2, TT[selType].c, 12, 140, .4);
   }
   game({
-    load(d) { wave = d.wave || 0; money = d.money || 160; lives = d.lives || 20; kills = d.kills || 0; towers = new Map((d.towers || []).filter((t) => TT[t[2]]).map(([c, r, t, l]) => [c + "," + r, { t, lvl: l, cd: 0, c, r, ang: 0, beam: null }])); between = 6; },
+    load(d) { wave = d.wave || 0; setMap(mapFor(wave)); money = d.money || 160; lives = d.lives || 20; kills = d.kills || 0; towers = new Map((d.towers || []).filter((t) => TT[t[2]] && !PATH.has(t[0] + "," + t[1])).map(([c, r, t, l]) => [c + "," + r, { t, lvl: l, cd: 0, c, r, ang: 0, beam: null }])); between = 6; },
     title: "Tower Defense", easy: "lots of starting cash and enemies can't hurt you", w: W, h: H, color: "#ff4d6d", bpm: 112,
-    help: ["Pick a tower below, then tap an empty square to build", "Tap a tower to upgrade it (up to level 3)", "Laser = fast, Cannon = splash, Frost = slows", "Keys: 1 2 3 pick, arrows + Space build, Enter next wave"],
-    init() { towers = new Map(); ens = []; shots = []; money = S.practice ? 500 : 160; lives = 20; wave = 0; spawnQ = []; spawnT = 0; between = 6; selType = "L"; cur = [5, 4]; kills = 0; info = null; },
+    help: ["Pick a tower below, then tap an empty square to build. Tap a tower to upgrade it", "A NEW WEAPON unlocks every 10 waves: Tesla, Sniper, Missile, Prism", "The MAP CHANGES every 20 waves. Towers on the new road are refunded", "Keys: 1-7 pick, arrows + Space build, Enter next wave"],
+    init() { setMap(0); towers = new Map(); ens = []; shots = []; money = S.practice ? 500 : 160; lives = 20; wave = 0; spawnQ = []; spawnT = 0; between = 6; selType = "L"; cur = [5, 4]; kills = 0; info = null; },
     hud() { return "WAVE " + wave + "  ·  LIVES " + (S.practice ? "∞" : lives) + "  ·  $" + money; },
     summary() { return ["SURVIVED " + Math.max(0, wave - 1) + " WAVES   KILLS " + kills]; },
     tap(px, py) {
-      if (py >= BAR) { for (const [k, bx, bw] of BTNS) if (px >= bx && px <= bx + bw) { if (k === "W") startWave(); else { selType = k; sfx("tick"); } } return; }
+      if (py >= BAR) { for (const [k, bx, bw] of BTNS) if (px >= bx && px <= bx + bw) { if (k === "W") startWave(); else if (!unlocked(k)) { info = { t: TT[k].name + " UNLOCKS AT WAVE " + TT[k].at, l: 1.4 }; sfx("bad"); } else { selType = k; sfx("tick"); } } return; }
       const c = Math.floor(px / Z), r = Math.floor(py / Z); cur = [c, r]; place(c, r);
     },
     turn(dir, k) { if (!k) return; const v = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir]; cur = [Math.max(0, Math.min(GC - 1, cur[0] + v[0])), Math.max(0, Math.min(GRW - 1, cur[1] + v[1]))]; },
-    key(k, rep) { if (rep) return; if (k === "1") selType = "L"; if (k === "2") selType = "C"; if (k === "3") selType = "F"; if (k === " ") place(cur[0], cur[1]); if (k === "Enter" || k === "n") startWave(); },
+    key(k, rep) { if (rep) return; const ki = "1234567".indexOf(k); if (ki >= 0 && unlocked(ORDER[ki])) { selType = ORDER[ki]; sfx("tick"); } if (k === " ") place(cur[0], cur[1]); if (k === "Enter" || k === "n") startWave(); },
     update(dt) {
       if (info) { info.l -= dt; if (info.l <= 0) info = null; }
       if (between > 0) { between -= dt; if (between <= 0) startWave(); }
@@ -5896,17 +5924,22 @@ function towerGame() {
       }
       for (const t of towers.values()) {
         const st = stat(t), tx = t.c * Z + Z / 2, ty = t.r * Z + Z / 2; t.cd -= dt; if (t.beam) { t.beam.l -= dt; if (t.beam.l <= 0) t.beam = null; }
-        let tgt = null; for (const e of ens) if (e.hp > 0 && Math.hypot(e.x - tx, e.y - ty) < st.range && (!tgt || e.d > tgt.d)) tgt = e;
+        let tgt = null; for (const e of ens) if (e.hp > 0 && Math.hypot(e.x - tx, e.y - ty) < st.range && (!tgt || (t.t === "S" ? e.hp > tgt.hp : e.d > tgt.d))) tgt = e;
         if (!tgt) continue;
         t.ang = Math.atan2(tgt.y - ty, tgt.x - tx);
         if (t.cd > 0) continue; t.cd = st.rate;
         if (t.t === "L") { hurt(tgt, st.dmg); t.beam = { x: tgt.x, y: tgt.y, l: .07 }; sfx("laser"); }
         else if (t.t === "C") { shots.push({ x: tx, y: ty, e: tgt, dmg: st.dmg, splash: st.splash }); sfx("hit", .6); }
-        else { for (const e of ens) if (e.hp > 0 && Math.hypot(e.x - tx, e.y - ty) < st.range) { hurt(e, st.dmg); e.slowT = st.slow; } ring(tx, ty, "#a35bff", 8, st.range, .4); }
+        else if (t.t === "M") { shots.push({ x: tx, y: ty, e: tgt, dmg: st.dmg, splash: st.splash, mis: true }); sfx("power"); }
+        else if (t.t === "S") { hurt(tgt, st.dmg); t.beam = { x: tgt.x, y: tgt.y, l: .12 }; sfx("hit", 1.4); burst(tgt.x, tgt.y, "#ffffff", 8, 160, .3); }
+        else if (t.t === "T") { const hitL = [tgt]; let last = tgt; hurt(tgt, st.dmg); for (let k2 = 1; k2 < st.chain + (t.lvl - 1); k2++) { let nx = null, nd = 75; for (const e2 of ens) if (e2.hp > 0 && !hitL.includes(e2)) { const dd = Math.hypot(e2.x - last.x, e2.y - last.y); if (dd < nd) { nd = dd; nx = e2; } } if (!nx) break; hurt(nx, st.dmg * .7); hitL.push(nx); last = nx; } t.chainPts = [[tx, ty], ...hitL.map((e2) => [e2.x, e2.y])]; t.beam = { x: tgt.x, y: tgt.y, l: .12 }; sfx("laser"); }
+        else if (t.t === "P") { const ux = Math.cos(t.ang), uy = Math.sin(t.ang); for (const e2 of ens) { if (e2.hp <= 0) continue; const rx = e2.x - tx, ry = e2.y - ty, along = rx * ux + ry * uy; if (along > 0 && along < st.range && Math.abs(rx * uy - ry * ux) < 16 + e2.r) hurt(e2, st.dmg); } t.beam = { x: tx + ux * st.range, y: ty + uy * st.range, l: .1 }; }
+        else if (t.t === "F") { for (const e of ens) if (e.hp > 0 && Math.hypot(e.x - tx, e.y - ty) < st.range) { hurt(e, st.dmg); e.slowT = st.slow; } ring(tx, ty, "#a35bff", 8, st.range, .4); }
       }
       for (const s of shots) {
-        const dx = s.e.x - s.x, dy = s.e.y - s.y, d = Math.hypot(dx, dy), stp = 360 * dt;
-        if (d <= stp) { s.done = true; for (const e of ens) if (e.hp > 0 && Math.hypot(e.x - s.e.x, e.y - s.e.y) < s.splash) hurt(e, s.dmg); burst(s.e.x, s.e.y, "#ff8a1f", 16, 180, .4); ring(s.e.x, s.e.y, "#ff8a1f", 6, s.splash, .3); }
+        if (s.e.hp <= 0 && s.mis) { let nx = null, nd = 1e9; for (const e2 of ens) if (e2.hp > 0) { const dd = Math.hypot(e2.x - s.x, e2.y - s.y); if (dd < nd) { nd = dd; nx = e2; } } if (nx) s.e = nx; }
+        const dx = s.e.x - s.x, dy = s.e.y - s.y, d = Math.hypot(dx, dy), stp = (s.mis ? 280 : 360) * dt;
+        if (d <= stp) { s.done = true; const sc = s.mis ? "#ff2bd6" : "#ff8a1f"; for (const e of ens) if (e.hp > 0 && Math.hypot(e.x - s.e.x, e.y - s.e.y) < s.splash) hurt(e, s.dmg); burst(s.e.x, s.e.y, sc, s.mis ? 26 : 16, 200, .45); ring(s.e.x, s.e.y, sc, 6, s.splash, .3); if (s.mis) shake(3, .15); }
         else { s.x += dx / d * stp; s.y += dy / d * stp; }
       }
       shots = shots.filter((s) => !s.done);
@@ -5914,13 +5947,17 @@ function towerGame() {
       if (wave > 0 && !spawnQ.length && !ens.length && between < 0) {
         const bonus = 25 + wave * 6; money += bonus; S.score += wave * 50; between = 8;
         banner("WAVE " + wave + " CLEAR  +$" + bonus, "#3dffa8");
+        const nu = ORDER.find((k) => TT[k].at === wave + 0 && wave > 0); if (nu) setTimeout(() => { banner("🔓 NEW WEAPON: " + TT[nu].name + "!", TT[nu].c); sfx("level"); flash(TT[nu].c, .3); selType = nu; }, 1600);
+        if (mapFor(wave + 1) !== mapI) setTimeout(() => banner("⚠ NEXT WAVE: NEW MAP!", MAPS[mapFor(wave + 1)].col), 3200);
         saveGame({ wave, money, lives, kills, towers: [...towers.values()].map((t) => [t.c, t.r, t.t, t.lvl]), label: "WAVE " + (wave + 1) });
       }
     },
     draw() {
       techBg("#ff4d6d");
-      for (const k of PATH) { const [c, r] = k.split(",").map(Number); if (c < 0 || c >= GC) continue; x.fillStyle = "rgba(255,77,109,.1)"; x.fillRect(c * Z, r * Z, Z, Z); }
-      x.strokeStyle = "rgba(255,77,109,.5)"; x.lineWidth = 2; x.setLineDash([8, 10]); x.lineDashOffset = -S.clock * 30; x.beginPath(); WP.forEach((p, i) => (i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]))); x.stroke(); x.setLineDash([]); x.lineDashOffset = 0;
+      const MC = MAPS[mapI].col;
+      for (const k of PATH) { const [c, r] = k.split(",").map(Number); if (c < 0 || c >= GC) continue; x.fillStyle = ca(MC, .1); x.fillRect(c * Z, r * Z, Z, Z); }
+      txt(MAPS[mapI].name, W - 8, 14, 10, ca(MC, .7), "right", "d");
+      x.strokeStyle = ca(MC, .5); x.lineWidth = 2; x.setLineDash([8, 10]); x.lineDashOffset = -S.clock * 30; x.beginPath(); WP.forEach((p, i) => (i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]))); x.stroke(); x.setLineDash([]); x.lineDashOffset = 0;
       const base = WP[WP.length - 2]; glow("#3dffa8", 14); x.strokeStyle = "#3dffa8"; x.lineWidth = 2; x.strokeRect(GC * Z - 34, base[1] - 18, 30, 36); glow();
       if (S.state === "play") { x.strokeStyle = "rgba(255,255,255,.4)"; x.lineWidth = 1.5; x.strokeRect(cur[0] * Z + 1, cur[1] * Z + 1, Z - 2, Z - 2); }
       for (const t of towers.values()) {
@@ -5928,10 +5965,16 @@ function towerGame() {
         x.fillStyle = "rgba(10,8,24,.9)"; rr(t.c * Z + 4, t.r * Z + 4, Z - 8, Z - 8, 8); x.fill();
         glow(b.c, 12); x.strokeStyle = b.c; x.lineWidth = 2; rr(t.c * Z + 4, t.r * Z + 4, Z - 8, Z - 8, 8); x.stroke();
         x.save(); x.translate(tx, ty); x.rotate(t.ang); x.fillStyle = b.c;
-        if (t.t === "L") x.fillRect(0, -2.5, 15, 5); else if (t.t === "C") x.fillRect(0, -4.5, 13, 9); else { x.beginPath(); x.arc(0, 0, 7 + Math.sin(S.clock * 4) * 1.5, 0, 7); x.fill(); }
+        if (t.t === "L") x.fillRect(0, -2.5, 15, 5); else if (t.t === "C") x.fillRect(0, -4.5, 13, 9);
+        else if (t.t === "S") x.fillRect(0, -1.5, 19, 3);
+        else if (t.t === "M") { x.fillRect(-2, -6, 12, 4); x.fillRect(-2, 2, 12, 4); }
+        else if (t.t === "T") { x.beginPath(); for (let i = 0; i < 6; i++) { const aa = i * 1.047 + S.clock * 3; x.lineTo(Math.cos(aa) * 9, Math.sin(aa) * 9); } x.closePath(); x.fill(); }
+        else if (t.t === "P") { x.beginPath(); x.moveTo(12, 0); x.lineTo(-6, -8); x.lineTo(-6, 8); x.closePath(); x.fill(); }
+        else { x.beginPath(); x.arc(0, 0, 7 + Math.sin(S.clock * 4) * 1.5, 0, 7); x.fill(); }
         x.restore(); glow();
         for (let i = 0; i < t.lvl; i++) { x.fillStyle = "#ffffff"; x.fillRect(t.c * Z + 9 + i * 7, t.r * Z + Z - 10, 5, 3); }
-        if (t.beam) { glow(b.c, 16); x.strokeStyle = "#ffffff"; x.lineWidth = 2.5; x.beginPath(); x.moveTo(tx, ty); x.lineTo(t.beam.x, t.beam.y); x.stroke(); glow(); }
+        if (t.beam && t.t === "T" && t.chainPts) { glow(b.c, 18); x.strokeStyle = "#e6fdff"; x.lineWidth = 2; x.beginPath(); t.chainPts.forEach(([px, py], i) => { if (!i) return x.moveTo(px, py); const [qx, qy] = t.chainPts[i - 1]; for (let j = 1; j <= 4; j++) x.lineTo(qx + (px - qx) * j / 4 + (j < 4 ? (Math.random() - .5) * 12 : 0), qy + (py - qy) * j / 4 + (j < 4 ? (Math.random() - .5) * 12 : 0)); }); x.stroke(); glow(); }
+        else if (t.beam) { glow(b.c, 16); x.strokeStyle = t.t === "P" ? b.c : "#ffffff"; x.lineWidth = t.t === "P" ? 5 : t.t === "S" ? 1.5 : 2.5; x.beginPath(); x.moveTo(tx, ty); x.lineTo(t.beam.x, t.beam.y); x.stroke(); glow(); }
       }
       for (const e of ens) {
         glow(e.c, 12); x.fillStyle = ca(e.c, .35); x.strokeStyle = e.slowT > 0 ? "#bfe9ff" : e.c; x.lineWidth = 2;
@@ -5939,18 +5982,19 @@ function towerGame() {
         const sides = e.type === "boss" ? 8 : e.type === "tank" ? 4 : e.type === "fast" ? 3 : 5; for (let i = 0; i < sides; i++) { const a = i / sides * 6.283; x.lineTo(Math.cos(a) * e.r, Math.sin(a) * e.r); } x.closePath(); x.fill(); x.stroke(); x.restore(); glow();
         if (e.hp < e.max) { x.fillStyle = "rgba(0,0,0,.6)"; x.fillRect(e.x - 12, e.y - e.r - 8, 24, 4); x.fillStyle = "#3dffa8"; x.fillRect(e.x - 12, e.y - e.r - 8, 24 * Math.max(0, e.hp / e.max), 4); }
       }
-      for (const s of shots) { glow("#ff8a1f", 10); x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(s.x, s.y, 4, 0, 7); x.fill(); glow(); }
+      for (const s of shots) { glow(s.mis ? "#ff2bd6" : "#ff8a1f", 10); x.fillStyle = s.mis ? "#ff7be6" : "#ffd66b"; x.beginPath(); x.arc(s.x, s.y, s.mis ? 5 : 4, 0, 7); x.fill(); glow(); if (s.mis) burst(s.x, s.y, "#ff2bd6", 1, 30, .25, 2); }
       x.fillStyle = "rgba(6,3,14,.94)"; x.fillRect(0, BAR, W, H - BAR); x.fillStyle = "rgba(255,77,109,.6)"; x.fillRect(0, BAR, W, 2);
       for (const [k, bx, bw] of BTNS) {
         if (k === "W") {
           const busy = spawnQ.length || ens.length; x.fillStyle = busy ? "rgba(255,255,255,.05)" : "rgba(61,255,168,.18)"; x.strokeStyle = busy ? "rgba(255,255,255,.2)" : "#3dffa8"; x.lineWidth = 2; rr(bx, BAR + 12, bw, 56, 10); x.fill(); x.stroke();
-          txt(busy ? "WAVE " + wave + " ACTIVE" : "▶ START WAVE " + (wave + 1), bx + bw / 2, BAR + 32, 12, busy ? "#8f86b5" : "#3dffa8", "center", "d");
-          if (!busy && between > 0) txt("auto in " + Math.ceil(between) + "s", bx + bw / 2, BAR + 52, 11, "#8f86b5");
+          txt(busy ? "WAVE " + wave : "▶ WAVE " + (wave + 1), bx + bw / 2, BAR + 32, 11, busy ? "#8f86b5" : "#3dffa8", "center", "d");
+          if (!busy && between > 0) txt("auto " + Math.ceil(between) + "s", bx + bw / 2, BAR + 52, 10, "#8f86b5");
           continue;
         }
-        const b = TT[k], on = selType === k, can = money >= b.cost;
+        const b = TT[k], on = selType === k, can = money >= b.cost, open = unlocked(k);
         x.fillStyle = on ? ca(b.c, .22) : "rgba(255,255,255,.04)"; x.strokeStyle = on ? b.c : "rgba(255,255,255,.2)"; x.lineWidth = on ? 2.5 : 1.5; if (on) glow(b.c, 12); rr(bx, BAR + 12, bw, 56, 10); x.fill(); x.stroke(); glow();
-        txt(b.name, bx + bw / 2, BAR + 32, 13, can ? b.c : "#6c6290", "center", "d"); txt("$" + b.cost, bx + bw / 2, BAR + 52, 12, can ? "#ffffff" : "#6c6290");
+        if (!open) { txt("🔒", bx + bw / 2, BAR + 30, 14, "#ffffff", "center"); txt("WAVE " + b.at, bx + bw / 2, BAR + 52, 10, "#6c6290", "center", "d"); continue; }
+        txt(b.name, bx + bw / 2, BAR + 32, b.name.length > 6 ? 9 : 10, can ? b.c : "#6c6290", "center", "d"); txt("$" + b.cost, bx + bw / 2, BAR + 52, 11, can ? "#ffffff" : "#6c6290");
       }
       if (info) { glow("#ff4d6d", 10); txt(info.t, W / 2, BAR - 20, 14, "#ff4d6d", "center", "d"); glow(); }
     },
