@@ -1044,6 +1044,24 @@ html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 .prof-actions { margin-top: 16px; }
 @media (max-width: 700px) { .prof-two { grid-template-columns: 1fr; } .shelf-grid { grid-template-columns: repeat(3, 1fr); } }
 
+/* ---------- Trading cards + weekly ---------- */
+.tcard-row { margin-bottom: 14px; } .tcard-row.done .eyebrow { color: #3dffa8; }
+.tcard-grid { display: grid; grid-template-columns: repeat(4, minmax(110px, 1fr)); gap: 10px; }
+.tcard { display: grid; gap: 5px; justify-items: center; padding: 8px 8px 10px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(7,4,15,.7); text-align: center; position: relative; font-size: .78rem; }
+.tcard b { font-size: .78rem; line-height: 1.2; }
+.tcard.missing { opacity: .32; filter: grayscale(1); border-style: dashed; }
+.tcard-art { width: 100%; aspect-ratio: 4 / 3; border-radius: 8px; overflow: hidden; position: relative; }
+.tcard-art .screen { position: absolute; inset: 0; display: grid; place-items: center; }
+.tcard-art .glyph { font-family: var(--f-sign); font-size: 1.6rem; color: #fff; text-shadow: 0 0 12px rgba(255,255,255,.7); }
+.tcard.rk-r { border-color: rgba(34,228,255,.5); } .tcard.rk-e { border-color: rgba(163,91,255,.6); box-shadow: 0 0 12px rgba(163,91,255,.25); } .tcard.rk-l { border-color: #ffd66b; box-shadow: 0 0 18px rgba(255,214,107,.4); }
+.tcard-n { position: absolute; top: 6px; right: 6px; padding: 1px 7px; border-radius: 20px; background: rgba(0,0,0,.65); font-family: var(--f-mono); font-size: .68rem; color: var(--gold); }
+.tcard.big { width: min(78vw, 240px); padding: 12px 12px 16px; font-size: 1rem; } .tcard.big b { font-size: 1.05rem; } .tcard.big .glyph { font-size: 2.6rem; }
+.tcard-flip { animation: tcardFlip .9s var(--ease); perspective: 800px; }
+@keyframes tcardFlip { 0% { transform: rotateY(90deg) scale(.6); opacity: 0; } 60% { transform: rotateY(-12deg) scale(1.05); opacity: 1; } 100% { transform: none; } }
+.card-note { margin: 10px 0 0; max-width: 320px; text-align: center; }
+.weekly-grand { border-color: rgba(255,214,107,.5); }
+@media (max-width: 600px) { .tcard-grid { grid-template-columns: repeat(4, 1fr); gap: 6px; } .tcard { padding: 6px 4px 8px; } .tcard b { font-size: .62rem; } .tcard .rar { font-size: .5rem; padding: 0 4px; } }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -9636,6 +9654,7 @@ function fighterGame() {
     lockPage(false);
     if (current && current.onClose) { try { current.onClose(); } catch {} }
     current = null;
+    if (window.gblAfterClose) setTimeout(window.gblAfterClose, 450);
     setTimeout(() => { if (!modal.classList.contains("open")) box.replaceChildren(); }, 300);
     if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
     modal.classList.remove("big"); $("#fs").textContent = "Fullscreen";
@@ -10350,6 +10369,7 @@ function fighterGame() {
     ["pet-mermaid", "pet", "Neon Mermaid 🧜", 7000, "linear-gradient(135deg,#22e4ff,#3dffa8,#ff7be6)", "Summer Splash only. Sings from the reef.", "", "l"],
     ["t-pumpkinking", "title", "Pumpkin King 🎃", 6000, "linear-gradient(135deg,#ff8a1f,#000000,#ff8a1f)", "Hiss-O-Ween only. Rules the haunted arcade.", "", "l"],
     ["t-northpole", "title", "North Pole Legend ❄️", 6000, "linear-gradient(135deg,#9ff3ff,#ffffff,#ff4d6d)", "Winter Fest only. Santa's top gamer.", "", "l"],
+    ["t-cardmaster", "title", "Card Master 🃏", 0, "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)", "Complete every trading card set. The collector's crown.", "set", "l"],
   ];
   // Event songs: the month (0 = January) they can be bought.
   const EVENT_MONTH = {
@@ -10424,7 +10444,7 @@ function fighterGame() {
   function feedPet(id) {
     if (hungerPct(id) >= 92) return petSay("I'm full! 😋 Maybe later");
     if (coins() < PET_FEED_COST) return petSay("Need " + PET_FEED_COST + " ⚡ for a snack…");
-    spend("", PET_FEED_COST); const d = petData(id); d.fed = Math.min(Date.now(), d.fed + 10 * HR); if (Date.now() - d.fed > 24 * HR) d.fed = Date.now() - 2 * HR; petGainXp(id, 3); saveProg(); sfxHub(); if (window.gblConfetti) window.gblConfetti(30);
+    spend("", PET_FEED_COST); const d = petData(id); d.fed = Math.min(Date.now(), d.fed + 10 * HR); if (Date.now() - d.fed > 24 * HR) d.fed = Date.now() - 2 * HR; petGainXp(id, 3); weekBump("feeds"); saveProg(); sfxHub(); if (window.gblConfetti) window.gblConfetti(30);
     petSay(["Yum! 🍖", "Delicious! 😋", "*munch munch*", "More please? 🥺", "Thanks, best friend! 💛"][Math.random() * 5 | 0]); petJump();
   }
   function playPet(id) {
@@ -10455,7 +10475,7 @@ function fighterGame() {
         el("button", { class: "btn sm", type: "button", text: "Play 🎾", onclick: () => playPet(id) }),
         el("button", { class: "btn sm", type: "button", text: "Pets 🐾", onclick: () => { petHome = false; if (window.gblShopTab) window.gblShopTab("inv"); location.hash = "#shop"; renderPet(); } })),
       el("small", { class: "pet-home-tip", text: "Pets get hungry over a day and bored over an afternoon. Fed pets boost your coins; XP comes from playing games, snacks and playtime." })) : null;
-    petEl.replaceChildren(bub, face, el("div", { class: "pet-tag" }, el("b", { text: it[2] }), el("small", { text: "LV " + lv + " · " + (mood === "hungry" ? "hungry! tap me" : mood === "bored" ? "bored · tap me" : "+" + Math.round(petBonus() * 100) + "% coins") })), home);
+    petEl.replaceChildren(bub, face, el("div", { class: "pet-tag" }, el("b", { text: it[2] }), el("small", { text: "LV " + lv + " · " + (mood === "hungry" ? "hungry! tap me" : mood === "bored" ? "bored · tap me" : "+" + Math.round(petBonus() * 100) + "% coins") })), ...(home ? [home] : []));
     petEl.classList.toggle("hungry", mood === "hungry"); petEl.classList.toggle("open", petHome);
   };
   /* The pet wanders along the bottom of the hub. */
@@ -10647,6 +10667,7 @@ function fighterGame() {
   /* hooks */
   window.gblReward = (cur, s) => {
     if (!cur || !cur.g || !BUILTINS.some((b) => b.key === cur.g.key)) return;
+    try { dropCard(cur.g.key); weekBump("game", s, cur.g.key); } catch (e) {}
     const wk = new Date().getDay() % 6 === 0 || !!(window.GCFG || {}).doubleCoins, bst = stat("boostUntil") > Date.now(), n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1) * (bst ? 2 : 1), cm = (window.GCFG || {}).coinMult, n2 = Math.round(n * (cm == null ? 1 : cm) * (1 + petBonus()));
     if ((prog.equip || {}).pet) { const pk = "px_" + prog.equip.pet, lv0 = petLv(prog.equip.pet); prog.stats[pk] = stat(pk) + 1; if (petLv(prog.equip.pet) > lv0) setTimeout(() => { coinPop(PET_EMO[prog.equip.pet] + " Your pet grew to level " + petLv(prog.equip.pet) + "!", true); renderPet(); }, 3000); }
     const dl = (1 + Math.min(4, Math.floor(Math.log10(Math.max(1, s))))) * (bst ? 2 : 1);
@@ -10673,13 +10694,15 @@ function fighterGame() {
     if (tt) head.firstChild.append(el("span", { class: "rew-title", style: "--tc:" + (tt[4].startsWith("#") ? tt[4] : "#ffd66b"), text: "🏷 " + tt[2] }));
     const ae = activeEvent();
     const advDue = ae === "winter" && advCalDue();
-    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["bonus", "🎁 Bonus"], ["road", "🛣 Levels"], ["spin", "🎡 Daily spin"], ...(ae === "winter" ? [["advent", "🎄 Advent"]] : []), ["shop", "🛒 Shop"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + ((id === "bonus" && bonusDue()) || (id === "road" && roadDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) || (id === "advent" && advDue) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { if (id === "shop" || id === "inv") { window.gblShopTab && window.gblShopTab(id); closeRewards(); location.hash = "#shop"; return; } rtab = id; renderRewards(); } })));
+    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["weekly", "🏆 Weekly"], ["bonus", "🎁 Bonus"], ["road", "🛣 Levels"], ["spin", "🎡 Daily spin"], ...(ae === "winter" ? [["advent", "🎄 Advent"]] : []), ["shop", "🛒 Shop"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + ((id === "weekly" && weeklyDue()) || (id === "bonus" && bonusDue()) || (id === "road" && roadDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) || (id === "advent" && advDue) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { if (id === "shop" || id === "inv") { window.gblShopTab && window.gblShopTab(id); closeRewards(); location.hash = "#shop"; return; } rtab = id; renderRewards(); } })));
     let body;
     if (rtab === "missions") {
       body = el("div", { class: "rew-list" }, ...missions().map((m) => el("div", { class: "mission" + (m.done ? " done" : "") },
         el("div", { class: "m-txt" }, el("b", { text: m.text }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(Math.min(1, m.have / m.need) * 100) + "%" })), el("small", { text: (m.kind === "score" ? "best " + fmt(Math.min(m.have, m.need)) + " / " + fmt(m.need) : Math.min(m.have, m.need) + " / " + m.need) })),
         m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (m.done ? " hot" : ""), type: "button", disabled: !m.done, text: "Claim " + m.reward + " ⚡ + $5", onclick: () => { m.claimed = true; giveCash(5, null, true); giveCoins(m.reward, "mission!  +$5"); if (window.gblConfetti) window.gblConfetti(90); renderRewards(); } }))),
         el("p", { class: "set-note", text: "New missions every day. Coins and dollars come from every game you finish. Check the Bonus tab for free stuff!" }));
+    } else if (rtab === "weekly") {
+      body = weeklyTab();
     } else if (rtab === "road") {
       body = roadTab();
     } else if (rtab === "bonus") {
@@ -10743,12 +10766,13 @@ function fighterGame() {
     if (!has && !inSeason(id)) return null;
     const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null });
     if (cur === "lv" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
+    if (cur === "set" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🃏 Complete every card set" }));
     if (igrp === "boost") return el("div", { class: "shop-item" + tag }, icon, el("b", { text: name }), rarBadge, newBadge, el("small", { text: sub }),
       el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); rerender(); } }));
     const priceEl = o.dealPct ? el("span", { class: "deal-price" }, el("s", { text: priceLab(cur, cost(price0)) }), el("b", { text: pl })) : null;
     return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, icon, el("b", { text: name }), rarBadge, newBadge, dealTag, el("small", { text: sub }), priceEl, listen,
       has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...(prog.equip || {}), [bgk]: id }; saveProg(); toast(name + " equipped"); rerender(); } })
-        : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...(prog.owned || []), id]; prog.equip = { ...(prog.equip || {}), [bgk]: id }; saveProg(); renderWallet(); buyFanfare(rar); unlockToast(rar, name); rerender(); } }));
+        : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...(prog.owned || []), id]; prog.equip = { ...(prog.equip || {}), [bgk]: id }; saveProg(); renderWallet(); buyFanfare(rar); unlockToast(rar, name); weekBump("buys"); rerender(); } }));
   }
   function defaultCard(gk, base, eq, rerender) {
     return el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : gk === "music" ? "Default music" : "Classic" }), el("small", { text: gk === "music" ? "Synth style – free" : "Free" }),
@@ -10778,7 +10802,7 @@ function fighterGame() {
   }
   /* Daily deals: 3 items at 30–50% off, same for everyone all day, new ones at midnight (UTC). */
   function seededRng(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h += 0x6D2B79F5; let t = Math.imul(h ^ (h >>> 15), 1 | h); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-  const dealEligible = (it) => it[1] !== "boost" && it[6] !== "lv" && inSeason(it[0]) && (it[6] ? cost(it[3]) >= 3 : cost(it[3]) >= 20);
+  const dealEligible = (it) => it[1] !== "boost" && it[6] !== "lv" && it[6] !== "set" && inSeason(it[0]) && (it[6] ? cost(it[3]) >= 3 : cost(it[3]) >= 20);
   function todaysDeals() {
     const r = seededRng("deals-" + todayKey()), pool = SHOP.filter(dealEligible), legendaryOk = r() < .18;
     const pick = pool.filter((it) => legendaryOk || it[7] !== "l"), out = [];
@@ -10788,13 +10812,13 @@ function fighterGame() {
   const untilMidnight = () => { const n = new Date(), m = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1) - n.getTime(); return Math.floor(m / 36e5) + "h " + Math.floor((m % 36e5) / 6e4) + "m"; };
   /* Mystery crates: a random unowned item of that rank. */
   const CRATES = [["c", "Common Crate", 200, "📦", "linear-gradient(135deg,#777,#bbb)"], ["r", "Rare Crate", 800, "🎁", "linear-gradient(135deg,#22e4ff,#6b7dff)"], ["e", "Epic Crate", 3000, "💎", "linear-gradient(135deg,#a35bff,#ff2bd6)"], ["l", "Legendary Crate", 9000, "👑", "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)"]];
-  const cratePool = (rank) => { const owned = new Set(prog.owned || []); return SHOP.filter((it) => it[7] === rank && !owned.has(it[0]) && it[1] !== "boost" && it[6] !== "lv" && inSeason(it[0])); };
+  const cratePool = (rank) => { const owned = new Set(prog.owned || []); return SHOP.filter((it) => it[7] === rank && !owned.has(it[0]) && it[1] !== "boost" && it[6] !== "lv" && it[6] !== "set" && inSeason(it[0])); };
   function openCrate(rank, price, label) {
     const pool = cratePool(rank); if (!pool.length) { toast("You own every " + RAR_LABEL[rank] + " item already!"); return; }
     if (coins() < price) { toast("Not enough coins"); return; }
     spend("", price); const it = pool[Math.random() * pool.length | 0], [id, igrp, name, , col, sub] = it;
     prog.owned = [...(prog.owned || []), id]; if (SLOT_GROUPS.includes(igrp) && !(prog.equip || {})[igrp]) prog.equip = { ...(prog.equip || {}), [igrp]: id }; saveProg(); renderWallet();
-    prog.stats = prog.stats || {}; prog.stats.crates = (prog.stats.crates || 0) + 1; saveProg();
+    prog.stats = prog.stats || {}; prog.stats.crates = (prog.stats.crates || 0) + 1; saveProg(); weekBump("crates");
     const ov = el("div", { class: "crate-ov", role: "dialog", "aria-label": "Crate opening" });
     const box = el("div", { class: "crate-box", text: CRATES.find((c) => c[0] === rank)[3] }), card = el("div", { class: "crate-card rk-" + rank, hidden: true },
       el("p", { class: "eyebrow", text: "You got a " + RAR_LABEL[rank] + "!" }),
@@ -10810,11 +10834,12 @@ function fighterGame() {
     const root = document.getElementById("shop-page"); if (!root) return;
     const owned = new Set(prog.owned || []), eq = prog.equip || {}, rerender = renderShopPage;
     const wallet = el("div", { class: "shop-wallet" }, el("span", { class: "rew-coins", text: "⚡ " + fmt(coins()) }), el("span", { class: "rew-cash", text: "$" + fmt(cash()) }), el("span", { class: "rew-gems", text: "💎 " + fmt(gems()) }));
-    const tabs = el("div", { class: "rew-tabs" }, ...[["shop", "🛒 Shop"], ["deals", "🔥 Daily Deals"], ["crates", "📦 Crates"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + (id === "deals" ? " dot" : ""), type: "button", "aria-pressed": String(shopTab === id), text: t, onclick: () => { shopTab = id; rerender(); } })));
+    const tabs = el("div", { class: "rew-tabs" }, ...[["shop", "🛒 Shop"], ["deals", "🔥 Daily Deals"], ["crates", "📦 Crates"], ["cards", "🃏 Cards"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + (id === "deals" ? " dot" : ""), type: "button", "aria-pressed": String(shopTab === id), text: t, onclick: () => { shopTab = id; rerender(); } })));
     const smOn = shopMusicOn();
     const smBtn = el("button", { class: "chip", type: "button", "aria-pressed": String(smOn), text: smOn ? "🔊 Shop music on" : "🔇 Shop music off", onclick: () => { try { localStorage.setItem("gbl-shopmus", smOn ? "0" : "1"); } catch (e) {} if (smOn) stopPreview(); else preview("shopjam", null, true); rerender(); } });
     let body;
     if (shopTab === "inv") body = inventoryBody(rerender);
+    else if (shopTab === "cards") body = cardsBody();
     else if (shopTab === "deals") {
       const deals = todaysDeals();
       body = el("div", { class: "shop" }, el("p", { class: "set-note", text: "Three items at a big discount. New deals in " + untilMidnight() + " — legendaries show up here sometimes!" }),
@@ -10863,6 +10888,66 @@ function fighterGame() {
   };
   window.gblRenderShop = renderShopPage;
   window.gblShopTab = (id) => { shopTab = id === "inv" ? "inv" : "shop"; };
+  /* ---------- Trading cards: every finished game can drop a card; 4 ranks per game ---------- */
+  const CARD_RANKS = ["c", "r", "e", "l"], CARD_W = [60, 28, 10, 2];
+  const cardKey = (k, r) => k + ":" + r;
+  const cardCount = (k, r) => (prog.cards || {})[cardKey(k, r)] || 0;
+  const setDone = (k) => CARD_RANKS.every((r) => cardCount(k, r) > 0);
+  const cardTotals = () => { let have = 0, sets = 0; for (const g of BUILTINS) { for (const r of CARD_RANKS) if (cardCount(g.key, r)) have++; if (setDone(g.key)) sets++; } return { have, sets, max: BUILTINS.length * 4 }; };
+  function dropCard(key) {
+    if (!BUILTINS.some((g) => g.key === key) || Math.random() > .6) return;
+    let x = Math.random() * 100, r = "c"; for (let i = 0; i < CARD_W.length; i++) { if (x < CARD_W[i]) { r = CARD_RANKS[i]; break; } x -= CARD_W[i]; }
+    prog.cards = prog.cards || {}; prog.cards[cardKey(key, r)] = cardCount(key, r) + 1; prog.cardQueue = [...(prog.cardQueue || []), [key, r]]; weekBump("cards"); saveProg();
+  }
+  function cardEl(g, r, n, big) {
+    return el("div", { class: "tcard rk-" + r + (n ? "" : " missing") + (big ? " big" : "") }, el("div", { class: "tcard-art" }, art(g)), el("b", { text: g.title }), el("span", { class: "rar rar-" + r, text: RAR_LABEL[r] }), n > 1 ? el("span", { class: "tcard-n", text: "×" + n }) : null);
+  }
+  function showCardDrops() {
+    const q = prog.cardQueue || []; if (!q.length || document.querySelector(".crate-ov")) return;
+    const [key, r] = q[0], g = BUILTINS.find((b2) => b2.key === key); prog.cardQueue = q.slice(1); saveProg();
+    if (!g) return showCardDrops();
+    prog.cardSets = prog.cardSets || {}; const newSet = setDone(key) && !prog.cardSets[key]; if (newSet) prog.cardSets[key] = 1;
+    const all = BUILTINS.every((b2) => setDone(b2.key)), master = all && !(prog.owned || []).includes("t-cardmaster"); if (master) { prog.owned = [...(prog.owned || []), "t-cardmaster"]; }
+    saveProg();
+    const ov = el("div", { class: "crate-ov" }), card = cardEl(g, r, cardCount(key, r), true);
+    ov.append(el("p", { class: "crate-lbl", text: "🃏 Card drop!" }), el("div", { class: "tcard-flip" }, card),
+      el("p", { class: "set-note card-note", text: newSet ? "🎉 " + g.title + " set complete! +500 ⚡ +2 💎" : (prog.cardQueue.length ? "+" + prog.cardQueue.length + " more card" + (prog.cardQueue.length > 1 ? "s" : "") + " waiting" : "Collect all 4 ranks of every game in the Shop's Cards tab") }),
+      el("button", { class: "btn sm hot", type: "button", text: "Nice!", onclick: () => { ov.remove(); if (newSet) { giveGems(2, null, true); giveCoins(500, "card set complete!"); } if (master) { toast("👑 CARD MASTER title unlocked!"); sfxLegendary(); if (window.gblConfetti) window.gblConfetti(200); } if (prog.cardQueue.length) setTimeout(showCardDrops, 300); } }));
+    document.body.append(ov); buyFanfare(r);
+  }
+  function cardsBody() {
+    const t = cardTotals();
+    return el("div", { class: "shop" },
+      el("p", { class: "set-note", text: "Every game you finish has a 60% chance to drop a card. Collect all 4 ranks of a game for 500 ⚡ + 2 💎. Complete every set for the legendary Card Master title. You have " + t.have + "/" + t.max + " cards and " + t.sets + "/" + BUILTINS.length + " full sets." }),
+      ...BUILTINS.map((g) => el("div", { class: "tcard-row" + (setDone(g.key) ? " done" : "") }, el("p", { class: "eyebrow", text: g.title + (setDone(g.key) ? " · SET COMPLETE ✓" : "") }), el("div", { class: "tcard-grid" }, ...CARD_RANKS.map((r) => cardEl(g, r, cardCount(g.key, r)))))));
+  }
+  window.gblAfterClose = showCardDrops;
+  /* ---------- Weekly challenges: 5 bigger missions, seeded by the week, legendary crate at the end ---------- */
+  const weekKey = () => { const d = new Date(); d.setUTCDate(d.getUTCDate() - (d.getUTCDay() + 6) % 7); return d.toISOString().slice(0, 10); };
+  const wk = () => { if (!prog.week || prog.week.key !== weekKey()) prog.week = { key: weekKey(), plays: 0, games: {}, best: 0, crates: 0, feeds: 0, buys: 0, cards: 0, claimed: {}, bigClaimed: false }; return prog.week; };
+  function weekBump(k, v, extra) { const w = wk(); if (k === "game") { w.plays++; w.games[extra] = 1; if (v > w.best) w.best = v; } else w[k] = (w[k] || 0) + (v || 1); saveProg(); }
+  const WEEKLY_POOL = [
+    ["plays", "Finish {n} games", [15, 25, 40], (w) => w.plays, 400],
+    ["games", "Play {n} different games", [5, 8, 12], (w) => Object.keys(w.games).length, 500],
+    ["best", "Score {n} in a single game", [300, 800, 2000], (w) => w.best, 450],
+    ["crates", "Open {n} mystery crates", [1, 2, 3], (w) => w.crates, 350],
+    ["feeds", "Feed your pet {n} times", [3, 5, 8], (w) => w.feeds, 300],
+    ["buys", "Buy {n} shop items", [1, 2, 3], (w) => w.buys, 350],
+    ["cards", "Collect {n} trading cards", [3, 6, 10], (w) => w.cards, 400],
+  ];
+  function weeklyList() { const r = seededRng("week-" + weekKey()), pool = WEEKLY_POOL.slice(), out = [], w = wk(); while (out.length < 5 && pool.length) { const i = r() * pool.length | 0, [id, t, goals, get, rew] = pool.splice(i, 1)[0], gi = r() * 3 | 0, n = goals[gi]; out.push({ id, text: t.replace("{n}", fmt(n)), need: n, have: get(w), reward: Math.round(rew * (1 + gi * .5)), claimed: !!w.claimed[id] }); } return out; }
+  const weeklyDue = () => { const l = weeklyList(); return l.some((m) => m.have >= m.need && !m.claimed) || (l.every((m) => m.claimed) && !wk().bigClaimed); };
+  const untilMonday = () => { const n = new Date(), d = (8 - n.getUTCDay()) % 7 || 7, end = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + d), ms = end - n.getTime(); return Math.floor(ms / 864e5) + "d " + Math.floor((ms % 864e5) / 36e5) + "h"; };
+  function weeklyTab() {
+    const list = weeklyList(), w = wk(), allDone = list.every((m) => m.claimed);
+    return el("div", { class: "rew-list" },
+      el("p", { class: "set-note", text: "Five big challenges every week. Claim them all to open a free LEGENDARY crate. New challenges in " + untilMonday() + "." }),
+      ...list.map((m) => { const done = m.have >= m.need; return el("div", { class: "mission" + (done ? " done" : "") },
+        el("div", { class: "m-txt" }, el("b", { text: m.text }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(Math.min(1, m.have / m.need) * 100) + "%" })), el("small", { text: fmt(Math.min(m.have, m.need)) + " / " + fmt(m.need) })),
+        m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (done ? " hot" : ""), type: "button", disabled: !done, text: "Claim " + m.reward + " ⚡", onclick: () => { w.claimed[m.id] = 1; saveProg(); giveCoins(m.reward, "weekly challenge!"); if (window.gblConfetti) window.gblConfetti(80); renderRewards(); } })); }),
+      el("div", { class: "mission weekly-grand" + (allDone ? " done" : "") }, el("div", { class: "m-txt" }, el("b", { text: "👑 Grand prize: free Legendary Crate" }), el("small", { text: allDone ? (w.bigClaimed ? "Opened this week — see you Monday!" : "All five done. Open it!") : list.filter((m) => m.claimed).length + " / 5 challenges claimed" })),
+        w.bigClaimed ? el("span", { class: "m-claimed", text: "✓ Opened" }) : el("button", { class: "btn sm" + (allDone ? " hot" : ""), type: "button", disabled: !allDone, text: "Open crate", onclick: () => { w.bigClaimed = true; saveProg(); closeRewards(); if (cratePool("l").length) openCrate("l", 0, "Weekly Legendary Crate"); else { giveCoins(5000, "weekly grand prize!"); toast("You own every legendary — here's 5,000 ⚡ instead!"); } } })));
+  }
   function shopMusicOn() { let v = null; try { v = localStorage.getItem("gbl-shopmus"); } catch (e) {} return v !== "0" && settings.music !== "off" && settings.mvol > 0; }
   function openRewards(tab) { if (tab) rtab = tab; stopHubMusic(); rm.classList.add("open"); renderRewards(); rm.setAttribute("aria-hidden", "false"); $("#rew-close").focus(); }
   function closeRewards() { if (prev) stopPreview(); rm.classList.remove("open"); rm.setAttribute("aria-hidden", "true"); setTimeout(() => { hubStarted = true; startHubMusic(); }, 400); }
