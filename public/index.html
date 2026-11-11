@@ -1130,6 +1130,8 @@ html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 
 .lb-mode { margin: 8px 0 0; } .lb-mode[hidden] { display: none; }
 
+.pup-own { color: #3dffa8; font-family: var(--f-mono); }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -1916,10 +1918,32 @@ function SHELL() {
   let SAVED = window.SAVE0 || null;
   const contBtn = document.getElementById("cont");
   let ckT = 0;
+  const PUPS = window.PUPS0 || {}, pupSel = new Set();
+  window.pupOn = (id) => !!(S.pupOn && S.pupOn.has(id));
+  const pupAllowed = () => !window.TOUR0 && !window.ONLINE0 && !duoDefault();
+  function renderPups() {
+    const box = document.getElementById("pups"); if (!box) return;
+    const list = (G && G.pups) || [], show = list.length && pupAllowed();
+    box.hidden = !show; if (!show) return;
+    const owned = list.filter((p) => (PUPS[p.id] | 0) > 0);
+    const key = owned.map((p) => p.id + (PUPS[p.id] | 0) + pupSel.has(p.id)).join(",");
+    if (box.dataset.k === key) return; box.dataset.k = key;
+    box.replaceChildren();
+    if (!owned.length) { const t = document.createElement("span"); t.className = "pup-none"; t.textContent = "⚡ Power-ups for this game are in the Shop"; box.append(t); return; }
+    const lab = document.createElement("span"); lab.className = "pup-lab"; lab.textContent = "POWER-UPS (not in Quick Play):"; box.append(lab);
+    for (const p of owned) {
+      const b = document.createElement("button"); b.type = "button"; b.className = "pup" + (pupSel.has(p.id) ? " on" : ""); b.textContent = p.icon + " " + p.name + " ×" + (PUPS[p.id] | 0);
+      onTap(b, (e) => { e.stopPropagation(); if (pupSel.has(p.id)) pupSel.delete(p.id); else pupSel.add(p.id); sfx("tick"); renderPups(); });
+      box.append(b);
+    }
+  }
   function saveGame(d) { if (S.practice || S.duo || S.tt || S.quick) return; SAVED = d ? { ...d, score: Math.floor(S.score) } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); if (SAVED && SAVED.score > 0) parent.postMessage({ type: "gbl:ckpt", score: SAVED.score }, "*"); } catch (e) {} }
   function start(practice, duo, cont, quick) {
     if (window.TOUR0) { duo = true; practice = false; }
     S.quick = !!quick && !duo && !practice && !window.TOUR0 && !window.ONLINE0; S.qpT = 90; ckT = 0;
+    S.pupOn = new Set();
+    if (!S.quick && !practice && !duo && pupAllowed()) for (const id of pupSel) if ((PUPS[id] | 0) > 0) { PUPS[id]--; S.pupOn.add(id); try { parent.postMessage({ type: "gbl:pup", id }, "*"); } catch (e) {} }
+    pupSel.clear(); renderPups();
     if (S.bestN == null) S.bestN = S.best;
     S.best = S.quick ? (window.QPBEST0 | 0) : S.bestN;
     const wantTT = !!duo && !G.duo && !window.ONLINE0 && !window.TOUR0;
@@ -1927,6 +1951,8 @@ function SHELL() {
     S.duo = !!(duo && G.duo); S.practice = !!practice && !S.duo && !S.tt; S.bot = S.duo && !!window.BOT0 && !window.ONLINE0; S.online = S.duo ? (window.ONLINE0 || 0) : 0; RQ.length = 0;
     S.score = 0; S.t = 0; S.keys = {}; S.newBest = false; S.parts = []; S.pops = []; S.rings = []; S.banner = null; S.paused = false;
     G.init(); if (cont && SAVED && G.load && !S.duo && !S.practice && !S.tt && !S.quick) { G.load(SAVED); S.score = SAVED.score || 0; banner(G.autoCk ? "BACK AT YOUR CHECKPOINT" : "WELCOME BACK", G.color); }
+    if (G.start) G.start();
+    if (S.pupOn.size && G.pups) banner("⚡ " + G.pups.filter((p) => S.pupOn.has(p.id)).map((p) => p.name).join(" + ").toUpperCase(), "#3dffa8");
     if (S.quick) banner("⚡ QUICK PLAY · 90 SECONDS", "#ffd66b");
     S.state = "count"; S.cd = 1.2; audio(); sfx("tick");
   }
@@ -2095,6 +2121,7 @@ function SHELL() {
     if (btns.hidden === showGo) btns.hidden = !showGo;
     const showP = menu && !S.paused && !window.TOUR0, showD = showP && !window.ONLINE0, isOver = S.state === "over";
     if (pracBtn.hidden === showP) pracBtn.hidden = !showP;
+    const pupBox = document.getElementById("pups"); if (pupBox) { if (!showP) pupBox.hidden = true; else renderPups(); }
     const qpBtn = document.getElementById("qp"); if (qpBtn) { const showQ = showP && !window.ONLINE0 && !(isOver && (S.duo || S.tt)) && !duoDefault(); if (qpBtn.hidden === showQ) qpBtn.hidden = !showQ; const ql = isOver && S.quick ? "⚡ QUICK AGAIN" : "⚡ QUICK PLAY"; if (qpBtn.textContent !== ql) qpBtn.textContent = ql; }
     if (contBtn) { const showC = showP && S.state === "title" && !!SAVED && !!G.load; if (contBtn.hidden === showC) contBtn.hidden = !showC; const cl = "▶ CONTINUE" + (SAVED && SAVED.label ? " · " + SAVED.label : ""); if (showC && contBtn.textContent !== cl) contBtn.textContent = cl; }
     if (duoBtn.hidden === showD) duoBtn.hidden = !showD;
@@ -2292,6 +2319,7 @@ function SHELL() {
 
 /* ---------- 01 Neon Snake ---------- */
 function snakeGame() {
+  let snShield = 0;
   const N = 20, Z = 24;
   let sn, prev, d, nd, f, bonus, flip, acc, eaten, walls, lvl;
   const speed = () => S.practice ? 0.15 : Math.max(0.045, 0.13 - (lvl - 1) * 0.011 - (eaten % 5) * 0.002);
@@ -2366,7 +2394,9 @@ function snakeGame() {
   game({
     title: "Neon Snake", duo: "P1 uses W A S D, P2 uses the arrows (or swipe your own half). Go backwards to turn around. First to 3 rounds.", easy: "walls wrap around, no firewalls, slow and steady", w: 480, h: 480, color: "#22e4ff", bpm: 120,
     help: ["Arrows / WASD or swipe to steer", "Walls are deadly. Go backwards to turn around.", "Every 5 chips: next level, faster, more red firewalls", "Gold chips are worth +5"],
-    init() { sn = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }]; prev = sn.map((p) => ({ ...p })); d = nd = { x: 1, y: 0 }; flip = false; acc = 0; f = null; bonus = null; walls = []; lvl = 1; f = free(); eaten = 0; if (S.duo) duoInit(); },
+    pups: [{ id: "pu-sn-big", name: "Big Start", icon: "🐍" }, { id: "pu-sn-shield", name: "Shield", icon: "🛡" }],
+    start() { snShield = pupOn("pu-sn-shield") ? 1 : 0; if (pupOn("pu-sn-big") && !S.duo) { const t = sn[sn.length - 1]; for (let k = 1; k <= 5; k++) sn.push({ x: Math.max(0, t.x - k), y: t.y }); prev = sn.map((p) => ({ ...p })); } },
+    init() { snShield = 0; sn = [{ x: 10, y: 10 }, { x: 9, y: 10 }, { x: 8, y: 10 }]; prev = sn.map((p) => ({ ...p })); d = nd = { x: 1, y: 0 }; flip = false; acc = 0; f = null; bonus = null; walls = []; lvl = 1; f = free(); eaten = 0; if (S.duo) duoInit(); },
     hud() { if (S.duo) return "P1 " + duo.wins[0] + "  ·  ROUND " + duo.round + "  ·  " + duo.wins[1] + " P2  ·  FIRST TO 3"; return "LEVEL " + lvl + "  ·  LENGTH " + sn.length + "  ·  SPEED " + (0.13 / speed()).toFixed(1) + "x"; },
     summary() { if (S.duo) return ["ROUNDS  P1 " + duo.wins[0] + " : " + duo.wins[1] + " P2"]; return ["LEVEL " + lvl + "   LENGTH " + sn.length + "   CHIPS " + eaten]; },
     turn(dir, k, px) {
@@ -2381,9 +2411,12 @@ function snakeGame() {
       const sp = speed(); acc += dt; if (acc < sp) return; acc = Math.min(acc - sp, sp);
       if (flip) { flip = false; sn.reverse(); nd = { x: sn[0].x - sn[1].x, y: sn[0].y - sn[1].y }; const [a, b] = C(sn[0]); pop(a, b - 16, "REVERSE", "#22e4ff"); sfx("blip"); }
       prev = sn.map((p) => ({ ...p }));
-      d = nd; const h = { x: sn[0].x + d.x, y: sn[0].y + d.y };
+      d = nd; const h = { x: sn[0].x + d.x, y: sn[0].y + d.y }; let shieldSkip = false;
       if (S.practice) { h.x = (h.x + N) % N; h.y = (h.y + N) % N; }
-      if (h.x < 0 || h.y < 0 || h.x >= N || h.y >= N || hitWall(h) || sn.some((p) => p.x === h.x && p.y === h.y)) {
+      if (snShield > 0 && !S.duo && (h.x < 0 || h.y < 0 || h.x >= N || h.y >= N || hitWall(h) || sn.some((p) => p.x === h.x && p.y === h.y))) {
+        snShield--; h.x = (h.x + N) % N; h.y = (h.y + N) % N; const [a0, b0] = C(h); ring(a0, b0, "#3dffa8", 8, 120, .5); flash("#3dffa8", .3); sfx("power"); pop(a0, b0 - 30, "🛡 SHIELD SAVED YOU!", "#3dffa8"); shieldSkip = true;
+      }
+      if (!shieldSkip && (h.x < 0 || h.y < 0 || h.x >= N || h.y >= N || hitWall(h) || sn.some((p) => p.x === h.x && p.y === h.y))) {
         sn.forEach((p, i) => { const [a, b] = C(p); burst(a, b, i ? "#ff2bd6" : "#ffffff", 5, 180, .9); });
         const [a, b] = C(sn[0]); ring(a, b, "#ff4d6d", 6, 140, .55); shake(10, .5); flash("#ff4d6d", .45); acc = 0; return over();
       }
@@ -2476,6 +2509,8 @@ function bricksGame() {
   game({
     title: "Brick Breaker", easy: "unlimited lives, slower ball, extra-wide paddle", w: W, h: H, color: "#ff2bd6", bpm: 124,
     help: ["Mouse, finger or arrows move the paddle", "Space or tap launches the ball", "Catch capsules: Wide, Multi-ball, Slow, Laser", "Each level: faster ball, smaller paddle, tougher bricks"],
+    pups: [{ id: "pu-bk-wide", name: "Wide Paddle", icon: "↔️" }, { id: "pu-bk-life", name: "Extra Life", icon: "❤️" }],
+    start() { if (pupOn("pu-bk-wide")) fx.wide = 25; if (pupOn("pu-bk-life")) lives++; },
     init() { level = 1; pad = { x: W / 2, y: H - 44, w: 86 }; tx = pad.x; lives = 3; caps = []; lasers = []; fx = { wide: 0, slow: 0, laser: 0 }; combo = 0; lcool = 0; build(); serve(); },
     hud() { return (S.practice ? "LIVES ∞" : "LIVES " + "◆".repeat(lives)) + "  ·  LEVEL " + level; },
     summary() { return ["REACHED LEVEL " + level]; },
@@ -2686,6 +2721,8 @@ function blasterGame() {
   game({
     title: "Star Blaster", easy: "you can't be destroyed, fewer enemies, no bosses", w: W, h: H, color: "#b6ff3b", bpm: 132,
     help: ["Mouse, finger or arrows to fly", "Your ship fires on its own", "P = more guns  ·  S = shield  ·  + = extra hull", "A boss arrives every 45 seconds"],
+    pups: [{ id: "pu-bl-life", name: "Extra Life", icon: "❤️" }, { id: "pu-bl-power", name: "Double Guns", icon: "🔫" }],
+    start() { if (pupOn("pu-bl-life")) lives++; if (pupOn("pu-bl-power")) pw = 2; },
     init() { sh = { x: W / 2, y: H - 90 }; tx = sh.x; ty = sh.y; shots = []; foes = []; ebul = []; caps = []; lives = 3; inv = 0; cool = 0; spawn = .8; pw = 1; shield = 0; mult = 1; kills = 0; boss = null; bossT = 45; bank = 0; wave = 1; stage = 1; },
     hud() { return "SECTOR " + stage + "  ·  HULL " + (S.practice ? "∞" : "▮".repeat(Math.max(0, lives))) + "  ·  GUNS " + pw + "  ·  x" + mult; },
     summary() { return ["SECTOR " + stage + "   KILLS " + kills + "   BOSSES " + (wave - 1)]; },
@@ -2804,6 +2841,7 @@ function blasterGame() {
 
 /* ---------- 05 Neon Flap ---------- */
 function flapGame() {
+  let fpShield = 0;
   const W = 400, H = 600, BX = 110, FLOOR = H - 36;
   const far = [], near = [];
   for (let i = 0; i < 16; i++) far.push({ x: i * 30, w: 26, h: 50 + Math.random() * 110 });
@@ -2813,7 +2851,9 @@ function flapGame() {
   game({
     title: "Neon Flap", easy: "crashes don't end the run, wide gaps, slow speed", w: W, h: H, color: "#ff8a1f", bpm: 110,
     help: ["Tap, click or Space to flap", "Fly through the gates", "Green energy orbs are worth +3", "Every 10 gates: faster, tighter, and gates start moving"],
-    init() { b = { y: H / 2, v: -260 }; gates = []; orbs = []; timer = .8; dist = 0; sector = 1; spd = 170; },
+    pups: [{ id: "pu-fp-shield", name: "Shield", icon: "🛡" }],
+    start() { fpShield = pupOn("pu-fp-shield") ? 1 : 0; },
+    init() { fpShield = 0; b = { y: H / 2, v: -260 }; gates = []; orbs = []; timer = .8; dist = 0; sector = 1; spd = 170; },
     hud() { return "SECTOR " + sector + "  ·  SPEED " + (spd / 170).toFixed(1) + "x"; },
     pad: { center: [["FLAP", " ", true]] },
     key(k) { if (k === " " || k === "ArrowUp" || k === "w") flap(); },
@@ -2843,6 +2883,7 @@ function flapGame() {
       gates = gates.filter((g) => g.x > -70); orbs = orbs.filter((o) => !o.dead && o.x > -20);
       if (b.y < 12 || b.y > FLOOR - 12) die();
       function die() {
+        if (fpShield > 0) { fpShield--; burst(BX, b.y, "#3dffa8", 24, 220, .6); flash("#3dffa8", .3); sfx("power"); pop(BX, b.y - 30, "🛡 SHIELD!", "#3dffa8"); b.y = H / 2; b.v = -220; gates = gates.filter((g) => g.x > BX + 90 || g.x + 60 < BX - 40); return; }
         if (S.practice) { burst(BX, b.y, "#ff8a1f", 18, 200, .5); flash("#ff4d6d", .25); sfx("bad"); pop(BX, b.y - 30, "OOPS", "#ff4d6d"); b.y = H / 2; b.v = -220; gates = gates.filter((g) => g.x > BX + 90 || g.x + 60 < BX - 40); return; }
         burst(BX, b.y, "#ff8a1f", 40, 320, .9); burst(BX, b.y, "#ffffff", 12, 200, .5); ring(BX, b.y, "#ff4d6d", 8, 120, .5); shake(10, .45); flash("#ff4d6d", .4); over(); }
     },
@@ -3071,6 +3112,7 @@ function memoryGame() {
 
 /* ---------- 08 Grid Runner ---------- */
 function runnerGame() {
+  let rnShield = 0;
   const W = 640, H = 360, GY = 290, PX = 100;
   const mtn = Array.from({ length: 14 }, (_, i) => ({ x: i * 60, h: 30 + Math.random() * 60 }));
   const city = Array.from({ length: 22 }, (_, i) => ({ x: i * 40, w: 28 + Math.random() * 12, h: 30 + Math.random() * 80, s: Math.random() * 999 | 0 }));
@@ -3084,7 +3126,9 @@ function runnerGame() {
   game({
     title: "Grid Runner", easy: "crashes don't end the run, steady speed", w: W, h: H, color: "#3dffa8", bpm: 140,
     help: ["Space, Up or tap to jump  ·  jump again in mid-air", "Hold the jump for extra height", "Drones fly high: stay low to pass under them", "Grab green shards for +20"],
-    init() { p = { y: 0, v: 0, on: true }; obs = []; shards = []; spd = 330; tm = 1.2; dist = 0; jumps = 0; rot = 0; ms = 250; bonus = 0; trail = []; lvl = 1; },
+    pups: [{ id: "pu-rn-shield", name: "Shield", icon: "🛡" }],
+    start() { rnShield = pupOn("pu-rn-shield") ? 1 : 0; },
+    init() { rnShield = 0; p = { y: 0, v: 0, on: true }; obs = []; shards = []; spd = 330; tm = 1.2; dist = 0; jumps = 0; rot = 0; ms = 250; bonus = 0; trail = []; lvl = 1; },
     hud() { return "LEVEL " + lvl + "  ·  " + Math.floor(dist / 10) + "m  ·  " + (spd / 330).toFixed(1) + "x SPEED"; },
     summary() { return ["DISTANCE " + Math.floor(dist / 10) + "m   SHARDS +" + bonus]; },
     pad: { center: [["JUMP", " ", true]] },
@@ -3119,6 +3163,7 @@ function runnerGame() {
         if (o.k === "s") hit = PX + 26 > o.x + 7 && PX < o.x + o.w - 7 && bot > GY - o.h + 9;
         else if (o.k === "b") hit = PX + 26 > o.x + 3 && PX < o.x + o.w - 3 && bot > GY - o.h + 3;
         else hit = PX + 26 > o.x + 2 && PX < o.x + o.w - 2 && top < GY - o.y && bot > GY - o.y - o.h;
+        if (hit && rnShield > 0) { rnShield--; o.gone = true; burst(PX + 13, GY - p.y - 13, "#3dffa8", 20, 220, .5); flash("#3dffa8", .3); sfx("power"); pop(PX + 13, GY - p.y - 40, "🛡 SHIELD!", "#3dffa8"); continue; }
         if (hit && S.practice) { o.gone = true; burst(PX + 13, GY - p.y - 13, "#ff4d6d", 16, 200, .4); flash("#ff4d6d", .2); sfx("bad"); pop(PX + 13, GY - p.y - 40, "OOPS", "#ff4d6d"); continue; }
         if (hit) { burst(PX + 13, GY - p.y - 13, "#22e4ff", 40, 320, .9); ring(PX + 13, GY - p.y - 13, "#ff4d6d", 8, 120, .5); shake(10, .45); flash("#ff4d6d", .4); return over(); }
       }
@@ -4232,6 +4277,8 @@ function muncherGame() {
   game({
     title: "Neon Muncher", easy: "slow ghosts, and getting caught just sends you back to the start", w: W, h: H, color: "#ffc23d", bpm: 132,
     help: ["Arrows / WASD or swipe to move", "Eat every dot to clear the maze", "Big dots turn ghosts blue. Eat them for bonus points", "Ghosts get faster every level"],
+    pups: [{ id: "pu-mn-life", name: "Extra Life", icon: "❤️" }],
+    start() { if (pupOn("pu-mn-life")) lives++; },
     init() { lives = 3; level = 1; chain = 0; cycle = 0; deadT = 0; fillDots(); place(); },
     hud() { return "LEVEL " + level + "  ·  LIVES " + (S.practice ? "∞" : "●".repeat(Math.max(0, lives))) + "  ·  DOTS " + dots.size; },
     summary() { return ["REACHED LEVEL " + level]; },
@@ -4717,50 +4764,84 @@ function slideGame() {
 function gemGame() {
   const N = 8, Z = 56, OX = 16, OY = 64, W = 480, H = 540;
   const COL = ["#ff2bd6", "#22e4ff", "#b6ff3b", "#ffc23d", "#a35bff", "#ff4d6d"];
-  let g, sel, cur, phase, pt, swapA, swapB, level, target, got, timeLeft, combo, kinds, start0, hint, idleT;
+  let g, sel, cur, phase, pt, swapA, swapB, level, target, got, movesLeft, combo, kinds, start0, hint, idleT, made;
   const at = (c, r) => (c >= 0 && r >= 0 && c < N && r < N ? g[r * N + c] : null);
-  const rnd = () => ({ t: Math.random() * kinds | 0, dy: 0, k: 1 });
+  const rnd = () => ({ t: Math.random() * kinds | 0, dy: 0, k: 1, sp: null });
+  const movesFor = (lv) => Math.max(14, 24 - Math.floor(lv / 2));
+  const same = (a, b) => a && b && !a.dead && !b.dead && a.sp !== "c" && b.sp !== "c" && a.t === b.t;
   function fill() {
     g = []; for (let i = 0; i < N * N; i++) { let o; do { o = rnd(); g[i] = o; } while (matchesAt(i % N, (i / N) | 0)); }
     if (!findMove()) fill();
   }
-  function matchesAt(c, r) { const t = at(c, r).t; return (at(c - 1, r) && at(c - 2, r) && at(c - 1, r).t === t && at(c - 2, r).t === t) || (at(c, r - 1) && at(c, r - 2) && at(c, r - 1).t === t && at(c, r - 2).t === t); }
-  function findMatches() {
-    const hit = new Set(), runs = [];
-    for (let r = 0; r < N; r++) for (let c = 0; c < N;) { let e = c; while (e + 1 < N && g[r * N + e + 1].t === g[r * N + c].t) e++; if (e - c >= 2) { runs.push(e - c + 1); for (let i = c; i <= e; i++) hit.add(r * N + i); } c = e + 1; }
-    for (let c = 0; c < N; c++) for (let r = 0; r < N;) { let e = r; while (e + 1 < N && g[(e + 1) * N + c].t === g[r * N + c].t) e++; if (e - r >= 2) { runs.push(e - r + 1); for (let i = r; i <= e; i++) hit.add(i * N + c); } r = e + 1; }
-    return { hit, runs };
+  function matchesAt(c, r) { const o = at(c, r); return (same(o, at(c - 1, r)) && same(o, at(c - 2, r))) || (same(o, at(c, r - 1)) && same(o, at(c, r - 2))); }
+  /* Runs of 3+ in a row/column: { cells, dir } */
+  function findRuns() {
+    const runs = [];
+    for (let r = 0; r < N; r++) for (let c = 0; c < N;) { let e = c; while (e + 1 < N && same(g[r * N + c], g[r * N + e + 1])) e++; if (e - c >= 2) runs.push({ cells: Array.from({ length: e - c + 1 }, (_, k) => r * N + c + k), dir: "h" }); c = e + 1; }
+    for (let c = 0; c < N; c++) for (let r = 0; r < N;) { let e = r; while (e + 1 < N && same(g[r * N + c], g[(e + 1) * N + c])) e++; if (e - r >= 2) runs.push({ cells: Array.from({ length: e - r + 1 }, (_, k) => (r + k) * N + c), dir: "v" }); r = e + 1; }
+    return runs;
   }
   function swapCells(a, b) { const t = g[a]; g[a] = g[b]; g[b] = t; }
   function findMove() {
-    for (let i = 0; i < N * N; i++) for (const d of [1, N]) {
+    for (let i = 0; i < N * N; i++) { if (g[i].sp === "c") return [i, i % N < N - 1 ? i + 1 : i - 1]; for (const d of [1, N]) {
       const j = i + d; if (d === 1 && i % N === N - 1) continue; if (j >= N * N) continue;
-      swapCells(i, j); const ok = findMatches().hit.size > 0; swapCells(i, j); if (ok) return [i, j];
-    }
+      swapCells(i, j); const ok = findRuns().length > 0; swapCells(i, j); if (ok) return [i, j];
+    } }
     return null;
   }
   function trySwap(a, b) {
     if (phase !== "idle" || a === b) return;
+    if (!S.practice && movesLeft <= 0) return;
     const ac = a % N, ar = (a / N) | 0, bc = b % N, br = (b / N) | 0;
     if (Math.abs(ac - bc) + Math.abs(ar - br) !== 1) { sel = b; sfx("tick"); return; }
     swapA = a; swapB = b; phase = "swap"; pt = 0; sel = null; hint = null; idleT = 0; sfx("blip");
   }
-  function resolve() {
-    const { hit, runs } = findMatches();
-    if (!hit.size) {
-      combo = 1; phase = "idle";
-      if (!findMove()) { banner("NO MOVES · SHUFFLE"); sfx("power"); fill(); }
-      return false;
+  /* Expand a set of cells through any specials inside it (chain reactions). */
+  function blast(hit) {
+    const queue = [...hit];
+    while (queue.length) {
+      const i = queue.pop(), o = g[i]; if (!o || !o.sp || o.fired) continue; o.fired = true;
+      const c = i % N, r = (i / N) | 0, add = (j) => { if (j >= 0 && j < N * N && !hit.has(j)) { hit.add(j); queue.push(j); } };
+      const X = OX + c * Z + Z / 2, Y = OY + r * Z + Z / 2;
+      if (o.sp === "h") { for (let k = 0; k < N; k++) add(r * N + k); ring(X, Y, COL[o.t], 6, 260, .4); sfx("laser"); }
+      else if (o.sp === "v") { for (let k = 0; k < N; k++) add(k * N + c); ring(X, Y, COL[o.t], 6, 260, .4); sfx("laser"); }
+      else if (o.sp === "b") { for (let dr = -1; dr <= 1; dr++) for (let dc = -1; dc <= 1; dc++) if (c + dc >= 0 && c + dc < N && r + dr >= 0 && r + dr < N) add((r + dr) * N + c + dc); ring(X, Y, "#ffd66b", 10, 140, .5); shake(6, .25); sfx("boom"); }
+      else if (o.sp === "c") { const t = Math.random() * kinds | 0; g.forEach((q, j) => { if (q.t === t) add(j); }); flash("#ffffff", .2); sfx("power"); }
     }
-    let pts = 0; for (const n of runs) pts += n === 3 ? 30 : n === 4 ? 80 : 200;
-    pts *= combo; S.score += pts; got += pts;
-    let cx = 0, cy = 0; hit.forEach((i) => { cx += i % N; cy += (i / N) | 0; g[i].dead = true; const X = OX + (i % N) * Z + Z / 2, Y = OY + ((i / N) | 0) * Z + Z / 2; burst(X, Y, COL[g[i].t], 8, 180, .5); });
+    return hit;
+  }
+  function clearCells(hit, mult, label) {
+    blast(hit);
+    let pts = 0; hit.forEach((i) => { pts += g[i].sp ? 60 : 30; });
+    pts = Math.round(pts * mult * combo); S.score += pts; got += pts;
+    let cx = 0, cy = 0; hit.forEach((i) => { cx += i % N; cy += (i / N) | 0; g[i].dead = true; const X = OX + (i % N) * Z + Z / 2, Y = OY + ((i / N) | 0) * Z + Z / 2; burst(X, Y, g[i].sp === "c" ? "#ffffff" : COL[g[i].t], 8, 180, .5); });
     cx = OX + (cx / hit.size) * Z + Z / 2; cy = OY + (cy / hit.size) * Z + Z / 2;
-    pop(cx, cy, (combo > 1 ? "x" + combo + " " : "") + "+" + pts, combo > 1 ? "#ffd66b" : "#ffffff");
-    if (runs.some((n) => n >= 5)) { ring(cx, cy, "#ffffff", 10, 160, .6); flash("#ffffff", .2); shake(5, .25); }
-    else if (runs.some((n) => n >= 4)) { ring(cx, cy, "#ffd66b", 8, 100, .45); shake(3, .2); }
+    pop(cx, cy, (label ? label + " " : "") + (combo > 1 ? "x" + combo + " " : "") + "+" + pts, combo > 1 || label ? "#ffd66b" : "#ffffff");
     sfx("merge", 4 * Math.pow(2, Math.min(8, combo))); if (combo >= 3) pop(W / 2, OY - 26, "COMBO x" + combo, "#ff2bd6");
     combo++; phase = "clear"; pt = 0;
+  }
+  function resolve(swapped) {
+    const runs = findRuns();
+    if (!runs.length) {
+      combo = 1; phase = "idle";
+      if (!findMove()) { banner("NO MOVES · SHUFFLE"); sfx("power"); const keep = g.filter((o) => o.sp); fill(); keep.forEach((o) => { const j = Math.random() * N * N | 0; g[j] = { ...o, fired: false, dead: false, dy: 0 }; }); }
+      return false;
+    }
+    const hit = new Set(); runs.forEach((rn) => rn.cells.forEach((i) => hit.add(i)));
+    /* Make supers: 5 in a line = rainbow orb, L/T = bomb, 4 in a line = line blaster. */
+    const newSp = [], inRun = (i, d) => runs.filter((rn) => rn.dir === d && rn.cells.includes(i));
+    const pickCell = (cells) => (swapped || []).find((i) => cells.includes(i)) ?? cells[cells.length >> 1];
+    const used = new Set();
+    for (const rn of runs) {
+      if (rn.cells.some((i) => used.has(i))) continue;
+      const cross = rn.cells.find((i) => inRun(i, rn.dir === "h" ? "v" : "h").length);
+      if (rn.cells.length >= 5) { const i = pickCell(rn.cells); newSp.push([i, "c", g[i].t]); rn.cells.forEach((q) => used.add(q)); }
+      else if (cross != null) { newSp.push([cross, "b", g[cross].t]); rn.cells.forEach((q) => used.add(q)); inRun(cross, rn.dir === "h" ? "v" : "h").forEach((r2) => r2.cells.forEach((q) => used.add(q))); }
+      else if (rn.cells.length === 4) { const i = pickCell(rn.cells); newSp.push([i, rn.dir === "h" ? "v" : "h", g[i].t]); rn.cells.forEach((q) => used.add(q)); }
+    }
+    clearCells(hit, 1, "");
+    for (const [i, sp, t] of newSp) { g[i] = { t, dy: 0, k: 1, sp, dead: false }; made++; const X = OX + (i % N) * Z + Z / 2, Y = OY + ((i / N) | 0) * Z + Z / 2; ring(X, Y, sp === "c" ? "#ffffff" : COL[t], 8, 90, .45); pop(X, Y - 20, sp === "c" ? "🌈 RAINBOW!" : sp === "b" ? "💣 BOMB!" : "⚡ BLASTER!", "#ffd66b"); }
+    if (newSp.length) sfx("level");
     return true;
   }
   function gravity() {
@@ -4775,12 +4856,22 @@ function gemGame() {
     for (let c = 0; c < N; c++) for (let r = 0; r < N; r++) { const o = g[r * N + c]; if (o.r0 !== undefined && o.dy === 0) o.dy = (o.r0 - r) * Z; o.r0 = r; }
     phase = "fall";
   }
+  function newLevel(lv) {
+    level = lv; kinds = level >= 3 ? 6 : 5; got = 0; target = 800 + level * 500; movesLeft = movesFor(level);
+    fill(); g.forEach((o, i) => { o.r0 = (i / N) | 0; o.dy = -(N + 2) * Z + (N - o.r0) * 8; }); phase = "fall";
+  }
+  function applyPups() {
+    if (window.pupOn && pupOn("pu-gm-moves")) { movesLeft += 5; banner("+5 MOVES", "#3dffa8"); }
+    const drop = (sp, n) => { for (let k = 0; k < n; k++) { const i = Math.random() * N * N | 0; g[i].sp = sp; if (sp === "c") g[i].t = 0; } };
+    if (window.pupOn && pupOn("pu-gm-bomb")) drop("b", 2);
+    if (window.pupOn && pupOn("pu-gm-rainbow")) drop("c", 1);
+  }
   function levelUp() {
-    level++; const bonus = S.practice ? 0 : Math.floor(timeLeft) * 5; S.score += bonus;
-    banner("LEVEL " + level + (bonus ? "  +" + bonus : ""), "#ff2bd6"); sfx("level");
-    kinds = level >= 3 ? 6 : 5; got = 0; target = 800 + level * 500; timeLeft = 75; saveGame({ level, label: "LEVEL " + level });
-    if (level === 3) { fill(); g.forEach((o, i) => { o.r0 = (i / N) | 0; o.dy = -(N + 2) * Z + (N - o.r0) * 8; }); phase = "fall"; return true; }
-    return false;
+    const bonus = S.practice ? 0 : movesLeft * 60; S.score += bonus;
+    newLevel(level + 1);
+    banner("LEVEL " + level + (bonus ? "  ·  +" + bonus + " MOVE BONUS" : ""), "#ff2bd6"); sfx("level");
+    saveGame({ level, label: "LEVEL " + level });
+    return true;
   }
   const SPR = [], SD = 64;
   function gemSprite(t) {
@@ -4797,16 +4888,27 @@ function gemGame() {
     g.fillStyle = "rgba(255,255,255,.55)"; g.beginPath(); g.arc(-6, -7, 4, 0, 7); g.fill();
     return (SPR[t] = cv2);
   }
-  function drawGem(t, X, Y, s, alpha) {
-    x.save(); x.globalAlpha = alpha; x.translate(X, Y); x.scale(s, s); x.drawImage(gemSprite(t), -SD / 2, -SD / 2, SD, SD); x.restore();
+  function drawGem(o, X, Y, s, alpha) {
+    x.save(); x.globalAlpha = alpha; x.translate(X, Y); x.scale(s, s);
+    if (o.sp === "c") {
+      const a = S.clock * 2; for (let k = 0; k < 6; k++) { x.fillStyle = COL[k]; x.beginPath(); x.moveTo(0, 0); x.arc(0, 0, 21, a + k * 1.0472, a + (k + 1) * 1.0472); x.closePath(); x.fill(); }
+      glow("#ffffff", 18); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(0, 0, 8, 0, 7); x.fill(); glow();
+    } else {
+      x.drawImage(gemSprite(o.t), -SD / 2, -SD / 2, SD, SD);
+      if (o.sp === "h" || o.sp === "v") { x.save(); if (o.sp === "v") x.rotate(Math.PI / 2); glow("#ffffff", 10); x.fillStyle = "rgba(255,255,255,.85)"; for (const yy of [-6, 0, 6]) x.fillRect(-16, yy - 1.2, 32, 2.4); glow(); x.restore(); }
+      else if (o.sp === "b") { const k = 1 + Math.sin(S.clock * 6) * .12; glow("#ffd66b", 16); x.strokeStyle = "#ffd66b"; x.lineWidth = 3; x.beginPath(); x.arc(0, 0, 23 * k, 0, 7); x.stroke(); glow(); x.fillStyle = "#ffffff"; x.font = "bold 13px system-ui"; x.textAlign = "center"; x.textBaseline = "middle"; x.fillText("💣", 0, 1); }
+    }
+    x.restore();
   }
   game({
-    load(d) { level = d.level || 1; kinds = level >= 3 ? 6 : 5; got = 0; target = 800 + level * 500; timeLeft = 75; fill(); g.forEach((o, i) => { o.r0 = (i / N) | 0; o.dy = -(N + 2) * Z + (N - o.r0) * 8; }); phase = "fall"; },
-    title: "Gem Match", easy: "no timer, just match and relax", w: W, h: H, color: "#ff2bd6", bpm: 118,
-    help: ["Swipe a gem to swap it with its neighbor", "Or tap one gem, then tap the one next to it", "Line up 3 or more. 4 and 5 in a row score big", "Hit the target before time runs out. Level 3 adds a new gem"],
-    init() { level = 1; kinds = 5; combo = 1; sel = null; cur = 27; hint = null; idleT = 0; got = 0; target = 1300; timeLeft = 75; fill(); g.forEach((o, i) => { o.r0 = (i / N) | 0; o.dy = -(N + 2) * Z + (N - o.r0) * 8; }); phase = "fall"; pt = 0; },
-    hud() { return "LEVEL " + level + "  ·  TARGET " + Math.min(got, target) + "/" + target + (S.practice ? "" : "  ·  TIME " + Math.ceil(timeLeft)); },
-    summary() { return ["REACHED LEVEL " + level]; },
+    pups: [{ id: "pu-gm-moves", name: "+5 Moves", icon: "➕" }, { id: "pu-gm-bomb", name: "Bomb Start", icon: "💣" }, { id: "pu-gm-rainbow", name: "Rainbow Start", icon: "🌈" }],
+    load(d) { newLevel(d.level || 1); },
+    title: "Gem Match", easy: "unlimited moves, just match and relax", w: W, h: H, color: "#ff2bd6", bpm: 118,
+    help: ["Swipe a gem to swap it, or tap two gems side by side", "Match 4 = ⚡ blaster (clears a row/column). L or T = 💣 bomb. 5 = 🌈 rainbow orb", "Swap a rainbow orb with any gem to clear that whole colour", "Hit the target before you run out of moves. Spare moves = bonus points"],
+    init() { combo = 1; sel = null; cur = 27; hint = null; idleT = 0; made = 0; pt = 0; newLevel(1); },
+    start() { applyPups(); },
+    hud() { return "LEVEL " + level + "  ·  TARGET " + Math.min(got, target) + "/" + target + (S.practice ? "" : "  ·  MOVES " + movesLeft); },
+    summary() { return ["REACHED LEVEL " + level, "SUPERS MADE " + made]; },
     down(px, py) { const c = Math.floor((px - OX) / Z), r = Math.floor((py - OY) / Z); start0 = c >= 0 && r >= 0 && c < N && r < N ? { i: r * N + c, x: px, y: py, used: false } : null; },
     move(px, py) {
       if (!start0 || start0.used || !S.down) return;
@@ -4824,13 +4926,26 @@ function gemGame() {
     },
     key(k, rep) { if (!rep && (k === " " || k === "Enter")) { sel = sel === cur ? null : cur; sfx("tick"); } },
     update(dt) {
-      if (!S.practice) { timeLeft -= dt; if (timeLeft <= 0) { timeLeft = 0; return over("TIME UP"); } }
-      if (phase === "idle") { idleT += dt; if (idleT > 6 && !hint) hint = findMove(); }
+      if (phase === "idle") {
+        idleT += dt; if (idleT > 6 && !hint) hint = findMove();
+        if (!S.practice && movesLeft <= 0 && got < target) return over("OUT OF MOVES");
+      }
       if (phase === "swap" || phase === "unswap") {
         pt += dt / .16;
         if (pt >= 1) {
           swapCells(swapA, swapB);
-          if (phase === "swap") { if (!resolve()) { phase = "unswap"; pt = 0; sfx("bad"); combo = 1; } }
+          if (phase === "swap") {
+            const A = g[swapA], B = g[swapB];
+            if (A.sp === "c" || B.sp === "c") {
+              if (!S.practice) movesLeft--;
+              const orb = A.sp === "c" ? swapA : swapB, other = orb === swapA ? swapB : swapA, hit = new Set([orb]);
+              if (g[other].sp === "c") g.forEach((_, j) => hit.add(j));
+              else { const t = g[other].t; g.forEach((q, j) => { if (q.t === t && q.sp !== "c") hit.add(j); }); if (g[other].sp) hit.add(other); }
+              g[orb].fired = true; flash("#ffffff", .3); shake(8, .3); sfx("power");
+              clearCells(hit, 1.5, "🌈");
+            } else if ((A.sp && B.sp) || resolve([swapA, swapB])) { if (!S.practice) movesLeft--; if (A.sp && B.sp && phase === "swap") clearCells(new Set([swapA, swapB]), 2, "SUPER COMBO!"); }
+            else { phase = "unswap"; pt = 0; sfx("bad"); combo = 1; }
+          }
           else phase = "idle";
         }
       } else if (phase === "clear") {
@@ -4857,18 +4972,20 @@ function gemGame() {
         const s = o.dead && phase === "clear" ? 1 - pt : 1;
         const sx0 = OX + c * Z + Z / 2, sy0 = OY + r * Z + Z / 2 + o.dy;
         if (i === sel) { x.fillStyle = "rgba(255,255,255,.14)"; rr(OX + c * Z + 3, OY + r * Z + 3, Z - 6, Z - 6, 10); x.fill(); }
-        drawGem(o.t, sx0, sy0, s * (i === sel ? 1.08 + Math.sin(S.clock * 8) * .05 : 1), 1);
+        drawGem(o, sx0, sy0, s * (i === sel ? 1.08 + Math.sin(S.clock * 8) * .05 : 1), 1);
       }
       x.restore();
       if (hint && phase === "idle") for (const i of hint) { x.strokeStyle = "rgba(255,214,107," + (.4 + .4 * Math.sin(S.clock * 6)) + ")"; x.lineWidth = 2; rr(OX + (i % N) * Z + 3, OY + ((i / N) | 0) * Z + 3, Z - 6, Z - 6, 10); x.stroke(); }
       if (S.state === "play") { x.strokeStyle = "rgba(255,255,255,.35)"; x.lineWidth = 1.5; rr(OX + (cur % N) * Z + 1, OY + ((cur / N) | 0) * Z + 1, Z - 2, Z - 2, 10); x.stroke(); }
       const k = Math.min(1, got / target);
-      x.fillStyle = "rgba(255,255,255,.08)"; rr(OX, 20, N * Z, 14, 7); x.fill();
+      x.fillStyle = "rgba(255,255,255,.08)"; rr(OX, 20, N * Z - 92, 14, 7); x.fill();
       const gr = x.createLinearGradient(OX, 0, OX + N * Z, 0); gr.addColorStop(0, "#ff2bd6"); gr.addColorStop(1, "#ffd66b");
-      x.fillStyle = gr; glow("#ff2bd6", 12); rr(OX, 20, Math.max(14, N * Z * k), 14, 7); x.fill(); glow();
+      x.fillStyle = gr; glow("#ff2bd6", 12); rr(OX, 20, Math.max(14, (N * Z - 92) * k), 14, 7); x.fill(); glow();
+      if (!S.practice) { const low = movesLeft <= 3; glow(low ? "#ff4d6d" : "#3dffa8", 12); txt(String(movesLeft), OX + N * Z - 30, 28, 26, low ? "#ff4d6d" : "#3dffa8", "center", "d"); glow(); txt("MOVES", OX + N * Z - 30, 50, 9, "#9a90c0", "center"); }
     },
   });
 }
+
 
 /* ---------- 22 Tunnel Rush ---------- */
 function tunnelGame() {
@@ -9365,6 +9482,7 @@ function fighterGame() {
     "#hud span{overflow:hidden;text-overflow:ellipsis;min-width:0}#hl{flex:1}#hc{flex:1.6;text-align:center;color:#e9e4ff;text-shadow:none}#hr{flex:1;text-align:right}" +
     "#ctl{display:flex;gap:6px;flex:none}#ctl button{font:inherit;font-size:11px;letter-spacing:.1em;color:#d8d0f5;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.16);border-radius:4px;padding:2px 7px;cursor:pointer}#ctl button:hover{border-color:var(--c,#22e4ff);color:#fff}#ctl #xq{color:#fff;background:rgba(255,43,214,.25);border-color:#ff2bd6;font-weight:800;padding:2px 10px}#ctl #xq[hidden]{display:none}" +
     "#btns{position:fixed;left:0;right:0;bottom:6%;z-index:5;display:flex;gap:12px;justify-content:center;flex-wrap:wrap;padding:0 12px}#btns[hidden],#prac[hidden],#duo[hidden],#qp[hidden]{display:none}" +
+    "#pups{flex-basis:100%;display:flex;gap:8px;justify-content:center;flex-wrap:wrap;align-items:center}#pups[hidden]{display:none}.pup-lab,.pup-none{font-size:11px;letter-spacing:.12em;color:#9a90c0}.pup{font:700 12px system-ui,sans-serif;color:#3dffa8;background:rgba(10,4,24,.85);border:2px solid rgba(61,255,168,.45);border-radius:999px;padding:9px 14px;cursor:pointer;touch-action:manipulation}.pup.on{background:rgba(61,255,168,.25);border-color:#3dffa8;color:#fff;box-shadow:0 0 14px rgba(61,255,168,.6)}" +
     "#qp{font:800 13px Orbitron,system-ui,sans-serif;letter-spacing:.16em;color:#ffd66b;background:rgba(10,4,24,.85);border:2px solid rgba(255,214,107,.7);border-radius:999px;padding:14px 22px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 14px rgba(255,214,107,.35)}#qp:active{transform:scale(.96)}" +
     "#prac{font:800 13px Orbitron,system-ui,sans-serif;letter-spacing:.18em;color:#3dffa8;background:rgba(10,4,24,.85);border:2px solid rgba(61,255,168,.6);border-radius:999px;padding:14px 26px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 14px rgba(61,255,168,.35)}#prac:active,#duo:active{transform:scale(.96)}" +
     "#duo{font:800 13px Orbitron,system-ui,sans-serif;letter-spacing:.18em;color:#ff7be6;background:rgba(10,4,24,.85);border:2px solid rgba(255,43,214,.6);border-radius:999px;padding:14px 26px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 14px rgba(255,43,214,.35)}" +
@@ -9377,7 +9495,7 @@ function fighterGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button><button id="xq" type="button" title="Close" hidden>✕</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="qp" type="button">⚡ QUICK PLAY</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";window.QPBEST0=" + (myBest(g.key + "-qp") | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (window.gblEventActive && window.gblEventActive("halloween") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="qp" type="button">⚡ QUICK PLAY</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button><div id="pups" hidden></div></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";window.PUPS0=" + JSON.stringify((prog && prog.pups) || {}) + ";window.QPBEST0=" + (myBest(g.key + "-qp") | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (window.gblEventActive && window.gblEventActive("halloween") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -9879,6 +9997,7 @@ function fighterGame() {
     if (d && d.type === "gbl:save") { if (window.gblOnSave) window.gblOnSave(current.g, d.data); return; }
     if (d && d.type === "gbl:move") { if (current.onMove) current.onMove(d.move); return; }
     if (d && d.type === "gbl:match") { if (window.gblOnMatch) window.gblOnMatch(current, d.winner | 0); if (current.onMatch) { const f = current.onMatch; current.onMatch = null; f(d.winner | 0); } return; }
+    if (d && d.type === "gbl:pup") { const id = String(d.id || ""); if (prog.pups && prog.pups[id] > 0) { prog.pups[id]--; saveProg(); } return; }
     if (d && d.type === "gbl:ckpt") {
       const s = Math.floor(Number(d.score)); if (!current.ranked || !Number.isFinite(s) || s <= 0 || s > 1e7) return;
       const key = current.g.key, prevBest = myBest(key), top = topScore(key);
@@ -10590,6 +10709,19 @@ function fighterGame() {
     ["ob-pink", "orbit", "Pink Rocket", 300, "#ff2bd6", "A pink orbit rocket.", "", "c"],
     ["ob-gold", "orbit", "Gold Rocket", 1100, "#ffd66b", "Shiny gold thrusters.", "", "r"],
     ["ob-rainbow", "orbit", "Rainbow Rocket", 6000, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Orbits in every colour. LEGENDARY!", "", "l"],
+    // ⚡ Power-ups (consumable, used from a game's start screen, never in Quick Play)
+    ["pu-gm-moves", "powerup", "➕ +5 Moves · Gem Match", 150, "linear-gradient(135deg,#3dffa8,#22e4ff)", "Five extra moves on your next Gem Match run.", "", "c"],
+    ["pu-gm-bomb", "powerup", "💣 Bomb Start · Gem Match", 250, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "Start Gem Match with 2 bombs on the board.", "", "r"],
+    ["pu-gm-rainbow", "powerup", "🌈 Rainbow Start · Gem Match", 400, "linear-gradient(90deg,#ff2bd6,#ffd66b,#3dffa8,#22e4ff)", "Start Gem Match with a rainbow orb.", "", "e"],
+    ["pu-sn-big", "powerup", "🐍 Big Start · Neon Snake", 120, "linear-gradient(135deg,#ff2bd6,#22e4ff)", "Start Neon Snake 5 segments longer.", "", "c"],
+    ["pu-sn-shield", "powerup", "🛡 Shield · Neon Snake", 250, "linear-gradient(135deg,#3dffa8,#ffffff)", "Survive one crash in Neon Snake.", "", "r"],
+    ["pu-fp-shield", "powerup", "🛡 Shield · Neon Flap", 200, "linear-gradient(135deg,#3dffa8,#ff8a1f)", "Survive one crash in Neon Flap.", "", "r"],
+    ["pu-rn-shield", "powerup", "🛡 Shield · Grid Runner", 200, "linear-gradient(135deg,#3dffa8,#22e4ff)", "Smash through one obstacle in Grid Runner.", "", "r"],
+    ["pu-bl-life", "powerup", "❤️ Extra Life · Star Blaster", 180, "linear-gradient(135deg,#ff4d6d,#ff2bd6)", "Start Star Blaster with an extra ship.", "", "c"],
+    ["pu-bl-power", "powerup", "🔫 Double Guns · Star Blaster", 300, "linear-gradient(135deg,#ffd66b,#22e4ff)", "Start Star Blaster with powered-up guns.", "", "r"],
+    ["pu-bk-wide", "powerup", "↔️ Wide Paddle · Brick Breaker", 150, "linear-gradient(135deg,#a35bff,#22e4ff)", "Start Brick Breaker with a wide paddle.", "", "c"],
+    ["pu-bk-life", "powerup", "❤️ Extra Life · Brick Breaker", 180, "linear-gradient(135deg,#ff4d6d,#a35bff)", "Start Brick Breaker with an extra life.", "", "c"],
+    ["pu-mn-life", "powerup", "❤️ Extra Life · Neon Muncher", 180, "linear-gradient(135deg,#ffc23d,#ff4d6d)", "Start Neon Muncher with an extra life.", "", "c"],
     // 👑 More legendaries
     ["pet-kraken", "pet", "Kraken 🐙", 7000, "linear-gradient(135deg,#0b2a4a,#22e4ff,#a35bff)", "Lord of the deep. Tentacles everywhere.", "", "l"],
     ["pet-wolf", "pet", "Shadow Wolf 🐺", 6000, "linear-gradient(135deg,#1a1a2e,#a35bff,#ffffff)", "Hunts by moonlight. Howls at high scores.", "", "l"],
@@ -10730,7 +10862,7 @@ function fighterGame() {
   window.gblPetChar = petCharEl; window.gblPetInfo = (id) => ({ mood: petMood(id), hunger: hungerPct(id), happy: happyPct(id), ...petXpInfo(id) });
   const cost = (n) => n === 0 ? 0 : Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
-  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"], ["pong", "🏓 " + gname("pong"), "#6af7ff"], ["muncher", "🟡 " + gname("muncher"), "#ffc23d"], ["stack", "🧱 " + gname("stack"), "linear-gradient(90deg,#22e4ff,#a35bff,#ff2bd6)"], ["crossing", "🐸 " + gname("crossing"), "#22e4ff"], ["bowling", "🎳 " + gname("bowling"), "#22e4ff"], ["airhockey", "🏒 " + gname("airhockey"), "#22e4ff"], ["connect4", "🔴 " + gname("connect4"), "#ff2bd6"], ["chess", "♟ " + gname("chess"), "#22e4ff"], ["tunnel", "🌀 " + gname("tunnel"), "#ffffff"], ["orbit", "🪐 " + gname("orbit"), "#22e4ff"]];
+  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["powerup", "⚡ Power-ups (used from a game's start screen)", ""], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"], ["pong", "🏓 " + gname("pong"), "#6af7ff"], ["muncher", "🟡 " + gname("muncher"), "#ffc23d"], ["stack", "🧱 " + gname("stack"), "linear-gradient(90deg,#22e4ff,#a35bff,#ff2bd6)"], ["crossing", "🐸 " + gname("crossing"), "#22e4ff"], ["bowling", "🎳 " + gname("bowling"), "#22e4ff"], ["airhockey", "🏒 " + gname("airhockey"), "#22e4ff"], ["connect4", "🔴 " + gname("connect4"), "#ff2bd6"], ["chess", "♟ " + gname("chess"), "#22e4ff"], ["tunnel", "🌀 " + gname("tunnel"), "#ffffff"], ["orbit", "🪐 " + gname("orbit"), "#22e4ff"]];
   const getShopGroups = () => { const ae = activeEvent(); return ae && EVENTS[ae] ? [["ev-" + ae, EVENTS[ae].name + " Event Shop ✨", EVENTS[ae].color], ...SHOP_GROUPS_BASE] : SHOP_GROUPS_BASE; };
   const SHOP_GROUPS = SHOP_GROUPS_BASE; // legacy alias
   const SPIN_MS = 24 * 3600 * 1000;
@@ -10987,7 +11119,7 @@ function fighterGame() {
   /* ---------- Shop page (own hub section): search, categories, game picker, deals and crates ---------- */
   const RANK_ORDER = { c: 0, r: 1, e: 2, l: 3 };
   const SLOT_GROUPS = ["music", "pet", "title", "fx", "frame", "filter"];
-  const GAME_GROUPS = () => SHOP_GROUPS_BASE.filter(([gk]) => gk !== "boost" && !SLOT_GROUPS.includes(gk));
+  const GAME_GROUPS = () => SHOP_GROUPS_BASE.filter(([gk]) => gk !== "boost" && gk !== "powerup" && !SLOT_GROUPS.includes(gk));
   let shopTab = "shop", shopCat = "all", shopGame = "all", shopRank = "all", shopOwn = "all", shopSort = "default", shopQuery = "", shopNewIds = new Set(), shopSearchEl = null;
   function sfxRare() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), g = ac.createGain(); g.connect(ac.destination); g.gain.value = .12; [659, 880, 1175, 1319].forEach((f, i) => { const o = ac.createOscillator(); o.type = "square"; o.frequency.value = f; o.connect(g); const t = ac.currentTime + i * .09; o.start(t); o.stop(t + .12); }); setTimeout(() => ac.close(), 900); } catch {} }
   function sfxEpic() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), g = ac.createGain(); g.connect(ac.destination); g.gain.value = .14; [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => { const o = ac.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; o.connect(g); const t = ac.currentTime + i * .08; o.start(t); o.stop(t + .11); }); setTimeout(() => ac.close(), 1100); } catch {} }
@@ -11005,6 +11137,8 @@ function fighterGame() {
     const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null });
     if (cur === "lv" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
     if (cur === "set" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🃏 Complete every card set" }));
+    if (igrp === "powerup") { const n = ((prog.pups || {})[id]) | 0; return el("div", { class: "shop-item" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("small", { class: "pup-own", text: "You have ×" + n }),
+      el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.pups = { ...(prog.pups || {}), [id]: n + 1 }; saveProg(); renderWallet(); sfxHub(); toast(name + " ×" + (n + 1) + " — pick it on the game's start screen"); weekBump("buys"); rerender(); } })); }
     if (igrp === "boost") return el("div", { class: "shop-item" + tag }, icon, el("b", { text: name }), rarBadge, newBadge, el("small", { text: sub }),
       el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); sfxHub(); useBoost(id); rerender(); } }));
     const priceEl = o.dealPct ? el("span", { class: "deal-price" }, el("s", { text: priceLab(cur, cost(price0)) }), el("b", { text: pl })) : null;
@@ -11033,6 +11167,8 @@ function fighterGame() {
             el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", text: on ? "Unequip" : "Equip", onclick: () => { prog.equip = { ...eq2, [igrp]: on ? null : id }; saveProg(); toast(on ? name + " removed" : name + " equipped"); rerender(); } }));
         })));
     }).filter(Boolean);
+    const pupItems = Object.entries(prog.pups || {}).filter(([, n]) => n > 0).map(([id, n]) => [SHOP.find((q) => q[0] === id), n]).filter(([it]) => it);
+    if (pupItems.length) invSections.unshift(el("div", { class: "inv-section" }, el("p", { class: "eyebrow", text: "⚡ Power-ups · pick them on a game's start screen" }), el("div", { class: "shop-grid" }, ...pupItems.map(([it, n]) => el("div", { class: "shop-item rk-" + (it[7] || "c") }, el("span", { class: "sw", style: "background:" + it[4] }), el("b", { text: it[2] }), el("small", { text: it[5] }), el("b", { class: "pup-own", text: "×" + n }))))));
     const counts = { c: 0, r: 0, e: 0, l: 0 }; owned2.forEach((id) => { const it = SHOP.find((q) => q[0] === id); if (it && it[7]) counts[it[7]]++; });
     return el("div", { class: "shop" },
       el("p", { class: "set-note", text: "Everything you've unlocked · " + owned2.length + " items  ·  " + counts.l + " legendary · " + counts.e + " epic · " + counts.r + " rare · " + counts.c + " common" }),
@@ -11040,7 +11176,7 @@ function fighterGame() {
   }
   /* Daily deals: 3 items at 30–50% off, same for everyone all day, new ones at midnight (UTC). */
   function seededRng(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h += 0x6D2B79F5; let t = Math.imul(h ^ (h >>> 15), 1 | h); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-  const dealEligible = (it) => it[1] !== "boost" && it[6] !== "lv" && it[6] !== "set" && inSeason(it[0]) && (it[6] ? cost(it[3]) >= 3 : cost(it[3]) >= 20);
+  const dealEligible = (it) => it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv" && it[6] !== "set" && inSeason(it[0]) && (it[6] ? cost(it[3]) >= 3 : cost(it[3]) >= 20);
   function todaysDeals() {
     const r = seededRng("deals-" + todayKey()), pool = SHOP.filter(dealEligible), legendaryOk = r() < .18;
     const pick = pool.filter((it) => legendaryOk || it[7] !== "l"), out = [];
@@ -11050,7 +11186,7 @@ function fighterGame() {
   const untilMidnight = () => { const n = new Date(), m = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1) - n.getTime(); return Math.floor(m / 36e5) + "h " + Math.floor((m % 36e5) / 6e4) + "m"; };
   /* Mystery crates: a random unowned item of that rank. */
   const CRATES = [["c", "Common Crate", 200, "📦", "linear-gradient(135deg,#777,#bbb)"], ["r", "Rare Crate", 800, "🎁", "linear-gradient(135deg,#22e4ff,#6b7dff)"], ["e", "Epic Crate", 3000, "💎", "linear-gradient(135deg,#a35bff,#ff2bd6)"], ["l", "Legendary Crate", 9000, "👑", "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)"]];
-  const cratePool = (rank) => { const owned = new Set(prog.owned || []); return SHOP.filter((it) => it[7] === rank && !owned.has(it[0]) && it[1] !== "boost" && it[6] !== "lv" && it[6] !== "set" && inSeason(it[0])); };
+  const cratePool = (rank) => { const owned = new Set(prog.owned || []); return SHOP.filter((it) => it[7] === rank && !owned.has(it[0]) && it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv" && it[6] !== "set" && inSeason(it[0])); };
   function openCrate(rank, price, label) {
     const pool = cratePool(rank); if (!pool.length) { toast("You own every " + RAR_LABEL[rank] + " item already!"); return; }
     if (coins() < price) { toast("Not enough coins"); return; }
@@ -11115,7 +11251,7 @@ function fighterGame() {
         el("div", { class: "shop-grid crates-grid" }, ...CRATES.map(([rank, label, price, emo, col]) => { const left = cratePool(rank).length, poor = coins() < price; return el("div", { class: "shop-item crate rk-" + rank }, el("span", { class: "sw big crate-emo", style: "background:" + col, text: emo }), el("b", { text: label }), el("span", { class: "rar rar-" + rank, text: RAR_LABEL[rank] }), el("small", { text: left ? left + " possible items" : "You own them all!" }), el("button", { class: "btn sm hot", type: "button", disabled: poor || !left, text: left ? "Open · " + fmt(price) + " ⚡" : "Complete ✓", onclick: () => openCrate(rank, price, label) })); })));
     } else {
       const SG = getShopGroups(), ev = SG.find(([gk]) => gk.startsWith("ev-"));
-      const cats = [["all", "All"], ...(ev ? [[ev[0], ev[1].replace(/ Event Shop ✨/, " ✨")]] : []), ["music", "🎵 Music"], ["pet", "🐾 Pets"], ["title", "🏷 Titles"], ["fx", "✨ Sparks"], ["frame", "🖼 Frames"], ["filter", "🎞 Filters"], ["boost", "🚀 Boosts"], ["games", "🎮 Games"]];
+      const cats = [["all", "All"], ...(ev ? [[ev[0], ev[1].replace(/ Event Shop ✨/, " ✨")]] : []), ["music", "🎵 Music"], ["pet", "🐾 Pets"], ["title", "🏷 Titles"], ["fx", "✨ Sparks"], ["frame", "🖼 Frames"], ["filter", "🎞 Filters"], ["boost", "🚀 Boosts"], ["powerup", "⚡ Power-ups"], ["games", "🎮 Games"]];
       const catChips = el("div", { class: "rew-tabs shop-chips" }, ...cats.map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopCat === gk), text: t, onclick: () => { shopCat = gk; shopGame = "all"; rerender(); } })));
       const gameChips = shopCat === "games" ? el("div", { class: "rew-tabs shop-chips game-chips" }, ...[["all", "All games"], ...GAME_GROUPS().map(([gk, t]) => [gk, t])].map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopGame === gk), text: t, onclick: () => { shopGame = gk; rerender(); } }))) : null;
       const filt = el("div", { class: "shop-filters" },
@@ -11347,7 +11483,7 @@ function fighterGame() {
         el("div", { class: "adm-row" }, el("span", { class: "adm-k", text: "⚡" }), ic, el("span", { class: "adm-k", text: "$" }), id2, el("span", { class: "adm-k", text: "💎" }), ig, el("span", { class: "adm-k", text: "XP" }), ix,
           el("button", { class: "btn sm hot", type: "button", text: "Save money", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { coins: +ic.value || 0, cash: +id2.value || 0, gems: +ig.value || 0, xp: +ix.value || 0 } }, "Saved ✓")) })),
         el("div", { class: "adm-row wrapr" },
-          el("button", { class: "btn sm", type: "button", text: "🎁 Give every shop item", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { giveItems: SHOP.filter((it) => it[1] !== "boost" && it[6] !== "lv").map((it) => it[0]) } }, "Gave everything ✓")) }),
+          el("button", { class: "btn sm", type: "button", text: "🎁 Give every shop item", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { giveItems: SHOP.filter((it) => it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv").map((it) => it[0]) } }, "Gave everything ✓")) }),
           el("button", { class: "btn sm", type: "button", text: "Take all items", onclick: async () => { if (confirm("Take away all of " + u.username + "'s shop items?")) redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { takeItems: true } }, "Items removed")); } }),
           el("button", { class: "btn sm", type: "button", text: "Reset progress", onclick: async () => { if (confirm("Reset ALL of " + u.username + "'s progress (coins, levels, badges, items)?")) redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "progress" } }, "Progress reset")); } }),
           el("button", { class: "btn sm", type: "button", text: "Delete all scores", onclick: async () => { if (confirm("Delete every high score " + u.username + " has?")) { redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "scores" } }, "Scores deleted")); refresh("scores"); } } }),
@@ -11482,7 +11618,7 @@ function fighterGame() {
       el("div", { class: "shop-grid shelf-grid" }, ...shelf.map((id, i) => { const it = id && item(id); return el("button", { class: "shop-item shelf-slot" + (it ? " rk-" + (it[7] || "c") : " empty") + (shelfPick === i ? " on" : ""), type: "button", onclick: () => { shelfPick = shelfPick === i ? null : i; renderProfile(); } },
         it ? el("span", { class: "sw" + (it[1] === "title" ? " ttl" : it[1] === "pet" ? " petsw" : ""), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null }) : el("span", { class: "sw", style: "background:rgba(255,255,255,.08)", text: "+" }),
         el("b", { text: it ? it[2] : "Empty slot " + (i + 1) }), it && it[7] ? el("span", { class: "rar rar-" + it[7], text: RAR_LABEL[it[7]] }) : null); })),
-      shelfPick != null ? el("div", { class: "shelf-pick" }, el("p", { class: "set-note", text: "Choose an item for slot " + (shelfPick + 1) + ":" }), el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", text: "Clear slot", onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = null; prog.shelf = s2; shelfPick = null; saveProg(); renderProfile(); } }), ...ownedItems.filter((it) => it[1] !== "boost").sort((a, b2) => rank(b2) - rank(a)).map((it) => el("button", { class: "chip", type: "button", text: (it[1] === "pet" ? PET_EMO[it[0]] + " " : "") + it[2] + (it[7] === "l" ? " 👑" : ""), onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = it[0]; prog.shelf = s2; shelfPick = null; saveProg(); sfxHub(); renderProfile(); } })))) : null);
+      shelfPick != null ? el("div", { class: "shelf-pick" }, el("p", { class: "set-note", text: "Choose an item for slot " + (shelfPick + 1) + ":" }), el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", text: "Clear slot", onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = null; prog.shelf = s2; shelfPick = null; saveProg(); renderProfile(); } }), ...ownedItems.filter((it) => it[1] !== "boost" && it[1] !== "powerup").sort((a, b2) => rank(b2) - rank(a)).map((it) => el("button", { class: "chip", type: "button", text: (it[1] === "pet" ? PET_EMO[it[0]] + " " : "") + it[2] + (it[7] === "l" ? " 👑" : ""), onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = it[0]; prog.shelf = s2; shelfPick = null; saveProg(); sfxHub(); renderProfile(); } })))) : null);
     const favEl = el("div", { class: "prof-two" },
       el("div", {}, el("p", { class: "eyebrow set-h2", text: "🎮 Favourite game" }), favG ? el("div", { class: "pcard prof-fav" }, el("b", { text: favG.title }), el("small", { text: fmt(played[favKey]) + " plays · best " + fmt(myBest(favKey) || 0) + " · " + "★".repeat(window.gblStars(favKey)) + "☆".repeat(3 - window.gblStars(favKey)) }), el("button", { class: "btn sm hot", type: "button", text: "Play", onclick: () => { const i = BUILTINS.indexOf(favG); play({ ...favG, slot: i + 1 }); } })) : el("p", { class: "set-note", text: "Play some games and your favourite shows up here." })),
       el("div", {}, el("p", { class: "eyebrow set-h2", text: "💎 Rarest item" }), rarest ? el("div", { class: "shop-grid one" }, miniCard(rarest)) : el("p", { class: "set-note", text: "Nothing yet — open a crate!" })));
