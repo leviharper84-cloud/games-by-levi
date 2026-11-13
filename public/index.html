@@ -1255,6 +1255,8 @@ html.calm .art-spin, html.calm .art-flick, html.calm .art-blink, html.calm .art-
 .ph-pet.sleep { left: calc(4% + clamp(55px, 11vw, 95px)) !important; bottom: 26%; width: clamp(64px, 12vw, 100px); z-index: 2; }
 .ph-house { z-index: 1; } .ph-house small { order: -1; margin: 0 0 -14px; position: relative; z-index: 1; }
 .pg-ic.art-wrap { width: 44px; height: 44px; }
+.ph-away { border: 1px solid #ffd66b; cursor: pointer; font: inherit; font-weight: 800; }
+.trip-card { background: linear-gradient(135deg, var(--t1), var(--t2)) !important; } .trip-card small { color: rgba(255,255,255,.8) !important; } .trip-card:disabled { opacity: .5; }
 .ph-guest .pv { filter: drop-shadow(0 0 10px rgba(255,123,230,.6)); } .ph-tag { position: absolute; top: -18%; left: 50%; transform: translateX(-50%); padding: 1px 8px; border-radius: 999px; background: rgba(7,4,15,.75); color: #ff7be6; font-size: .65rem; font-weight: 800; white-space: nowrap; }
 .ph-hearts { position: absolute; bottom: 30%; transform: translateX(-50%); font-size: 1.8rem; animation: phZ 1.2s ease-in-out infinite; pointer-events: none; }
 .pd-duo { display: flex; gap: 6px; } .pd-duo .pv { width: 100px; height: 100px; } .pd-ic { grid-row: span 2; width: 48px; height: 48px; } .pd-ic .pv { width: 100%; height: 100%; }
@@ -12128,6 +12130,8 @@ function fighterGame() {
     return gap > 5 * 60e3 ? "+" + coinsW + " ⚡ · +" + xp + " pet XP · happiness full!" : "Happiness full! (coins & XP again in a few minutes)";
   }
   function openPetGames(id) {
+    if (napping(id)) return toast("Shh… your pet is napping 😴");
+    if (petAway(id)) return openTrip(id);
     const it = SHOP.find((q) => q[0] === id), o = pgOverlay("🎾 Play with " + it[2]);
     const pick = el("div", { class: "pg-pick" }, ...[["catch", "fd-steak", "Treat Catch", "Catch treats, dodge the stinky ones"], ["fetch", "ball", "Fetch", "Tap at the right moment to throw far"], ["peek", "cup", "Peekaboo", "Find your pet under the cups"]].map(([k, ic, t, sub]) =>
       el("button", { class: "pg-card", type: "button", onclick: () => runPetGame(k, id, o) }, artEl(ic, "pg-ic"), el("b", { text: t }), el("small", { text: sub }))));
@@ -12224,6 +12228,24 @@ function fighterGame() {
     o.body.replaceChildren(scene, bar, left, el("p", { class: "eyebrow", text: "📔 Trip diary" }), log);
     const tick = () => { if (!document.body.contains(o.ov)) return; const k = Math.max(0, Math.min(1, (Date.now() - start) / (t.end - start))); bar.firstChild.style.width = Math.round(k * 100) + "%"; const ms = Math.max(0, t.end - Date.now()); left.textContent = ms ? "Back in " + (ms > 36e5 ? Math.floor(ms / 36e5) + "h " : "") + Math.ceil(ms % 36e5 / 6e4) + "m" : "Back home! Close this to see the haul."; log.replaceChildren(...tripLog(t).filter(([p]) => p <= k).map(([, e]) => el("li", { text: it[2].split(" ")[0] + " " + e }))); if (!log.children.length) log.append(el("li", { class: "set-note", text: "Just set off… check back soon!" })); if (!ms) { o.close(); renderPet(); return; } setTimeout(tick, 1000); };
     tick();
+  }
+  function startTrip(id, h) {
+    const tr = TRIPS.find((q) => q[0] === h); if (!tr) return false; const [, name, , lab] = tr;
+    if (petAway(id)) { toast("Your pet is already on an adventure!"); return false; }
+    if (napping(id)) { toast("Shh… your pet is still napping 😴 Let it finish first."); return false; }
+    if (hungerPct(id) < 25) { toast("Too hungry to travel! Feed your pet first 🍖"); petSay("Too hungry to travel! Feed me first 🍖"); return false; }
+    if (energyPct(id) < 25) { toast("Too sleepy to travel… let it nap first 😴"); petSay("Too sleepy to travel… let me nap first 😴"); return false; }
+    useEnergy(id, 25); petData(id).trip = { end: Date.now() + h * 36e5, len: h }; saveProg(); sfxHub(); petHome = false;
+    petSay("Off on my " + name.replace(/^\S+\s+/, "").toLowerCase() + "! See you in " + lab + " 👋", 3500); renderPet(); if (typeof renderPetHome === "function") renderPetHome();
+    return true;
+  }
+  function openAdventures(id) {
+    if (petAway(id)) return openTrip(id);
+    const it = SHOP.find((q) => q[0] === id), o = pgOverlay("🧭 Send " + it[2].split(" ")[0] + " on an adventure");
+    const face = el("div", { class: "pg-face" }); face.innerHTML = petSVG(id, "happy", petEvo(id));
+    const hung = hungerPct(id), en = energyPct(id), why = napping(id) ? "Your pet is napping 😴 It can go once it wakes up." : hung < 25 ? "Too hungry to travel — feed your pet first 🍖" : en < 25 ? "Too sleepy to travel — let it nap first 😴" : "";
+    o.body.replaceChildren(face, el("p", { class: "set-note", text: why || "Longer trips bring back more coins, and the long ones can find cards and crates. Uses 25 energy." }),
+      el("div", { class: "pg-pick" }, ...TRIPS.map(([h, name, sub, lab]) => { const sc = TRIP_SCENES[h] || TRIP_SCENES[1]; return el("button", { class: "pg-card trip-card", type: "button", disabled: !!why, style: "--t1:" + sc[0] + ";--t2:" + sc[1], onclick: () => { if (startTrip(id, h)) { o.close(); setTimeout(() => openTrip(id), 300); } } }, el("span", { class: "pg-ic", text: name.split(" ")[0] }), el("b", { text: name.replace(/^\S+\s+/, "") + " · " + lab }), el("small", { text: sub })); })));
   }
   function tripSummary(id, t, coins0, extra) {
     const it = SHOP.find((q) => q[0] === id), o = pgOverlay("🎒 " + it[2] + " is back!");
@@ -12338,7 +12360,7 @@ function fighterGame() {
     scene.append(petNode);
     if (playdate && playdate.until > Date.now()) { const g = el("div", { class: "ph-pet ph-guest play", style: "left:" + playdate.x + "%" }); g.innerHTML = petSVG(playdate.f.pet, "happy", false) + '<span class="ph-tag">' + playdate.f.name + "</span>"; scene.append(g, artEl("heart", "ph-hearts")); }
     const away = petAway(id);
-    if (away) { petNode.hidden = true; scene.append(el("div", { class: "ph-away", text: "🧭 Out on an adventure!" })); }
+    if (away) { petNode.hidden = true; scene.append(el("button", { class: "ph-away", type: "button", text: "🧭 Out on an adventure! Tap to watch ▸", onclick: () => openTrip(id) })); }
     const bar = (label, pct, col) => el("div", { class: "pet-bar" }, el("span", { text: label }), el("span", { class: "w-bar big" }, el("i", { style: "width:" + Math.round(pct) + "%;background:" + col })), el("small", { text: Math.round(pct) + "%" }));
     const xi = petXpInfo(id);
     const stats = el("div", { class: "ph-stats" }, el("b", { text: it[2] + (petEvo(id) ? " · MEGA 👑" : "") + " · LV " + xi.lv }),
@@ -12350,7 +12372,7 @@ function fighterGame() {
       el("button", { class: "btn sm hot", type: "button", disabled: busy, text: "🎾 Play games", onclick: () => { if (energyPct(id) < 15) return toast("Too tired to play — let it nap first 😴"); useEnergy(id, 15); phState.act = "play"; phState.until = Date.now() + 2500; openPetGames(id); renderPetHome(); } }),
       el("button", { class: "btn sm", type: "button", disabled: !!away || napping(id) || !!playdate, text: "🐾 Playdate", onclick: playdatePicker }),
       el("button", { class: "btn sm", type: "button", disabled: busy, text: "😴 Nap (10 min)", onclick: () => { const pd = petData(id); pd.sleepUntil = Date.now() + 10 * 6e4; pd.energy = 100; pd.eAt = Date.now() + 10 * 6e4; saveProg(); toast("Sweet dreams… 💤"); renderPetHome(); } }),
-      el("button", { class: "btn sm", type: "button", disabled: busy, text: "🧭 Adventure", onclick: () => { petHome = true; renderPet(); window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); } }),
+      el("button", { class: "btn sm", type: "button", disabled: busy, text: "🧭 Adventure", onclick: () => openAdventures(id) }),
       el("button", { class: "btn sm", type: "button", text: "🛒 Pet shop", onclick: () => { if (window.gblShopTab) window.gblShopTab("shop"); location.hash = "#shop"; setTimeout(() => { const c = [...document.querySelectorAll("#shop-page .chip")].find((x2) => x2.textContent.includes("Pet stuff")); if (c) c.click(); }, 300); } }));
     const foods = Object.keys(FOODS).map((k) => [k, ((prog.food || {})[k]) | 0, SHOP.find((q) => q[0] === k)]).filter(([, , q]) => q);
     const foodRow = el("div", { class: "ph-foods" }, el("p", { class: "eyebrow", text: "🍽 Feed" }),
@@ -12368,6 +12390,7 @@ function fighterGame() {
   function petHomeTick() {
     const sec = document.getElementById("pethome"); if (!sec || sec.classList.contains("page-off")) { clearInterval(phAnim); phAnim = null; return; }
     const id = (prog.equip || {}).pet; if (!id) return;
+    { const t = petData(id).trip; if (t && t.end <= Date.now() && !document.querySelector(".pg-ov")) { renderPet(); renderPetHome(); return; } }
     if (Math.random() < .25 && !(phState.until > Date.now())) { phState.tx = 12 + Math.random() * 76; }
     const d = phState.tx - phState.x; if (Math.abs(d) > .5) { phState.x += Math.sign(d) * Math.min(Math.abs(d), 2.2); phState.flip = d < 0; }
     const n = document.querySelector(".ph-pet"); if (n && !n.classList.contains("sleep")) { n.style.left = phState.x + "%"; n.classList.toggle("flip", phState.flip); n.classList.toggle("walk", Math.abs(d) > .5); }
@@ -12407,7 +12430,7 @@ function fighterGame() {
       el("p", { class: "pet-mood-line", text: MOOD_EMO[mood] + " " + ({ happy: "Feeling great! +" + Math.round(petBonus() * 100) + "% coins", ok: "Doing fine. +" + Math.round(petBonus() * 100) + "% coins", bored: "Bored… play with me!", hungry: "So hungry! No coin bonus until fed" })[mood] }),
       bar("🍖 Hunger", hungerPct(id), "#ff8a1f"), bar("💛 Happy", happyPct(id), "#ffd66b"), bar("⭐ LV " + lv + (lv >= 10 ? " MAX" : " · " + xi.need + " XP to go"), xi.k * 100, "#3dffa8"),
       petAway(id) ? el("p", { class: "pet-mood-line", text: "🧭 On a " + TRIPS.find((t) => t[0] === petAway(id).len)[1].replace(/^\S+\s+/, "").toLowerCase() + " — back in " + (() => { const ms = petAway(id).end - Date.now(); return ms > 36e5 ? Math.floor(ms / 36e5) + "h " + Math.floor(ms % 36e5 / 6e4) + "m" : Math.ceil(ms / 6e4) + "m"; })() }) :
-      el("div", { class: "pet-trips" }, el("small", { text: "Send on an adventure:" }), ...TRIPS.map(([h, name, sub, lab]) => el("button", { class: "btn sm", type: "button", title: sub, text: name + " · " + lab, onclick: () => { if (hungerPct(id) < 25) return petSay("Too hungry to travel! Feed me first 🍖"); if (energyPct(id) < 25) return petSay("Too sleepy to travel… let me nap first 😴"); useEnergy(id, 25); petData(id).trip = { end: Date.now() + h * 36e5, len: h }; saveProg(); sfxHub(); petHome = false; petSay("Off on my " + name.replace(/^\S+\s+/, "").toLowerCase() + "! See you in " + lab + " 👋", 3500); renderPet(); } }))),
+      el("div", { class: "pet-trips" }, el("small", { text: "Send on an adventure:" }), ...TRIPS.map(([h, name, sub, lab]) => el("button", { class: "btn sm", type: "button", title: sub, text: name + " · " + lab, onclick: () => startTrip(id, h) }))),
       lv >= 10 && !petEvo(id) ? el("button", { class: "btn sm hot pet-evo", type: "button", text: "✨ EVOLVE TO MEGA · 1,000 ⚡", onclick: () => { if (coins() < 1000) return petSay("Need 1,000 ⚡ to evolve!"); spend("", 1000); petData(id).evo = 1; saveProg(); sfxLegendary(); if (window.gblConfetti) window.gblConfetti(180); petSay("I EVOLVED! I'm MEGA now! 👑", 4000); renderPet(); } }) : petEvo(id) ? el("p", { class: "pet-mood-line", text: "👑 MEGA form · +10% extra coins" }) : el("small", { class: "pet-home-tip", text: "Reach level 10 to evolve into a MEGA form." }),
       el("div", { class: "pet-home-b" },
         el("button", { class: "btn sm hot", type: "button", text: "Feed · " + PET_FEED_COST + " ⚡", onclick: () => feedPet(id) }),
