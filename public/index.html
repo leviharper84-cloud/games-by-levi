@@ -8835,6 +8835,76 @@ function bubbleGame() {
   });
 }
 
+/* ---------- Word Hunt ---------- */
+function wordGame() {
+  const W = 420, H = 600;
+  const THEMES = [
+    ["ANIMALS", ["CAT", "DOG", "FOX", "OWL", "PIG", "COW", "LION", "BEAR", "FROG", "DUCK", "TIGER", "ZEBRA", "HORSE", "SHARK", "PANDA", "KOALA", "MOUSE", "SNAKE", "RABBIT", "MONKEY"]],
+    ["COLOURS", ["RED", "BLUE", "PINK", "GOLD", "GRAY", "CYAN", "LIME", "TEAL", "GREEN", "BLACK", "WHITE", "BROWN", "PURPLE", "ORANGE", "YELLOW", "SILVER", "VIOLET"]],
+    ["SPACE", ["SUN", "MOON", "STAR", "MARS", "ORBIT", "COMET", "EARTH", "VENUS", "ROCKET", "PLANET", "GALAXY", "ALIEN", "SATURN", "NEBULA", "METEOR"]],
+    ["FOOD", ["PIE", "JAM", "EGG", "TACO", "RICE", "CAKE", "SOUP", "MILK", "PIZZA", "APPLE", "BREAD", "PASTA", "BACON", "MANGO", "COOKIE", "BANANA", "CHEESE", "BURGER"]],
+    ["GAMES", ["PONG", "GOLF", "CHESS", "SNAKE", "TETRIS", "BOWLING", "PINBALL", "ARCADE", "LEVEL", "SCORE", "COMBO", "BOSS", "PIXEL", "JOYSTICK", "PLAYER"]],
+    ["SPORTS", ["RUN", "SWIM", "SKI", "BIKE", "SURF", "KICK", "GOAL", "BALL", "HOOP", "TENNIS", "SOCCER", "HOCKEY", "RUGBY", "BOXING", "KARATE"]],
+    ["WEATHER", ["SUN", "RAIN", "SNOW", "WIND", "HAIL", "FOG", "STORM", "CLOUD", "FROST", "SLEET", "THUNDER", "RAINBOW", "BREEZE", "TORNADO"]],
+  ];
+  let N, grid, words, found, cells, drag, level, theme, lines, hint, cellS, OX, OY, timeT;
+  const DIRS = [[1, 0], [0, 1], [1, 1], [1, -1], [-1, 0], [0, -1], [-1, -1], [-1, 1]];
+  function build(lv) {
+    level = lv; N = Math.min(10, 6 + Math.floor(lv / 2)); const tdef = THEMES[(lv - 1) % THEMES.length]; theme = tdef[0];
+    const dirs = DIRS.slice(0, lv < 3 ? 2 : lv < 5 ? 4 : 8), want = Math.min(10, 4 + lv), pool = tdef[1].filter((w) => w.length <= N).sort(() => Math.random() - .5);
+    for (let tries = 0; tries < 30; tries++) {
+      grid = Array.from({ length: N }, () => Array(N).fill("")); words = [];
+      for (const w of pool) {
+        if (words.length >= want) break;
+        let placed = false;
+        for (let a = 0; a < 80 && !placed; a++) {
+          const [dx, dy] = dirs[Math.random() * dirs.length | 0], c0 = Math.random() * N | 0, r0 = Math.random() * N | 0, ce = c0 + dx * (w.length - 1), re = r0 + dy * (w.length - 1);
+          if (ce < 0 || ce >= N || re < 0 || re >= N) continue;
+          let ok = true; for (let i = 0; i < w.length; i++) { const ch = grid[r0 + dy * i][c0 + dx * i]; if (ch && ch !== w[i]) { ok = false; break; } }
+          if (!ok) continue; for (let i = 0; i < w.length; i++) grid[r0 + dy * i][c0 + dx * i] = w[i]; words.push({ w, c0, r0, dx, dy }); placed = true;
+        }
+      }
+      if (words.length >= Math.min(want, pool.length) - 1) break;
+    }
+    const AB = "ABCDEFGHIJKLMNOPRSTUWY"; for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) if (!grid[r][c]) grid[r][c] = AB[Math.random() * AB.length | 0];
+    found = new Set(); lines = []; drag = null; hint = null; timeT = 0;
+    cellS = Math.floor(Math.min(W - 20, 400) / N); OX = (W - cellS * N) / 2; OY = 70;
+  }
+  const cellAt = (px, py) => { const c = Math.floor((px - OX) / cellS), r = Math.floor((py - OY) / cellS); return c >= 0 && r >= 0 && c < N && r < N ? [c, r] : null; };
+  function lineCells(a, b) { const dx = Math.sign(b[0] - a[0]), dy = Math.sign(b[1] - a[1]), n = Math.max(Math.abs(b[0] - a[0]), Math.abs(b[1] - a[1])); if (!(a[0] === b[0] || a[1] === b[1] || Math.abs(b[0] - a[0]) === Math.abs(b[1] - a[1]))) return null; return Array.from({ length: n + 1 }, (_, i) => [a[0] + dx * i, a[1] + dy * i]); }
+  function check() {
+    if (!drag || !drag.end) return; const cs = lineCells(drag.start, drag.end); drag = null; if (!cs) return;
+    const s = cs.map(([c, r]) => grid[r][c]).join(""), rs = s.split("").reverse().join("");
+    const hit = words.find((w) => !found.has(w.w) && (w.w === s || w.w === rs) && cs.length === w.w.length);
+    if (hit) { found.add(hit.w); lines.push({ cs, col: ["#ff2bd6", "#22e4ff", "#ffd66b", "#b6ff3b", "#a35bff", "#ff8a1f"][lines.length % 6] }); const pts = hit.w.length * 20 * level; S.score += pts; const [c, r] = cs[cs.length >> 1]; pop(OX + c * cellS + cellS / 2, OY + r * cellS, hit.w + " +" + pts, "#ffd66b"); sfx("score"); hint = null;
+      if (found.size === words.length) { const bonus = Math.max(0, 300 - Math.floor(timeT)) * level; S.score += bonus; banner("ALL FOUND! +" + bonus, "#3dffa8"); sfx("level"); setTimeout(() => { if (S.state === "play") { build(level + 1); saveGame({ level, label: "PUZZLE " + level, stop: true, next: "Next theme: " + theme }); } }, 1400); } }
+    else if (cs.length > 1) sfx("bad");
+  }
+  game({
+    load(d) { if (d && d.level) build(d.level | 0); },
+    title: "Word Hunt", w: W, h: H, color: "#b6ff3b", bpm: 96, easy: "a hint appears after 20 seconds",
+    help: ["Drag across the letters to circle a hidden word", "Words go across and down; later ones go diagonal and backwards", "Find every word to finish the puzzle. Faster = bonus", "Tap the 💡 button for a hint (costs points)"],
+    init() { build(1); },
+    hud() { return theme + "  ·  " + found.size + "/" + words.length + " FOUND  ·  PUZZLE " + level; },
+    summary() { return ["SOLVED " + (level - 1) + " PUZZLES"]; },
+    down(px, py) { if (px > W - 64 && py < 50) { const left = words.filter((w) => !found.has(w.w)); if (left.length) { hint = left[0]; S.score = Math.max(0, S.score - 25); sfx("blip"); } return; } const c = cellAt(px, py); if (c) drag = { start: c, end: c }; },
+    move(px, py) { if (!drag) return; const c = cellAt(px, py); if (c) drag.end = c; },
+    up() { check(); },
+    update(dt) { timeT += dt; if (S.practice && timeT > 20 && !hint) { const left = words.filter((w) => !found.has(w.w)); if (left.length) hint = left[0]; } },
+    draw() {
+      bg("#06100a"); x.fillStyle = "rgba(182,255,59,.04)"; x.fillRect(OX - 6, OY - 6, cellS * N + 12, cellS * N + 12);
+      txt(theme, 16, 34, 18, "#b6ff3b", "left", "d"); x.fillStyle = "rgba(255,214,107,.15)"; rr(W - 60, 14, 46, 32, 10); x.fill(); txt("💡", W - 37, 31, 18, "#fff", "center");
+      const cc = (c, r) => [OX + c * cellS + cellS / 2, OY + r * cellS + cellS / 2];
+      const stroke = (cs, col, a) => { const [x1, y1] = cc(...cs[0]), [x2, y2] = cc(...cs[cs.length - 1]); x.globalAlpha = a; x.strokeStyle = col; x.lineWidth = cellS * .74; x.lineCap = "round"; x.beginPath(); x.moveTo(x1, y1); x.lineTo(x2, y2); x.stroke(); x.globalAlpha = 1; x.lineCap = "butt"; };
+      for (const l of lines) stroke(l.cs, l.col, .35);
+      if (drag) { const cs = lineCells(drag.start, drag.end); if (cs) stroke(cs, "#ffffff", .25); }
+      if (hint) { const [hx, hy] = cc(hint.c0, hint.r0); x.strokeStyle = "rgba(255,214,107," + (.5 + .5 * Math.sin(S.clock * 6)) + ")"; x.lineWidth = 3; x.beginPath(); x.arc(hx, hy, cellS * .45, 0, 7); x.stroke(); }
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const [X, Y] = cc(c, r); txt(grid[r][c], X, Y + 1, Math.floor(cellS * .52), "#eaffd0", "center", "d"); }
+      const ly = OY + cellS * N + 18; words.forEach((w, i) => { const col = i % 3, row = Math.floor(i / 3), X = 24 + col * 132, Y = ly + row * 22; txt(w.w, X, Y, 13, found.has(w.w) ? "rgba(182,255,59,.35)" : "#ffffff", "left", "d"); if (found.has(w.w)) { x.strokeStyle = "rgba(182,255,59,.6)"; x.lineWidth = 2; x.beginPath(); x.moveTo(X, Y); x.lineTo(X + w.w.length * 10, Y); x.stroke(); } });
+    },
+  });
+}
+
 /* ---------- 53 Neon Bowling ---------- */
 function bowlGame() {
   const W = 360, H = 680, LX = 60, LW = 240, BR = 13, PRr = 9, FOUL = 520, PINY = 120;
@@ -9969,6 +10039,7 @@ function fighterGame() {
     { key: "bossrush", title: "Boss Rush", genre: "Action", fn: bossGame },
     { key: "pinball", title: "Neon Pinball", genre: "Arcade", fn: pinballGame },
     { key: "bubbles", title: "Bubble Shooter", genre: "Puzzle", fn: bubbleGame },
+    { key: "words", title: "Word Hunt", genre: "Puzzle", fn: wordGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
