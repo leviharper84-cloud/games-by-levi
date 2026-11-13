@@ -8686,6 +8686,79 @@ function bossGame() {
   });
 }
 
+/* ---------- Neon Pinball ---------- */
+function pinballGame() {
+  const W = 420, H = 640, BR = 9, G = 760;
+  const WALLS = [[20, 640, 20, 120], [20, 120, 80, 40], [80, 40, 340, 40], [340, 40, 400, 120], [400, 120, 400, 640], [370, 640, 370, 200],
+    [20, 500, 120, 570], [370, 500, 300, 570], [70, 420, 70, 480], [70, 480, 120, 510], [320, 420, 320, 480], [320, 480, 270, 510]];
+  const SLINGS = [[70, 420, 120, 510], [320, 420, 270, 510]];
+  const BUMPS = [[140, 170, 24, 100], [230, 140, 24, 100], [190, 240, 24, 100], [300, 220, 18, 150], [100, 280, 16, 150]];
+  const TARGETS = [[60, 200], [60, 230], [60, 260]];
+  const FL = [{ x: 120, y: 570, len: 62, rest: .5, up: -.45, side: 1 }, { x: 300, y: 570, len: 62, rest: Math.PI - .5, up: Math.PI + .45, side: -1 }];
+  let ball, balls, flips, bumpFx, tgt, mult, launchP, launching, saveT, combo;
+  const seg = (ax, ay, bx, by, e, kick) => {
+    const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1; let t = ((ball.x - ax) * dx + (ball.y - ay) * dy) / L2; t = Math.max(0, Math.min(1, t));
+    const cx = ax + dx * t, cy = ay + dy * t; let nx = ball.x - cx, ny = ball.y - cy; const d = Math.hypot(nx, ny);
+    if (d >= BR || d === 0) return false; nx /= d; ny /= d; const vn = ball.vx * nx + ball.vy * ny;
+    if (vn < 0) { ball.vx -= (1 + e) * vn * nx; ball.vy -= (1 + e) * vn * ny; if (kick) { ball.vx += nx * kick; ball.vy += ny * kick; } }
+    ball.x = cx + nx * BR; ball.y = cy + ny * BR; return true;
+  };
+  function newBall() { ball = { x: 385, y: 600, vx: 0, vy: 0, live: false }; launching = true; launchP = 0; saveT = 4; }
+  function drain() {
+    burst(ball.x, H - 10, "#ff4d6d", 30, 240, .6); sfx("bad");
+    if (saveT > 0 && !S.practice) { banner("BALL SAVED!", "#3dffa8"); newBall(); return; }
+    if (S.practice) { newBall(); return; }
+    balls--; if (balls <= 0) return over("GAME OVER"); banner("BALL " + (4 - balls) + " OF 3", "#22e4ff"); newBall(); mult = 1;
+  }
+  game({
+    title: "Neon Pinball", w: W, h: H, color: "#ff2bd6", bpm: 128, easy: "the ball never drains for good",
+    help: ["Left / Right (or tap left / right half) to flip", "Hold Space or Down (or tap the plunger lane) to launch", "Hit all 3 targets to raise the multiplier", "Bumpers and slingshots score big. 3 balls"],
+    init() { balls = 3; flips = [0, 0]; bumpFx = []; tgt = [0, 0, 0]; mult = 1; combo = 0; FL.forEach((f) => { f.a = f.rest; f.w = 0; }); newBall(); },
+    hud() { return "BALL " + (4 - balls) + "/3  ·  ×" + mult + (saveT > 0 && ball.live ? "  ·  BALL SAVE" : ""); },
+    summary() { return ["MULTIPLIER ×" + mult]; },
+    down(px, py) { if (launching && px > 360) { S.keys[" "] = true; return; } if (px < W / 2) flips[0] = 1; else flips[1] = 1; },
+    up() { flips = [0, 0]; if (launching) S.keys[" "] = false; },
+    key(k, rep) { if (rep) return; if (k === "ArrowLeft" || k === "a" || k === "z") flips[0] = 1; if (k === "ArrowRight" || k === "d" || k === "/") flips[1] = 1; },
+    update(dt) {
+      const kl = flips[0] || S.keys.ArrowLeft || S.keys.a || S.keys.z, kr = flips[1] || S.keys.ArrowRight || S.keys.d || S.keys["/"];
+      if (!S.keys.ArrowLeft && !S.keys.a && !S.keys.z && !S.down) flips[0] = 0; if (!S.keys.ArrowRight && !S.keys.d && !S.keys["/"] && !S.down) flips[1] = 0;
+      FL.forEach((f, i) => { const on = i ? kr : kl, tg = on ? f.up : f.rest, prev = f.a; const sp = 22 * dt; f.a += Math.max(-sp, Math.min(sp, tg - f.a)); f.w = (f.a - prev) / dt; if (on && Math.abs(tg - prev) > .3 && Math.abs(tg - f.a) < .01) sfx("tick"); });
+      for (const f of bumpFx) f.l -= dt; bumpFx = bumpFx.filter((f) => f.l > 0);
+      if (launching) {
+        if (S.keys[" "] || S.keys.ArrowDown || S.keys.s) launchP = Math.min(1, launchP + dt * 1.2);
+        else if (launchP > .05) { ball.vy = -(700 + launchP * 650); ball.live = true; launching = false; sfx("power"); }
+        return;
+      }
+      saveT -= dt;
+      const n = 6;
+      for (let s = 0; s < n; s++) {
+        const h = dt / n; ball.vy += G * h; ball.x += ball.vx * h; ball.y += ball.vy * h;
+        for (const w of WALLS) seg(w[0], w[1], w[2], w[3], .45);
+        SLINGS.forEach((sl) => { if (seg(sl[0], sl[1], sl[2], sl[3], .6, 260)) { S.score += 25 * mult; sfx("hit"); bumpFx.push({ s: sl, l: .15 }); } });
+        for (const bp of BUMPS) { const dx = ball.x - bp[0], dy = ball.y - bp[1], d = Math.hypot(dx, dy); if (d < bp[2] + BR && d > 0) { const nx = dx / d, ny = dy / d, vn = ball.vx * nx + ball.vy * ny; if (vn < 0) { ball.vx -= 2 * vn * nx; ball.vy -= 2 * vn * ny; ball.vx += nx * 220; ball.vy += ny * 220; S.score += bp[3] * mult; combo++; pop(bp[0], bp[1] - 30, "+" + bp[3] * mult, "#ffd66b"); sfx("pop"); bumpFx.push({ b: bp, l: .2 }); burst(bp[0] + nx * bp[2], bp[1] + ny * bp[2], "#ff2bd6", 8, 160, .3); } ball.x = bp[0] + nx * (bp[2] + BR); ball.y = bp[1] + ny * (bp[2] + BR); } }
+        TARGETS.forEach(([tx, ty], i) => { if (!tgt[i] && Math.abs(ball.x - tx) < 14 && Math.abs(ball.y - ty) < 12) { tgt[i] = 1; S.score += 200 * mult; sfx("score"); pop(tx + 30, ty, "TARGET!", "#3dffa8"); if (tgt.every(Boolean)) { mult = Math.min(8, mult + 1); tgt = [0, 0, 0]; banner("MULTIPLIER ×" + mult, "#ffd66b"); sfx("level"); flash("#ffd66b", .2); } } });
+        FL.forEach((f) => { const ex = f.x + Math.cos(f.a) * f.len, ey = f.y + Math.sin(f.a) * f.len;
+          if (seg(f.x, f.y, ex, ey, .3)) { const r = Math.hypot(ball.x - f.x, ball.y - f.y), tv = f.w * r; if (Math.abs(f.w) > 2) { ball.vx += -Math.sin(f.a) * tv * .9; ball.vy += Math.cos(f.a) * tv * .9; } } });
+        const sp = Math.hypot(ball.vx, ball.vy); if (sp > 1500) { ball.vx *= 1500 / sp; ball.vy *= 1500 / sp; }
+        if (ball.x > 372 && ball.y > 200 && ball.y < 630 && ball.vy > 0 && ball.live && ball.x < 400) { /* back down the plunger lane */ }
+        if (ball.y > H + 20) { drain(); return; }
+      }
+    },
+    draw() {
+      bg("#07030f"); const g = x.createLinearGradient(0, 0, 0, H); g.addColorStop(0, "#1a0b2e"); g.addColorStop(1, "#05020c"); x.fillStyle = g; x.fillRect(20, 40, 380, 600);
+      txt("NEON", W / 2, 320, 46, "rgba(255,43,214,.08)", "center", "d"); txt("PINBALL", W / 2, 370, 34, "rgba(34,228,255,.08)", "center", "d");
+      glow("#22e4ff", 12); x.strokeStyle = "#22e4ff"; x.lineWidth = 4; x.lineCap = "round"; for (const w of WALLS) { x.beginPath(); x.moveTo(w[0], w[1]); x.lineTo(w[2], w[3]); x.stroke(); } glow();
+      SLINGS.forEach((sl) => { const hot = bumpFx.some((f) => f.s === sl); glow("#ff8a1f", hot ? 24 : 10); x.strokeStyle = hot ? "#ffffff" : "#ff8a1f"; x.lineWidth = 6; x.beginPath(); x.moveTo(sl[0], sl[1]); x.lineTo(sl[2], sl[3]); x.stroke(); glow(); });
+      for (const bp of BUMPS) { const hot = bumpFx.some((f) => f.b === bp); glow("#ff2bd6", hot ? 30 : 14); x.fillStyle = hot ? "#ffffff" : "rgba(255,43,214,.35)"; x.strokeStyle = "#ff2bd6"; x.lineWidth = 3; x.beginPath(); x.arc(bp[0], bp[1], bp[2], 0, 7); x.fill(); x.stroke(); glow(); txt(String(bp[3]), bp[0], bp[1] + 1, 10, "#fff", "center", "d"); }
+      TARGETS.forEach(([tx, ty], i) => { x.fillStyle = tgt[i] ? "#3dffa8" : "rgba(61,255,168,.25)"; glow("#3dffa8", tgt[i] ? 14 : 0); x.fillRect(tx - 6, ty - 9, 12, 18); glow(); });
+      FL.forEach((f) => { glow("#ffd66b", 16); x.strokeStyle = "#ffd66b"; x.lineWidth = 12; x.lineCap = "round"; x.beginPath(); x.moveTo(f.x, f.y); x.lineTo(f.x + Math.cos(f.a) * f.len, f.y + Math.sin(f.a) * f.len); x.stroke(); glow(); });
+      if (launching) { x.fillStyle = "rgba(255,255,255,.12)"; x.fillRect(376, 470, 18, 150); x.fillStyle = "#ff8a1f"; x.fillRect(376, 620 - 150 * launchP, 18, 150 * launchP); txt("HOLD", 385, 455, 9, "#ff8a1f", "center", "d"); }
+      glow("#ffffff", 16); const bgr = x.createRadialGradient(ball.x - 3, ball.y - 3, 1, ball.x, ball.y, BR); bgr.addColorStop(0, "#ffffff"); bgr.addColorStop(1, "#9ff3ff"); x.fillStyle = bgr; x.beginPath(); x.arc(ball.x, ball.y, BR, 0, 7); x.fill(); glow();
+      txt("×" + mult, 40, 70, 18, "#ffd66b", "left", "d"); for (let i = 0; i < balls; i++) { x.fillStyle = "#9ff3ff"; x.beginPath(); x.arc(360 - i * 16, 66, 5, 0, 7); x.fill(); }
+    },
+  });
+}
+
 /* ---------- 53 Neon Bowling ---------- */
 function bowlGame() {
   const W = 360, H = 680, LX = 60, LW = 240, BR = 13, PRr = 9, FOUL = 520, PINY = 120;
@@ -9818,6 +9891,7 @@ function fighterGame() {
     { key: "solitaire", title: "Neon Solitaire", genre: "Puzzle", fn: solitaireGame },
     { key: "fighters", title: "Neon Fighters", genre: "Action", fn: fighterGame },
     { key: "bossrush", title: "Boss Rush", genre: "Action", fn: bossGame },
+    { key: "pinball", title: "Neon Pinball", genre: "Arcade", fn: pinballGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
