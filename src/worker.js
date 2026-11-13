@@ -4,7 +4,7 @@
  * with accounts, leaderboards and game submissions stored in a D1 database.
  */
 
-const BUILTIN_GAMES = new Set(["snake", "bricks", "pong", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "pingpong", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "connect4", "reversi", "beat", "simon", "chess", "guesswho", "slither", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "math", "clash", "thief", "stack", "crossing", "airhockey", "whack", "bowling", "merge", "colordash", "blades", "ttt", "dots", "solitaire", "fighters", "bossrush", "pinball", "bubbles", "words", "platformer", "pool"]);
+const BUILTIN_GAMES = new Set(["snake", "bricks", "pong", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "pingpong", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "connect4", "reversi", "beat", "simon", "chess", "guesswho", "slither", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "math", "clash", "thief", "stack", "crossing", "airhockey", "whack", "bowling", "merge", "colordash", "blades", "ttt", "dots", "solitaire", "fighters", "pinball", "bubbles", "words", "platformer", "pool"]);
 const GENRES = new Set(["Arcade", "Action", "Puzzle", "Racing", "Platformer", "Sports", "Strategy", "Other"]);
 const USER_RE = /^[A-Za-z0-9 _.\-]{3,16}$/;
 const MAX_CODE_BYTES = 200 * 1024;
@@ -893,7 +893,6 @@ function cleanConfig(c) {
     featured: BUILTIN_GAMES.has(String(c.featured || "")) ? String(c.featured) : "",
     event: ["auto", "none", "halloween", "harvest", "winter", "summer", "aprilfools", "easter", "christmas", "newyear", "valentines", "stpatricks", "school", "birthday"].includes(String(c.event || "")) ? String(c.event) : "auto",
     doubleCoins: !!c.doubleCoins,
-    bossRush: !!c.bossRush,
   };
   if (c.gift && typeof c.gift === "object" && (+c.gift.c || +c.gift.d || +c.gift.g)) {
     out.gift = { id: String(c.gift.id || Date.now()).slice(0, 20), c: Math.floor(num(c.gift.c, 0, 100000, 0)), d: Math.floor(num(c.gift.d, 0, 10000, 0)), g: Math.floor(num(c.gift.g, 0, 1000, 0)), msg: String(c.gift.msg || "").slice(0, 120) };
