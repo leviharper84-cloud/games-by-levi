@@ -874,6 +874,7 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .av.sm { width: 22px; height: 22px; font-size: .68rem; border-width: 1.5px; box-shadow: 0 0 6px var(--avc); }
 .cabinet.acct { width: min(540px, 100%); }
 .acct-body { padding: 22px clamp(16px, 4vw, 28px) 26px; display: grid; gap: 18px; overflow-y: auto; }
+.acct-body > *, .acct-body .shop, .acct-body .rew-list { min-width: 0; }
 .acct-form { display: grid; gap: 18px; }
 .acct-hero { display: flex; align-items: center; gap: 16px; min-width: 0; }
 .acct-hero > div { min-width: 0; }
@@ -1145,6 +1146,25 @@ html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 .fr-recent { display: grid; gap: 3px; } .fr-recent small { color: var(--muted); font-size: .72rem; }
 .fr-acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
 .fr-pick { margin-bottom: 16px; }
+
+/* ---------- Season pass ---------- */
+.spass { --sc: #ff2bd6; min-width: 0; }
+.sp-head { display: flex; gap: 16px; align-items: flex-end; justify-content: space-between; flex-wrap: wrap; margin-bottom: 10px; }
+.sp-name { margin: 0; font-family: var(--f-sign); font-size: 1.6rem; color: var(--sc); text-shadow: 0 0 14px var(--sc); }
+.sp-lv { display: grid; gap: 4px; min-width: 220px; } .sp-lv .w-bar i { background: var(--sc); }
+.sp-buy { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; border: 1px dashed var(--sc); margin-bottom: 10px; } .sp-buy p { margin: 0; flex: 1; min-width: 200px; }
+.sp-rows { display: flex; gap: 18px; font-size: .62rem; letter-spacing: .16em; color: var(--muted); margin-bottom: 4px; }
+.sp-track { display: flex; gap: 8px; overflow-x: auto; padding: 6px 2px 12px; scroll-snap-type: x proximity; scrollbar-width: thin; }
+.sp-col { display: grid; gap: 6px; flex: 0 0 104px; scroll-snap-align: start; }
+.sp-col.next .sp-num { border-color: var(--sc); color: #fff; box-shadow: 0 0 10px var(--sc); }
+.sp-num { text-align: center; font-family: var(--f-mono); font-size: .75rem; padding: 3px; border-radius: 8px; border: 1px solid var(--line-2); color: var(--muted); } .sp-num.on { background: var(--sc); color: #08040f; border-color: var(--sc); font-weight: 900; }
+.sp-cell { display: grid; gap: 4px; justify-items: center; align-content: center; min-height: 92px; padding: 8px 6px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(7,4,15,.6); color: var(--fg); font: inherit; text-align: center; cursor: default; }
+.sp-cell b { font-size: .72rem; line-height: 1.2; } .sp-cell small { font-size: .6rem; letter-spacing: .12em; color: var(--muted); }
+.sp-cell.prem { background: linear-gradient(160deg, rgba(255,214,107,.08), rgba(7,4,15,.7)); border-color: rgba(255,214,107,.3); }
+.sp-cell.ready { cursor: pointer; border-color: var(--sc); box-shadow: 0 0 14px color-mix(in srgb, var(--sc) 50%, transparent); animation: spPulse 1.4s ease-in-out infinite; } .sp-cell.ready small { color: #fff; font-weight: 900; }
+@keyframes spPulse { 50% { transform: translateY(-2px); } }
+.sp-cell.got { opacity: .45; } .sp-cell.locked { opacity: .7; }
+.sp-cell.big { border-width: 2px; } .sp-cell .sw { width: 34px; height: 34px; display: grid; place-items: center; font-size: 1.2rem; }
 
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
@@ -10795,6 +10815,15 @@ function fighterGame() {
     ["pu-bk-wide", "powerup", "↔️ Wide Paddle · Brick Breaker", 150, "linear-gradient(135deg,#a35bff,#22e4ff)", "Start Brick Breaker with a wide paddle.", "", "c"],
     ["pu-bk-life", "powerup", "❤️ Extra Life · Brick Breaker", 180, "linear-gradient(135deg,#ff4d6d,#a35bff)", "Start Brick Breaker with an extra life.", "", "c"],
     ["pu-mn-life", "powerup", "❤️ Extra Life · Neon Muncher", 180, "linear-gradient(135deg,#ffc23d,#ff4d6d)", "Start Neon Muncher with an extra life.", "", "c"],
+    // 🎟 Season pass exclusives (premium track only)
+    ["t-s-nightrider", "title", "Night Rider 🌙", 0, "linear-gradient(135deg,#ff2bd6,#1a0b24)", "Neon Nights season exclusive.", "season", "e"],
+    ["pet-s-owl", "pet", "Neon Night Owl 🦉", 0, "linear-gradient(135deg,#ff2bd6,#a35bff,#22e4ff)", "Neon Nights season legendary. Never sold.", "season", "l"],
+    ["t-s-frostbyte", "title", "Frostbyte ❄️", 0, "linear-gradient(135deg,#9ff3ff,#ffffff)", "Cyber Frost season exclusive.", "season", "e"],
+    ["pet-s-yeti", "pet", "Cyber Yeti 🐻‍❄️", 0, "linear-gradient(135deg,#9ff3ff,#22e4ff,#ffffff)", "Cyber Frost season legendary. Never sold.", "season", "l"],
+    ["t-s-sunchaser", "title", "Sun Chaser ☀️", 0, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "Solar Flare season exclusive.", "season", "e"],
+    ["pet-s-lion", "pet", "Solar Lion 🦁", 0, "linear-gradient(135deg,#ffd66b,#ff8a1f,#ff2e4d)", "Solar Flare season legendary. Never sold.", "season", "l"],
+    ["t-s-junglelord", "title", "Jungle Lord 🌿", 0, "linear-gradient(135deg,#b6ff3b,#3dffa8)", "Toxic Jungle season exclusive.", "season", "e"],
+    ["pet-s-gecko", "pet", "Toxic Gecko 🦎", 0, "linear-gradient(135deg,#b6ff3b,#3dffa8,#22e4ff)", "Toxic Jungle season legendary. Never sold.", "season", "l"],
     // 👑 More legendaries
     ["pet-kraken", "pet", "Kraken 🐙", 7000, "linear-gradient(135deg,#0b2a4a,#22e4ff,#a35bff)", "Lord of the deep. Tentacles everywhere.", "", "l"],
     ["pet-wolf", "pet", "Shadow Wolf 🐺", 6000, "linear-gradient(135deg,#1a1a2e,#a35bff,#ffffff)", "Hunts by moonlight. Howls at high scores.", "", "l"],
@@ -10868,7 +10897,7 @@ function fighterGame() {
     }
   }
   /* ---------- Pets: they live in the corner, level up as you play and give bonus coins ---------- */
-  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-lion": "🦁", "pet-owl": "🦉", "pet-koala": "🐨", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉", "pet-penguin": "🐧", "pet-bunny": "🐰", "pet-turtle": "🐢", "pet-shark": "🦈", "pet-panda": "🐼", "pet-dino": "🦕", "pet-alien": "👾", "pet-narwhal": "🦄", "pet-phoenix": "🔥", "pet-crab": "🦀", "pet-jelly": "🪼", "pet-ghost": "👻", "pet-pumpkin": "🎃", "pet-elf": "🧝", "pet-snowman": "⛄", "pet-chick": "🐣", "pet-easterbunny": "🐰", "pet-beachcrab": "🦀", "pet-raccoon": "🦝", "pet-jester": "🤡", "pet-unicorn": "🦄", "pet-inferno": "🐉", "pet-sunbird": "🔥", "pet-kraken": "🐙", "pet-wolf": "🐺", "pet-tiger": "🐯", "pet-trex": "🦖", "pet-reaper": "💀", "pet-reindeer": "🦌", "pet-mermaid": "🧜" };
+  const PET_EMO = { "pet-cat": "🐱", "pet-dog": "🐶", "pet-fox": "🦊", "pet-lion": "🦁", "pet-owl": "🦉", "pet-koala": "🐨", "pet-bot": "🤖", "pet-uni": "🦄", "pet-dragon": "🐉", "pet-penguin": "🐧", "pet-bunny": "🐰", "pet-turtle": "🐢", "pet-shark": "🦈", "pet-panda": "🐼", "pet-dino": "🦕", "pet-alien": "👾", "pet-narwhal": "🦄", "pet-phoenix": "🔥", "pet-crab": "🦀", "pet-jelly": "🪼", "pet-ghost": "👻", "pet-pumpkin": "🎃", "pet-elf": "🧝", "pet-snowman": "⛄", "pet-chick": "🐣", "pet-easterbunny": "🐰", "pet-beachcrab": "🦀", "pet-raccoon": "🦝", "pet-jester": "🤡", "pet-unicorn": "🦄", "pet-inferno": "🐉", "pet-sunbird": "🔥", "pet-kraken": "🐙", "pet-wolf": "🐺", "pet-tiger": "🐯", "pet-trex": "🦖", "pet-reaper": "💀", "pet-reindeer": "🦌", "pet-mermaid": "🧜", "pet-s-owl": "🦉", "pet-s-yeti": "🐻‍❄️", "pet-s-lion": "🦁", "pet-s-gecko": "🦎" };
   const PET_TALK = ["Let's play!", "You're awesome!", "Beat your high score!", "I'm hungry...", "*happy noises*", "Go go go!", "Best friends!", "Try a new game!"];
   const petLv = (id) => Math.min(10, Math.floor(Math.sqrt(stat("px_" + id) / 3)) + 1);
   const petBonus = () => { const id = (prog.equip || {}).pet; return id && (prog.owned || []).includes(id) && petFedOk(id) ? petLv(id) * .02 : 0; };
@@ -11110,7 +11139,7 @@ function fighterGame() {
   /* hooks */
   window.gblReward = (cur, s) => {
     if (!cur || !cur.g || !BUILTINS.some((b) => b.key === cur.g.key)) return;
-    try { dropCard(cur.g.key); weekBump("game", s, cur.g.key); } catch (e) {}
+    try { dropCard(cur.g.key); weekBump("game", s, cur.g.key); seasonXp(40 + Math.min(20, Math.floor(Math.sqrt(Math.max(0, s)) / 3))); } catch (e) {}
     const wk = new Date().getDay() % 6 === 0 || !!(window.GCFG || {}).doubleCoins, bst = stat("boostUntil") > Date.now(), n = (5 + Math.min(45, Math.floor(Math.sqrt(Math.max(0, s)) / 2)) + (cur.daily ? 25 : 0)) * (wk ? 2 : 1) * (bst ? 2 : 1), cm = (window.GCFG || {}).coinMult, n2 = Math.round(n * (cm == null ? 1 : cm) * (1 + petBonus()));
     if ((prog.equip || {}).pet) { const pk = "px_" + prog.equip.pet, lv0 = petLv(prog.equip.pet); prog.stats[pk] = stat(pk) + 1; if (petLv(prog.equip.pet) > lv0) setTimeout(() => { coinPop(PET_EMO[prog.equip.pet] + " Your pet grew to level " + petLv(prog.equip.pet) + "!", true); renderPet(); }, 3000); }
     const dl = (1 + Math.min(4, Math.floor(Math.log10(Math.max(1, s))))) * (bst ? 2 : 1);
@@ -11137,13 +11166,15 @@ function fighterGame() {
     if (tt) head.firstChild.append(el("span", { class: "rew-title", style: "--tc:" + (tt[4].startsWith("#") ? tt[4] : "#ffd66b"), text: "🏷 " + tt[2] }));
     const ae = activeEvent();
     const advDue = ae === "winter" && advCalDue();
-    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["weekly", "🏆 Weekly"], ["bonus", "🎁 Bonus"], ["road", "🛣 Levels"], ["spin", "🎡 Daily spin"], ...(ae === "winter" ? [["advent", "🎄 Advent"]] : []), ["shop", "🛒 Shop"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + ((id === "weekly" && weeklyDue()) || (id === "bonus" && bonusDue()) || (id === "road" && roadDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) || (id === "advent" && advDue) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { if (id === "shop" || id === "inv") { window.gblShopTab && window.gblShopTab(id); closeRewards(); location.hash = "#shop"; return; } rtab = id; renderRewards(); } })));
+    const tabs = el("div", { class: "rew-tabs" }, ...[["missions", "🎯 Missions"], ["season", "🎟 Season"], ["weekly", "🏆 Weekly"], ["bonus", "🎁 Bonus"], ["road", "🛣 Levels"], ["spin", "🎡 Daily spin"], ...(ae === "winter" ? [["advent", "🎄 Advent"]] : []), ["shop", "🛒 Shop"], ["inv", "🎒 Inventory"]].map(([id, t]) => el("button", { class: "chip" + ((id === "season" && seasonDue()) || (id === "weekly" && weeklyDue()) || (id === "bonus" && bonusDue()) || (id === "road" && roadDue()) || (id === "spin" && (Date.now() - (stat("spinAt") || 0) >= SPIN_MS || stat("spinGrant") > stat("spinUsed"))) || (id === "advent" && advDue) ? " dot" : ""), type: "button", "aria-pressed": String(rtab === id), text: t, onclick: () => { if (id === "shop" || id === "inv") { window.gblShopTab && window.gblShopTab(id); closeRewards(); location.hash = "#shop"; return; } rtab = id; renderRewards(); } })));
     let body;
     if (rtab === "missions") {
       body = el("div", { class: "rew-list" }, ...missions().map((m) => el("div", { class: "mission" + (m.done ? " done" : "") },
         el("div", { class: "m-txt" }, el("b", { text: m.text }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(Math.min(1, m.have / m.need) * 100) + "%" })), el("small", { text: (m.kind === "score" ? "best " + fmt(Math.min(m.have, m.need)) + " / " + fmt(m.need) : Math.min(m.have, m.need) + " / " + m.need) })),
-        m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (m.done ? " hot" : ""), type: "button", disabled: !m.done, text: "Claim " + m.reward + " ⚡ + $5", onclick: () => { m.claimed = true; giveCash(5, null, true); giveCoins(m.reward, "mission!  +$5"); if (window.gblConfetti) window.gblConfetti(90); renderRewards(); } }))),
+        m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (m.done ? " hot" : ""), type: "button", disabled: !m.done, text: "Claim " + m.reward + " ⚡ + $5", onclick: () => { seasonXp(60); m.claimed = true; giveCash(5, null, true); giveCoins(m.reward, "mission!  +$5"); if (window.gblConfetti) window.gblConfetti(90); renderRewards(); } }))),
         el("p", { class: "set-note", text: "New missions every day. Coins and dollars come from every game you finish. Check the Bonus tab for free stuff!" }));
+    } else if (rtab === "season") {
+      body = seasonTab();
     } else if (rtab === "weekly") {
       body = weeklyTab();
     } else if (rtab === "road") {
@@ -11209,6 +11240,7 @@ function fighterGame() {
     if (!has && !inSeason(id)) return null;
     const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null });
     if (cur === "lv" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
+    if (cur === "season" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🎟 Season pass reward" }));
     if (cur === "set" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🃏 Complete every card set" }));
     if (igrp === "powerup") { const n = ((prog.pups || {})[id]) | 0; return el("div", { class: "shop-item" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("small", { class: "pup-own", text: "You have ×" + n }),
       el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.pups = { ...(prog.pups || {}), [id]: n + 1 }; saveProg(); renderWallet(); sfxHub(); toast(name + " ×" + (n + 1) + " — pick it on the game's start screen"); weekBump("buys"); rerender(); } })); }
@@ -11249,7 +11281,7 @@ function fighterGame() {
   }
   /* Daily deals: 3 items at 30–50% off, same for everyone all day, new ones at midnight (UTC). */
   function seededRng(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h += 0x6D2B79F5; let t = Math.imul(h ^ (h >>> 15), 1 | h); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-  const dealEligible = (it) => it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv" && it[6] !== "set" && inSeason(it[0]) && (it[6] ? cost(it[3]) >= 3 : cost(it[3]) >= 20);
+  const dealEligible = (it) => it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv" && it[6] !== "set" && it[6] !== "season" && inSeason(it[0]) && (it[6] ? cost(it[3]) >= 3 : cost(it[3]) >= 20);
   function todaysDeals() {
     const r = seededRng("deals-" + todayKey()), pool = SHOP.filter(dealEligible), legendaryOk = r() < .18;
     const pick = pool.filter((it) => legendaryOk || it[7] !== "l"), out = [];
@@ -11259,7 +11291,7 @@ function fighterGame() {
   const untilMidnight = () => { const n = new Date(), m = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1) - n.getTime(); return Math.floor(m / 36e5) + "h " + Math.floor((m % 36e5) / 6e4) + "m"; };
   /* Mystery crates: a random unowned item of that rank. */
   const CRATES = [["c", "Common Crate", 200, "📦", "linear-gradient(135deg,#777,#bbb)"], ["r", "Rare Crate", 800, "🎁", "linear-gradient(135deg,#22e4ff,#6b7dff)"], ["e", "Epic Crate", 3000, "💎", "linear-gradient(135deg,#a35bff,#ff2bd6)"], ["l", "Legendary Crate", 9000, "👑", "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)"]];
-  const cratePool = (rank) => { const owned = new Set(prog.owned || []); return SHOP.filter((it) => it[7] === rank && !owned.has(it[0]) && it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv" && it[6] !== "set" && inSeason(it[0])); };
+  const cratePool = (rank) => { const owned = new Set(prog.owned || []); return SHOP.filter((it) => it[7] === rank && !owned.has(it[0]) && it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv" && it[6] !== "set" && it[6] !== "season" && inSeason(it[0])); };
   function openCrate(rank, price, label) {
     const pool = cratePool(rank); if (!pool.length) { toast("You own every " + RAR_LABEL[rank] + " item already!"); return; }
     if (coins() < price) { toast("Not enough coins"); return; }
@@ -11415,13 +11447,73 @@ function fighterGame() {
   function weeklyList() { const r = seededRng("week-" + weekKey()), pool = WEEKLY_POOL.slice(), out = [], w = wk(); while (out.length < 5 && pool.length) { const i = r() * pool.length | 0, [id, t, goals, get, rew] = pool.splice(i, 1)[0], gi = r() * 3 | 0, n = goals[gi]; out.push({ id, text: t.replace("{n}", fmt(n)), need: n, have: get(w), reward: Math.round(rew * (1 + gi * .5)), claimed: !!w.claimed[id] }); } return out; }
   const weeklyDue = () => { const l = weeklyList(); return l.some((m) => m.have >= m.need && !m.claimed) || (l.every((m) => m.claimed) && !wk().bigClaimed); };
   const untilMonday = () => { const n = new Date(), d = (8 - n.getUTCDay()) % 7 || 7, end = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + d), ms = end - n.getTime(); return Math.floor(ms / 864e5) + "d " + Math.floor((ms % 864e5) / 36e5) + "h"; };
+  /* ---------- Season pass: one season per calendar month, 30 tiers, free + premium tracks ---------- */
+  const SEASONS = [
+    { name: "Neon Nights", col: "#ff2bd6", title: "t-s-nightrider", pet: "pet-s-owl" },
+    { name: "Cyber Frost", col: "#9ff3ff", title: "t-s-frostbyte", pet: "pet-s-yeti" },
+    { name: "Solar Flare", col: "#ffd66b", title: "t-s-sunchaser", pet: "pet-s-lion" },
+    { name: "Toxic Jungle", col: "#b6ff3b", title: "t-s-junglelord", pet: "pet-s-gecko" },
+  ];
+  const SP_TIER = 120, SP_TIERS = 30, SP_PREMIUM = 50;
+  const seasonKey = () => new Date().toISOString().slice(0, 7);
+  const seasonDef = () => { const d = new Date(); return SEASONS[(d.getUTCFullYear() * 12 + d.getUTCMonth()) % SEASONS.length]; };
+  const seasonDaysLeft = () => { const n = new Date(), end = Date.UTC(n.getUTCFullYear(), n.getUTCMonth() + 1, 1); return Math.max(0, Math.ceil((end - n.getTime()) / 864e5)); };
+  const sp = () => { if (!prog.season || prog.season.key !== seasonKey()) prog.season = { key: seasonKey(), xp: 0, free: [], prem: [], premium: false }; return prog.season; };
+  const spTier = () => Math.min(SP_TIERS, Math.floor(sp().xp / SP_TIER));
+  function spReward(t, premium) {
+    const sd = seasonDef();
+    if (premium) {
+      if (t === 15) return { k: "item", id: sd.title, label: "🏷 Season title" };
+      if (t === 30) return { k: "item", id: sd.pet, label: "👑 Season pet" };
+      if (t % 10 === 0) return { k: "crate", r: "l", label: "Legendary crate" };
+      if (t % 5 === 0) return { k: "crate", r: "e", label: "Epic crate" };
+      if (t % 3 === 0) return { k: "gems", n: 4, label: "💎 4" };
+      return { k: "coins", n: 250 + t * 25, label: "⚡ " + (250 + t * 25) };
+    }
+    if (t % 10 === 0) return { k: "crate", r: "r", label: "Rare crate" };
+    if (t % 5 === 0) return { k: "gems", n: 3, label: "💎 3" };
+    if (t % 4 === 0) return { k: "crate", r: "c", label: "Common crate" };
+    return { k: "coins", n: 80 + t * 12, label: "⚡ " + (80 + t * 12) };
+  }
+  function seasonXp(n, why) {
+    const s0 = sp(), before = spTier(); s0.xp += Math.max(0, Math.round(n)); saveProg();
+    const after = spTier(); if (after > before) setTimeout(() => coinPop("🎟 Season tier " + after + " reached! Claim it in Rewards → Season", true), 1200);
+  }
+  const seasonDue = () => { const s0 = sp(), t = spTier(); for (let i = 1; i <= t; i++) { if (!s0.free.includes(i)) return true; if (s0.premium && !s0.prem.includes(i)) return true; } return false; };
+  function claimSeason(t, premium) {
+    const s0 = sp(), list = premium ? s0.prem : s0.free; if (list.includes(t) || t > spTier() || (premium && !s0.premium)) return;
+    const r = spReward(t, premium); list.push(t); saveProg();
+    if (r.k === "coins") giveCoins(r.n, "season tier " + t + "!");
+    else if (r.k === "gems") giveGems(r.n, "season tier " + t + "!");
+    else if (r.k === "crate") { closeRewards(); if (cratePool(r.r).length) openCrate(r.r, 0, "Season " + RAR_LABEL[r.r] + " Crate"); else giveCoins(r.r === "l" ? 3000 : r.r === "e" ? 1200 : 400, "you own every " + RAR_LABEL[r.r] + " item!"); return; }
+    else if (r.k === "item") { if (!(prog.owned || []).includes(r.id)) prog.owned = [...(prog.owned || []), r.id]; saveProg(); const it = SHOP.find((q) => q[0] === r.id); buyFanfare(it ? it[7] : "e"); unlockToast(it ? it[7] : "e", it ? it[2] : "season item"); }
+    renderRewards();
+  }
+  function seasonTab() {
+    const s0 = sp(), sd = seasonDef(), t = spTier(), into = s0.xp - t * SP_TIER;
+    const cell = (i, premium) => {
+      const r = spReward(i, premium), got = (premium ? s0.prem : s0.free).includes(i), ready = i <= t && !got && (!premium || s0.premium);
+      const it = r.k === "item" ? SHOP.find((q) => q[0] === r.id) : null;
+      return el("button", { class: "sp-cell" + (premium ? " prem" : "") + (got ? " got" : ready ? " ready" : i <= t ? "" : " locked") + (r.k === "item" || r.r === "l" ? " big" : ""), type: "button", disabled: !ready, onclick: () => claimSeason(i, premium) },
+        r.k === "item" && it ? el("span", { class: "sw" + (it[1] === "pet" ? " petsw" : " ttl"), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null }) : null,
+        el("b", { text: it ? it[2] : r.label }), el("small", { text: got ? "✓" : ready ? "CLAIM" : premium && !s0.premium ? "🔒" : "TIER " + i }));
+    };
+    const track = el("div", { class: "sp-track" }, ...Array.from({ length: SP_TIERS }, (_, k) => k + 1).map((i) => el("div", { class: "sp-col" + (i === t + 1 ? " next" : "") }, el("div", { class: "sp-num" + (i <= t ? " on" : ""), text: String(i) }), cell(i, false), cell(i, true))));
+    setTimeout(() => { const nx = track.querySelector(".sp-col.next") || track.lastChild; if (nx && track.scrollTo) track.scrollTo({ left: Math.max(0, nx.offsetLeft - 120) }); }, 30);
+    return el("div", { class: "spass", style: "--sc:" + sd.col },
+      el("div", { class: "sp-head" }, el("div", {}, el("p", { class: "eyebrow", text: "SEASON · " + seasonDaysLeft() + " DAYS LEFT" }), el("h3", { class: "sp-name", text: "🎟 " + sd.name })),
+        el("div", { class: "sp-lv" }, el("b", { text: "TIER " + t + "/" + SP_TIERS }), el("span", { class: "w-bar big" }, el("i", { style: "width:" + (t >= SP_TIERS ? 100 : Math.round(into / SP_TIER * 100)) + "%" })), el("small", { text: t >= SP_TIERS ? "Season complete!" : into + " / " + SP_TIER + " season XP to tier " + (t + 1) }))),
+      s0.premium ? el("p", { class: "set-note", text: "⭐ Premium unlocked — both tracks are yours this season." }) : el("div", { class: "sp-buy" }, el("p", { class: "set-note", text: "Premium track: bigger rewards, epic & legendary crates, the season title at tier 15 and the season-only legendary pet at tier 30." }), el("button", { class: "btn sm hot", type: "button", disabled: gems() < SP_PREMIUM, text: "Unlock premium · 💎 " + SP_PREMIUM, onclick: () => { if (gems() < SP_PREMIUM) return; spend("d", SP_PREMIUM); s0.premium = true; saveProg(); sfxLegendary(); if (window.gblConfetti) window.gblConfetti(140); toast("⭐ Season premium unlocked!"); renderRewards(); } })),
+      el("div", { class: "sp-rows" }, el("small", { text: "FREE" }), el("small", { text: "⭐ PREMIUM" })), track,
+      el("p", { class: "set-note", text: "Earn season XP: every finished game 40–60, daily missions 60, weekly challenges 150. A new season starts every month." }));
+  }
   function weeklyTab() {
     const list = weeklyList(), w = wk(), allDone = list.every((m) => m.claimed);
     return el("div", { class: "rew-list" },
       el("p", { class: "set-note", text: "Five big challenges every week. Claim them all to open a free LEGENDARY crate. New challenges in " + untilMonday() + "." }),
       ...list.map((m) => { const done = m.have >= m.need; return el("div", { class: "mission" + (done ? " done" : "") },
         el("div", { class: "m-txt" }, el("b", { text: m.text }), el("span", { class: "w-bar" }, el("i", { style: "width:" + Math.round(Math.min(1, m.have / m.need) * 100) + "%" })), el("small", { text: fmt(Math.min(m.have, m.need)) + " / " + fmt(m.need) })),
-        m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (done ? " hot" : ""), type: "button", disabled: !done, text: "Claim " + m.reward + " ⚡", onclick: () => { w.claimed[m.id] = 1; saveProg(); giveCoins(m.reward, "weekly challenge!"); if (window.gblConfetti) window.gblConfetti(80); renderRewards(); } })); }),
+        m.claimed ? el("span", { class: "m-claimed", text: "✓ Claimed" }) : el("button", { class: "btn sm" + (done ? " hot" : ""), type: "button", disabled: !done, text: "Claim " + m.reward + " ⚡", onclick: () => { w.claimed[m.id] = 1; saveProg(); seasonXp(150); giveCoins(m.reward, "weekly challenge!"); if (window.gblConfetti) window.gblConfetti(80); renderRewards(); } })); }),
       el("div", { class: "mission weekly-grand" + (allDone ? " done" : "") }, el("div", { class: "m-txt" }, el("b", { text: "👑 Grand prize: free Legendary Crate" }), el("small", { text: allDone ? (w.bigClaimed ? "Opened this week — see you Monday!" : "All five done. Open it!") : list.filter((m) => m.claimed).length + " / 5 challenges claimed" })),
         w.bigClaimed ? el("span", { class: "m-claimed", text: "✓ Opened" }) : el("button", { class: "btn sm" + (allDone ? " hot" : ""), type: "button", disabled: !allDone, text: "Open crate", onclick: () => { w.bigClaimed = true; saveProg(); closeRewards(); if (cratePool("l").length) openCrate("l", 0, "Weekly Legendary Crate"); else { giveCoins(5000, "weekly grand prize!"); toast("You own every legendary — here's 5,000 ⚡ instead!"); } } })));
   }
@@ -11556,7 +11648,7 @@ function fighterGame() {
         el("div", { class: "adm-row" }, el("span", { class: "adm-k", text: "⚡" }), ic, el("span", { class: "adm-k", text: "$" }), id2, el("span", { class: "adm-k", text: "💎" }), ig, el("span", { class: "adm-k", text: "XP" }), ix,
           el("button", { class: "btn sm hot", type: "button", text: "Save money", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { coins: +ic.value || 0, cash: +id2.value || 0, gems: +ig.value || 0, xp: +ix.value || 0 } }, "Saved ✓")) })),
         el("div", { class: "adm-row wrapr" },
-          el("button", { class: "btn sm", type: "button", text: "🎁 Give every shop item", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { giveItems: SHOP.filter((it) => it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv").map((it) => it[0]) } }, "Gave everything ✓")) }),
+          el("button", { class: "btn sm", type: "button", text: "🎁 Give every shop item", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { giveItems: SHOP.filter((it) => it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv" && it[6] !== "season").map((it) => it[0]) } }, "Gave everything ✓")) }),
           el("button", { class: "btn sm", type: "button", text: "Take all items", onclick: async () => { if (confirm("Take away all of " + u.username + "'s shop items?")) redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { takeItems: true } }, "Items removed")); } }),
           el("button", { class: "btn sm", type: "button", text: "Reset progress", onclick: async () => { if (confirm("Reset ALL of " + u.username + "'s progress (coins, levels, badges, items)?")) redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "progress" } }, "Progress reset")); } }),
           el("button", { class: "btn sm", type: "button", text: "Delete all scores", onclick: async () => { if (confirm("Delete every high score " + u.username + " has?")) { redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "scores" } }, "Scores deleted")); refresh("scores"); } } }),
