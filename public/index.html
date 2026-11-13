@@ -1241,6 +1241,10 @@ html.calm *, html.calm *::before, html.calm *::after { animation-duration: .001s
 .ph-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; } .ph-foods .rew-tabs { margin-bottom: 6px; } .ph-deco { margin-bottom: 14px; }
 @media (max-width: 700px) { .ph-panel { grid-template-columns: 1fr; } .ph-scene { aspect-ratio: 4 / 3; } }
 
+.ph-guest .pv { filter: drop-shadow(0 0 10px rgba(255,123,230,.6)); } .ph-tag { position: absolute; top: -18%; left: 50%; transform: translateX(-50%); padding: 1px 8px; border-radius: 999px; background: rgba(7,4,15,.75); color: #ff7be6; font-size: .65rem; font-weight: 800; white-space: nowrap; }
+.ph-hearts { position: absolute; bottom: 30%; transform: translateX(-50%); font-size: 1.8rem; animation: phZ 1.2s ease-in-out infinite; pointer-events: none; }
+.pd-duo { display: flex; gap: 6px; } .pd-duo .pv { width: 100px; height: 100px; } .pd-ic { grid-row: span 2; width: 48px; height: 48px; } .pd-ic .pv { width: 100%; height: 100%; }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -11457,6 +11461,38 @@ function fighterGame() {
     phState.act = "eat"; phState.until = Date.now() + 2600; phState.food = SHOP.find((q) => q[0] === food)[2].split(" ")[0];
     renderPetHome(); renderPet();
   }
+  /* ---------- Pet playdates: a friend's pet comes over to play ---------- */
+  let playdate = null;
+  function startPlaydate(f) {
+    const id = (prog.equip || {}).pet; if (!id || !f.pet) return;
+    const key = "pd_" + f.id; if ((prog.stats || {})[key] === todayKey()) return toast("You already had a playdate with " + f.name + " today. Come back tomorrow!");
+    if (petAway(id)) return toast("Your pet is out on an adventure!");
+    if (energyPct(id) < 10) return toast("Your pet is too tired — let it nap first 😴");
+    api("/playdates", { method: "POST", body: { to: f.id, pet: id } }).catch(() => {});
+    playdate = { f, until: Date.now() + 16000, x: 70, tx: 70 }; phState.awake = true; phState.act = "play"; phState.until = playdate.until;
+    toast("🐾 " + f.name + "'s pet came over to play!"); sfxHub(); renderPetHome();
+  }
+  function endPlaydate() {
+    const id = (prog.equip || {}).pet, f = playdate.f; playdate = null; if (!id) return;
+    prog.stats["pd_" + f.id] = todayKey(); const pd = petData(id); pd.played = Date.now(); petGainXp(id, 4); useEnergy(id, 10); addCoinsNoXp(40); saveProg();
+    if (window.gblConfetti) window.gblConfetti(60); sfxHub();
+    const o = pgOverlay("🐾 Playdate over!"), duo = el("div", { class: "pd-duo" }); duo.innerHTML = petSVG(id, "happy", petEvo(id)) + petSVG(f.pet, "happy", false);
+    o.body.replaceChildren(duo, el("p", { text: "Your pet and " + f.name + "'s " + ((SHOP.find((q) => q[0] === f.pet) || [])[2] || "pet") + " had a blast!" }), el("div", { class: "trip-haul" }, el("b", { text: "+40 ⚡" }), el("span", { text: "+4 pet XP · happiness full" })), el("button", { class: "btn hot", type: "button", text: "Yay!", onclick: () => o.close() }));
+    renderPetHome(); renderPet();
+  }
+  window.gblPetVisited = (visits) => {
+    const id = (prog.equip || {}).pet;
+    visits.slice(0, 3).forEach((v, i) => setTimeout(() => coinPop("🐾 " + v.fromName + "'s " + (((SHOP.find((q) => q[0] === v.pet) || [])[2]) || "pet") + " came over to play with " + (id ? "your pet" : "you") + "!" + (id ? "  +2 pet XP" : ""), true), 1500 + i * 2500));
+    if (id) { petGainXp(id, 2 * Math.min(3, visits.length)); petData(id).played = Date.now(); saveProg(); }
+  };
+  async function playdatePicker() {
+    if (!me) return toast("Log in to have playdates with friends");
+    if (!fdata) await loadFriends();
+    const list = ((fdata && fdata.friends) || []).filter((f) => f.pet);
+    const o = pgOverlay("🐾 Invite a friend's pet");
+    o.body.replaceChildren(list.length ? el("div", { class: "pg-pick" }, ...list.map((f) => { const ic = el("span", { class: "pd-ic" }); ic.innerHTML = petSVG(f.pet, "happy", false); const done = (prog.stats || {})["pd_" + f.id] === todayKey(); return el("button", { class: "pg-card", type: "button", disabled: done, onclick: () => { o.close(); startPlaydate(f); } }, ic, el("b", { text: f.name + "'s " + (((SHOP.find((q) => q[0] === f.pet) || [])[2]) || "pet") }), el("small", { text: done ? "Already played today" : "Invite over to play" })); }))
+      : el("p", { class: "set-note", text: "None of your friends have a pet yet (or you haven't added friends). Add friends on the Friends page!" }));
+  }
   function renderPetHome() {
     const root = document.getElementById("pethome-page"); if (!root) return;
     const id = (prog.equip || {}).pet;
@@ -11474,6 +11510,7 @@ function fighterGame() {
     const petNode = el("div", { class: "ph-pet" + (phState.flip ? " flip" : "") + (sleeping ? " sleep" : "") + (phState.act === "eat" && phState.until > Date.now() ? " eat" : "") + (phState.act === "play" && phState.until > Date.now() ? " play" : ""), style: "left:" + (sleeping ? 30 : phState.x) + "%" });
     petNode.innerHTML = petSVG(id, sleeping ? "sleep" : petMood(id), petEvo(id)) + (sleeping ? '<span class="ph-z">💤</span>' : "") + (phState.act === "eat" && phState.until > Date.now() ? '<span class="ph-bowl">' + (phState.food || "🍖") + "</span>" : "") + (phState.act === "play" && phState.until > Date.now() ? '<span class="ph-ball">🎾</span>' : "");
     scene.append(petNode);
+    if (playdate && playdate.until > Date.now()) { const g = el("div", { class: "ph-pet ph-guest play", style: "left:" + playdate.x + "%" }); g.innerHTML = petSVG(playdate.f.pet, "happy", false) + '<span class="ph-tag">' + playdate.f.name + "</span>"; scene.append(g, el("div", { class: "ph-hearts", text: "💕" })); }
     const away = petAway(id);
     if (away) { petNode.hidden = true; scene.append(el("div", { class: "ph-away", text: "🧭 Out on an adventure!" })); }
     const bar = (label, pct, col) => el("div", { class: "pet-bar" }, el("span", { text: label }), el("span", { class: "w-bar big" }, el("i", { style: "width:" + Math.round(pct) + "%;background:" + col })), el("small", { text: Math.round(pct) + "%" }));
@@ -11485,6 +11522,7 @@ function fighterGame() {
     const acts = el("div", { class: "ph-acts" },
       night && !phState.awake && !napping(id) ? el("button", { class: "btn sm hot", type: "button", text: "☀️ Wake up", onclick: () => { phState.awake = true; sfxHub(); toast("*yawn* Good… evening? 🥱"); renderPetHome(); } }) : null,
       el("button", { class: "btn sm hot", type: "button", disabled: busy, text: "🎾 Play games", onclick: () => { if (energyPct(id) < 15) return toast("Too tired to play — let it nap first 😴"); useEnergy(id, 15); phState.act = "play"; phState.until = Date.now() + 2500; openPetGames(id); renderPetHome(); } }),
+      el("button", { class: "btn sm", type: "button", disabled: !!away || napping(id) || !!playdate, text: "🐾 Playdate", onclick: playdatePicker }),
       el("button", { class: "btn sm", type: "button", disabled: busy, text: "😴 Nap (10 min)", onclick: () => { const pd = petData(id); pd.sleepUntil = Date.now() + 10 * 6e4; pd.energy = 100; pd.eAt = Date.now() + 10 * 6e4; saveProg(); toast("Sweet dreams… 💤"); renderPetHome(); } }),
       el("button", { class: "btn sm", type: "button", disabled: busy, text: "🧭 Adventure", onclick: () => { petHome = true; renderPet(); window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); } }),
       el("button", { class: "btn sm", type: "button", text: "🛒 Pet shop", onclick: () => { if (window.gblShopTab) window.gblShopTab("shop"); location.hash = "#shop"; setTimeout(() => { const c = [...document.querySelectorAll("#shop-page .chip")].find((x2) => x2.textContent.includes("Pet stuff")); if (c) c.click(); }, 300); } }));
@@ -11507,9 +11545,17 @@ function fighterGame() {
     if (Math.random() < .25 && !(phState.until > Date.now())) { phState.tx = 12 + Math.random() * 76; }
     const d = phState.tx - phState.x; if (Math.abs(d) > .5) { phState.x += Math.sign(d) * Math.min(Math.abs(d), 2.2); phState.flip = d < 0; }
     const n = document.querySelector(".ph-pet"); if (n && !n.classList.contains("sleep")) { n.style.left = phState.x + "%"; n.classList.toggle("flip", phState.flip); n.classList.toggle("walk", Math.abs(d) > .5); }
+    if (playdate) {
+      if (playdate.until < Date.now()) { endPlaydate(); return; }
+      if (Math.random() < .3) phState.tx = 14 + Math.random() * 72;
+      playdate.x += (phState.x + (phState.flip ? 10 : -10) - playdate.x) * .12;
+      const gn = document.querySelector(".ph-guest"); if (gn) { gn.style.left = playdate.x + "%"; gn.classList.toggle("flip", phState.x < playdate.x); }
+      const hn = document.querySelector(".ph-hearts"); if (hn) hn.style.left = ((playdate.x + phState.x) / 2) + "%";
+      return;
+    }
     if (phState.until && phState.until < Date.now() && phState.act !== "idle") { phState.act = "idle"; renderPetHome(); }
   }
-  window.gblPetHomeShown = (on) => { petEl.classList.toggle("on-home", on); if (on) { renderPetHome(); clearInterval(phAnim); phAnim = setInterval(petHomeTick, 120); } };
+  window.gblPetHomeShown = (on) => { petEl.classList.toggle("on-home", on); if (on && window.gblPlaydateWith) { const f = window.gblPlaydateWith; window.gblPlaydateWith = null; setTimeout(() => startPlaydate(f), 300); } if (on) { renderPetHome(); clearInterval(phAnim); phAnim = setInterval(petHomeTick, 120); } };
   function tripBack(id) {
     const pd = petData(id), t = pd.trip; if (!t || t.end > Date.now()) return;
     pd.trip = null; const h = t.len, lv = petLv(id), coins0 = Math.round((h < 1 ? 30 : h === 1 ? 110 : h === 4 ? 420 : 900) * (1 + lv * .05) * (.85 + Math.random() * .3));
@@ -12621,6 +12667,7 @@ function fighterGame() {
     if (!me) { fdata = null; updateFriendDot(); return; }
     try { fdata = await api("/friends"); } catch { }
     updateFriendDot();
+    if (fdata && fdata.visits && fdata.visits.length && window.gblPetVisited) { const v = fdata.visits; fdata.visits = []; window.gblPetVisited(v); api("/playdates/seen", { method: "POST", body: {} }).catch(() => {}); }
   }
   function friendsDue() { if (!fdata || !me) return 0; return fdata.incoming.length + fdata.challenges.filter((c) => c.to === me.id && c.status === "open").length; }
   function updateFriendDot() { document.querySelectorAll('.links a[href="#friends"]').forEach((a) => { const n = friendsDue(); a.classList.toggle("dot", n > 0); a.dataset.n = n || ""; }); }
@@ -12661,7 +12708,7 @@ function fighterGame() {
     const list = el("div", { class: "fr-sec" }, el("p", { class: "eyebrow set-h2", text: "👥 Friends · " + fdata.friends.length }),
       fdata.friends.length ? el("div", { class: "fr-grid" }, ...fdata.friends.map((f) => el("div", { class: "fr-card" }, who(f),
         el("div", { class: "fr-recent" }, ...(f.recent && f.recent.length ? f.recent.map((r) => el("small", { text: "🎮 " + ((fGame(r.game) || {}).title || r.game) + " · " + fmt(r.score) + " · " + timeAgo(r.at) })) : [el("small", { text: "No scores yet" })])),
-        el("div", { class: "fr-acts" }, el("button", { class: "btn sm hot", type: "button", text: "⚔️ Challenge", onclick: () => myPick(f) }), el("button", { class: "linkbtn", type: "button", text: "Remove", onclick: () => { if (confirm("Remove " + f.name + " from your friends?")) act(f.id, "remove"); } }))))) : el("p", { class: "set-note", text: "No friends yet — add someone by their username above!" }));
+        el("div", { class: "fr-acts" }, el("button", { class: "btn sm hot", type: "button", text: "⚔️ Challenge", onclick: () => myPick(f) }), f.pet ? el("button", { class: "btn sm", type: "button", text: "🐾 Playdate", onclick: () => { window.gblPlaydateWith = f; location.hash = "#pethome"; } }) : null, el("button", { class: "linkbtn", type: "button", text: "Remove", onclick: () => { if (confirm("Remove " + f.name + " from your friends?")) act(f.id, "remove"); } }))))) : el("p", { class: "set-note", text: "No friends yet — add someone by their username above!" }));
     const pend = fdata.outgoing.length ? el("p", { class: "set-note", text: "Waiting for: " + fdata.outgoing.map((f) => f.name).join(", ") }) : null;
     const done = fdata.challenges.filter((c) => c.status !== "open").slice(0, 12), sent = fdata.challenges.filter((c) => c.from === me.id && c.status === "open");
     const hist = done.length || sent.length ? el("div", { class: "fr-sec" }, el("p", { class: "eyebrow set-h2", text: "📜 Recent challenges" }),

@@ -51,6 +51,7 @@ const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, game TEXT NOT NULL, host_id INTEGER NOT NULL, guest_id INTEGER, moves TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS rate (key TEXT PRIMARY KEY, count INTEGER NOT NULL, since INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS friends (a INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, b INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, status TEXT NOT NULL, asker INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (a, b))",
+  "CREATE TABLE IF NOT EXISTS playdates (id INTEGER PRIMARY KEY AUTOINCREMENT, from_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, to_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, pet TEXT NOT NULL, at INTEGER NOT NULL, seen INTEGER NOT NULL DEFAULT 0)",
   "CREATE TABLE IF NOT EXISTS challenges (id INTEGER PRIMARY KEY AUTOINCREMENT, from_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, to_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, score INTEGER NOT NULL, reply INTEGER, status TEXT NOT NULL DEFAULT 'open', at INTEGER NOT NULL, done_at INTEGER)",
   "CREATE TABLE IF NOT EXISTS tours (code TEXT PRIMARY KEY, host_id INTEGER NOT NULL, games TEXT NOT NULL, players TEXT NOT NULL DEFAULT '[]', scores TEXT NOT NULL DEFAULT '{}', status TEXT NOT NULL DEFAULT 'lobby', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
@@ -117,6 +118,8 @@ async function handle(request, env, url) {
   if (path === "/api/friends" && method === "POST") return addFriend(request, env, user);
   if ((m = path.match(/^\/api\/friends\/(\d+)\/(accept|remove)$/)) && method === "POST") return friendAction(env, user, +m[1], m[2]);
   if (path === "/api/challenges" && method === "POST") return createChallenge(request, env, user);
+  if (path === "/api/playdates" && method === "POST") return createPlaydate(request, env, user);
+  if (path === "/api/playdates/seen" && method === "POST") return seenPlaydates(env, user);
   if ((m = path.match(/^\/api\/challenges\/(\d+)\/answer$/)) && method === "POST") return answerChallenge(request, env, user, +m[1]);
   if (path === "/api/tours" && method === "POST") return createTour(env, user);
   if ((m = path.match(/^\/api\/tours\/([A-Z]{4})$/)) && method === "GET") return getTour(env, user, m[1]);
@@ -408,7 +411,9 @@ async function getFriends(env, user) {
   }
   const { results: ch } = await env.DB.prepare(`SELECT c.*, fu.username AS from_name, tu.username AS to_name FROM challenges c JOIN users fu ON fu.id = c.from_id JOIN users tu ON tu.id = c.to_id WHERE (c.from_id = ? OR c.to_id = ?) AND c.at > ? ORDER BY c.at DESC LIMIT 60`).bind(user.id, user.id, Date.now() - 14 * DAY).all();
   const challenges = ch.map((c) => ({ id: c.id, from: c.from_id, fromName: c.from_name, to: c.to_id, toName: c.to_name, game: c.game, score: c.score, reply: c.reply, status: c.status, at: c.at, doneAt: c.done_at }));
-  return json({ friends, incoming, outgoing, challenges });
+  const { results: vis } = await env.DB.prepare("SELECT pd.id, pd.pet, pd.at, u.username AS from_name FROM playdates pd JOIN users u ON u.id = pd.from_id WHERE pd.to_id = ? AND pd.seen = 0 ORDER BY pd.at DESC LIMIT 10").bind(user.id).all();
+  const visits = vis.map((v) => ({ id: v.id, fromName: v.from_name, pet: itemId(v.pet, "pet-"), at: v.at }));
+  return json({ friends, incoming, outgoing, challenges, visits });
 }
 async function addFriend(request, env, user) {
   if (!user) fail(401, "Log in to add friends.");
@@ -447,6 +452,22 @@ async function createChallenge(request, env, user) {
   if (open) fail(409, "You already have an open challenge with them in that game.");
   await env.DB.prepare("INSERT INTO challenges (from_id, to_id, game, score, at) VALUES (?, ?, ?, ?, ?)").bind(user.id, to, game, best.score, Date.now()).run();
   return json({ ok: true, score: best.score });
+}
+async function createPlaydate(request, env, user) {
+  if (!user) fail(401, "Log in first.");
+  await limit(env, "play:" + user.id, 30, HOUR, "That's a lot of playdates! Try again later.");
+  const b = await readJson(request), to = Math.floor(Number(b.to)), pet = itemId(b.pet, "pet-");
+  if (!pet) fail(400, "You need a pet for a playdate.");
+  if (!(await areFriends(env, user.id, to))) fail(403, "Playdates are only with friends.");
+  const recent = await env.DB.prepare("SELECT id FROM playdates WHERE from_id = ? AND to_id = ? AND at > ?").bind(user.id, to, Date.now() - 20 * HOUR).first();
+  if (recent) fail(409, "You already had a playdate with them today. Try again tomorrow!");
+  await env.DB.prepare("INSERT INTO playdates (from_id, to_id, pet, at) VALUES (?, ?, ?, ?)").bind(user.id, to, pet, Date.now()).run();
+  return json({ ok: true });
+}
+async function seenPlaydates(env, user) {
+  if (!user) fail(401, "Log in first.");
+  await env.DB.prepare("UPDATE playdates SET seen = 1 WHERE to_id = ? AND seen = 0").bind(user.id).run();
+  return json({ ok: true });
 }
 async function answerChallenge(request, env, user, id) {
   if (!user) fail(401, "Log in first.");
