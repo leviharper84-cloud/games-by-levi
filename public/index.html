@@ -5635,7 +5635,8 @@ function questGame() {
 /* ---------- 27 Hoop Shot ---------- */
 function hoopGame() {
   const W = 480, H = 560, BR = 13, GRAV = 900, FLOOR = H - 24, BX = 446;
-  let botT = 1, ball, hy, hoopX, aim, drag, timeLeft, streak, made, level, shotT, spot, scored, touchedRim, duo, sdur;
+  let botT = 1, ball, hy, hoopX, aim, drag, timeLeft, streak, made, level, shotT, spot, scored, touchedRim, duo, sdur, ghost = false, ghostWait = false, lastPts = 0;
+  const myTurn = () => !S.online || (duo && duo.shot % 2 + 1 === S.online);
   const rimF = () => [hoopX - 50, hy], rimB = () => [hoopX - 4, hy];
   const SPOTS = [[90, 430], [150, 470], [60, 360], [200, 440], [110, 300], [40, 470], [170, 380], [250, 470]];
   function newShot() {
@@ -5643,11 +5644,18 @@ function hoopGame() {
     spot = SPOTS[i]; ball = { x: spot[0], y: spot[1], vx: 0, vy: 0, live: false, rot: 0 };
     aim = { a: -0.95, p: 640 }; shotT = 0; scored = false; touchedRim = false;
   }
-  function launch(vx, vy) {
+  function launch(vx, vy, remoteShot) {
     if (ball.live) return;
+    if (S.online && !remoteShot) { if (!myTurn()) return; sendMove({ vx: Math.round(vx), vy: Math.round(vy) }); }
+    ghost = !!remoteShot; ghostWait = false;
     ball.vx = vx; ball.vy = vy; ball.live = true; shotT = 0; sfx("jump");
   }
   function endShot() {
+    if (ghost) { ghostWait = true; ball.live = false; return; }
+    if (S.online && myTurn()) sendMove({ res: scored ? 1 : 0, pts: scored ? lastPts : 0 });
+    finishShot();
+  }
+  function finishShot() {
     if (!scored) {
       if (S.duo) { pop(W / 2, 150, "MISS", "#ff4d6d"); }
       else { streak = 0; pop(ball.x < 0 || ball.x > W ? W / 2 : ball.x, 150, "MISS", "#ff4d6d"); }
@@ -5661,9 +5669,10 @@ function hoopGame() {
     newShot();
   }
   function basket() {
+    if (ghost) { scored = true; return; }
     scored = true; const far = Math.hypot(spot[0] - hoopX, spot[1] - hy) > 400, swish = !touchedRim;
     if (S.duo) {
-      const p = duo.shot % 2, pts = far ? 3 : 2; duo.pts[p] += pts;
+      const p = duo.shot % 2, pts = far ? 3 : 2; duo.pts[p] += pts; lastPts = pts;
       pop(hoopX - 26, hy - 40, "+" + pts + (swish ? " SWISH" : ""), p ? "#ff2bd6" : "#22e4ff");
     } else {
       streak++; made++;
@@ -5704,15 +5713,27 @@ function hoopGame() {
   }
   const botTurn = () => S.bot && duo && duo.shot % 2 === 1;
   game({
+    remote(m) {
+      if (!m || !duo) return true;
+      if (m.vx != null) { if (myTurn()) return true; if (ball.live) return false; launch(+m.vx, +m.vy, true); return true; }
+      if (m.res != null) {
+        if (myTurn() && !ghost) return true;
+        if (ball.live && ghost && shotT < 5) return false;
+        ghost = false; ghostWait = false; ball.live = false;
+        if (+m.res) { scored = true; const p = duo.shot % 2; duo.pts[p] += +m.pts || 2; pop(hoopX - 26, hy - 40, "+" + (+m.pts || 2), p ? "#ff2bd6" : "#22e4ff"); sfx("score"); burst(hoopX - 26, hy + 10, "#ffc23d", 24, 220, .6); } else scored = false;
+        finishShot(); return true;
+      }
+      return true;
+    },
     title: "Hoop Shot", duo: "Take turns shooting from the same spots, 5 shots each. Most points wins.", easy: "no timer and a full aiming guide", w: W, h: H, color: "#ff8a1f", bpm: 112,
     help: ["Drag back from anywhere and let go to shoot", "Keys: ↑ ↓ aim, ← → power, Space shoots", "Swish = no rim. 3 in a row and you're ON FIRE", "Each basket adds 2 seconds. The hoop starts moving"],
-    init() { hy = 220; hoopX = BX; streak = 0; made = 0; level = 1; timeLeft = 45; drag = null; sdur = 0; duo = S.duo ? { pts: [0, 0], shot: 0, per: 5, seq: Array.from({ length: 30 }, (_, i) => [0, 3, 4, 1, 6, 2, 7, 5][(i >> 1) % 8]) } : null; newShot(); },
-    hud() { if (S.duo) return "P1 " + duo.pts[0] + "  ·  SHOT " + (Math.floor(duo.shot / 2) + 1) + "/" + duo.per + "  ·  " + duo.pts[1] + " P2  ·  " + (duo.shot % 2 ? "P2" : "P1") + " SHOOTS"; return "LEVEL " + level + "  ·  STREAK " + streak + (S.practice ? "" : "  ·  TIME " + Math.ceil(timeLeft)); },
+    init() { ghost = false; ghostWait = false; hy = 220; hoopX = BX; streak = 0; made = 0; level = 1; timeLeft = 45; drag = null; sdur = 0; duo = S.duo ? { pts: [0, 0], shot: 0, per: 5, seq: Array.from({ length: 30 }, (_, i) => [0, 3, 4, 1, 6, 2, 7, 5][(i >> 1) % 8]) } : null; newShot(); },
+    hud() { if (S.online && duo) return "YOU " + duo.pts[S.online - 1] + "  ·  SHOT " + (Math.floor(duo.shot / 2) + 1) + "/" + duo.per + "  ·  FRIEND " + duo.pts[2 - S.online] + "  ·  " + (myTurn() ? "YOUR SHOT" : "FRIEND'S SHOT"); if (S.duo) return "P1 " + duo.pts[0] + "  ·  SHOT " + (Math.floor(duo.shot / 2) + 1) + "/" + duo.per + "  ·  " + duo.pts[1] + " P2  ·  " + (duo.shot % 2 ? "P2" : "P1") + " SHOOTS"; return "LEVEL " + level + "  ·  STREAK " + streak + (S.practice ? "" : "  ·  TIME " + Math.ceil(timeLeft)); },
     summary() { return S.duo ? ["P1 " + duo.pts[0] + "  ·  P2 " + duo.pts[1]] : ["BASKETS " + made]; },
-    down(px, py) { if (!ball.live && !botTurn()) drag = { sx: px, sy: py, x: px, y: py }; },
+    down(px, py) { if (!ball.live && !botTurn() && myTurn() && !ghostWait) drag = { sx: px, sy: py, x: px, y: py }; },
     move(px, py) { if (drag) { drag.x = px; drag.y = py; } },
     up() { if (drag && !ball.live) { const [vx, vy] = dragVel(); if (Math.hypot(vx, vy) > 160) launch(vx, vy); } drag = null; },
-    key(k, rep) { if (k === " " && !rep && !ball.live && !botTurn()) launch(Math.cos(aim.a) * aim.p, Math.sin(aim.a) * aim.p); },
+    key(k, rep) { if (k === " " && !rep && !ball.live && !botTurn() && myTurn() && !ghostWait) launch(Math.cos(aim.a) * aim.p, Math.sin(aim.a) * aim.p); },
     update(dt) {
       if (!S.practice && !S.duo) { timeLeft -= dt; if (timeLeft <= 0) { timeLeft = 0; return over("TIME UP"); } }
       if (!ball.live) {
@@ -10588,7 +10609,7 @@ function fighterGame() {
   setInterval(() => { if (!document.hidden) { if (daily && Date.now() > daily.endsAt) loadDaily(); else renderDaily(); } }, 30000);
 
   /* ---------- Online 2-player (turn-based games) ---------- */
-  const ONLINE = [["ttt", "Tic-Tac-Toe"], ["dots", "Dots & Boxes"], ["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"], ["penalty", "Penalty Kick"], ["memory", "Memory Grid"], ["guesswho", "Guess Who"], ["golf", "Mini Golf"]];
+  const ONLINE = [["ttt", "Tic-Tac-Toe"], ["dots", "Dots & Boxes"], ["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"], ["penalty", "Penalty Kick"], ["memory", "Memory Grid"], ["guesswho", "Guess Who"], ["golf", "Mini Golf"], ["hoops", "Hoop Shot"]];
   let room = null, waitTimer = null;
   function renderOnline() {
     const box = $("#online-box"); if (!box) return;
