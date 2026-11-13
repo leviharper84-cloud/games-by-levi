@@ -1187,6 +1187,10 @@ html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 .sw.pvd { width: 68px !important; height: 68px !important; border-radius: 16px !important; background: radial-gradient(circle at 50% 40%, rgba(255,255,255,.14), rgba(7,4,15,.4)) !important; padding: 2px; display: grid; place-items: center; overflow: visible; box-shadow: none !important; }
 .sp-cell .sw.pvd { width: 40px !important; height: 40px !important; } .sw.pvd .pv { width: 100%; height: 100%; }
 
+html.big-text { font-size: 112.5%; }
+html.big-text .shop-item small, html.big-text .set-note, html.big-text .who-title { font-size: .85rem; }
+html.calm *, html.calm *::before, html.calm *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -1905,6 +1909,7 @@ function SHELL() {
   function pop(X, Y, t, c) { S.pops.push({ x: X, y: Y, t, c: c || "#fff", l: .9 }); }
   function banner(t, c) { S.banner = { t, c: c || G.color, l: 1.6 }; }
   const SET0 = window.SET0 || {};
+  if (SET0.big) document.body.classList.add("big");
   function shake(a, t) { if (SET0.shake === false) return; S.shakeA = Math.max(S.shakeA, a); S.shakeT = Math.max(S.shakeT, t || .3); }
   function flash(c, a) { if (SET0.flash === false) return; S.flashC = c; S.flashA = Math.max(S.flashA, a || .4); }
 
@@ -6108,6 +6113,7 @@ function towerGame() {
 /* ---------- 30 Connect Four ---------- */
 function c4Game() {
   const W = 480, H = 540, C = 7, R = 6, Z = 62, OX = (W - C * Z) / 2, OY = 120, ORDER = [3, 2, 4, 1, 5, 0, 6];
+  const cbMark = (p, X, Y) => { if (!(window.SET0 || {}).cb) return; x.strokeStyle = "rgba(10,4,24,.85)"; x.lineWidth = 4; x.beginPath(); if (p === 1) { x.moveTo(X - 9, Y - 9); x.lineTo(X + 9, Y + 9); x.moveTo(X + 9, Y - 9); x.lineTo(X - 9, Y + 9); } else { x.arc(X, Y, 9, 0, 7); } x.stroke(); };
   const PC = ["", "#ff2bd6", "#ffc23d"]; { const k = String((window.SKIN0 || {}).connect4 || "").split("-").pop(), m2 = { lime: "#b6ff3b", ice: "#9ff3ff", violet: "#a35bff", white: "#ffffff" }; if (m2[k]) PC[1] = m2[k]; }
   let b, hgt, turn, level, anim, winCells, aiT, cur, moves, endT, endMsg, startP;
   const hum = () => (S.online ? turn === S.online : (S.duo && !S.bot) || turn === 1);
@@ -6199,10 +6205,10 @@ function c4Game() {
       techBg("#ff2bd6");
       const hc = PC[turn];
       if (S.state === "play" && !anim && !endT && hum()) { glow(hc, 16); x.fillStyle = ca(hc, .8); x.beginPath(); x.arc(OX + cur * Z + Z / 2, OY - Z / 2 - 4 + Math.sin(S.clock * 5) * 3, Z * .38, 0, 7); x.fill(); glow(); }
-      if (anim) { glow(PC[anim.p], 16); x.fillStyle = PC[anim.p]; x.beginPath(); x.arc(OX + anim.c * Z + Z / 2, anim.y, Z * .4, 0, 7); x.fill(); glow(); }
+      if (anim) { glow(PC[anim.p], 16); x.fillStyle = PC[anim.p]; x.beginPath(); x.arc(OX + anim.c * Z + Z / 2, anim.y, Z * .4, 0, 7); x.fill(); glow(); cbMark(anim.p, OX + anim.c * Z + Z / 2, anim.y); }
       for (let c = 0; c < C; c++) for (let r = 0; r < R; r++) {
         const v = b[c][r], X = OX + c * Z + Z / 2, Y = OY + (R - 1 - r) * Z + Z / 2;
-        if (v) { const win = winCells && winCells.some(([a, bb]) => a === c && bb === r); glow(PC[v], win ? 26 + Math.sin(S.clock * 10) * 8 : 12); x.fillStyle = PC[v]; x.beginPath(); x.arc(X, Y, Z * .4, 0, 7); x.fill(); glow(); x.fillStyle = "rgba(255,255,255,.3)"; x.beginPath(); x.arc(X - 7, Y - 7, 6, 0, 7); x.fill(); }
+        if (v) { const win = winCells && winCells.some(([a, bb]) => a === c && bb === r); glow(PC[v], win ? 26 + Math.sin(S.clock * 10) * 8 : 12); x.fillStyle = PC[v]; x.beginPath(); x.arc(X, Y, Z * .4, 0, 7); x.fill(); glow(); cbMark(v, X, Y); x.fillStyle = "rgba(255,255,255,.3)"; x.beginPath(); x.arc(X - 7, Y - 7, 6, 0, 7); x.fill(); }
       }
       x.save(); x.beginPath(); x.rect(OX - 10, OY - 6, C * Z + 20, R * Z + 16);
       for (let c = 0; c < C; c++) for (let r = 0; r < R; r++) { const X = OX + c * Z + Z / 2, Y = OY + r * Z + Z / 2; x.moveTo(X + Z * .42, Y); x.arc(X, Y, Z * .42, 0, 6.2832, true); }
@@ -6516,6 +6522,7 @@ function simonGame() {
         const am = (a0 + a1) / 2;
         if (on) { x.fillStyle = "rgba(255,255,255,.35)"; x.beginPath(); x.arc(CX, CY, R1 - 8, a0 + .05, a1 - .05); x.arc(CX, CY, R1 - 30, a1 - .05, a0 + .05, true); x.closePath(); x.fill(); }
         txt(["↑ 1", "→ 2", "↓ 3", "← 4"][i], CX + Math.cos(am) * (R1 + 24), CY + Math.sin(am) * (R1 + 24), 11, ca(c, .7));
+        if ((window.SET0 || {}).cb) txt(["●", "▲", "■", "◆"][i], CX + Math.cos(am) * (R1 - 50), CY + Math.sin(am) * (R1 - 50), 26, on ? "#ffffff" : ca(c, .9), "center");
       }
       const pc = phase === "input" ? "#3dffa8" : phase === "show" ? "#ffffff" : "#8f86b5";
       glow(pc, 14); x.strokeStyle = pc; x.lineWidth = 2; x.beginPath(); x.arc(CX, CY, R0 - 14, 0, 7); x.stroke(); glow();
@@ -9637,13 +9644,14 @@ function fighterGame() {
     "#go{font:800 15px Orbitron,system-ui,sans-serif;letter-spacing:.2em;color:#fff;background:rgba(10,4,24,.85);border:2px solid var(--c,#22e4ff);border-radius:999px;padding:14px 34px;cursor:pointer;touch-action:manipulation;-webkit-tap-highlight-color:transparent;box-shadow:0 0 24px var(--c,#22e4ff),inset 0 0 14px rgba(255,255,255,.08);text-shadow:0 0 10px var(--c,#22e4ff)}" +
     "#go:active{transform:scale(.96)}#cont{font:800 14px Orbitron,system-ui,sans-serif;letter-spacing:.14em;color:#ffd66b;background:rgba(10,4,24,.85);border:2px solid #ffd66b;border-radius:999px;padding:14px 26px;cursor:pointer;touch-action:manipulation;box-shadow:0 0 22px rgba(255,214,107,.6);text-shadow:0 0 10px #ffd66b}#cont[hidden]{display:none}" +
     "@media(max-width:520px){#hc{display:none}}" +
+    "body.big #hud{height:44px;font-size:16px}body.big #wrap{inset:46px 0 0}body.big #ctl button{font-size:15px;padding:6px 12px}body.big #go,body.big #qp,body.big #prac,body.big #duo{font-size:17px}body.big .pup{font-size:15px}" +
     "@media(any-pointer:coarse){#hud{height:40px;font-size:13px;padding:0 10px}#wrap{inset:42px 0 0}#ctl{gap:8px}#ctl button{font-size:14px;padding:6px 12px;border-radius:6px}#ctl #xq{font-size:17px;padding:6px 16px}}" +
     "html,body{position:fixed;inset:0;width:100%}";
   function buildGame(g, opts) {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button><button id="xq" type="button" title="Close" hidden>✕</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="qp" type="button">⚡ QUICK PLAY</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button><div id="pups" hidden></div></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";window.PUPS0=" + JSON.stringify((prog && prog.pups) || {}) + ";window.QPBEST0=" + (myBest(g.key + "-qp") | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (window.gblEventActive && window.gblEventActive("halloween") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake, flash: settings.flash, crt: settings.crt, glow: settings.glow }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="qp" type="button">⚡ QUICK PLAY</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button><div id="pups" hidden></div></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";window.PUPS0=" + JSON.stringify((prog && prog.pups) || {}) + ";window.QPBEST0=" + (myBest(g.key + "-qp") | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (window.gblEventActive && window.gblEventActive("halloween") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake && !settings.calm, flash: settings.flash && !settings.calm, crt: settings.crt, glow: settings.glow, cb: settings.cb === true, big: settings.big === true, calm: settings.calm === true }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -11107,7 +11115,7 @@ function fighterGame() {
   };
   /* The pet wanders along the bottom of the hub. */
   setInterval(() => {
-    if (petEl.hidden || petHome || document.documentElement.classList.contains("playing") || ((prog.equip || {}).pet && petAway(prog.equip.pet))) return;
+    if (petEl.hidden || petHome || document.documentElement.classList.contains("playing") || document.documentElement.classList.contains("calm") || ((prog.equip || {}).pet && petAway(prog.equip.pet))) return;
     if (petPause > 0) { petPause--; if (petWalking) { petWalking = false; petEl.classList.remove("walk"); } return; }
     const maxX = Math.max(14, Math.min(260, innerWidth - 150));
     petX += petDir * .9; if (petX > maxX) { petX = maxX; petDir = -1; } if (petX < 14) { petX = 14; petDir = 1; }
@@ -11883,7 +11891,7 @@ function fighterGame() {
   const confettiCv = el("canvas", { class: "confetti", "aria-hidden": "true" }); document.body.append(confettiCv);
   let confParts = [], confRun = false;
   function confetti(n) {
-    if (matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    if (matchMedia("(prefers-reduced-motion: reduce)").matches || settings.calm === true) return;
     const cols = ["#ff2bd6", "#22e4ff", "#ffd66b", "#b6ff3b", "#a35bff", "#ff8a1f"];
     for (let i = 0; i < (n || 120); i++) confParts.push({ x: innerWidth / 2 + (Math.random() - .5) * 200, y: innerHeight * .35, vx: (Math.random() - .5) * 900, vy: -300 - Math.random() * 700, r: Math.random() * 6.28, vr: (Math.random() - .5) * 12, c: cols[i % cols.length], s: 5 + Math.random() * 6, l: 2.4 + Math.random() });
     if (!confRun) { confRun = true; let last = performance.now(); const step = (t) => {
@@ -11977,23 +11985,25 @@ function fighterGame() {
     ["rock", "Arcade Rock", "Power chords and a stomping beat."],
     ["off", "No music", "Just the sound effects."],
   ];
-  let settings = { music: "synth", mvol: 80, svol: 80, shake: true, flash: true, crt: true, glow: true, theme: store.get("gbl-neon") || "synthwave" };
+  let settings = { music: "synth", mvol: 80, svol: 80, shake: true, flash: true, crt: true, glow: true, cb: false, big: false, calm: false, theme: store.get("gbl-neon") || "synthwave" };
   const THEMES = [["synthwave", "Synthwave", "#ff2bd6", "#22e4ff"], ["toxic", "Toxic", "#b6ff3b", "#a35bff"], ["sunset", "Sunset", "#ff8a1f", "#ff2e88"], ["ice", "Ice", "#6af7ff", "#6b7dff"],
     ["matrix", "Matrix", "#3dff6e", "#00b3ff"], ["gold", "Gold Rush", "#ffc23d", "#ff6b3d"], ["blood", "Blood Moon", "#ff2e4d", "#a020ff"], ["galaxy", "Galaxy", "#a35bff", "#ff7be6"]];
   document.querySelectorAll(".swatch").forEach((b2) => b2.addEventListener("click", () => { settings.theme = b2.dataset.neon; saveSettings(); }));
   try { const s0 = JSON.parse(store.get("gbl-settings") || "null"); if (s0 && typeof s0 === "object") settings = { ...settings, ...s0 }; } catch {}
+  function applyA11y() { document.documentElement.classList.toggle("big-text", settings.big === true); document.documentElement.classList.toggle("calm", settings.calm === true); }
+  applyA11y();
   if (settings.music === "off") { settings.music = "synth"; saveSettings(); }
   let setTimer = null;
   async function loadSettings() {
     if (!SET_REMOTE.can()) return;
     try {
       const s1 = await SET_REMOTE.load();
-      if (s1 && typeof s1 === "object") { settings = { ...settings, ...s1 }; if (settings.theme) applyNeon(settings.theme); store.set("gbl-settings", JSON.stringify(settings)); if (sm.classList.contains("open")) renderSettings(); }
+      if (s1 && typeof s1 === "object") { settings = { ...settings, ...s1 }; applyA11y(); if (settings.theme) applyNeon(settings.theme); store.set("gbl-settings", JSON.stringify(settings)); if (sm.classList.contains("open")) renderSettings(); }
       else SET_REMOTE.save(settings).catch(() => {});
     } catch {}
   }
   function saveSettings() {
-    store.set("gbl-settings", JSON.stringify(settings));
+    store.set("gbl-settings", JSON.stringify(settings)); applyA11y();
     if (!SET_REMOTE.can()) return;
     clearTimeout(setTimer);
     setTimer = setTimeout(() => SET_REMOTE.save(settings).catch(() => toast("Couldn't save to your account. Saved on this device.")), 500);
@@ -12055,8 +12065,8 @@ function fighterGame() {
       r.addEventListener("input", () => { settings[key] = +r.value; t.textContent = r.value + "%"; saveSettings(); });
       return el("div", { class: "set-vol" }, el("span", { text: label }), r, t);
     };
-    const toggle = (key, label, sub) => el("label", { class: "set-tog" },
-      el("input", { type: "checkbox", checked: settings[key] !== false, onchange: (e) => { settings[key] = e.currentTarget.checked; saveSettings(); } }),
+    const toggle = (key, label, sub, optIn) => el("label", { class: "set-tog" },
+      el("input", { type: "checkbox", checked: optIn ? settings[key] === true : settings[key] !== false, onchange: (e) => { settings[key] = e.currentTarget.checked; saveSettings(); } }),
       el("span", { class: "set-sw", "aria-hidden": "true" }), el("span", { class: "set-tl" }, el("b", { text: label }), el("small", { text: sub })));
     const vol = el("input", { type: "range", min: "0", max: "100", step: "5", value: String(settings.mvol), class: "set-range", "aria-label": "Music volume" });
     const volTxt = el("b", { text: settings.mvol + "%" });
@@ -12075,6 +12085,11 @@ function fighterGame() {
         toggle("flash", "Flashes", "Bright flashes and glitch effects"),
         toggle("crt", "Retro scanlines", "Old-school TV lines over the games"),
         toggle("glow", "Game glow", "The neon bloom. Turn off for smoother play on older iPads")),
+      el("p", { class: "eyebrow set-h2", text: "Accessibility" }),
+      el("div", { class: "set-togs" },
+        toggle("cb", "Colour-blind mode", "Adds shapes and symbols so colour is never the only clue (Connect Four, Simon, Gem Match)", true),
+        toggle("big", "Bigger text", "Larger text across the hub and in the game bars", true),
+        toggle("calm", "Calm mode", "No confetti, screen shake or flashes, and your pet stays still", true)),
       el("p", { class: "set-note", text: SET_REMOTE.can() ? "✓ Saved to your account, so it follows you to any device." : "Saved on this device. Log in to save it to your account." }),
       el("p", { class: "set-note", text: "Tip: in any game, the ♪ button or the M key switches between all sound, effects only and silent." }));
   }
