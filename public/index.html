@@ -1191,6 +1191,10 @@ html.big-text { font-size: 112.5%; }
 html.big-text .shop-item small, html.big-text .set-note, html.big-text .who-title { font-size: .85rem; }
 html.calm *, html.calm *::before, html.calm *::after { animation-duration: .001s !important; animation-iteration-count: 1 !important; }
 
+.adm-tabs { margin: 4px 0 14px; } .adm-tabs .chip.dot { position: relative; }
+.adm-dirty { display: inline-block; margin-left: 8px; padding: 2px 10px; border-radius: 999px; font-size: .68rem; font-weight: 800; letter-spacing: .06em; background: rgba(255,214,107,.18); color: #ffd66b; vertical-align: middle; } .adm-dirty[hidden] { display: none; }
+.adm-ta { resize: vertical; min-height: 56px; font: inherit; }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -11869,7 +11873,11 @@ function fighterGame() {
   window.gblInitEggHunt = initEggHunt;
 
   /* ---------- Admin panel (only the admin account sees it) ---------- */
-  const adm = { q: "", users: [], open: null };
+  const adm = { q: "", users: [], open: null, tab: "controls" };
+  /* Admin drafts: anything typed is kept (even across re-renders and reloads) until it's saved or discarded. */
+  let admDraft = {}; try { admDraft = JSON.parse(localStorage.getItem("gbl-adm-draft") || "{}") || {}; } catch {}
+  const saveDraft = () => { try { localStorage.setItem("gbl-adm-draft", JSON.stringify(admDraft)); } catch {} };
+  const draftKeys = (pre) => Object.keys(admDraft).filter((k) => k.startsWith(pre));
   const ago = (t) => { if (!t) return "never"; const m = Math.floor((Date.now() - t) / 60000); return m < 1 ? "just now" : m < 60 ? m + "m ago" : m < 1440 ? Math.floor(m / 60) + "h ago" : Math.floor(m / 1440) + "d ago"; };
   window.gblShowAdmin = () => { const on = !!(typeof me !== "undefined" && me && me.admin && XR.online); document.querySelectorAll(".admin-only").forEach((e) => { e.hidden = !on; }); if (on) renderAdmin(); };
   async function admCall(path, opts, okMsg) { try { const r = await api(path, opts); if (okMsg) toast(okMsg); return r; } catch (e) { toast(e.message || "That didn't work"); return null; } }
@@ -11878,35 +11886,45 @@ function fighterGame() {
     const ov = (await admCall("/admin/overview")) || {};
     const c = { announce: "", priceMult: 1, coinMult: 1, off: [], gift: null, event: "auto", doubleCoins: false, ...(window.GCFG || {}) };
     const tiles = el("div", { class: "adm-tiles" }, ...[["👥", ov.users, "Players"], ["🔥", ov.activeToday, "Active today"], ["🏆", ov.scores, "High scores"], ["📥", ov.pending, "Games waiting"], ["📬", ov.newHelp, "New requests"]].map(([i, n, l]) => el("div", { class: "adm-tile" }, el("span", { text: i }), el("b", { text: fmt(n || 0) }), el("small", { text: l }))));
-    const ann = el("input", { class: "adm-in", type: "text", maxlength: 200, placeholder: "Message everyone sees at the top (leave empty for none)", value: c.announce });
+    const D = (k, v) => (admDraft[k] !== undefined ? admDraft[k] : v);
+    const dirtyTag = (pre) => el("span", { class: "adm-dirty", "data-pre": pre, hidden: !draftKeys(pre).length, text: "✏️ unsaved changes" });
+    const track = (node, key, pre, get) => { const ev = node.tagName === "SELECT" || node.type === "checkbox" ? "change" : "input"; node.addEventListener(ev, () => { admDraft[key] = get ? get() : node.value; saveDraft(); document.querySelectorAll(".adm-dirty[data-pre='" + pre + "']").forEach((t) => { t.hidden = false; }); }); return node; };
+    const ann = track(el("textarea", { class: "adm-in adm-ta", rows: 2, maxlength: 200, placeholder: "Message everyone sees at the top (leave empty for none)" }), "c.announce", "c.");
+    ann.value = D("c.announce", c.announce || "");
     const sel = (vals, cur, lab) => el("select", { class: "adm-in" }, ...vals.map((v) => { const o = el("option", { value: v, text: lab(v) }); if (+v === +cur) o.selected = true; return o; }));
-    const pm = sel([0.5, 1, 1.5, 2, 3, 5], c.priceMult, (v) => v === 1 ? "Normal prices" : v + "× prices"), cm = sel([0, 0.5, 1, 2, 3, 5], c.coinMult, (v) => v === 1 ? "Normal coins" : v === 0 ? "No coins from games" : v + "× coins from games");
-    const off = new Set(c.off || []);
-    const featSel = el("select", { class: "adm-in" }, el("option", { value: "", text: "No featured game" }), ...ALLB.map((g) => { const o = el("option", { value: g.key, text: g.title }); if (g.key === c.featured) o.selected = true; return o; }));
-    const evSel = el("select", { class: "adm-in" }, ...[["auto", "🔄 Auto (follow the calendar)"], ["none", "⛔ No event"], ...Object.keys(EVENTS).map((k) => [k, EVENTS[k].name + " event"])].map(([v, t]) => { const o = el("option", { value: v, text: t }); if (v === c.event) o.selected = true; return o; }));
-    const dblChk = el("input", { type: "checkbox" }); dblChk.checked = !!c.doubleCoins;
-    const offBox = el("div", { class: "adm-chips" }, ...ALLB.map((g) => el("button", { class: "chip", type: "button", "aria-pressed": String(!off.has(g.key)), text: g.title, onclick: (e) => { if (off.has(g.key)) off.delete(g.key); else off.add(g.key); e.currentTarget.setAttribute("aria-pressed", String(!off.has(g.key))); } })));
+    const pm = track(sel([0.5, 1, 1.5, 2, 3, 5], D("c.pm", c.priceMult), (v) => v === 1 ? "Normal prices" : v + "× prices"), "c.pm", "c."), cm = track(sel([0, 0.5, 1, 2, 3, 5], D("c.cm", c.coinMult), (v) => v === 1 ? "Normal coins" : v === 0 ? "No coins from games" : v + "× coins from games"), "c.cm", "c.");
+    const off = new Set(D("c.off", c.off || []));
+    const featSel = track(el("select", { class: "adm-in" }, el("option", { value: "", text: "No featured game" }), ...ALLB.map((g) => { const o = el("option", { value: g.key, text: g.title }); if (g.key === D("c.feat", c.featured)) o.selected = true; return o; })), "c.feat", "c.");
+    const evSel = track(el("select", { class: "adm-in" }, ...[["auto", "🔄 Auto (follow the calendar)"], ["none", "⛔ No event"], ...Object.keys(EVENTS).map((k) => [k, EVENTS[k].name + " event"])].map(([v, t]) => { const o = el("option", { value: v, text: t }); if (v === D("c.ev", c.event)) o.selected = true; return o; })), "c.ev", "c.");
+    const dblChk = el("input", { type: "checkbox" }); dblChk.checked = !!D("c.dbl", c.doubleCoins); track(dblChk, "c.dbl", "c.", () => dblChk.checked);
+    const bossChk = el("input", { type: "checkbox" }); bossChk.checked = !!D("c.boss", c.bossRush); track(bossChk, "c.boss", "c.", () => bossChk.checked);
+    const offBox = el("div", { class: "adm-chips" }, ...ALLB.map((g) => el("button", { class: "chip", type: "button", "aria-pressed": String(!off.has(g.key)), text: g.title, onclick: (e) => { if (off.has(g.key)) off.delete(g.key); else off.add(g.key); e.currentTarget.setAttribute("aria-pressed", String(!off.has(g.key))); admDraft["c.off"] = [...off]; saveDraft(); document.querySelectorAll(".adm-dirty[data-pre='c.']").forEach((t) => { t.hidden = false; }); } })));
     const gc = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "⚡ coins" }), gd = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "$ dollars" }), gg = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "💎 diamonds" }), gm = el("input", { class: "adm-in", type: "text", maxlength: 120, placeholder: "Gift message" });
+    [[gc, "g.c"], [gd, "g.d"], [gg, "g.g"], [gm, "g.m"]].forEach(([n, k]) => { if (admDraft[k] !== undefined) n.value = admDraft[k]; track(n, k, "g."); });
     const save = async (gift) => {
-      const body = { announce: ann.value.trim(), priceMult: +pm.value, coinMult: +cm.value, off: [...off], featured: featSel.value, event: evSel.value, doubleCoins: dblChk.checked, gift: gift === undefined ? c.gift : gift };
+      const body = { announce: ann.value.trim(), priceMult: +pm.value, coinMult: +cm.value, off: [...off], featured: featSel.value, event: evSel.value, doubleCoins: dblChk.checked, bossRush: bossChk.checked, gift: gift === undefined ? c.gift : gift };
       const r = await admCall("/admin/config", { method: "PUT", body: { config: body } }, "Saved for everyone ✓");
-      if (r) { window.GCFG = r.config; applyCfg(); renderAdmin(); }
+      if (r) { draftKeys("c.").forEach((k) => delete admDraft[k]); if (gift !== undefined) draftKeys("g.").forEach((k) => delete admDraft[k]); saveDraft(); window.GCFG = r.config; applyCfg(); renderAdmin(); }
     };
+    const discard = (pre) => el("button", { class: "btn", type: "button", text: "Discard changes", onclick: () => { if (!confirm("Throw away your unsaved changes?")) return; draftKeys(pre).forEach((k) => delete admDraft[k]); saveDraft(); renderAdmin(); } });
     const ctl = el("div", { class: "adm-card" },
-      el("h3", { text: "🎮 Game controls (for everyone)" }),
+      el("h3", {}, "🎮 Game controls (for everyone) ", dirtyTag("c.")),
+      el("p", { class: "set-note", text: "Your typing is kept as a draft until you press Save — a misclick won't lose it." }),
       el("label", { class: "adm-lab", text: "Announcement" }), ann,
       el("div", { class: "adm-row" }, el("div", {}, el("label", { class: "adm-lab", text: "Shop prices" }), pm), el("div", {}, el("label", { class: "adm-lab", text: "Coins from games" }), cm)),
       el("label", { class: "adm-lab", text: "🎉 Event (unlocks event songs & skins and shows a banner)" }), evSel,
       el("label", { class: "adm-tog2" }, dblChk, el("span", { text: "⚡ Double coins for everyone right now" })),
+      el("label", { class: "adm-tog2" }, bossChk, el("span", { text: "👹 Open Boss Rush now (normally Friday–Sunday only)" })),
       el("label", { class: "adm-lab", text: "👑 Levi's Pick (featured at the top of the library)" }), featSel,
       el("label", { class: "adm-lab", text: "Games that are ON (tap to turn a game off)" }), offBox,
-      el("button", { class: "btn hot", type: "button", text: "Save game controls", onclick: () => save() }),
-      el("h3", { text: "🎁 Send a gift to everyone" }),
+      el("div", { class: "adm-row" }, el("button", { class: "btn hot", type: "button", text: "Save game controls", onclick: () => save() }), discard("c.")));
+    const giftCard = el("div", { class: "adm-card" },
+      el("h3", {}, "🎁 Send a gift to everyone ", dirtyTag("g.")),
       c.gift ? el("p", { class: "set-note", text: "Current gift: " + rewLab([c.gift.c, c.gift.d, c.gift.g]) + (c.gift.msg ? " · \"" + c.gift.msg + "\"" : "") }) : null,
       el("div", { class: "adm-row" }, gc, gd, gg), gm,
       el("div", { class: "adm-row" },
         el("button", { class: "btn hot", type: "button", text: "Send gift", onclick: () => { if (!(+gc.value || +gd.value || +gg.value)) return toast("Add some coins, dollars or diamonds"); save({ id: String(Date.now()), c: +gc.value || 0, d: +gd.value || 0, g: +gg.value || 0, msg: gm.value.trim() }); } }),
-        c.gift ? el("button", { class: "btn", type: "button", text: "Stop the gift", onclick: () => save(null) }) : null));
+        c.gift ? el("button", { class: "btn", type: "button", text: "Stop the gift", onclick: () => save(null) }) : null, discard("g.")));
     const lbSel = el("select", { class: "adm-in" }, ...ALLB.map((g) => el("option", { value: g.key, text: g.title })));
     const lb = el("div", { class: "adm-card" }, el("h3", { text: "🏆 Leaderboards" }), el("div", { class: "adm-row" }, lbSel,
       el("button", { class: "btn", type: "button", text: "Clear this leaderboard", onclick: async () => { if (!confirm("Delete EVERY score on this leaderboard?")) return; await admCall("/admin/scores", { method: "DELETE", body: { game: lbSel.value } }, "Leaderboard cleared"); refresh("scores"); } })),
@@ -11980,7 +11998,9 @@ function fighterGame() {
       reqCard.replaceChildren(el("h3", { text: "📬 Player Requests & Help (" + reqs.length + ")" }), el("p", { class: "set-note", text: "Review these and decide what to do. Changes are only made when you (Levi) approve them — nothing happens automatically." }), el("div", { class: "req-list" }, ...items));
     }
     loadRequests();
-    box.replaceChildren(tiles, reqCard, ctl, players, stats, lb);
+    const TABS = [["controls", "🎮 Controls", [ctl]], ["gifts", "🎁 Gifts", [giftCard]], ["players", "👥 Players", [players]], ["requests", "📬 Requests" + (ov.newHelp ? " (" + ov.newHelp + ")" : ""), [reqCard]], ["stats", "📊 Stats & boards", [stats, lb]]];
+    const tabRow = el("div", { class: "rew-tabs adm-tabs" }, ...TABS.map(([k, t]) => el("button", { class: "chip" + ((k === "controls" && draftKeys("c.").length) || (k === "gifts" && draftKeys("g.").length) || (k === "requests" && ov.newHelp) ? " dot" : ""), type: "button", "aria-pressed": String(adm.tab === k), text: t, onclick: () => { adm.tab = k; box.replaceChildren(tiles, tabRow, ...TABS.find((x2) => x2[0] === k)[2]); tabRow.querySelectorAll(".chip").forEach((b2, i2) => b2.setAttribute("aria-pressed", String(TABS[i2][0] === k))); } })));
+    box.replaceChildren(tiles, tabRow, ...(TABS.find((x2) => x2[0] === adm.tab) || TABS[0])[2]);
     loadUsers();
   }
   window.gblShowAdmin();
