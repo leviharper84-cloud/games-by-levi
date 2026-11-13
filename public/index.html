@@ -5968,13 +5968,21 @@ function towerGame() {
       if (e.type === "boss") shake(8, .4);
     }
   }
-  function place(c, r) {
+  let menu = null;
+  const sellVal = (t) => Math.round(spent(t) * .7);
+  function upgrade(t, c, r) {
+    if (t.lvl >= 3) { info = { t: "MAX LEVEL", l: 1 }; sfx("bad"); return; }
+    const cost = upCost(t); if (money < cost) { info = { t: "NEED $" + cost + " TO UPGRADE", l: 1.2 }; sfx("bad"); return; }
+    money -= cost; t.lvl++; sfx("power"); ring(c * Z + Z / 2, r * Z + Z / 2, TT[t.t].c, 8, 50, .4); pop(c * Z + Z / 2, r * Z, "LEVEL " + t.lvl, TT[t.t].c);
+  }
+  function sell(k) {
+    const t = towers.get(k); if (!t) return; const v = sellVal(t); towers.delete(k); money += v; menu = null;
+    const X = t.c * Z + Z / 2, Y = t.r * Z + Z / 2; burst(X, Y, "#ffd66b", 18, 180, .45); pop(X, Y - 16, "SOLD +$" + v, "#ffd66b"); sfx("score");
+  }
+  const menuBox = () => { const mx = Math.max(64, Math.min(W - 64, menu.c * Z + Z / 2)), my = menu.r < 2 ? menu.r * Z + Z + 6 : menu.r * Z - 44; return [[mx - 62, my, 60, 38, "up"], [mx + 2, my, 60, 38, "sell"]]; };
+  function place(c, r, fromKey) {
     const k = c + "," + r, t = towers.get(k);
-    if (t) {
-      if (t.lvl >= 3) { info = { t: "MAX LEVEL", l: 1 }; sfx("bad"); return; }
-      const cost = upCost(t); if (money < cost) { info = { t: "NEED $" + cost + " TO UPGRADE", l: 1.2 }; sfx("bad"); return; }
-      money -= cost; t.lvl++; sfx("power"); ring(c * Z + Z / 2, r * Z + Z / 2, TT[t.t].c, 8, 50, .4); pop(c * Z + Z / 2, r * Z, "LEVEL " + t.lvl, TT[t.t].c); return;
-    }
+    if (t) { if (fromKey) upgrade(t, c, r); else { menu = { k, c, r }; sfx("tick"); } return; }
     if (PATH.has(k) || c < 0 || r < 0 || c >= GC || r >= GRW) { sfx("bad"); return; }
     if (!unlocked(selType)) { info = { t: TT[selType].name + " UNLOCKS AT WAVE " + TT[selType].at, l: 1.4 }; sfx("bad"); return; }
     const cost = TT[selType].cost; if (money < cost) { info = { t: "NEED $" + cost, l: 1 }; sfx("bad"); return; }
@@ -5983,16 +5991,20 @@ function towerGame() {
   game({
     load(d) { wave = d.wave || 0; setMap(mapFor(wave)); money = d.money || 160; lives = d.lives || 20; kills = d.kills || 0; towers = new Map((d.towers || []).filter((t) => TT[t[2]] && !PATH.has(t[0] + "," + t[1])).map(([c, r, t, l]) => [c + "," + r, { t, lvl: l, cd: 0, c, r, ang: 0, beam: null }])); between = 6; },
     title: "Tower Defense", easy: "lots of starting cash and enemies can't hurt you", w: W, h: H, color: "#ff4d6d", bpm: 112,
-    help: ["Pick a tower below, then tap an empty square to build. Tap a tower to upgrade it", "A NEW WEAPON unlocks every 10 waves: Tesla, Sniper, Missile, Prism", "The MAP CHANGES every 20 waves. Towers on the new road are refunded", "Keys: 1-7 pick, arrows + Space build, Enter next wave"],
+    help: ["Pick a tower below, then tap an empty square to build. Tap a tower to UPGRADE or SELL it (70% back)", "A NEW WEAPON unlocks every 10 waves: Tesla, Sniper, Missile, Prism", "The MAP CHANGES every 20 waves. Towers on the new road are refunded", "Keys: 1-7 pick, arrows + Space build/upgrade, X sells, Enter next wave"],
     init() { setMap(0); towers = new Map(); ens = []; shots = []; money = S.practice ? 500 : 160; lives = 20; wave = 0; spawnQ = []; spawnT = 0; between = 6; selType = "L"; cur = [5, 4]; kills = 0; info = null; },
     hud() { return "WAVE " + wave + "  ·  LIVES " + (S.practice ? "∞" : lives) + "  ·  $" + money; },
     summary() { return ["SURVIVED " + Math.max(0, wave - 1) + " WAVES   KILLS " + kills]; },
     tap(px, py) {
+      if (menu) {
+        for (const [bx, by, bw, bh, what] of menuBox()) if (px >= bx && px <= bx + bw && py >= by && py <= by + bh) { const t = towers.get(menu.k); if (t) { if (what === "up") upgrade(t, menu.c, menu.r); else sell(menu.k); } return; }
+        const tc = Math.floor(px / Z), tr = Math.floor(py / Z), same = menu && tc === menu.c && tr === menu.r; menu = null; if (same || py >= BAR) { if (py < BAR) return; }
+      }
       if (py >= BAR) { for (const [k, bx, bw] of BTNS) if (px >= bx && px <= bx + bw) { if (k === "W") startWave(); else if (!unlocked(k)) { info = { t: TT[k].name + " UNLOCKS AT WAVE " + TT[k].at, l: 1.4 }; sfx("bad"); } else { selType = k; sfx("tick"); } } return; }
       const c = Math.floor(px / Z), r = Math.floor(py / Z); cur = [c, r]; place(c, r);
     },
     turn(dir, k) { if (!k) return; const v = { up: [0, -1], down: [0, 1], left: [-1, 0], right: [1, 0] }[dir]; cur = [Math.max(0, Math.min(GC - 1, cur[0] + v[0])), Math.max(0, Math.min(GRW - 1, cur[1] + v[1]))]; },
-    key(k, rep) { if (rep) return; const ki = "1234567".indexOf(k); if (ki >= 0 && unlocked(ORDER[ki])) { selType = ORDER[ki]; sfx("tick"); } if (k === " ") place(cur[0], cur[1]); if (k === "Enter" || k === "n") startWave(); },
+    key(k, rep) { if (rep) return; const ki = "1234567".indexOf(k); if (ki >= 0 && unlocked(ORDER[ki])) { selType = ORDER[ki]; sfx("tick"); } if (k === " ") place(cur[0], cur[1], true); if (k === "x" || k === "Delete" || k === "Backspace") { const kk = cur[0] + "," + cur[1]; if (towers.has(kk)) sell(kk); } if (k === "u") { const t2 = towers.get(cur[0] + "," + cur[1]); if (t2) upgrade(t2, cur[0], cur[1]); } if (k === "Enter" || k === "n") startWave(); },
     update(dt) {
       if (info) { info.l -= dt; if (info.l <= 0) info = null; }
       if (between > 0) { between -= dt; if (between <= 0) startWave(); }
@@ -6077,6 +6089,16 @@ function towerGame() {
         x.fillStyle = on ? ca(b.c, .22) : "rgba(255,255,255,.04)"; x.strokeStyle = on ? b.c : "rgba(255,255,255,.2)"; x.lineWidth = on ? 2.5 : 1.5; if (on) glow(b.c, 12); rr(bx, BAR + 12, bw, 56, 10); x.fill(); x.stroke(); glow();
         if (!open) { txt("🔒", bx + bw / 2, BAR + 30, 14, "#ffffff", "center"); txt("WAVE " + b.at, bx + bw / 2, BAR + 52, 10, "#6c6290", "center", "d"); continue; }
         txt(b.name, bx + bw / 2, BAR + 32, b.name.length > 6 ? 9 : 10, can ? b.c : "#6c6290", "center", "d"); txt("$" + b.cost, bx + bw / 2, BAR + 52, 11, can ? "#ffffff" : "#6c6290");
+      }
+      if (menu && towers.get(menu.k)) {
+        const t = towers.get(menu.k), b = TT[t.t], st = stat(t);
+        x.strokeStyle = ca(b.c, .35); x.lineWidth = 1.5; x.setLineDash([4, 6]); x.beginPath(); x.arc(menu.c * Z + Z / 2, menu.r * Z + Z / 2, st.range, 0, 7); x.stroke(); x.setLineDash([]);
+        for (const [bx, by, bw, bh, what] of menuBox()) {
+          const up = what === "up", can = up ? t.lvl < 3 && money >= upCost(t) : true, col = up ? (t.lvl >= 3 ? "#8f86b5" : "#3dffa8") : "#ffd66b";
+          x.fillStyle = "rgba(6,3,14,.95)"; x.strokeStyle = col; x.lineWidth = 2; glow(col, can ? 12 : 0); rr(bx, by, bw, bh, 9); x.fill(); x.stroke(); glow();
+          txt(up ? (t.lvl >= 3 ? "MAX" : "UPGRADE") : "SELL", bx + bw / 2, by + 13, 10, col, "center", "d");
+          txt(up ? (t.lvl >= 3 ? "LV 3" : "$" + upCost(t)) : "+$" + sellVal(t), bx + bw / 2, by + 28, 11, can ? "#ffffff" : "#6c6290", "center");
+        }
       }
       if (info) { glow("#ff4d6d", 10); txt(info.t, W / 2, BAR - 20, 14, "#ff4d6d", "center", "d"); glow(); }
     },
