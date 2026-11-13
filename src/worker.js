@@ -60,6 +60,7 @@ const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS help_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, username TEXT NOT NULL DEFAULT 'Guest', msg TEXT NOT NULL, ts INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'new', admin_note TEXT NOT NULL DEFAULT '')",
   "CREATE INDEX IF NOT EXISTS help_by_ts ON help_requests(ts DESC)",
   "CREATE TABLE IF NOT EXISTS bans (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, until INTEGER NOT NULL, reason TEXT NOT NULL DEFAULT '', at INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS daily_wins (day TEXT PRIMARY KEY, user_id INTEGER, game TEXT, score INTEGER, at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS mutes (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, until INTEGER NOT NULL, at INTEGER NOT NULL)",
 ];
 let tablesReady = null;
@@ -317,12 +318,32 @@ async function putProgress(request, env, user) {
 const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling", "merge", "colordash", "blades", "solitaire", "fighters"];
 const dayKey = (t = Date.now()) => new Date(t).toISOString().slice(0, 10);
 function dailyGame(day) { let h = 7; for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return DAILY_POOL[h % DAILY_POOL.length]; }
+const DAILY_PRIZE = { c: 1000, d: 0, g: 5 };
+/* When a new day starts, yesterday's top daily score wins a prize (done once, by whoever loads the daily first). */
+async function awardDaily(env) {
+  const day = dayKey(Date.now() - DAY);
+  let w = await env.DB.prepare("SELECT d.user_id, d.score, u.username FROM daily_wins d LEFT JOIN users u ON u.id = d.user_id WHERE d.day = ?").bind(day).first();
+  if (w) return w.user_id ? { tag: w.username, s: w.score, game: dailyGame(day) } : null;
+  const top = await env.DB.prepare("SELECT d.user_id, d.score, u.username FROM daily d JOIN users u ON u.id = d.user_id WHERE d.day = ? ORDER BY d.score DESC, d.at ASC LIMIT 1").bind(day).first();
+  const r = await env.DB.prepare("INSERT OR IGNORE INTO daily_wins (day, user_id, game, score, at) VALUES (?, ?, ?, ?, ?)").bind(day, top ? top.user_id : null, dailyGame(day), top ? top.score : 0, Date.now()).run();
+  if (top && r.meta && r.meta.changes === 1) await giveInbox(env, top.user_id, "🏆 You won yesterday's Daily Challenge with " + top.score.toLocaleString("en-US") + " points! Here's your prize.", DAILY_PRIZE.c, DAILY_PRIZE.d, DAILY_PRIZE.g);
+  return top ? { tag: top.username, s: top.score, game: dailyGame(day) } : null;
+}
+async function giveInbox(env, id, text, c, d, g) {
+  const row = await env.DB.prepare("SELECT data FROM progress WHERE user_id = ?").bind(id).first();
+  let p = {}; try { p = row ? JSON.parse(row.data) || {} : {}; } catch {}
+  p.stats = p.stats || {}; const now = Date.now();
+  p.stats.coins = (+p.stats.coins || 0) + c; p.stats.cash = (+p.stats.cash || 0) + d; p.stats.gems = (+p.stats.gems || 0) + g;
+  p.inbox = [...(Array.isArray(p.inbox) ? p.inbox : []), { id: now, t: text, c, d, g }].slice(-20);
+  p.stats.wAt = now; p.adminAt = now;
+  await env.DB.prepare("INSERT INTO progress (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data").bind(id, JSON.stringify(p), now).run();
+}
 async function getDaily(env, user) {
-  const day = dayKey(), game = dailyGame(day);
+  const day = dayKey(), game = dailyGame(day), champ = await awardDaily(env).catch(() => null);
   const { results } = await env.DB.prepare("SELECT d.user_id, d.score, u.username, u.avatar_i, u.avatar_c FROM daily d JOIN users u ON u.id = d.user_id WHERE d.day = ? ORDER BY d.score DESC, d.at ASC LIMIT 20").bind(day).all();
   let mine = null;
   if (user) { const r = await env.DB.prepare("SELECT score FROM daily WHERE day = ? AND user_id = ?").bind(day, user.id).first(); mine = r ? r.score : null; }
-  return json({ day, game, endsAt: Date.parse(day + "T00:00:00Z") + DAY, top: results.map((r) => ({ uid: r.user_id, tag: r.username, av: { i: r.avatar_i, c: r.avatar_c }, s: r.score })), mine });
+  return json({ day, game, champ, prize: DAILY_PRIZE, endsAt: Date.parse(day + "T00:00:00Z") + DAY, top: results.map((r) => ({ uid: r.user_id, tag: r.username, av: { i: r.avatar_i, c: r.avatar_c }, s: r.score })), mine });
 }
 async function postDaily(request, env, user) {
   if (!user) fail(401, "Log in to join the daily challenge.");
@@ -1021,14 +1042,7 @@ async function adminMessage(request, env, id) {
   await adminTarget(env, id);
   const b = await readJson(request), text = String(b.text || "").trim().slice(0, 300);
   if (!text) fail(400, "Write a message first.");
-  const c = Math.floor(num(b.c, 0, 100000, 0)), d = Math.floor(num(b.d, 0, 10000, 0)), g = Math.floor(num(b.g, 0, 1000, 0));
-  const row = await env.DB.prepare("SELECT data FROM progress WHERE user_id = ?").bind(id).first();
-  let p = {}; try { p = row ? JSON.parse(row.data) || {} : {}; } catch {}
-  p.stats = p.stats || {}; const now = Date.now();
-  p.stats.coins = (+p.stats.coins || 0) + c; p.stats.cash = (+p.stats.cash || 0) + d; p.stats.gems = (+p.stats.gems || 0) + g;
-  p.inbox = [...(Array.isArray(p.inbox) ? p.inbox : []), { id: now, t: text, c, d, g }].slice(-20);
-  p.stats.wAt = now; p.adminAt = now;
-  await env.DB.prepare("INSERT INTO progress (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data").bind(id, JSON.stringify(p), now).run();
+  await giveInbox(env, id, text, Math.floor(num(b.c, 0, 100000, 0)), Math.floor(num(b.d, 0, 10000, 0)), Math.floor(num(b.g, 0, 1000, 0)));
   return adminUser(env, id);
 }
 async function adminDeleteUser(env, me, id) {

@@ -1266,6 +1266,7 @@ html.calm .art-spin, html.calm .art-flick, html.calm .art-blink, html.calm .art-
 /* ---------- Tutorial ---------- */
 .adm-mod { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line-2); } .adm-items { display: flex; flex-wrap: wrap; gap: 6px; } .adm-item { display: inline-flex; gap: 6px; align-items: center; }
 .inbox-msg { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.05); margin-bottom: 8px; } .inbox-msg p { margin: 0; white-space: pre-wrap; } .inbox-gift { color: #ffd66b; } .inbox-msg small { color: var(--muted); }
+.daily-prize { margin: 4px 0 0; color: #ffd66b; font-weight: 800; font-size: .9rem; } .daily-champ { margin: 2px 0 0; color: #3dffa8; font-size: .85rem; }
 .tut-ov { position: fixed; inset: 0; z-index: 140; }
 .tut-head { display: flex; gap: 12px; align-items: center; } .tut-mascot { width: 64px; height: 64px; flex: none; } .tut-mascot svg { width: 100%; height: 100%; }
 .tut-dots { display: flex; gap: 5px; margin-bottom: 6px; } .tut-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.18); } .tut-dots i.past { background: rgba(255,214,107,.5); } .tut-dots i.on { background: #ffd66b; width: 18px; border-radius: 4px; }
@@ -11344,6 +11345,8 @@ function fighterGame() {
         el("p", { class: "eyebrow", text: "Today's game · new one in " + h + "h " + m + "m" }),
         el("h3", { text: g.title }),
         el("p", { class: "duo-how", text: "Everyone plays the same game today. Post your best run to top the daily leaderboard." }),
+        el("p", { class: "daily-prize", text: "🏆 Whoever has the #1 score when the day ends wins " + fmt((daily.prize || {}).c || 1000) + " ⚡ + " + ((daily.prize || {}).g || 5) + " 💎!" }),
+        daily.champ ? el("p", { class: "daily-champ", text: "👑 Yesterday's champion: " + daily.champ.tag + " with " + fmt(daily.champ.s) + " in " + ((BUILTINS.find((b2) => b2.key === daily.champ.game) || {}).title || "the daily game") }) : null,
         el("div", { class: "daily-btns" }, el("button", { class: "btn hot", type: "button", text: "Play today's challenge ▸", onclick: go }),
           daily.mine != null ? el("span", { class: "daily-mine", text: "Your best today: " + fmt(daily.mine) }) : null)),
       el("ol", { class: "daily-top" }, ...(daily.top.length ? daily.top.slice(0, 5).map((r, k) => el("li", {}, el("span", { class: "rk", text: String(k + 1) }), el("span", { class: "nm", text: r.tag || "Player" }), el("b", { text: fmt(r.s) })))
