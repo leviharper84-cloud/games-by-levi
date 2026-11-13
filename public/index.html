@@ -1245,6 +1245,14 @@ html.calm *, html.calm *::before, html.calm *::after { animation-duration: .001s
 .ph-hearts { position: absolute; bottom: 30%; transform: translateX(-50%); font-size: 1.8rem; animation: phZ 1.2s ease-in-out infinite; pointer-events: none; }
 .pd-duo { display: flex; gap: 6px; } .pd-duo .pv { width: 100px; height: 100px; } .pd-ic { grid-row: span 2; width: 48px; height: 48px; } .pd-ic .pv { width: 100%; height: 100%; }
 
+/* ---------- Tutorial ---------- */
+.tut-ov { position: fixed; inset: 0; z-index: 140; }
+.tut-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(4,2,10,.78), 0 0 0 3px #ffd66b, 0 0 30px rgba(255,214,107,.6); transition: all .3s var(--ease); pointer-events: none; }
+.tut-card { position: fixed; z-index: 1; display: grid; gap: 8px; width: min(340px, calc(100vw - 24px)); padding: 16px 18px; border-radius: 18px; background: var(--panel-solid); border: 1px solid #ffd66b; box-shadow: 0 20px 60px rgba(0,0,0,.6); transition: top .3s var(--ease), left .3s var(--ease); }
+.tut-card b { font-size: 1.1rem; } .tut-card p { margin: 0; color: var(--fg); line-height: 1.45; font-size: .92rem; } .tut-n { color: var(--muted); font-family: var(--f-mono); letter-spacing: .1em; }
+.tut-reward { color: #ffd66b !important; font-weight: 800; } .tut-reward[hidden], .tut-skip[hidden], .tut-back[hidden] { display: none; }
+.tut-btns { display: flex; gap: 8px; align-items: center; margin-top: 4px; } .tut-btns .sp { flex: 1; } .tut-skip { color: var(--muted); }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -1356,6 +1364,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <h3 id="help-modal-title">❓ Help &amp; Requests</h3>
       <button class="btn sm" type="button" id="help-close-btn">Close</button>
     </div>
+    <button class="btn sm" type="button" id="tut-replay" style="justify-self:start">📘 Replay the tutorial</button>
     <p class="set-note">Found a bug? Have an idea? Send a message and the admin will see it.</p>
     <textarea class="help-ta" id="help-ta" maxlength="500" placeholder="Describe your idea or problem here…" rows="4"></textarea>
     <div id="help-char" style="font-size:.75rem;color:var(--muted);text-align:right">0 / 500</div>
@@ -12701,6 +12710,59 @@ function fighterGame() {
   }
   window.gblShowAdmin();
 
+
+  /* ---------- New-player tutorial (spotlight tour with Skip) ---------- */
+  (function () {
+    const STEPS = [
+      { title: "Welcome to Games by Levi! 👋", text: "Want a 30-second tour? You can skip it any time." },
+      { hash: "library", sel: "#library .card.game", title: "🎮 Pick a game", text: "Tap any game to play. Start = the full game (it saves checkpoints). ⚡ Quick Play = a 90-second sprint with its own leaderboard. Practice = no pressure." },
+      { sel: "[data-wallet]", title: "⚡ Your wallet & rewards", text: "Coins, cash and gems. Tap here for daily missions, the 🎟 Season Pass, the spin wheel and weekly challenges." },
+      { sel: '.links a[href="#shop"]', title: "🛒 The Shop", text: "Music, pets, titles, game skins, power-ups, mystery crates and daily deals." },
+      { sel: '.links a[href="#pethome"]', title: "🏡 Your pet", text: "Feed your pet, play mini-games with it, send it on adventures and decorate its backyard." },
+      { sel: '.links a[href="#friends"]', title: "👥 Friends", text: "Add friends by username, challenge their high scores and invite their pets over for playdates." },
+      { sel: '.links a[href="#leaderboards"]', title: "🏆 Leaderboards", text: "See the best players — full-game boards and ⚡ Quick Play boards." },
+      { sel: "#help-open-btn", title: "❓ Help", text: "Stuck, or have an idea? Tap here to send Levi a message. You can also replay this tour from here." },
+      { title: "You're ready! 🎉", text: "Games save as you go, so you can always continue. Have fun!", last: true },
+    ];
+    let i = 0, ov = null;
+    const done = () => { try { return localStorage.getItem("gbl-tut-done") === "1"; } catch { return true; } };
+    const mark = () => { try { localStorage.setItem("gbl-tut-done", "1"); } catch {} };
+    function close(finished) {
+      if (ov) ov.remove(); ov = null; mark(); removeEventListener("resize", place); removeEventListener("scroll", place, true);
+      if (finished && !(prog.stats || {}).tutReward) { prog.stats.tutReward = 1; saveProg(); giveCoins(200, "tutorial complete!"); if (window.gblConfetti) window.gblConfetti(90); }
+    }
+    function place() {
+      if (!ov) return; const st = STEPS[i], hole = ov.querySelector(".tut-hole"), card = ov.querySelector(".tut-card");
+      const t = st.sel && [...document.querySelectorAll(st.sel)].find((n) => n.offsetParent !== null && n.getBoundingClientRect().width > 0);
+      if (!t) { hole.style.cssText = "left:50%;top:40%;width:0;height:0"; card.style.cssText = "left:50%;top:50%;transform:translate(-50%,-50%)"; return; }
+      const r = t.getBoundingClientRect(), pad = 8; hole.style.cssText = `left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px`;
+      const cw = Math.min(340, innerWidth - 24), below = r.bottom + 14 + 200 < innerHeight, left = Math.max(12, Math.min(innerWidth - cw - 12, r.left + r.width / 2 - cw / 2));
+      card.style.cssText = `left:${left}px;width:${cw}px;` + (below ? `top:${r.bottom + 14}px` : `top:${Math.max(12, r.top - 14)}px;transform:translateY(-100%)`);
+    }
+    function show() {
+      const st = STEPS[i];
+      if (st.hash && location.hash !== "#" + st.hash) location.hash = "#" + st.hash;
+      ov.querySelector(".tut-t").textContent = st.title; ov.querySelector(".tut-x").textContent = st.text;
+      ov.querySelector(".tut-n").textContent = (i + 1) + " / " + STEPS.length;
+      ov.querySelector(".tut-back").hidden = i === 0; ov.querySelector(".tut-next").textContent = st.last ? "Let's play! ▸" : i === 0 ? "Show me ▸" : "Next ▸";
+      ov.querySelector(".tut-skip").hidden = !!st.last; ov.querySelector(".tut-reward").hidden = !st.last || !!(prog.stats || {}).tutReward;
+      setTimeout(() => { const t = st.sel && document.querySelector(st.sel); if (t && t.scrollIntoView) t.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(place, 350); }, st.hash ? 250 : 0); place();
+    }
+    function open() {
+      if (ov) return; i = 0;
+      ov = el("div", { class: "tut-ov", role: "dialog", "aria-label": "Tutorial" }, el("div", { class: "tut-hole" }),
+        el("div", { class: "tut-card" }, el("small", { class: "tut-n" }), el("b", { class: "tut-t" }), el("p", { class: "tut-x" }), el("p", { class: "tut-reward", text: "🎁 Finish the tour for +200 ⚡" }),
+          el("div", { class: "tut-btns" }, el("button", { class: "linkbtn tut-skip", type: "button", text: "Skip tutorial", onclick: () => close(false) }), el("span", { class: "sp" }),
+            el("button", { class: "btn sm tut-back", type: "button", text: "◂ Back", onclick: () => { i = Math.max(0, i - 1); show(); } }),
+            el("button", { class: "btn sm hot tut-next", type: "button", onclick: () => { if (STEPS[i].last) return close(true); i++; show(); } }))));
+      document.body.append(ov); addEventListener("resize", place); addEventListener("scroll", place, true);
+      ov.addEventListener("keydown", (e) => { if (e.key === "Escape") close(false); });
+      show(); ov.querySelector(".tut-next").focus();
+    }
+    window.gblTutorial = open;
+    const rb = document.getElementById("tut-replay"); if (rb) rb.onclick = () => { const hm = document.getElementById("help-modal"); if (hm) hm.hidden = true; open(); };
+    setTimeout(() => { if (!done() && !document.querySelector(".modal.open")) { const home = document.getElementById("home"); if (home && !home.hidden) { const iv = setInterval(() => { if (home.hidden) { clearInterval(iv); setTimeout(open, 900); } }, 500); } else open(); } }, 1800);
+  })();
   /* ---------- Help / Request modal ---------- */
   (function () {
     const modal = $("#help-modal"), ta = $("#help-ta"), sendBtn = $("#help-send-btn"), closeBtn = $("#help-close-btn"), charDiv = $("#help-char"), sentNote = $("#help-sent-note");
