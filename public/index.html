@@ -699,6 +699,8 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .adv-wrap { display:flex; flex-direction:column; gap:12px; }
 .adv-day.today .adv-lab { color:#ffd66b; }
 /* Event egg hunt */
+.ev-fall { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; } .ev-fall span { position: absolute; top: -40px; opacity: .55; animation: evFall linear infinite; }
+@keyframes evFall { to { transform: translate(40px, 110vh) rotate(260deg); } }
 .ev-egg { position:fixed; z-index:8000; font-size:2.2rem; cursor:pointer; animation:eggPulse 1.6s ease-in-out infinite; user-select:none; filter:drop-shadow(0 0 10px rgba(255,214,107,.8)); }
 @keyframes eggPulse { 0%,100%{transform:scale(1) rotate(-8deg);} 50%{transform:scale(1.18) rotate(8deg);} }
 .ev-egg-pop { position:fixed; z-index:8001; font:800 1.1rem var(--f-mono); color:#ffd66b; pointer-events:none; animation:eggPopAnim .9s forwards; }
@@ -1995,7 +1997,17 @@ function SHELL() {
     x.globalCompositeOperation = "source-over"; glow(c, 22); x.fillStyle = "#ffffff"; x.fillText(s, X, Y); glow(); x.restore();
   }
   const SKN = window.SKIN0 || {};
-  const FXC = { "fx-rainbow": () => "hsl(" + Math.floor(Math.random() * 360) + ",100%,62%)", "fx-gold": () => ["#ffd66b", "#ffc23d", "#fff3c4"][Math.random() * 3 | 0], "fx-ice": () => ["#bff6ff", "#6af7ff", "#ffffff"][Math.random() * 3 | 0], "fx-diamond": () => ["#ffffff", "#e6fdff", "#9ff3ff", "#ffd0f6"][Math.random() * 4 | 0], "fx-fire": () => ["#ff2e4d", "#ff8a1f", "#ffd66b"][Math.random() * 3 | 0], "fx-hearts": () => ["#ff7be6", "#ff2bd6", "#ffc4f2"][Math.random() * 3 | 0], "fx-iceburst": () => ["#22e4ff", "#ffffff", "#bff6ff"][Math.random() * 3 | 0], "fx-goldshower": () => ["#ffd66b", "#ffc23d", "#ffffff"][Math.random() * 3 | 0], "fx-rainbowpop": () => "hsl(" + Math.floor(Math.random() * 360) + ",100%,65%)", "fx-legendary": () => ["#ffd66b", "#ffffff", "#ff2bd6", "#22e4ff"][Math.random() * 4 | 0], "fx-cosmos": () => ["#a35bff", "#22e4ff", "#ffffff", "#ff7be6"][Math.random() * 4 | 0], "fx-supernova": () => ["#ffffff", "#ffd66b", "#ff2e4d", "#ff8a1f"][Math.random() * 4 | 0] }[SKN.fx];
+  const FXC = { "fx-rainbow": () => "hsl(" + Math.floor(Math.random() * 360) + ",100%,62%)", "fx-gold": () => ["#ffd66b", "#ffc23d", "#fff3c4"][Math.random() * 3 | 0], "fx-ice": () => ["#bff6ff", "#6af7ff", "#ffffff"][Math.random() * 3 | 0], "fx-diamond": () => ["#ffffff", "#e6fdff", "#9ff3ff", "#ffd0f6"][Math.random() * 4 | 0], "fx-fire": () => ["#ff2e4d", "#ff8a1f", "#ffd66b"][Math.random() * 3 | 0], "fx-hearts": () => ["#ff7be6", "#ff2bd6", "#ffc4f2"][Math.random() * 3 | 0], "fx-iceburst": () => ["#22e4ff", "#ffffff", "#bff6ff"][Math.random() * 3 | 0], "fx-goldshower": () => ["#ffd66b", "#ffc23d", "#ffffff"][Math.random() * 3 | 0], "fx-rainbowpop": () => "hsl(" + Math.floor(Math.random() * 360) + ",100%,65%)", "fx-legendary": () => ["#ffd66b", "#ffffff", "#ff2bd6", "#22e4ff"][Math.random() * 4 | 0], "fx-cosmos": () => ["#a35bff", "#22e4ff", "#ffffff", "#ff7be6"][Math.random() * 4 | 0], "fx-supernova": () => ["#ffffff", "#ffd66b", "#ff2e4d", "#ff8a1f"][Math.random() * 4 | 0] }[SKN.fx] || evFx();
+  /* Event shop items (equipped under "ev-<event>"): sparks and frames */
+  function evItems() { return Object.keys(SKN).filter((k) => k.startsWith("ev-")).map((k) => SKN[k]); }
+  function evFx() {
+    const P = { "wn-snow": ["#ffffff", "#bff6ff", "#9ff3ff"], "ha-leaf": ["#ff8a1f", "#ffd66b", "#c8501f"], "hw-spider": ["#a35bff", "#ff8a1f", "#1a0b24"], "su-wave": ["#22e4ff", "#3dffa8", "#ffffff"], "af-pie": ["#ff2e4d", "#ffffff", "#ffd66b"], "ea-eggs": ["#ffd66b", "#ff7be6", "#22e4ff", "#b6ff3b"], "ea-carrot": ["#ff8a1f", "#b6ff3b"], "xm-candy": ["#ff2e4d", "#ffffff"], "ny-fireworks": ["#ff2bd6", "#ffd66b", "#22e4ff", "#ffffff"], "vd-hearts": ["#ff7be6", "#ff2e4d", "#ffc4f2"], "sp-clover": ["#3dffa8", "#1d9a55", "#ffd66b"], "bs-chalk": ["#ffffff", "#e8e8f0", "#9ff3ff"], "bd-cake": ["#ff7be6", "#ffd66b", "#22e4ff", "#b6ff3b"] };
+    const id = evItems().find((i) => P[i]); if (!id) return undefined; const c = P[id]; return () => c[Math.random() * c.length | 0];
+  }
+  function evFrame() {
+    const F = { "wn-wreath": ["#3dffa8", "#ff2e4d"], "wn-gift": ["#ff2e4d", "#ffd66b"], "hw-cape": ["#ff2e4d", "#1a0b24"], "hw-skull": ["#a35bff", "#ffffff"], "su-shades": ["#22e4ff", "#ffd66b"], "su-surf": ["#ffd66b", "#22e4ff"], "ha-lantern": ["#ff8a1f", "#ffd66b"], "af-banana": ["#ffd66b", "#3dffa8"], "ea-basket": ["#b6ff3b", "#ffd66b"], "xm-lights": ["lights"], "xm-star": ["#ffd66b", "#3dffa8"], "ny-confetti": ["lights"], "vd-frame": ["#ff2bd6", "#ffc4f2"], "sp-gold": ["#ffd66b", "#3dffa8"], "bs-pencil": ["#ffd66b", "#ff8a1f"], "bd-balloon": ["lights"] };
+    const id = SKN.frame ? null : evItems().find((i) => F[i]); return id ? F[id] : null;
+  }
   function burst(X, Y, c, n, sp, life, size, ang, spread, g) {
     n = n || 14; sp = sp || 200; life = life || .6; size = size || 3;
     for (let i = 0; i < n; i++) {
@@ -2084,6 +2096,7 @@ function SHELL() {
     cv.style.borderColor = G.color + "66"; cv.style.boxShadow = "0 0 40px " + G.color + "40";
     if (SKN.frame === "fr-fire") { cv.style.borderColor = "#ff8a1f"; cv.style.boxShadow = "0 0 50px rgba(255,80,30,.75), inset 0 0 0 2px #ff2e4d"; }
     if (SKN.frame === "fr-gold") { cv.style.borderColor = "#ffd66b"; cv.style.boxShadow = "0 0 46px rgba(255,214,107,.7), inset 0 0 0 2px #ffd66b"; }
+    { const ef = evFrame(); if (ef && ef[0] !== "lights") { cv.style.borderColor = ef[0]; cv.style.boxShadow = "0 0 46px " + ef[0] + "aa, inset 0 0 0 2px " + ef[1]; } }
     const FL = { "fl-noir": "grayscale(1) contrast(1.25)", "fl-sunset": "sepia(.45) saturate(1.7) hue-rotate(-18deg)", "fl-flip": "invert(1) hue-rotate(180deg)", "fl-neon": "saturate(1.9) contrast(1.12)", "fl-matrix": "grayscale(1) sepia(1) hue-rotate(70deg) saturate(3)", "fl-dream": "hue-rotate(95deg) saturate(1.4)", "fl-hologram": "hue-rotate(160deg) saturate(2.1) contrast(1.08) brightness(1.08)" }[SKN.filter]; if (FL) cv.style.filter = FL;
     if (G.cursor) cv.style.cursor = G.cursor;
     document.documentElement.style.setProperty("--c", G.color);
@@ -2317,6 +2330,7 @@ function SHELL() {
     hud(); music();
     if (SKN.frame === "fr-diamond") { const k = .5 + .5 * Math.sin(S.clock * 3); cv.style.borderColor = "rgba(230,253,255," + (.6 + .4 * k) + ")"; cv.style.boxShadow = "0 0 " + (30 + 30 * k) + "px rgba(159,243,255,.75), inset 0 0 0 2px #ffffff"; }
     if (SKN.frame === "fr-cosmic") { const h = 240 + Math.sin(S.clock * 1.5) * 50, k = .5 + .5 * Math.sin(S.clock * 2); cv.style.borderColor = "hsl(" + h + ",100%,70%)"; cv.style.boxShadow = "0 0 " + (34 + 26 * k) + "px hsla(" + h + ",100%,65%,.7), 0 0 90px rgba(34,228,255,.25), inset 0 0 0 2px #ffffff"; }
+    { const ef = evFrame(); if (ef && ef[0] === "lights") { const L = ["#ff2e4d", "#3dffa8", "#ffd66b", "#22e4ff", "#ff2bd6"], k = Math.floor(S.clock * 3); cv.style.borderColor = L[k % 5]; cv.style.boxShadow = "0 0 40px " + L[(k + 2) % 5] + "aa, inset 0 0 0 2px " + L[(k + 1) % 5]; } }
     if (SKN.frame === "fr-rainbow") { const h = Math.floor(S.clock * 90) % 360; cv.style.borderColor = "hsl(" + h + ",100%,60%)"; cv.style.boxShadow = "0 0 46px hsla(" + h + ",100%,60%,.6)"; }
     const menu = (S.state === "title" || (S.state === "over" && !window.TOUR0)) && performance.now() - S.overAt > 700;
     const showGo = S.paused || menu;
@@ -11790,6 +11804,26 @@ function fighterGame() {
     ["su-shades", "ev-summer", "Cool Shades 😎", 350, "linear-gradient(135deg,#22e4ff,#ffd66b)", "Summer style frame for every game", "", "r"],
     ["su-wave", "ev-summer", "Wave FX 🌊", 450, "linear-gradient(135deg,#22e4ff,#3dffa8)", "Splash sparks in every game", "", "e"],
     ["su-surf", "ev-summer", "Surfboard Frame 🏄", 400, "linear-gradient(135deg,#ffd66b,#22e4ff)", "Ride the neon wave around every game", "", "r"],
+    // 🎄 Christmas · 🎆 New Year · 💘 Valentine's · 🍀 St. Patrick's · 🎒 Back to School · 🎂 Birthday
+    ["xm-lights", "ev-christmas", "Christmas Lights Frame 🎄", 450, "linear-gradient(90deg,#ff2e4d,#3dffa8,#ffd66b,#22e4ff)", "Twinkly colored lights around every game", "", "r"],
+    ["xm-candy", "ev-christmas", "Candy Cane FX 🍬", 400, "linear-gradient(135deg,#ff2e4d,#ffffff)", "Red-and-white candy sparks in every game", "", "r"],
+    ["xm-star", "ev-christmas", "Tree Star Frame ⭐", 650, "linear-gradient(135deg,#ffd66b,#3dffa8)", "A glowing gold frame. Epic!", "", "e"],
+    ["t-santahelper", "title", "Santa's Helper", 300, "#ff2e4d", "Christmas only", "", "r"],
+    ["ny-fireworks", "ev-newyear", "Fireworks FX 🎆", 450, "linear-gradient(135deg,#ff2bd6,#ffd66b,#22e4ff)", "Firework sparks in every game", "", "r"],
+    ["ny-confetti", "ev-newyear", "Confetti Frame 🎊", 400, "linear-gradient(90deg,#ff2bd6,#ffd66b,#3dffa8,#22e4ff)", "A party-colored frame", "", "r"],
+    ["t-partystarter", "title", "Party Starter", 300, "#ffd66b", "New Year's only", "", "r"],
+    ["vd-hearts", "ev-valentines", "Love FX 💘", 400, "linear-gradient(135deg,#ff7be6,#ff2e4d)", "Heart sparks in every game", "", "r"],
+    ["vd-frame", "ev-valentines", "Sweetheart Frame 💖", 450, "linear-gradient(135deg,#ff2bd6,#ffc4f2)", "A pink glowing frame", "", "r"],
+    ["t-sweetheart", "title", "Sweetheart", 300, "#ff7be6", "Valentine's only", "", "r"],
+    ["sp-clover", "ev-stpatricks", "Lucky Clover FX 🍀", 400, "linear-gradient(135deg,#3dffa8,#1d6a35)", "Green clover sparks in every game", "", "r"],
+    ["sp-gold", "ev-stpatricks", "Pot of Gold Frame 🌈", 500, "linear-gradient(135deg,#ffd66b,#3dffa8)", "Gold-and-green frame", "", "e"],
+    ["t-luckycharm", "title", "Lucky Charm", 300, "#3dffa8", "St. Patrick's only", "", "r"],
+    ["bs-chalk", "ev-school", "Chalk Dust FX ✏️", 350, "linear-gradient(135deg,#ffffff,#9ff3ff)", "Chalky sparks in every game", "", "r"],
+    ["bs-pencil", "ev-school", "Pencil Frame 📏", 350, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "A yellow pencil frame", "", "r"],
+    ["t-classclown", "title", "Class Clown", 300, "#ffd66b", "Back to School only", "", "r"],
+    ["bd-cake", "ev-birthday", "Birthday Cake FX 🎂", 400, "linear-gradient(135deg,#ff7be6,#ffd66b)", "Sprinkle sparks in every game", "", "r"],
+    ["bd-balloon", "ev-birthday", "Balloon Frame 🎈", 450, "linear-gradient(135deg,#ff2e4d,#22e4ff,#ffd66b)", "Party balloon frame", "", "r"],
+    ["t-partyanimal", "title", "Party Animal", 300, "#ff2bd6", "Birthday Party only", "", "r"],
     // 🍂 Harvest event merch
     ["ha-leaf", "ev-harvest", "Falling Leaves FX 🍂", 400, "linear-gradient(135deg,#ff8a1f,#ffd66b)", "Autumn leaf sparks in every game", "", "r"],
     ["ha-lantern", "ev-harvest", "Harvest Lantern 🏮", 450, "linear-gradient(135deg,#ff8a1f,#8a4b1f)", "Warm lantern glow frame", "", "r"],
@@ -11964,11 +11998,22 @@ function fighterGame() {
     summer: { name: "☀️ Summer Splash", months: [5, 6, 7], color: "#ffd66b", banner: "☀️ SUMMER SPLASH · surf songs, beach crabs & shades in the ⚡ shop ☀️" },
     aprilfools: { name: "🤡 April Fools", months: [3], color: "#ff2bd6", banner: "🤡 APRIL FOOLS · the circus is in town! Silly songs, jesters & banana peel frames! 🤡" },
     easter: { name: "🐣 Easter Hunt", months: [2], color: "#ffd66b", banner: "🥚 EASTER EGG HUNT · find hidden eggs around the site! Spring pets & egg FX in the ⚡ shop 🐣" },
+    christmas: { name: "🎄 Christmas", months: [], when: (d) => d.getMonth() === 11 && d.getDate() >= 18 && d.getDate() <= 26, color: "#ff2e4d", banner: "🎄 MERRY CHRISTMAS · find hidden presents around the site! Christmas lights, candy canes & more in the ⚡ shop 🎁", hunt: ["🎁", "🎄", "⭐", "🔔", "🍪"], fall: ["❄️", "❅", "❆"] },
+    newyear: { name: "🎆 New Year's", months: [], when: (d) => (d.getMonth() === 11 && d.getDate() >= 30) || (d.getMonth() === 0 && d.getDate() <= 2), color: "#ffd66b", banner: "🎆 HAPPY NEW YEAR · find hidden party poppers! Fireworks FX & confetti frames in the ⚡ shop 🎊", hunt: ["🎉", "🎊", "🥳", "✨", "🎆"], fall: ["🎊", "✨", "🎉"] },
+    valentines: { name: "💘 Valentine's Day", months: [1], color: "#ff7be6", banner: "💘 VALENTINE'S DAY · find hidden hearts! Love FX & sweetheart frames in the ⚡ shop 💖", hunt: ["💖", "💘", "💌", "🌹", "🍫"], fall: ["💗", "💕", "💖"] },
+    stpatricks: { name: "🍀 St. Patrick's", months: [], when: (d) => d.getMonth() === 2 && d.getDate() >= 14 && d.getDate() <= 18, color: "#3dffa8", banner: "🍀 ST. PATRICK'S · find hidden lucky clovers! Clover FX & pot-of-gold frames in the ⚡ shop 🌈", hunt: ["🍀", "🌈", "🪙", "🎩", "☘️"], fall: ["☘️", "🍀"] },
+    school: { name: "🎒 Back to School", months: [8], color: "#ffd66b", banner: "🎒 BACK TO SCHOOL · find hidden pencils! Chalk FX & pencil frames in the ⚡ shop ✏️", hunt: ["✏️", "📚", "🍎", "📏", "🎒"], fall: [] },
+    birthday: { name: "🎂 Birthday Party", months: [], admin: true, color: "#ff2bd6", banner: "🎂 IT'S A BIRTHDAY PARTY · find hidden balloons! Cake FX & balloon frames in the ⚡ shop 🎈", hunt: ["🎈", "🎂", "🎁", "🥳", "🍰"], fall: ["🎈", "🎊"] },
   };
+  /* Calendar order: short date events win over whole-month ones. Birthday is admin-only. */
+  const EV_AUTO = ["newyear", "christmas", "stpatricks", "valentines", "easter", "aprilfools", "summer", "school", "halloween", "harvest", "winter"];
+  Object.assign(EVENTS.halloween, { hunt: ["🎃", "👻", "🦇", "🍬", "🕷"], fall: ["🦇", "🍂"] }); Object.assign(EVENTS.harvest, { hunt: ["🍂", "🍁", "🌽", "🥧", "🍎"], fall: ["🍂", "🍁"] }); Object.assign(EVENTS.winter, { hunt: ["❄️", "⛄", "🧤", "☕", "🎿"], fall: ["❄️", "❅", "❆"] });
+  Object.assign(EVENTS.summer, { hunt: ["🐚", "🌴", "🍦", "🕶", "🏖"], fall: [] }); Object.assign(EVENTS.aprilfools, { hunt: ["🤡", "🍌", "🎈", "🥧", "🃏"], fall: [] }); Object.assign(EVENTS.easter, { hunt: ["🥚", "🐣", "🐰", "🌸", "🌷", "🐥", "🌈", "🍬"], fall: ["🌸"] });
   const M2E = { 9: "halloween", 10: "harvest", 11: "winter", 5: "summer", 6: "summer", 7: "summer", 3: "aprilfools", 2: "easter" };
   const EVENT_OF = {}; for (const id in EVENT_MONTH) EVENT_OF[id] = M2E[EVENT_MONTH[id][0]];
+  Object.assign(EVENT_OF, { "xm-lights": "christmas", "xm-candy": "christmas", "xm-star": "christmas", "t-santahelper": "christmas", "ny-fireworks": "newyear", "ny-confetti": "newyear", "t-partystarter": "newyear", "vd-hearts": "valentines", "vd-frame": "valentines", "t-sweetheart": "valentines", "sp-clover": "stpatricks", "sp-gold": "stpatricks", "t-luckycharm": "stpatricks", "bs-chalk": "school", "bs-pencil": "school", "t-classclown": "school", "bd-cake": "birthday", "bd-balloon": "birthday", "t-partyanimal": "birthday" });
   // Which event is on: the admin's choice, or by the calendar when set to "auto".
-  function activeEvent() { const e = (window.GCFG || {}).event; if (e === "none") return null; if (e && e !== "auto" && EVENTS[e]) return e; const m = new Date().getMonth(); return Object.keys(EVENTS).find((k) => EVENTS[k].months.includes(m)) || null; }
+  function activeEvent() { const e = (window.GCFG || {}).event; if (e === "none") return null; if (e && e !== "auto" && EVENTS[e]) return e; const d = new Date(), m = d.getMonth(); return EV_AUTO.find((k) => EVENTS[k] && !EVENTS[k].admin && (EVENTS[k].when ? EVENTS[k].when(d) : EVENTS[k].months.includes(m))) || null; }
   const eventActive = (k) => activeEvent() === k;
   window.gblEventActive = eventActive;
   const inSeason = (id) => !EVENT_OF[id] || activeEvent() === EVENT_OF[id];
@@ -13049,12 +13094,15 @@ function fighterGame() {
   }
   function initEggHunt() {
     document.querySelectorAll(".ev-egg").forEach((e) => e.remove());
-    if (activeEvent() !== "easter") return;
+    document.querySelectorAll(".ev-fall").forEach((e) => e.remove());
+    const ae = activeEvent(), E = ae && EVENTS[ae]; if (!E || !E.hunt) return;
+    const icons = E.hunt, spots = ae === "easter" ? EGG_SPOTS : EGG_SPOTS.slice(0, 5);
+    if (E.fall && E.fall.length && !document.documentElement.classList.contains("calm")) { const box = document.createElement("div"); box.className = "ev-fall"; box.setAttribute("aria-hidden", "true"); for (let i = 0; i < 14; i++) { const f = document.createElement("span"); f.textContent = E.fall[i % E.fall.length]; f.style.left = (i * 7.3 % 100) + "vw"; f.style.animationDuration = (9 + (i * 3.7) % 8) + "s"; f.style.animationDelay = "-" + (i * 1.9 % 12) + "s"; f.style.fontSize = (.8 + (i % 4) * .25) + "rem"; box.append(f); } document.body.append(box); }
     const today = localDay(Date.now());
-    EGG_SPOTS.forEach(([lp, tp], i) => {
+    spots.forEach(([lp, tp], i) => {
       if ((prog.stats["egg_" + i] || "") === today) return;
       const e = document.createElement("div"); e.className = "ev-egg";
-      e.textContent = EGG_ICONS[i % EGG_ICONS.length];
+      e.textContent = icons[i % icons.length]; e.title = "Tap me for a prize!";
       e.style.left = lp + "vw"; e.style.top = tp + "vh";
       e.style.animationDelay = (i * 0.2) + "s";
       e.addEventListener("click", () => eggCollected(e, i));
