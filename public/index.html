@@ -1215,6 +1215,32 @@ html.calm *, html.calm *::before, html.calm *::after { animation-duration: .001s
 .trip-haul { display: flex; gap: 10px; align-items: center; font-size: 1.1rem; } .trip-haul b { color: #ffd66b; } .trip-haul span { color: #3dffa8; font-size: .85rem; }
 .pg-box .w-bar { width: 100%; }
 
+/* ---------- Pet Home page ---------- */
+.pet.on-home { display: none !important; }
+.pet { left: 14px !important; }
+.ph-scene { position: relative; width: 100%; aspect-ratio: 16 / 8; min-height: 260px; border-radius: 20px; overflow: hidden; background: linear-gradient(180deg, #6ec6ff 0%, #b8e6ff 55%, #b8e6ff 100%); border: 1px solid var(--line-2); margin-bottom: 14px; }
+.ph-scene.night { background: linear-gradient(180deg, #050320 0%, #1a0b3a 60%, #24124a 100%); }
+.ph-sun { position: absolute; top: 8%; right: 8%; font-size: 3rem; filter: drop-shadow(0 0 20px rgba(255,214,107,.8)); }
+.ph-hill { position: absolute; left: -10%; right: -10%; bottom: 30%; height: 30%; border-radius: 50% 50% 0 0; background: #5ccf7d; opacity: .7; } .night .ph-hill { background: #1d4a33; }
+.ph-grass { position: absolute; left: 0; right: 0; bottom: 0; height: 42%; background: linear-gradient(180deg, #3dbb63, #2a8a48); } .night .ph-grass { background: linear-gradient(180deg, #1c5a35, #123d24); }
+.ph-house { position: absolute; left: 4%; bottom: 30%; display: grid; justify-items: center; } .ph-house span { font-size: clamp(4rem, 12vw, 7rem); line-height: 1; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+.ph-house small { margin-top: -4px; padding: 2px 10px; border-radius: 999px; background: rgba(7,4,15,.7); color: var(--hc); font-weight: 800; font-size: .7rem; }
+.ph-slot { position: absolute; transform: translate(-50%, -50%); border: 0; background: none; font-size: clamp(2rem, 6vw, 3rem); cursor: pointer; line-height: 1; filter: drop-shadow(0 4px 6px rgba(0,0,0,.35)); padding: 0; }
+.ph-slot.empty span { display: grid; place-items: center; width: 40px; height: 40px; border-radius: 50%; border: 2px dashed rgba(255,255,255,.7); color: #fff; font-size: 1.4rem; font-weight: 900; background: rgba(0,0,0,.12); }
+.ph-slot.on { outline: 3px solid #ffd66b; outline-offset: 6px; border-radius: 12px; }
+.ph-pet { position: absolute; bottom: 8%; width: clamp(80px, 16vw, 130px); aspect-ratio: 1; transform: translateX(-50%); transition: left .12s linear; }
+.ph-pet .pv { width: 100%; height: 100%; } .ph-pet.flip .pv { transform: scaleX(-1); }
+.ph-pet.walk .pv { animation: petBob .35s ease-in-out infinite; }
+.ph-pet.sleep { bottom: 10%; } .ph-pet.sleep .pv { transform: rotate(-8deg); }
+.ph-z { position: absolute; top: -10%; right: -10%; font-size: 1.6rem; animation: phZ 2s ease-in-out infinite; } @keyframes phZ { 50% { transform: translate(6px, -10px); opacity: .6; } }
+.ph-pet.eat .pv { animation: phChomp .25s ease-in-out infinite; } @keyframes phChomp { 50% { transform: translateY(4px) scaleY(.94); } }
+.ph-bowl { position: absolute; bottom: -4%; right: -18%; font-size: 1.8rem; }
+.ph-pet.play .pv { animation: petJump .6s ease infinite; } .ph-ball { position: absolute; top: -20%; left: 40%; font-size: 1.5rem; animation: phBall .6s ease-in-out infinite; } @keyframes phBall { 50% { transform: translateY(-20px); } }
+.ph-away { position: absolute; left: 50%; bottom: 14%; transform: translateX(-50%); padding: 8px 14px; border-radius: 999px; background: rgba(7,4,15,.75); color: #ffd66b; font-weight: 800; }
+.ph-panel { display: grid; grid-template-columns: minmax(240px, 1fr) 1.4fr; gap: 16px; } .ph-stats { display: grid; gap: 8px; padding: 14px; border-radius: 16px; border: 1px solid var(--line-2); background: rgba(7,4,15,.6); }
+.ph-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; } .ph-foods .rew-tabs { margin-bottom: 6px; } .ph-deco { margin-bottom: 14px; }
+@media (max-width: 700px) { .ph-panel { grid-template-columns: 1fr; } .ph-scene { aspect-ratio: 4 / 3; } }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -1294,6 +1320,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#library">Library</a>
       <a href="#shop">🛒 Shop</a>
       <a href="#profile">Profile</a>
+      <a href="#pethome">🏡 Pet</a>
       <a href="#friends">Friends</a>
       <a href="#two-player">2 Players</a>
       <a href="#tournament">Tournament</a>
@@ -1383,6 +1410,19 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
         </div>
       </div>
       <div id="profile-page"></div>
+    </div>
+  </section>
+
+  <section id="pethome">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">Your best friend</p>
+          <h2>Pet Home</h2>
+          <p class="lede">Your pet's house and backyard. Feed it, let it nap, play games together and decorate the yard.</p>
+        </div>
+      </div>
+      <div id="pethome-page"></div>
     </div>
   </section>
 
@@ -1603,6 +1643,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#library">Library</a>
       <a href="#shop">🛒 Shop</a>
       <a href="#profile">Profile</a>
+      <a href="#pethome">🏡 Pet</a>
       <a href="#friends">Friends</a>
       <a href="#two-player">2 Players</a>
       <a href="#tournament">Tournament</a>
@@ -11059,6 +11100,30 @@ function fighterGame() {
     // 👹 Boss Rush exclusives (beat all 5 bosses)
     ["t-bossslayer", "title", "BOSS SLAYER 👹", 0, "linear-gradient(135deg,#ff4d6d,#ffd66b,#ff2bd6)", "Beat all 5 bosses in the Boss Rush weekend event.", "boss", "l"],
     ["pet-bossbot", "pet", "Boss Bot 🤖", 0, "linear-gradient(135deg,#ff4d6d,#ffd66b,#22e4ff)", "A mini OMEGA. Only for Boss Rush champions.", "boss", "l"],
+    // 🏡 Pet stuff: food (consumable), yard decor, pet houses
+    ["fd-kibble", "petfood", "🥣 Kibble Bag", 20, "linear-gradient(135deg,#c88a4a,#ffd66b)", "+25 hunger. Simple and tasty.", "", "c"],
+    ["fd-fish", "petfood", "🐟 Fresh Fish", 45, "linear-gradient(135deg,#22e4ff,#9ff3ff)", "+40 hunger, a bit happier, +1 pet XP.", "", "c"],
+    ["fd-steak", "petfood", "🥩 Big Steak", 80, "linear-gradient(135deg,#ff4d6d,#c88a4a)", "+60 hunger, +2 pet XP.", "", "r"],
+    ["fd-cake", "petfood", "🍰 Party Cake", 90, "linear-gradient(135deg,#ff7be6,#fff3c4)", "+30 hunger and +30 happiness.", "", "r"],
+    ["fd-apple", "petfood", "🍎 Golden Apple", 300, "linear-gradient(135deg,#ffd66b,#ff4d6d)", "A full belly and +6 pet XP.", "", "e"],
+    ["fd-candy", "petfood", "🍬 Star Candy", 1200, "linear-gradient(135deg,#ff2bd6,#ffd66b,#22e4ff)", "Full belly, full happiness, +12 pet XP!", "", "l"],
+    ["dc-tree", "decor", "Oak Tree 🌳", 150, "#3dffa8", "A shady tree for the backyard.", "", "c"],
+    ["dc-flowers", "decor", "Flower Bed 🌷", 120, "#ff7be6", "Pretty flowers to sniff.", "", "c"],
+    ["dc-log", "decor", "Cozy Log 🪵", 100, "#c88a4a", "A log to nap on.", "", "c"],
+    ["dc-teddy", "decor", "Big Teddy 🧸", 200, "#c88a4a", "A cuddly friend for your pet.", "", "c"],
+    ["dc-campfire", "decor", "Campfire 🔥", 350, "#ff8a1f", "Warm and toasty at night.", "", "r"],
+    ["dc-fountain", "decor", "Fountain ⛲", 600, "#22e4ff", "A splashy fountain.", "", "r"],
+    ["dc-pool", "decor", "Splash Pool 🏊", 700, "#9ff3ff", "Cool off on hot days.", "", "r"],
+    ["dc-slide", "decor", "Play Slide 🛝", 800, "#ffd66b", "Wheee!", "", "r"],
+    ["dc-tent", "decor", "Circus Tent 🎪", 1500, "#ff2bd6", "Showtime in the backyard.", "", "e"],
+    ["dc-ferris", "decor", "Ferris Wheel 🎡", 2500, "#a35bff", "A tiny fairground ride.", "", "e"],
+    ["dc-rainbow", "decor", "Rainbow Arch 🌈", 4000, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A magic rainbow over the yard.", "", "e"],
+    ["dc-castle", "decor", "Castle Tower 🏰", 7000, "#ffd66b", "A royal tower. LEGENDARY!", "", "l"],
+    ["dc-ufo", "decor", "Landed UFO 🛸", 8000, "linear-gradient(135deg,#22e4ff,#a35bff)", "Visitors from space. LEGENDARY!", "", "l"],
+    ["hs-mushroom", "pethouse", "Mushroom House 🍄", 500, "#ff4d6d", "A cute spotted mushroom home.", "", "r"],
+    ["hs-pagoda", "pethouse", "Pagoda 🏯", 1500, "#ff2bd6", "A peaceful pagoda.", "", "e"],
+    ["hs-rocket", "pethouse", "Rocket House 🚀", 3000, "#22e4ff", "Ready for lift-off.", "", "e"],
+    ["hs-castle", "pethouse", "Royal Castle 🏰", 6500, "#ffd66b", "Fit for a pet king. LEGENDARY!", "", "l"],
     // 👑 More legendaries
     ["pet-kraken", "pet", "Kraken 🐙", 7000, "linear-gradient(135deg,#0b2a4a,#22e4ff,#a35bff)", "Lord of the deep. Tentacles everywhere.", "", "l"],
     ["pet-wolf", "pet", "Shadow Wolf 🐺", 6000, "linear-gradient(135deg,#1a1a2e,#a35bff,#ffffff)", "Hunts by moonlight. Howls at high scores.", "", "l"],
@@ -11215,10 +11280,10 @@ function fighterGame() {
     const ey = body === "snowman" ? 42 : body === "dome" ? 50 : 52, ex = f.eyes === "big" ? 13 : 11, er = f.eyes === "big" ? 7.5 : 6;
     if (f.patches) add(`<ellipse cx="${50 - ex}" cy="${ey}" rx="9" ry="7.5" fill="#111"/><ellipse cx="${50 + ex}" cy="${ey}" rx="9" ry="7.5" fill="#111"/>`);
     if (f.mask) add(`<path d="M24 ${ey - 6} C36 ${ey - 12} 64 ${ey - 12} 76 ${ey - 6} L74 ${ey + 6} C62 ${ey + 2} 38 ${ey + 2} 26 ${ey + 6} Z" fill="#1a1426"/>`);
-    const eyeAt = (x0) => mood === "hungry" ? `<path d="M${x0 - 5} ${ey + 1} q5 -4 10 0" stroke="#111" stroke-width="2.6" fill="none" stroke-linecap="round"/>` : `<g class="pv-eye"><circle cx="${x0}" cy="${ey}" r="${er}" fill="#ffffff" stroke="#111" stroke-width="1.6"/><circle cx="${x0 + 1}" cy="${ey + 1}" r="${er * .55}" fill="#120a1f"/><circle cx="${x0 + 2.4}" cy="${ey - 1.6}" r="${er * .22}" fill="#ffffff"/></g>`;
+    const eyeAt = (x0) => mood === "sleep" ? `<path d="M${x0 - 5} ${ey} q5 4 10 0" stroke="#111" stroke-width="2.6" fill="none" stroke-linecap="round"/>` : mood === "hungry" ? `<path d="M${x0 - 5} ${ey + 1} q5 -4 10 0" stroke="#111" stroke-width="2.6" fill="none" stroke-linecap="round"/>` : `<g class="pv-eye"><circle cx="${x0}" cy="${ey}" r="${er}" fill="#ffffff" stroke="#111" stroke-width="1.6"/><circle cx="${x0 + 1}" cy="${ey + 1}" r="${er * .55}" fill="#120a1f"/><circle cx="${x0 + 2.4}" cy="${ey - 1.6}" r="${er * .22}" fill="#ffffff"/></g>`;
     add(eyeAt(50 - ex) + eyeAt(50 + ex) + (f.eyes === "3" ? eyeAt(50).replace(`cy="${ey}"`, `cy="${ey - 13}"`) : ""));
     if (f.stalks) add(`<path d="M${50 - ex} ${ey - 6} L${50 - ex - 2} ${ey - 18} M${50 + ex} ${ey - 6} L${50 + ex + 2} ${ey - 18}" stroke="${dark}" stroke-width="3"/>`);
-    const my = ey + 14, mouth = mood === "hungry" ? `<path d="M44 ${my + 3} q6 -6 12 0" stroke="#111" stroke-width="2.4" fill="none" stroke-linecap="round"/>` : mood === "bored" ? `<path d="M45 ${my} h10" stroke="#111" stroke-width="2.4" stroke-linecap="round"/>` : `<path d="M43 ${my - 1} q7 7 14 0" stroke="#111" stroke-width="2.4" fill="${mood === "happy" ? "#ff7b9c" : "none"}" stroke-linecap="round"/>`;
+    const my = ey + 14, mouth = mood === "sleep" ? `<ellipse cx="50" cy="${my}" rx="3" ry="2.4" fill="#111"/>` : mood === "hungry" ? `<path d="M44 ${my + 3} q6 -6 12 0" stroke="#111" stroke-width="2.4" fill="none" stroke-linecap="round"/>` : mood === "bored" ? `<path d="M45 ${my} h10" stroke="#111" stroke-width="2.4" stroke-linecap="round"/>` : `<path d="M43 ${my - 1} q7 7 14 0" stroke="#111" stroke-width="2.4" fill="${mood === "happy" ? "#ff7b9c" : "none"}" stroke-linecap="round"/>`;
     if (f.beak) add(`<path d="M44 ${my - 4} L50 ${my + 4} L56 ${my - 4} Z" fill="#ffb02e" ${st}/>`);
     else if (f.snout) add(`<ellipse cx="50" cy="${my - 1}" rx="10" ry="7" fill="${light}" ${st}/><ellipse cx="50" cy="${my - 4}" rx="3.5" ry="2.5" fill="#111"/>` + mouth.replace(`${my - 1}`, `${my + 1}`).replace(`${my}`, `${my + 2}`));
     else add(mouth);
@@ -11373,6 +11438,78 @@ function fighterGame() {
     o.body.replaceChildren(face, el("p", { class: "eyebrow", text: "What happened" }), el("ul", { class: "trip-log" }, ...tripLog(t).map(([, e]) => el("li", { text: it[2].split(" ")[0] + " " + e }))),
       el("div", { class: "trip-haul" }, el("b", { text: "+" + coins0 + " ⚡" }), extra ? el("span", { text: extra }) : null), el("button", { class: "btn hot", type: "button", text: "Yay!", onclick: () => o.close() }));
   }
+  /* ---------- Pet Home page: house, decorated backyard, foods, naps ---------- */
+  const FOODS = { "fd-kibble": [25, 0, 0], "fd-fish": [40, 8, 1], "fd-steak": [60, 5, 2], "fd-cake": [30, 30, 2], "fd-apple": [100, 15, 6], "fd-candy": [100, 100, 12] };
+  const HOUSES = { "": ["🏠", "Cottage", "#ff8a1f"], "hs-mushroom": ["🍄", "Mushroom House", "#ff4d6d"], "hs-pagoda": ["🏯", "Pagoda", "#ff2bd6"], "hs-castle": ["🏰", "Castle", "#ffd66b"], "hs-rocket": ["🚀", "Rocket House", "#22e4ff"] };
+  const YARD_SLOTS = [[30, 84], [44, 70], [56, 88], [70, 72], [82, 86], [92, 70]];
+  let phEdit = null, phAnim = null, phState = { x: 50, tx: 50, act: "idle", until: 0, flip: false };
+  const energyPct = (id) => { const pd = petData(id); if (pd.energy == null) { pd.energy = 100; pd.eAt = Date.now(); } return Math.max(0, Math.min(100, Math.round(pd.energy + (Date.now() - (pd.eAt || Date.now())) / 36e5 * 12))); };
+  const napping = (id) => { const pd = petData(id); return pd.sleepUntil && pd.sleepUntil > Date.now(); };
+  const isNight = () => { const h = new Date().getHours(); return h >= 21 || h < 7; };
+  function useEnergy(id, n) { const pd = petData(id); pd.energy = Math.max(0, energyPct(id) - n); pd.eAt = Date.now(); saveProg(); }
+  function feedWith(id, food) {
+    const f = FOODS[food]; if (!f) return; const n = ((prog.food || {})[food]) | 0; if (n <= 0) return toast("You're out of that food — get more in the Shop");
+    if (napping(id)) return toast("Shh… your pet is napping 😴");
+    prog.food = { ...(prog.food || {}), [food]: n - 1 }; const pd = petData(id);
+    pd.fed = Math.min(Date.now(), pd.fed + f[0] / 100 * 24 * 36e5); if (Date.now() - pd.fed > 24 * 36e5) pd.fed = Date.now() - 2 * 36e5;
+    if (f[1]) pd.played = Math.min(Date.now(), pd.played + f[1] / 100 * 18 * 36e5);
+    if (f[2]) petGainXp(id, f[2]); weekBump("feeds"); saveProg(); sfxHub();
+    phState.act = "eat"; phState.until = Date.now() + 2600; phState.food = SHOP.find((q) => q[0] === food)[2].split(" ")[0];
+    renderPetHome(); renderPet();
+  }
+  function renderPetHome() {
+    const root = document.getElementById("pethome-page"); if (!root) return;
+    const id = (prog.equip || {}).pet;
+    if (!id || !(prog.owned || []).includes(id)) { root.replaceChildren(el("div", { class: "panel lit" }, el("p", { class: "set-note", text: "You don't have a pet yet! Adopt one in the Shop, then come back to build its home." }), el("a", { class: "btn hot", href: "#shop", text: "Go to the Shop ▸", onclick: () => { if (window.gblShopTab) window.gblShopTab("shop"); } }))); return; }
+    const it = SHOP.find((q) => q[0] === id), house = HOUSES[(prog.equip || {}).pethouse || ""] || HOUSES[""], night = isNight(), sleeping = napping(id) || (night && !phState.awake);
+    const yard = (prog.yard || []).slice(0, YARD_SLOTS.length);
+    const scene = el("div", { class: "ph-scene" + (night ? " night" : "") });
+    scene.append(el("div", { class: "ph-sun", text: night ? "🌙" : "☀️" }), el("div", { class: "ph-hill" }), el("div", { class: "ph-grass" }),
+      el("div", { class: "ph-house", style: "--hc:" + house[2] }, el("span", { text: house[0] }), el("small", { text: it[2].split(" ")[0] + "'s " + house[1] })));
+    YARD_SLOTS.forEach(([lx, ty], i) => {
+      const d = yard[i] && SHOP.find((q) => q[0] === yard[i]);
+      const slot = el("button", { class: "ph-slot" + (phEdit === i ? " on" : "") + (d ? "" : " empty"), type: "button", style: "left:" + lx + "%;top:" + ty + "%", "aria-label": d ? d[2] : "Empty spot", onclick: () => { phEdit = phEdit === i ? null : i; renderPetHome(); } }, el("span", { text: d ? d[2].split(" ").pop() : "+" }));
+      scene.append(slot);
+    });
+    const petNode = el("div", { class: "ph-pet" + (phState.flip ? " flip" : "") + (sleeping ? " sleep" : "") + (phState.act === "eat" && phState.until > Date.now() ? " eat" : "") + (phState.act === "play" && phState.until > Date.now() ? " play" : ""), style: "left:" + (sleeping ? 30 : phState.x) + "%" });
+    petNode.innerHTML = petSVG(id, sleeping ? "sleep" : petMood(id), petEvo(id)) + (sleeping ? '<span class="ph-z">💤</span>' : "") + (phState.act === "eat" && phState.until > Date.now() ? '<span class="ph-bowl">' + (phState.food || "🍖") + "</span>" : "") + (phState.act === "play" && phState.until > Date.now() ? '<span class="ph-ball">🎾</span>' : "");
+    scene.append(petNode);
+    const away = petAway(id);
+    if (away) { petNode.hidden = true; scene.append(el("div", { class: "ph-away", text: "🧭 Out on an adventure!" })); }
+    const bar = (label, pct, col) => el("div", { class: "pet-bar" }, el("span", { text: label }), el("span", { class: "w-bar big" }, el("i", { style: "width:" + Math.round(pct) + "%;background:" + col })), el("small", { text: Math.round(pct) + "%" }));
+    const xi = petXpInfo(id);
+    const stats = el("div", { class: "ph-stats" }, el("b", { text: it[2] + (petEvo(id) ? " · MEGA 👑" : "") + " · LV " + xi.lv }),
+      bar("🍖 Hunger", hungerPct(id), "#ff8a1f"), bar("💛 Happy", happyPct(id), "#ffd66b"), bar("⚡ Energy", energyPct(id), "#22e4ff"), bar("⭐ XP", xi.k * 100, "#3dffa8"),
+      el("small", { class: "set-note", text: sleeping ? (napping(id) ? "Napping… energy refills while it sleeps." : "It's night-time, so your pet is asleep. Tap Wake up to play anyway.") : "Coin bonus right now: +" + Math.round(petBonus() * 100) + "%" }));
+    const busy = napping(id) || away || (night && !phState.awake);
+    const acts = el("div", { class: "ph-acts" },
+      night && !phState.awake && !napping(id) ? el("button", { class: "btn sm hot", type: "button", text: "☀️ Wake up", onclick: () => { phState.awake = true; sfxHub(); toast("*yawn* Good… evening? 🥱"); renderPetHome(); } }) : null,
+      el("button", { class: "btn sm hot", type: "button", disabled: busy, text: "🎾 Play games", onclick: () => { if (energyPct(id) < 15) return toast("Too tired to play — let it nap first 😴"); useEnergy(id, 15); phState.act = "play"; phState.until = Date.now() + 2500; openPetGames(id); renderPetHome(); } }),
+      el("button", { class: "btn sm", type: "button", disabled: busy, text: "😴 Nap (10 min)", onclick: () => { const pd = petData(id); pd.sleepUntil = Date.now() + 10 * 6e4; pd.energy = 100; pd.eAt = Date.now() + 10 * 6e4; saveProg(); toast("Sweet dreams… 💤"); renderPetHome(); } }),
+      el("button", { class: "btn sm", type: "button", disabled: busy, text: "🧭 Adventure", onclick: () => { petHome = true; renderPet(); window.scrollTo({ top: document.body.scrollHeight, behavior: "smooth" }); } }),
+      el("button", { class: "btn sm", type: "button", text: "🛒 Pet shop", onclick: () => { if (window.gblShopTab) window.gblShopTab("shop"); location.hash = "#shop"; setTimeout(() => { const c = [...document.querySelectorAll("#shop-page .chip")].find((x2) => x2.textContent.includes("Pet stuff")); if (c) c.click(); }, 300); } }));
+    const foods = Object.keys(FOODS).map((k) => [k, ((prog.food || {})[k]) | 0, SHOP.find((q) => q[0] === k)]).filter(([, , q]) => q);
+    const foodRow = el("div", { class: "ph-foods" }, el("p", { class: "eyebrow", text: "🍽 Feed" }),
+      el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", disabled: busy, text: "🥣 Basic bowl · 15 ⚡", onclick: () => { feedPet(id); phState.act = "eat"; phState.until = Date.now() + 2600; phState.food = "🥣"; renderPetHome(); } }),
+        ...foods.map(([k, n, q]) => el("button", { class: "chip", type: "button", disabled: busy || n <= 0, title: q[5], text: q[2] + " ×" + n, onclick: () => feedWith(id, k) }))));
+    let decoUI = null;
+    if (phEdit != null) {
+      const owned = (prog.owned || []).map((d) => SHOP.find((q) => q[0] === d)).filter((q) => q && q[1] === "decor");
+      decoUI = el("div", { class: "ph-deco panel lit" }, el("p", { class: "eyebrow", text: "🪴 Decorate spot " + (phEdit + 1) }),
+        owned.length ? el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", text: "Empty", onclick: () => { const y = (prog.yard || []).slice(); y[phEdit] = null; prog.yard = y; saveProg(); phEdit = null; renderPetHome(); } }), ...owned.map((q) => el("button", { class: "chip", type: "button", text: q[2], onclick: () => { const y = (prog.yard || []).slice(); while (y.length < YARD_SLOTS.length) y.push(null); y[phEdit] = q[0]; prog.yard = y; saveProg(); sfxHub(); phEdit = null; renderPetHome(); } })))
+          : el("p", { class: "set-note", text: "You don't own any decorations yet — get some in the Shop under 🏡 Pet stuff." }));
+    }
+    root.replaceChildren(...[scene, decoUI].filter(Boolean), el("div", { class: "ph-panel" }, stats, el("div", {}, acts, foodRow, el("p", { class: "set-note", text: "Tap a + spot in the yard to decorate it. Change your pet's house in the Shop." }))));
+  }
+  function petHomeTick() {
+    const sec = document.getElementById("pethome"); if (!sec || sec.classList.contains("page-off")) { clearInterval(phAnim); phAnim = null; return; }
+    const id = (prog.equip || {}).pet; if (!id) return;
+    if (Math.random() < .25 && !(phState.until > Date.now())) { phState.tx = 12 + Math.random() * 76; }
+    const d = phState.tx - phState.x; if (Math.abs(d) > .5) { phState.x += Math.sign(d) * Math.min(Math.abs(d), 2.2); phState.flip = d < 0; }
+    const n = document.querySelector(".ph-pet"); if (n && !n.classList.contains("sleep")) { n.style.left = phState.x + "%"; n.classList.toggle("flip", phState.flip); n.classList.toggle("walk", Math.abs(d) > .5); }
+    if (phState.until && phState.until < Date.now() && phState.act !== "idle") { phState.act = "idle"; renderPetHome(); }
+  }
+  window.gblPetHomeShown = (on) => { petEl.classList.toggle("on-home", on); if (on) { renderPetHome(); clearInterval(phAnim); phAnim = setInterval(petHomeTick, 120); } };
   function tripBack(id) {
     const pd = petData(id), t = pd.trip; if (!t || t.end > Date.now()) return;
     pd.trip = null; const h = t.len, lv = petLv(id), coins0 = Math.round((h < 1 ? 30 : h === 1 ? 110 : h === 4 ? 420 : 900) * (1 + lv * .05) * (.85 + Math.random() * .3));
@@ -11398,31 +11535,21 @@ function fighterGame() {
       el("p", { class: "pet-mood-line", text: MOOD_EMO[mood] + " " + ({ happy: "Feeling great! +" + Math.round(petBonus() * 100) + "% coins", ok: "Doing fine. +" + Math.round(petBonus() * 100) + "% coins", bored: "Bored… play with me!", hungry: "So hungry! No coin bonus until fed" })[mood] }),
       bar("🍖 Hunger", hungerPct(id), "#ff8a1f"), bar("💛 Happy", happyPct(id), "#ffd66b"), bar("⭐ LV " + lv + (lv >= 10 ? " MAX" : " · " + xi.need + " XP to go"), xi.k * 100, "#3dffa8"),
       petAway(id) ? el("p", { class: "pet-mood-line", text: "🧭 On a " + TRIPS.find((t) => t[0] === petAway(id).len)[1].replace(/^\S+\s+/, "").toLowerCase() + " — back in " + (() => { const ms = petAway(id).end - Date.now(); return ms > 36e5 ? Math.floor(ms / 36e5) + "h " + Math.floor(ms % 36e5 / 6e4) + "m" : Math.ceil(ms / 6e4) + "m"; })() }) :
-      el("div", { class: "pet-trips" }, el("small", { text: "Send on an adventure:" }), ...TRIPS.map(([h, name, sub, lab]) => el("button", { class: "btn sm", type: "button", title: sub, text: name + " · " + lab, onclick: () => { if (hungerPct(id) < 25) return petSay("Too hungry to travel! Feed me first 🍖"); petData(id).trip = { end: Date.now() + h * 36e5, len: h }; saveProg(); sfxHub(); petHome = false; petSay("Off on my " + name.replace(/^\S+\s+/, "").toLowerCase() + "! See you in " + lab + " 👋", 3500); renderPet(); } }))),
+      el("div", { class: "pet-trips" }, el("small", { text: "Send on an adventure:" }), ...TRIPS.map(([h, name, sub, lab]) => el("button", { class: "btn sm", type: "button", title: sub, text: name + " · " + lab, onclick: () => { if (hungerPct(id) < 25) return petSay("Too hungry to travel! Feed me first 🍖"); if (energyPct(id) < 25) return petSay("Too sleepy to travel… let me nap first 😴"); useEnergy(id, 25); petData(id).trip = { end: Date.now() + h * 36e5, len: h }; saveProg(); sfxHub(); petHome = false; petSay("Off on my " + name.replace(/^\S+\s+/, "").toLowerCase() + "! See you in " + lab + " 👋", 3500); renderPet(); } }))),
       lv >= 10 && !petEvo(id) ? el("button", { class: "btn sm hot pet-evo", type: "button", text: "✨ EVOLVE TO MEGA · 1,000 ⚡", onclick: () => { if (coins() < 1000) return petSay("Need 1,000 ⚡ to evolve!"); spend("", 1000); petData(id).evo = 1; saveProg(); sfxLegendary(); if (window.gblConfetti) window.gblConfetti(180); petSay("I EVOLVED! I'm MEGA now! 👑", 4000); renderPet(); } }) : petEvo(id) ? el("p", { class: "pet-mood-line", text: "👑 MEGA form · +10% extra coins" }) : el("small", { class: "pet-home-tip", text: "Reach level 10 to evolve into a MEGA form." }),
       el("div", { class: "pet-home-b" },
         el("button", { class: "btn sm hot", type: "button", text: "Feed · " + PET_FEED_COST + " ⚡", onclick: () => feedPet(id) }),
         el("button", { class: "btn sm", type: "button", text: "Play 🎾", onclick: () => { petHome = false; renderPet(); openPetGames(id); } }),
-        el("button", { class: "btn sm", type: "button", text: "Pets 🐾", onclick: () => { petHome = false; if (window.gblShopTab) window.gblShopTab("inv"); location.hash = "#shop"; renderPet(); } })),
+        el("button", { class: "btn sm", type: "button", text: "🏡 Home", onclick: () => { petHome = false; location.hash = "#pethome"; renderPet(); } })),
       el("small", { class: "pet-home-tip", text: "Pets get hungry over a day and bored over an afternoon. Fed pets boost your coins; XP comes from playing games, snacks and playtime." })) : null;
     petEl.replaceChildren(bub, face, el("div", { class: "pet-tag" }, el("b", { text: it[2] }), el("small", { text: away ? "on an adventure 🧭" : "LV " + lv + (petEvo(id) ? " MEGA" : "") + " · " + (mood === "hungry" ? "hungry! tap me" : mood === "bored" ? "bored · tap me" : "+" + Math.round(petBonus() * 100) + "% coins") })), ...(home ? [home] : []));
     petEl.classList.toggle("hungry", mood === "hungry"); petEl.classList.toggle("open", petHome);
   };
-  /* The pet wanders along the bottom of the hub. */
-  setInterval(() => {
-    if (petEl.hidden || petHome || document.documentElement.classList.contains("playing") || document.documentElement.classList.contains("calm") || ((prog.equip || {}).pet && petAway(prog.equip.pet))) return;
-    if (petPause > 0) { petPause--; if (petWalking) { petWalking = false; petEl.classList.remove("walk"); } return; }
-    const maxX = Math.max(14, Math.min(260, innerWidth - 150));
-    petX += petDir * .9; if (petX > maxX) { petX = maxX; petDir = -1; } if (petX < 14) { petX = 14; petDir = 1; }
-    if (Math.random() < .006) petPause = 40 + Math.random() * 60 | 0;
-    if (!petWalking) { petWalking = true; petEl.classList.add("walk"); }
-    petEl.style.left = petX + "px"; petEl.classList.toggle("flip", petDir < 0);
-  }, 50);
   setTimeout(() => { const id = (prog.equip || {}).pet; if (id && (prog.owned || []).includes(id) && petMood(id) === "hungry") petSay("I'm hungry! Tap me 🍖", 4000); }, 2500);
   window.gblPetChar = petCharEl; window.gblPetInfo = (id) => ({ mood: petMood(id), hunger: hungerPct(id), happy: happyPct(id), ...petXpInfo(id) });
   const cost = (n) => n === 0 ? 0 : Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
-  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["powerup", "⚡ Power-ups (used from a game's start screen)", ""], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"], ["pong", "🏓 " + gname("pong"), "#6af7ff"], ["muncher", "🟡 " + gname("muncher"), "#ffc23d"], ["stack", "🧱 " + gname("stack"), "linear-gradient(90deg,#22e4ff,#a35bff,#ff2bd6)"], ["crossing", "🐸 " + gname("crossing"), "#22e4ff"], ["bowling", "🎳 " + gname("bowling"), "#22e4ff"], ["airhockey", "🏒 " + gname("airhockey"), "#22e4ff"], ["connect4", "🔴 " + gname("connect4"), "#ff2bd6"], ["chess", "♟ " + gname("chess"), "#22e4ff"], ["tunnel", "🌀 " + gname("tunnel"), "#ffffff"], ["orbit", "🪐 " + gname("orbit"), "#22e4ff"]];
+  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["powerup", "⚡ Power-ups (used from a game's start screen)", ""], ["petfood", "🍽 Pet food", ""], ["decor", "🪴 Backyard decor", ""], ["pethouse", "🏡 Pet houses", "#ff8a1f"], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"], ["pong", "🏓 " + gname("pong"), "#6af7ff"], ["muncher", "🟡 " + gname("muncher"), "#ffc23d"], ["stack", "🧱 " + gname("stack"), "linear-gradient(90deg,#22e4ff,#a35bff,#ff2bd6)"], ["crossing", "🐸 " + gname("crossing"), "#22e4ff"], ["bowling", "🎳 " + gname("bowling"), "#22e4ff"], ["airhockey", "🏒 " + gname("airhockey"), "#22e4ff"], ["connect4", "🔴 " + gname("connect4"), "#ff2bd6"], ["chess", "♟ " + gname("chess"), "#22e4ff"], ["tunnel", "🌀 " + gname("tunnel"), "#ffffff"], ["orbit", "🪐 " + gname("orbit"), "#22e4ff"]];
   const getShopGroups = () => { const ae = activeEvent(); return ae && EVENTS[ae] ? [["ev-" + ae, EVENTS[ae].name + " Event Shop ✨", EVENTS[ae].color], ...SHOP_GROUPS_BASE] : SHOP_GROUPS_BASE; };
   const SHOP_GROUPS = SHOP_GROUPS_BASE; // legacy alias
   const SPIN_MS = 24 * 3600 * 1000;
@@ -11681,7 +11808,8 @@ function fighterGame() {
   /* ---------- Shop page (own hub section): search, categories, game picker, deals and crates ---------- */
   const RANK_ORDER = { c: 0, r: 1, e: 2, l: 3 };
   const SLOT_GROUPS = ["music", "pet", "title", "fx", "frame", "filter"];
-  const GAME_GROUPS = () => SHOP_GROUPS_BASE.filter(([gk]) => gk !== "boost" && gk !== "powerup" && !SLOT_GROUPS.includes(gk));
+  const PET_GROUPS = ["petfood", "decor", "pethouse"];
+  const GAME_GROUPS = () => SHOP_GROUPS_BASE.filter(([gk]) => gk !== "boost" && gk !== "powerup" && !PET_GROUPS.includes(gk) && !SLOT_GROUPS.includes(gk));
   let shopTab = "shop", shopCat = "all", shopGame = "all", shopRank = "all", shopOwn = "all", shopSort = "default", shopQuery = "", shopNewIds = new Set(), shopSearchEl = null;
   function sfxRare() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), g = ac.createGain(); g.connect(ac.destination); g.gain.value = .12; [659, 880, 1175, 1319].forEach((f, i) => { const o = ac.createOscillator(); o.type = "square"; o.frequency.value = f; o.connect(g); const t = ac.currentTime + i * .09; o.start(t); o.stop(t + .12); }); setTimeout(() => ac.close(), 900); } catch {} }
   function sfxEpic() { try { const ac = new (window.AudioContext || window.webkitAudioContext)(), g = ac.createGain(); g.connect(ac.destination); g.gain.value = .14; [523, 659, 784, 1047, 784, 1047, 1319].forEach((f, i) => { const o = ac.createOscillator(); o.type = "sawtooth"; o.frequency.value = f; o.connect(g); const t = ac.currentTime + i * .08; o.start(t); o.stop(t + .11); }); setTimeout(() => ac.close(), 1100); } catch {} }
@@ -11701,6 +11829,9 @@ function fighterGame() {
     if (cur === "boss" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "👹 Beat Boss Rush" }));
     if (cur === "season" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🎟 Season pass reward" }));
     if (cur === "set" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🃏 Complete every card set" }));
+    if (igrp === "petfood") { const n = ((prog.food || {})[id]) | 0; return el("div", { class: "shop-item" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("small", { class: "pup-own", text: "You have ×" + n }),
+      el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.food = { ...(prog.food || {}), [id]: n + 1 }; saveProg(); renderWallet(); sfxHub(); toast(name + " ×" + (n + 1) + " — feed it in 🏡 Pet Home"); rerender(); } })); }
+    if (igrp === "decor" && has) return el("div", { class: "shop-item" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("a", { class: "btn sm", href: "#pethome", text: "✓ Owned · place it" }));
     if (igrp === "powerup") { const n = ((prog.pups || {})[id]) | 0; return el("div", { class: "shop-item" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("small", { class: "pup-own", text: "You have ×" + n }),
       el("button", { class: "btn sm hot", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.pups = { ...(prog.pups || {}), [id]: n + 1 }; saveProg(); renderWallet(); sfxHub(); toast(name + " ×" + (n + 1) + " — pick it on the game's start screen"); weekBump("buys"); rerender(); } })); }
     if (igrp === "boost") return el("div", { class: "shop-item" + tag }, icon, el("b", { text: name }), rarBadge, newBadge, el("small", { text: sub }),
@@ -11708,7 +11839,7 @@ function fighterGame() {
     const priceEl = o.dealPct ? el("span", { class: "deal-price" }, el("s", { text: priceLab(cur, cost(price0)) }), el("b", { text: pl })) : null;
     return el("div", { class: "shop-item" + (on ? " on" : "") + tag }, icon, el("b", { text: name }), rarBadge, newBadge, dealTag, el("small", { text: sub }), priceEl, listen,
       has ? el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", disabled: on, text: on ? "Equipped" : "Equip", onclick: () => { prog.equip = { ...(prog.equip || {}), [bgk]: id }; saveProg(); toast(name + " equipped"); rerender(); } })
-        : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...(prog.owned || []), id]; prog.equip = { ...(prog.equip || {}), [bgk]: id }; saveProg(); renderWallet(); buyFanfare(rar); unlockToast(rar, name); weekBump("buys"); rerender(); } }));
+        : el("button", { class: "btn sm", type: "button", disabled: poor, text: "Buy " + pl, onclick: () => { if (balOf(cur) < price) return; spend(cur, price); prog.owned = [...(prog.owned || []), id]; if (igrp !== "decor") prog.equip = { ...(prog.equip || {}), [bgk]: id }; saveProg(); renderWallet(); buyFanfare(rar); unlockToast(rar, name); weekBump("buys"); rerender(); } }));
   }
   function defaultCard(gk, base, eq, rerender) {
     return el("div", { class: "shop-item" + (!eq[gk] ? " on" : "") }, el("span", { class: "sw", style: "background:" + base }), el("b", { text: ["fx", "frame", "filter", "title"].includes(gk) ? "None" : gk === "music" ? "Default music" : "Classic" }), el("small", { text: gk === "music" ? "Synth style – free" : "Free" }),
@@ -11716,7 +11847,7 @@ function fighterGame() {
   }
   function inventoryBody(rerender) {
     const owned2 = prog.owned || [], eq2 = prog.equip || {};
-    const INV_GROUPS = [["pet", "🐾 Pets"], ["title", "🏷 Titles"], ["music", "🎵 Music"], ["fx", "✨ Sparks"], ["frame", "🖼 Frames"], ["filter", "🎞 Filters"], ...GAME_GROUPS().map(([gk, t]) => [gk, t])];
+    const INV_GROUPS = [["pet", "🐾 Pets"], ["pethouse", "🏡 Pet houses"], ["decor", "🪴 Backyard decor"], ["title", "🏷 Titles"], ["music", "🎵 Music"], ["fx", "✨ Sparks"], ["frame", "🖼 Frames"], ["filter", "🎞 Filters"], ...GAME_GROUPS().map(([gk, t]) => [gk, t])];
     const invSections = INV_GROUPS.map(([gk, gname2]) => {
       const items = owned2.map((id) => SHOP.find((it) => it[0] === id)).filter((it) => it && it[1] === gk);
       if (!items.length) return null;
@@ -11740,7 +11871,7 @@ function fighterGame() {
   }
   /* Daily deals: 3 items at 30–50% off, same for everyone all day, new ones at midnight (UTC). */
   function seededRng(str) { let h = 2166136261; for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); } return () => { h += 0x6D2B79F5; let t = Math.imul(h ^ (h >>> 15), 1 | h); t ^= t + Math.imul(t ^ (t >>> 7), 61 | t); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
-  const dealEligible = (it) => it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv" && it[6] !== "set" && it[6] !== "season" && it[6] !== "boss" && inSeason(it[0]) && (it[6] ? cost(it[3]) >= 3 : cost(it[3]) >= 20);
+  const dealEligible = (it) => it[1] !== "boost" && it[1] !== "powerup" && it[1] !== "petfood" && it[6] !== "lv" && it[6] !== "set" && it[6] !== "season" && it[6] !== "boss" && inSeason(it[0]) && (it[6] ? cost(it[3]) >= 3 : cost(it[3]) >= 20);
   function todaysDeals() {
     const r = seededRng("deals-" + todayKey()), pool = SHOP.filter(dealEligible), legendaryOk = r() < .18;
     const pick = pool.filter((it) => legendaryOk || it[7] !== "l"), out = [];
@@ -11750,7 +11881,7 @@ function fighterGame() {
   const untilMidnight = () => { const n = new Date(), m = Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate() + 1) - n.getTime(); return Math.floor(m / 36e5) + "h " + Math.floor((m % 36e5) / 6e4) + "m"; };
   /* Mystery crates: a random unowned item of that rank. */
   const CRATES = [["c", "Common Crate", 200, "📦", "linear-gradient(135deg,#777,#bbb)"], ["r", "Rare Crate", 800, "🎁", "linear-gradient(135deg,#22e4ff,#6b7dff)"], ["e", "Epic Crate", 3000, "💎", "linear-gradient(135deg,#a35bff,#ff2bd6)"], ["l", "Legendary Crate", 9000, "👑", "linear-gradient(135deg,#ffd66b,#ff2bd6,#22e4ff)"]];
-  const cratePool = (rank) => { const owned = new Set(prog.owned || []); return SHOP.filter((it) => it[7] === rank && !owned.has(it[0]) && it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv" && it[6] !== "set" && it[6] !== "season" && it[6] !== "boss" && inSeason(it[0])); };
+  const cratePool = (rank) => { const owned = new Set(prog.owned || []); return SHOP.filter((it) => it[7] === rank && !owned.has(it[0]) && it[1] !== "boost" && it[1] !== "powerup" && it[1] !== "petfood" && it[6] !== "lv" && it[6] !== "set" && it[6] !== "season" && it[6] !== "boss" && inSeason(it[0])); };
   function openCrate(rank, price, label) {
     const pool = cratePool(rank); if (!pool.length) { toast("You own every " + RAR_LABEL[rank] + " item already!"); return; }
     if (coins() < price) { toast("Not enough coins"); return; }
@@ -11815,7 +11946,7 @@ function fighterGame() {
         el("div", { class: "shop-grid crates-grid" }, ...CRATES.map(([rank, label, price, emo, col]) => { const left = cratePool(rank).length, poor = coins() < price; return el("div", { class: "shop-item crate rk-" + rank }, el("span", { class: "sw big crate-emo", style: "background:" + col, text: emo }), el("b", { text: label }), el("span", { class: "rar rar-" + rank, text: RAR_LABEL[rank] }), el("small", { text: left ? left + " possible items" : "You own them all!" }), el("button", { class: "btn sm hot", type: "button", disabled: poor || !left, text: left ? "Open · " + fmt(price) + " ⚡" : "Complete ✓", onclick: () => openCrate(rank, price, label) })); })));
     } else {
       const SG = getShopGroups(), ev = SG.find(([gk]) => gk.startsWith("ev-"));
-      const cats = [["all", "All"], ...(ev ? [[ev[0], ev[1].replace(/ Event Shop ✨/, " ✨")]] : []), ["music", "🎵 Music"], ["pet", "🐾 Pets"], ["title", "🏷 Titles"], ["fx", "✨ Sparks"], ["frame", "🖼 Frames"], ["filter", "🎞 Filters"], ["boost", "🚀 Boosts"], ["powerup", "⚡ Power-ups"], ["games", "🎮 Games"]];
+      const cats = [["all", "All"], ...(ev ? [[ev[0], ev[1].replace(/ Event Shop ✨/, " ✨")]] : []), ["music", "🎵 Music"], ["pet", "🐾 Pets"], ["title", "🏷 Titles"], ["fx", "✨ Sparks"], ["frame", "🖼 Frames"], ["filter", "🎞 Filters"], ["boost", "🚀 Boosts"], ["powerup", "⚡ Power-ups"], ["petstuff", "🏡 Pet stuff"], ["games", "🎮 Games"]];
       const catChips = el("div", { class: "rew-tabs shop-chips" }, ...cats.map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopCat === gk), text: t, onclick: () => { shopCat = gk; shopGame = "all"; rerender(); } })));
       const gameChips = shopCat === "games" ? el("div", { class: "rew-tabs shop-chips game-chips" }, ...[["all", "All games"], ...GAME_GROUPS().map(([gk, t]) => [gk, t])].map(([gk, t]) => el("button", { class: "chip", type: "button", "aria-pressed": String(shopGame === gk), text: t, onclick: () => { shopGame = gk; rerender(); } }))) : null;
       const filt = el("div", { class: "shop-filters" },
@@ -11830,13 +11961,14 @@ function fighterGame() {
       let groups;
       if (shopCat === "all") groups = SG;
       else if (shopCat === "games") groups = shopGame === "all" ? GAME_GROUPS() : GAME_GROUPS().filter(([gk]) => gk === shopGame);
+      else if (shopCat === "petstuff") groups = SG.filter(([gk]) => PET_GROUPS.includes(gk));
       else groups = SG.filter(([gk]) => gk === shopCat);
       const single = groups.length === 1 && !q && shopRank === "all" && shopOwn === "all";
       const sections = groups.map(([gk, title, base]) => {
         const items = groupItems(gk), cards = items.map((it) => shopItemCard(it, { owned, eq, bgk: gk.startsWith("ev-") ? it[1] : gk, rerender })).filter(Boolean);
         if (!cards.length && !single) return null;
         return el("div", { class: "shop-section" }, el("p", { class: "eyebrow set-h2", text: title + (cards.length ? " · " + cards.length : "") }),
-          el("div", { class: "shop-grid" }, single && gk !== "boost" && !gk.startsWith("ev-") ? defaultCard(gk, base, eq, rerender) : null, ...cards));
+          el("div", { class: "shop-grid" }, single && gk !== "boost" && gk !== "powerup" && gk !== "petfood" && gk !== "decor" && !gk.startsWith("ev-") ? defaultCard(gk, base, eq, rerender) : null, ...cards));
       }).filter(Boolean);
       body = el("div", { class: "shop" }, catChips, gameChips, filt, ...(sections.length ? sections : [el("p", { class: "set-note", text: "Nothing matches — try another search or filter." })]));
     }
@@ -12121,7 +12253,7 @@ function fighterGame() {
         el("div", { class: "adm-row" }, el("span", { class: "adm-k", text: "⚡" }), ic, el("span", { class: "adm-k", text: "$" }), id2, el("span", { class: "adm-k", text: "💎" }), ig, el("span", { class: "adm-k", text: "XP" }), ix,
           el("button", { class: "btn sm hot", type: "button", text: "Save money", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { coins: +ic.value || 0, cash: +id2.value || 0, gems: +ig.value || 0, xp: +ix.value || 0 } }, "Saved ✓")) })),
         el("div", { class: "adm-row wrapr" },
-          el("button", { class: "btn sm", type: "button", text: "🎁 Give every shop item", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { giveItems: SHOP.filter((it) => it[1] !== "boost" && it[1] !== "powerup" && it[6] !== "lv" && it[6] !== "season").map((it) => it[0]) } }, "Gave everything ✓")) }),
+          el("button", { class: "btn sm", type: "button", text: "🎁 Give every shop item", onclick: async () => redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { giveItems: SHOP.filter((it) => it[1] !== "boost" && it[1] !== "powerup" && it[1] !== "petfood" && it[6] !== "lv" && it[6] !== "season").map((it) => it[0]) } }, "Gave everything ✓")) }),
           el("button", { class: "btn sm", type: "button", text: "Take all items", onclick: async () => { if (confirm("Take away all of " + u.username + "'s shop items?")) redo(await admCall("/admin/users/" + id, { method: "PATCH", body: { takeItems: true } }, "Items removed")); } }),
           el("button", { class: "btn sm", type: "button", text: "Reset progress", onclick: async () => { if (confirm("Reset ALL of " + u.username + "'s progress (coins, levels, badges, items)?")) redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "progress" } }, "Progress reset")); } }),
           el("button", { class: "btn sm", type: "button", text: "Delete all scores", onclick: async () => { if (confirm("Delete every high score " + u.username + " has?")) { redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "scores" } }, "Scores deleted")); refresh("scores"); } } }),
@@ -12258,7 +12390,7 @@ function fighterGame() {
       el("div", { class: "shop-grid shelf-grid" }, ...shelf.map((id, i) => { const it = id && item(id); return el("button", { class: "shop-item shelf-slot" + (it ? " rk-" + (it[7] || "c") : " empty") + (shelfPick === i ? " on" : ""), type: "button", onclick: () => { shelfPick = shelfPick === i ? null : i; renderProfile(); } },
         it ? el("span", { class: "sw" + (it[1] === "title" ? " ttl" : it[1] === "pet" ? " petsw" : ""), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null, "data-pet": it[1] === "pet" ? it[0] : null }) : el("span", { class: "sw", style: "background:rgba(255,255,255,.08)", text: "+" }),
         el("b", { text: it ? it[2] : "Empty slot " + (i + 1) }), it && it[7] ? el("span", { class: "rar rar-" + it[7], text: RAR_LABEL[it[7]] }) : null); })),
-      shelfPick != null ? el("div", { class: "shelf-pick" }, el("p", { class: "set-note", text: "Choose an item for slot " + (shelfPick + 1) + ":" }), el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", text: "Clear slot", onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = null; prog.shelf = s2; shelfPick = null; saveProg(); renderProfile(); } }), ...ownedItems.filter((it) => it[1] !== "boost" && it[1] !== "powerup").sort((a, b2) => rank(b2) - rank(a)).map((it) => el("button", { class: "chip", type: "button", text: (it[1] === "pet" ? PET_EMO[it[0]] + " " : "") + it[2] + (it[7] === "l" ? " 👑" : ""), onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = it[0]; prog.shelf = s2; shelfPick = null; saveProg(); sfxHub(); renderProfile(); } })))) : null);
+      shelfPick != null ? el("div", { class: "shelf-pick" }, el("p", { class: "set-note", text: "Choose an item for slot " + (shelfPick + 1) + ":" }), el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", text: "Clear slot", onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = null; prog.shelf = s2; shelfPick = null; saveProg(); renderProfile(); } }), ...ownedItems.filter((it) => it[1] !== "boost" && it[1] !== "powerup" && it[1] !== "petfood").sort((a, b2) => rank(b2) - rank(a)).map((it) => el("button", { class: "chip", type: "button", text: (it[1] === "pet" ? PET_EMO[it[0]] + " " : "") + it[2] + (it[7] === "l" ? " 👑" : ""), onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = it[0]; prog.shelf = s2; shelfPick = null; saveProg(); sfxHub(); renderProfile(); } })))) : null);
     const favEl = el("div", { class: "prof-two" },
       el("div", {}, el("p", { class: "eyebrow set-h2", text: "🎮 Favourite game" }), favG ? el("div", { class: "pcard prof-fav" }, el("b", { text: favG.title }), el("small", { text: fmt(played[favKey]) + " plays · best " + fmt(myBest(favKey) || 0) + " · " + "★".repeat(window.gblStars(favKey)) + "☆".repeat(3 - window.gblStars(favKey)) }), el("button", { class: "btn sm hot", type: "button", text: "Play", onclick: () => { const i = BUILTINS.indexOf(favG); play({ ...favG, slot: i + 1 }); } })) : el("p", { class: "set-note", text: "Play some games and your favourite shows up here." })),
       el("div", {}, el("p", { class: "eyebrow set-h2", text: "💎 Rarest item" }), rarest ? el("div", { class: "shop-grid one" }, miniCard(rarest)) : el("p", { class: "set-note", text: "Nothing yet — open a crate!" })));
@@ -12729,7 +12861,7 @@ function fighterGame() {
 (() => {
   const home = document.getElementById("home"), hub = document.getElementById("hub");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const HUB = ["games", "library", "shop", "profile", "friends", "two-player", "tournament", "online", "leaderboards", "badges", "admin", "submit", "queue"];
+  const HUB = ["games", "library", "shop", "profile", "pethome", "friends", "two-player", "tournament", "online", "leaderboards", "badges", "admin", "submit", "queue"];
   let inHub = false;
   const setHash = (h) => { try { history.pushState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) {} };
   function showHub(target, animate) {
@@ -12766,6 +12898,7 @@ function fighterGame() {
     if (window.gblShopShown) window.gblShopShown(id === "shop");
     if (window.gblProfileShown) window.gblProfileShown(id === "profile");
     if (window.gblFriendsShown) window.gblFriendsShown(id === "friends");
+    if (window.gblPetHomeShown) window.gblPetHomeShown(id === "pethome");
     document.querySelectorAll('.links a, .foot-links a').forEach((a) => { const on = a.getAttribute("href") === "#" + id; a.classList.toggle("on", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     window.scrollTo(0, 0);
   }
