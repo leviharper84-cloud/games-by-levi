@@ -50,6 +50,8 @@ const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS daily (day TEXT NOT NULL, user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, score INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (day, user_id))",
   "CREATE TABLE IF NOT EXISTS rooms (code TEXT PRIMARY KEY, game TEXT NOT NULL, host_id INTEGER NOT NULL, guest_id INTEGER, moves TEXT NOT NULL DEFAULT '[]', status TEXT NOT NULL DEFAULT 'open', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS rate (key TEXT PRIMARY KEY, count INTEGER NOT NULL, since INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS friends (a INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, b INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, status TEXT NOT NULL, asker INTEGER NOT NULL, at INTEGER NOT NULL, PRIMARY KEY (a, b))",
+  "CREATE TABLE IF NOT EXISTS challenges (id INTEGER PRIMARY KEY AUTOINCREMENT, from_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, to_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, score INTEGER NOT NULL, reply INTEGER, status TEXT NOT NULL DEFAULT 'open', at INTEGER NOT NULL, done_at INTEGER)",
   "CREATE TABLE IF NOT EXISTS tours (code TEXT PRIMARY KEY, host_id INTEGER NOT NULL, games TEXT NOT NULL, players TEXT NOT NULL DEFAULT '[]', scores TEXT NOT NULL DEFAULT '{}', status TEXT NOT NULL DEFAULT 'lobby', created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)",
   "CREATE TABLE IF NOT EXISTS config (k TEXT PRIMARY KEY, v TEXT NOT NULL)",
   "CREATE TABLE IF NOT EXISTS diag (id INTEGER PRIMARY KEY AUTOINCREMENT, at INTEGER NOT NULL, who TEXT, body TEXT NOT NULL)",
@@ -111,6 +113,11 @@ async function handle(request, env, url) {
   if ((m = path.match(/^\/api\/rooms\/([A-Z]{4})\/move$/)) && method === "POST") return roomMove(request, env, user, m[1]);
   if ((m = path.match(/^\/api\/rooms\/([A-Z]{4})\/leave$/)) && method === "POST") return leaveRoom(env, user, m[1]);
 
+  if (path === "/api/friends" && method === "GET") return getFriends(env, user);
+  if (path === "/api/friends" && method === "POST") return addFriend(request, env, user);
+  if ((m = path.match(/^\/api\/friends\/(\d+)\/(accept|remove)$/)) && method === "POST") return friendAction(env, user, +m[1], m[2]);
+  if (path === "/api/challenges" && method === "POST") return createChallenge(request, env, user);
+  if ((m = path.match(/^\/api\/challenges\/(\d+)\/answer$/)) && method === "POST") return answerChallenge(request, env, user, +m[1]);
   if (path === "/api/tours" && method === "POST") return createTour(env, user);
   if ((m = path.match(/^\/api\/tours\/([A-Z]{4})$/)) && method === "GET") return getTour(env, user, m[1]);
   if ((m = path.match(/^\/api\/tours\/([A-Z]{4})\/(join|start|score|leave)$/)) && method === "POST") return tourAction(request, env, user, m[1], m[2]);
@@ -378,6 +385,79 @@ async function leaveRoom(env, user, code) {
   const r = await roomFor(env, code);
   if (seatOf(r, user)) await env.DB.prepare("UPDATE rooms SET status = 'left', updated_at = ? WHERE code = ?").bind(Date.now(), code).run();
   return json({ ok: true });
+}
+
+/* ------------------------------------------------------------------ */
+/* Friends and "beat my score" challenges                              */
+/* ------------------------------------------------------------------ */
+
+const pair = (x, y) => (x < y ? [x, y] : [y, x]);
+const PUBLIC_COLS = "u.id, u.username, u.avatar_i, u.avatar_c, json_extract(p.data, '$.equip.title') AS title, json_extract(p.data, '$.equip.pet') AS pet, json_extract(p.data, '$.stats.xp') AS xp";
+const itemId = (v, pre) => (typeof v === "string" && v.startsWith(pre) && v.length < 40 && /^[a-z0-9-]+$/.test(v) ? v : null);
+const pubRow = (r) => ({ id: r.id, name: r.username, av: { i: r.avatar_i, c: r.avatar_c }, title: itemId(r.title, "t-"), pet: itemId(r.pet, "pet-"), lv: Math.floor(Math.sqrt(Math.max(0, +r.xp || 0) / 40)) + 1 });
+async function areFriends(env, x, y) { const [a, b] = pair(x, y); const r = await env.DB.prepare("SELECT status FROM friends WHERE a = ? AND b = ?").bind(a, b).first(); return r && r.status === "ok"; }
+async function getFriends(env, user) {
+  if (!user) fail(401, "Log in to see your friends.");
+  const { results: rows } = await env.DB.prepare(`SELECT f.status, f.asker, ${PUBLIC_COLS} FROM friends f JOIN users u ON u.id = CASE WHEN f.a = ? THEN f.b ELSE f.a END LEFT JOIN progress p ON p.user_id = u.id WHERE f.a = ? OR f.b = ?`).bind(user.id, user.id, user.id).all();
+  const friends = [], incoming = [], outgoing = [];
+  for (const r of rows) { const o = pubRow(r); if (r.status === "ok") friends.push(o); else if (r.asker === user.id) outgoing.push(o); else incoming.push(o); }
+  if (friends.length) {
+    const ids = friends.map((f) => f.id);
+    const { results: recent } = await env.DB.prepare(`SELECT user_id, game, score, at FROM (SELECT user_id, game, score, at, ROW_NUMBER() OVER (PARTITION BY user_id ORDER BY at DESC) AS rn FROM scores WHERE user_id IN (${ids.map(() => "?").join(",")})) WHERE rn <= 3`).bind(...ids).all();
+    for (const f of friends) f.recent = recent.filter((r) => r.user_id === f.id).map((r) => ({ game: r.game, score: r.score, at: r.at }));
+  }
+  const { results: ch } = await env.DB.prepare(`SELECT c.*, fu.username AS from_name, tu.username AS to_name FROM challenges c JOIN users fu ON fu.id = c.from_id JOIN users tu ON tu.id = c.to_id WHERE (c.from_id = ? OR c.to_id = ?) AND c.at > ? ORDER BY c.at DESC LIMIT 60`).bind(user.id, user.id, Date.now() - 14 * DAY).all();
+  const challenges = ch.map((c) => ({ id: c.id, from: c.from_id, fromName: c.from_name, to: c.to_id, toName: c.to_name, game: c.game, score: c.score, reply: c.reply, status: c.status, at: c.at, doneAt: c.done_at }));
+  return json({ friends, incoming, outgoing, challenges });
+}
+async function addFriend(request, env, user) {
+  if (!user) fail(401, "Log in to add friends.");
+  await limit(env, "friend:" + user.id, 30, HOUR, "You've sent a lot of friend requests. Try again later.");
+  const b = await readJson(request), name = cleanName(b.username).toLowerCase();
+  if (!name) fail(400, "Type your friend's username.");
+  const them = await env.DB.prepare("SELECT id, username FROM users WHERE username_lc = ?").bind(name).first();
+  if (!them) fail(404, "No player called \"" + cleanName(b.username) + "\". Check the spelling.");
+  if (them.id === user.id) fail(400, "That's you! Add someone else.");
+  const [a, c] = pair(user.id, them.id), row = await env.DB.prepare("SELECT status, asker FROM friends WHERE a = ? AND b = ?").bind(a, c).first();
+  if (row && row.status === "ok") return json({ ok: true, msg: "You're already friends with " + them.username + "." });
+  if (row && row.asker !== user.id) { await env.DB.prepare("UPDATE friends SET status = 'ok', at = ? WHERE a = ? AND b = ?").bind(Date.now(), a, c).run(); return json({ ok: true, msg: "You and " + them.username + " are now friends!" }); }
+  if (row) return json({ ok: true, msg: "Request already sent to " + them.username + "." });
+  const { results: cnt } = await env.DB.prepare("SELECT COUNT(*) AS n FROM friends WHERE a = ? OR b = ?").bind(user.id, user.id).all();
+  if (cnt[0].n >= 200) fail(409, "You've reached the friend limit (200).");
+  await env.DB.prepare("INSERT INTO friends (a, b, status, asker, at) VALUES (?, ?, 'pending', ?, ?)").bind(a, c, user.id, Date.now()).run();
+  return json({ ok: true, msg: "Friend request sent to " + them.username + "!" });
+}
+async function friendAction(env, user, id, act) {
+  if (!user) fail(401, "Log in first.");
+  const [a, b] = pair(user.id, id), row = await env.DB.prepare("SELECT status, asker FROM friends WHERE a = ? AND b = ?").bind(a, b).first();
+  if (!row) fail(404, "That request is gone.");
+  if (act === "accept") { if (row.asker === user.id) fail(400, "Wait for them to accept."); await env.DB.prepare("UPDATE friends SET status = 'ok', at = ? WHERE a = ? AND b = ?").bind(Date.now(), a, b).run(); }
+  else await env.DB.prepare("DELETE FROM friends WHERE a = ? AND b = ?").bind(a, b).run();
+  return json({ ok: true });
+}
+async function createChallenge(request, env, user) {
+  if (!user) fail(401, "Log in to send challenges.");
+  await limit(env, "chal:" + user.id, 40, HOUR, "That's a lot of challenges! Try again later.");
+  const b = await readJson(request), to = Math.floor(Number(b.to)), game = String(b.game || "");
+  if (!BUILTIN_GAMES.has(game)) fail(400, "Pick a game to challenge them in.");
+  if (!(await areFriends(env, user.id, to))) fail(403, "You can only challenge friends.");
+  const best = await env.DB.prepare("SELECT score FROM scores WHERE user_id = ? AND game = ?").bind(user.id, game).first();
+  if (!best || best.score <= 0) fail(400, "Set a score in that game first, then challenge them to beat it.");
+  const open = await env.DB.prepare("SELECT id FROM challenges WHERE from_id = ? AND to_id = ? AND game = ? AND status = 'open'").bind(user.id, to, game).first();
+  if (open) fail(409, "You already have an open challenge with them in that game.");
+  await env.DB.prepare("INSERT INTO challenges (from_id, to_id, game, score, at) VALUES (?, ?, ?, ?, ?)").bind(user.id, to, game, best.score, Date.now()).run();
+  return json({ ok: true, score: best.score });
+}
+async function answerChallenge(request, env, user, id) {
+  if (!user) fail(401, "Log in first.");
+  const c = await env.DB.prepare("SELECT * FROM challenges WHERE id = ?").bind(id).first();
+  if (!c || c.to_id !== user.id) fail(404, "That challenge isn't for you.");
+  if (c.status !== "open") return json({ status: c.status, reply: c.reply, score: c.score });
+  const b = await readJson(request), score = Math.floor(Number(b.score));
+  if (!Number.isFinite(score) || score < 0 || score > 1e7) fail(400, "That score isn't valid.");
+  const status = score > c.score ? "won" : "lost";
+  await env.DB.prepare("UPDATE challenges SET reply = ?, status = ?, done_at = ? WHERE id = ? AND status = 'open'").bind(score, status, Date.now(), id).run();
+  return json({ status, reply: score, score: c.score });
 }
 
 /* ------------------------------------------------------------------ */

@@ -1132,6 +1132,20 @@ html.playing, html.playing body { overflow: hidden; overscroll-behavior: none; }
 
 .pup-own { color: #3dffa8; font-family: var(--f-mono); }
 
+/* ---------- Friends ---------- */
+.links a.dot { position: relative; } .links a.dot::after { content: attr(data-n); position: absolute; top: -4px; right: -6px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: #ff2e4d; color: #fff; font-size: .6rem; line-height: 16px; text-align: center; box-shadow: 0 0 8px rgba(255,46,77,.7); }
+.fr-add { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; margin-bottom: 16px; } .fr-add .search { max-width: 280px; }
+.fr-sec { margin-bottom: 18px; }
+.fr-row { display: flex; gap: 12px; align-items: center; justify-content: space-between; flex-wrap: wrap; padding: 10px 12px; border-radius: 12px; border: 1px solid var(--line-2); background: rgba(7,4,15,.6); margin-bottom: 8px; }
+.fr-row.chal { border-color: rgba(255,214,107,.55); box-shadow: 0 0 14px rgba(255,214,107,.15); } .fr-row.won { border-color: rgba(61,255,168,.4); } .fr-row.lost { opacity: .75; }
+.fr-txt { display: grid; gap: 2px; } .fr-txt small { color: var(--muted); }
+.fr-who { display: flex; gap: 10px; align-items: center; min-width: 0; }
+.fr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 12px; }
+.fr-card { display: grid; gap: 10px; padding: 14px; border-radius: 14px; border: 1px solid var(--line-2); background: rgba(7,4,15,.6); }
+.fr-recent { display: grid; gap: 3px; } .fr-recent small { color: var(--muted); font-size: .72rem; }
+.fr-acts { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.fr-pick { margin-bottom: 16px; }
+
 /* ---------- Footer, toast ---------- */
 footer { padding-block: 48px 64px; text-align: center; color: var(--dim); font-size: .82rem; border-top: 1px solid var(--line); background: linear-gradient(to bottom, rgba(7,4,15,0), rgba(7,4,15,.85)); }
 .foot { display: grid; gap: 14px; justify-items: center; }
@@ -1211,6 +1225,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#library">Library</a>
       <a href="#shop">🛒 Shop</a>
       <a href="#profile">Profile</a>
+      <a href="#friends">Friends</a>
       <a href="#two-player">2 Players</a>
       <a href="#tournament">Tournament</a>
       <a href="#online">Online</a>
@@ -1299,6 +1314,19 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
         </div>
       </div>
       <div id="profile-page"></div>
+    </div>
+  </section>
+
+  <section id="friends">
+    <div class="wrap">
+      <div class="sec-head">
+        <div>
+          <p class="eyebrow">Play together</p>
+          <h2>Friends</h2>
+          <p class="lede">Add friends by username, see what they've been playing, and dare them to beat your best score in any game.</p>
+        </div>
+      </div>
+      <div id="friends-page"></div>
     </div>
   </section>
 
@@ -1506,6 +1534,7 @@ footer .brand { font-size: 1.5rem; display: inline-block; margin-bottom: 6px; }
       <a href="#library">Library</a>
       <a href="#shop">🛒 Shop</a>
       <a href="#profile">Profile</a>
+      <a href="#friends">Friends</a>
       <a href="#two-player">2 Players</a>
       <a href="#tournament">Tournament</a>
       <a href="#online">Online</a>
@@ -9882,7 +9911,7 @@ function fighterGame() {
         e.preventDefault();
         if (!u.value.trim() || !p.value) return say("Enter your username and password.", "err");
         go.disabled = true; say("Logging in…");
-        try { const r = await api("/login", { method: "POST", body: { username: u.value, password: p.value } }); me = r.user; closeAcct(); toast("Welcome back, " + me.username); welcome(); loadSettings(); loadProg(); loadDaily(); if (window.gblLoadLikes) window.gblLoadLikes(); }
+        try { const r = await api("/login", { method: "POST", body: { username: u.value, password: p.value } }); me = r.user; closeAcct(); if (window.gblOnMe) window.gblOnMe(); toast("Welcome back, " + me.username); welcome(); loadSettings(); loadProg(); loadDaily(); if (window.gblLoadLikes) window.gblLoadLikes(); }
         catch (ex) { say(ex.message, "err"); p.value = ""; p.focus(); }
         finally { go.disabled = false; }
       });
@@ -9910,7 +9939,7 @@ function fighterGame() {
           el("button", { class: "btn", type: "button", text: "Edit profile", onclick: () => renderAcctModal("edit") }),
           el("button", { class: "btn", type: "button", text: "Log out", onclick: async () => {
             try { await api("/logout", { method: "POST" }); } catch {}
-            me = null; closeAcct(); renderAll(); toast("Logged out. See you next time.");
+            me = null; closeAcct(); if (window.gblOnMe) window.gblOnMe(); renderAll(); toast("Logged out. See you next time.");
           } })));
       return;
     }
@@ -9961,7 +9990,7 @@ function fighterGame() {
           me = r.user; toast("Profile saved"); await refresh("scores"); renderAcctModal("profile");
         } else {
           const r = await api("/signup", { method: "POST", body: { username: name, password: p.value, av } });
-          me = r.user; closeAcct(); toast(`Welcome to the hub, ${me.username}!`); welcome(); loadSettings(); loadProg(); loadDaily(); if (window.gblLoadLikes) window.gblLoadLikes();
+          me = r.user; closeAcct(); if (window.gblOnMe) window.gblOnMe(); toast(`Welcome to the hub, ${me.username}!`); welcome(); loadSettings(); loadProg(); loadDaily(); if (window.gblLoadLikes) window.gblLoadLikes();
         }
       } catch (ex) { say(ex.message, "err"); }
       finally { save.disabled = false; }
@@ -11879,6 +11908,66 @@ function fighterGame() {
     } });
   }
 
+  /* ---------- Friends and "beat my score" challenges ---------- */
+  let fdata = null, fBusy = false, fChal = null;
+  const fGame = (k) => BUILTINS.find((b2) => b2.key === k);
+  async function loadFriends() {
+    if (!me) { fdata = null; updateFriendDot(); return; }
+    try { fdata = await api("/friends"); } catch { }
+    updateFriendDot();
+  }
+  function friendsDue() { if (!fdata || !me) return 0; return fdata.incoming.length + fdata.challenges.filter((c) => c.to === me.id && c.status === "open").length; }
+  function updateFriendDot() { document.querySelectorAll('.links a[href="#friends"]').forEach((a) => { const n = friendsDue(); a.classList.toggle("dot", n > 0); a.dataset.n = n || ""; }); }
+  function playChallenge(c) {
+    const g = fGame(c.game); if (!g) return;
+    const i = BUILTINS.indexOf(g);
+    toast("Beat " + fmt(c.score) + " in " + g.title + "! One try counts.");
+    play({ ...g, slot: i + 1 }, null, { onScore: async (sc) => {
+      try { const r = await api("/challenges/" + c.id + "/answer", { method: "POST", body: { score: sc } });
+        if (r.status === "won") { coinPop("🏆 You beat " + c.fromName + "'s " + fmt(r.score) + "!  +150 ⚡", true); if (window.gblWinCoins) window.gblWinCoins(150, "challenge won!"); }
+        else coinPop("So close! " + fmt(r.reply) + " vs " + fmt(r.score) + ". Challenge them back?", true);
+      } catch (e) { toast(e.message); }
+      await loadFriends(); renderFriends();
+    } });
+  }
+  function renderFriends() {
+    const root = document.getElementById("friends-page"); if (!root) return;
+    if (!me) { root.replaceChildren(el("div", { class: "panel lit" }, el("p", { class: "set-note", text: "Log in to add friends, see what they're playing and send score challenges." }), el("button", { class: "btn hot", type: "button", text: "Log in / Sign up", onclick: () => { const b2 = document.querySelector("#acct button"); if (b2) b2.click(); } }))); return; }
+    if (!fdata) { root.replaceChildren(el("p", { class: "set-note", text: "Loading friends…" })); loadFriends().then(renderFriends); return; }
+    const nameIn = el("input", { class: "search", maxlength: "16", placeholder: "Friend's username", autocomplete: "off", spellcheck: "false", "aria-label": "Friend's username" });
+    const add = async () => { if (fBusy || !nameIn.value.trim()) return; fBusy = true; try { const r = await api("/friends", { method: "POST", body: { username: nameIn.value.trim() } }); toast(r.msg); nameIn.value = ""; await loadFriends(); renderFriends(); } catch (e) { toast(e.message); } fBusy = false; };
+    nameIn.addEventListener("keydown", (e) => { if (e.key === "Enter") add(); });
+    const who = (f, extra) => el("div", { class: "fr-who" }, avEl(f.av, "sm"), el("span", { class: "who-name" }, el("span", { class: "who-n", text: f.name + (f.pet && window.gblPetEmo ? " " + window.gblPetEmo(f.pet) : "") }), (() => { const t = f.title && window.gblItem ? window.gblItem(f.title) : null; return t ? el("small", { class: "who-title rk-" + (t[7] || "c"), style: "--tc:" + (String(t[4]).startsWith("#") ? t[4] : "#ffd66b"), text: "🏷 " + t[2] }) : null; })(), el("small", { class: "who-lv", text: "LV " + f.lv })), extra || null);
+    const act = async (id, a) => { try { await api("/friends/" + id + "/" + a, { method: "POST", body: {} }); await loadFriends(); renderFriends(); } catch (e) { toast(e.message); } };
+    const reqs = fdata.incoming.length ? el("div", { class: "fr-sec" }, el("p", { class: "eyebrow set-h2", text: "📨 Friend requests · " + fdata.incoming.length }),
+      ...fdata.incoming.map((f) => el("div", { class: "fr-row" }, who(f), el("div", { class: "fr-acts" }, el("button", { class: "btn sm hot", type: "button", text: "Accept", onclick: () => act(f.id, "accept") }), el("button", { class: "btn sm", type: "button", text: "Decline", onclick: () => act(f.id, "remove") }))))) : null;
+    const inbox = fdata.challenges.filter((c) => c.to === me.id && c.status === "open");
+    const chalIn = inbox.length ? el("div", { class: "fr-sec" }, el("p", { class: "eyebrow set-h2", text: "⚔️ Challenges for you · " + inbox.length }),
+      ...inbox.map((c) => { const g = fGame(c.game); return el("div", { class: "fr-row chal" }, el("div", { class: "fr-txt" }, el("b", { text: c.fromName + " dares you to beat " + fmt(c.score) }), el("small", { text: (g ? g.title : c.game) + " · your next run counts · win = +150 ⚡" })), el("button", { class: "btn sm hot", type: "button", text: "Play ▸", onclick: () => playChallenge(c) })); })) : null;
+    const myPick = (f) => {
+      const opts = BUILTINS.filter((g) => myBest(g.key) > 0);
+      if (!opts.length) return toast("Set a score in any game first, then challenge your friends to beat it.");
+      fChal = { f, opts }; renderFriends();
+    };
+    const picker = fChal ? el("div", { class: "fr-pick panel lit" }, el("p", { class: "eyebrow", text: "Challenge " + fChal.f.name + " — pick a game (your best score is the target)" }),
+      el("div", { class: "rew-tabs shop-chips" }, ...fChal.opts.map((g) => el("button", { class: "chip", type: "button", text: g.title + " · " + fmt(myBest(g.key)), onclick: async () => { const f = fChal.f; fChal = null; try { const r = await api("/challenges", { method: "POST", body: { to: f.id, game: g.key } }); toast("Challenge sent! " + f.name + " has to beat " + fmt(r.score) + " in " + g.title); } catch (e) { toast(e.message); } await loadFriends(); renderFriends(); } })),
+        el("button", { class: "chip", type: "button", text: "Cancel", onclick: () => { fChal = null; renderFriends(); } }))) : null;
+    const list = el("div", { class: "fr-sec" }, el("p", { class: "eyebrow set-h2", text: "👥 Friends · " + fdata.friends.length }),
+      fdata.friends.length ? el("div", { class: "fr-grid" }, ...fdata.friends.map((f) => el("div", { class: "fr-card" }, who(f),
+        el("div", { class: "fr-recent" }, ...(f.recent && f.recent.length ? f.recent.map((r) => el("small", { text: "🎮 " + ((fGame(r.game) || {}).title || r.game) + " · " + fmt(r.score) + " · " + timeAgo(r.at) })) : [el("small", { text: "No scores yet" })])),
+        el("div", { class: "fr-acts" }, el("button", { class: "btn sm hot", type: "button", text: "⚔️ Challenge", onclick: () => myPick(f) }), el("button", { class: "linkbtn", type: "button", text: "Remove", onclick: () => { if (confirm("Remove " + f.name + " from your friends?")) act(f.id, "remove"); } }))))) : el("p", { class: "set-note", text: "No friends yet — add someone by their username above!" }));
+    const pend = fdata.outgoing.length ? el("p", { class: "set-note", text: "Waiting for: " + fdata.outgoing.map((f) => f.name).join(", ") }) : null;
+    const done = fdata.challenges.filter((c) => c.status !== "open").slice(0, 12), sent = fdata.challenges.filter((c) => c.from === me.id && c.status === "open");
+    const hist = done.length || sent.length ? el("div", { class: "fr-sec" }, el("p", { class: "eyebrow set-h2", text: "📜 Recent challenges" }),
+      ...sent.map((c) => el("div", { class: "fr-row" }, el("small", { text: "⏳ Waiting for " + c.toName + " to try " + fmt(c.score) + " in " + ((fGame(c.game) || {}).title || c.game) }))),
+      ...done.map((c) => { const mine = c.from === me.id, iWon = mine ? c.status === "lost" : c.status === "won"; return el("div", { class: "fr-row " + (iWon ? "won" : "lost") }, el("small", { text: (iWon ? "🏆 " : "💀 ") + (mine ? c.toName + " got " + fmt(c.reply) + " vs your " + fmt(c.score) : "You got " + fmt(c.reply) + " vs " + c.fromName + "'s " + fmt(c.score)) + " · " + ((fGame(c.game) || {}).title || c.game) })); })) : null;
+    root.replaceChildren(
+      el("div", { class: "fr-add" }, nameIn, el("button", { class: "btn hot", type: "button", text: "Add friend", onclick: add }), el("small", { class: "set-note", text: "Your username: " + me.username })),
+      picker, reqs, chalIn, list, pend, hist);
+  }
+  window.gblFriendsShown = (on) => { if (on) { loadFriends().then(renderFriends); renderFriends(); } };
+  setInterval(() => { if (me && !document.hidden && !document.querySelector(".modal.open")) loadFriends().then(() => { const sec = document.getElementById("friends"); if (sec && !sec.classList.contains("page-off")) renderFriends(); }); }, 60000);
+  window.gblOnMe = () => { fdata = null; fChal = null; loadFriends().then(() => { const sec = document.getElementById("friends"); if (sec && !sec.classList.contains("page-off")) renderFriends(); }); };
   /* ---------- Online tournament (2-5 players, server-side) ---------- */
   let otour = null, otPoll = null, otCode = null;
   try { otCode = store.get("gbl-otour") || null; } catch {}
@@ -12052,7 +12141,7 @@ function fighterGame() {
   }
   renderAll();
   (async () => {
-    try { me = (await api("/me")).user; online = true; } catch { online = false; }
+    try { me = (await api("/me")).user; online = true; } catch { online = false; } if (window.gblOnMe) window.gblOnMe();
     if (window.gblLoadLikes) window.gblLoadLikes(); if (me) { loadSettings(); loadProg(); }
     await refresh();
     syncGuest();
@@ -12066,7 +12155,7 @@ function fighterGame() {
 (() => {
   const home = document.getElementById("home"), hub = document.getElementById("hub");
   const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
-  const HUB = ["games", "library", "shop", "profile", "two-player", "tournament", "online", "leaderboards", "badges", "admin", "submit", "queue"];
+  const HUB = ["games", "library", "shop", "profile", "friends", "two-player", "tournament", "online", "leaderboards", "badges", "admin", "submit", "queue"];
   let inHub = false;
   const setHash = (h) => { try { history.pushState(null, "", h ? "#" + h : location.pathname + location.search); } catch (e) {} };
   function showHub(target, animate) {
@@ -12102,6 +12191,7 @@ function fighterGame() {
     secs.forEach((s0) => s0.classList.toggle("page-off", s0.id !== id));
     if (window.gblShopShown) window.gblShopShown(id === "shop");
     if (window.gblProfileShown) window.gblProfileShown(id === "profile");
+    if (window.gblFriendsShown) window.gblFriendsShown(id === "friends");
     document.querySelectorAll('.links a, .foot-links a').forEach((a) => { const on = a.getAttribute("href") === "#" + id; a.classList.toggle("on", on); if (on) a.setAttribute("aria-current", "page"); else a.removeAttribute("aria-current"); });
     window.scrollTo(0, 0);
   }
