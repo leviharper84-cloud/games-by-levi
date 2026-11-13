@@ -2007,11 +2007,12 @@ function SHELL() {
       box.append(b);
     }
   }
-  function saveGame(d) { if (S.practice || S.duo || S.tt || S.quick) return; SAVED = d ? { ...d, score: Math.floor(S.score) } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); if (SAVED && SAVED.score > 0) parent.postMessage({ type: "gbl:ckpt", score: SAVED.score }, "*"); } catch (e) {} }
+  let runId = 0;
+  function saveGame(d) { if (S.practice || S.duo || S.tt || S.quick) return; SAVED = d ? { ...d, score: Math.floor(S.score), run: runId } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); if (SAVED && SAVED.score > 0) parent.postMessage({ type: "gbl:ckpt", score: SAVED.score }, "*"); } catch (e) {} }
   function start(practice, duo, cont, quick) {
     if (window.TOUR0) { duo = true; practice = false; }
     S.quick = !!quick && !duo && !practice && !window.TOUR0 && !window.ONLINE0; S.qpT = 90; ckT = 0;
-    S.pupOn = new Set();
+    S.pupOn = new Set(); S.respawns = 3; runId = cont && SAVED && SAVED.run ? SAVED.run : Date.now();
     if (!S.quick && !practice && !duo && pupAllowed()) for (const id of pupSel) if ((PUPS[id] | 0) > 0) { PUPS[id]--; S.pupOn.add(id); try { parent.postMessage({ type: "gbl:pup", id }, "*"); } catch (e) {} }
     pupSel.clear(); renderPups();
     if (S.bestN == null) S.bestN = S.best;
@@ -2028,6 +2029,17 @@ function SHELL() {
   }
   function over(text) {
     if (S.state !== "play") return;
+    /* Normal runs: respawn at the last checkpoint from this run (3 times), keeping the death score for the leaderboard. */
+    if (!S.practice && !S.duo && !S.tt && !S.quick && !window.TOUR0 && !window.ONLINE0 && SAVED && SAVED.run === runId && S.respawns > 0 && G.load && !/COMPLETE|WIN|CLEAR|VICTORY|CHAMPION/i.test(text || "")) {
+      S.respawns--; const deathScore = Math.floor(S.score);
+      try { if (deathScore > 0) parent.postMessage({ type: "gbl:ckpt", score: deathScore }, "*"); } catch (e) {}
+      sfx("over"); flash("#ffffff", .35);
+      S.keys = {}; S.parts = []; S.pops = []; S.rings = [];
+      S.pupOn = new Set(); G.init(); G.load(SAVED); S.score = SAVED.score || 0; if (G.start) G.start();
+      banner("↺ RESPAWNED AT CHECKPOINT · " + S.respawns + " LEFT", "#3dffa8");
+      S.state = "count"; S.cd = 1.4;
+      return;
+    }
     if (S.tt) {
       const t = S.tt; S.score = Math.floor(S.score); t.s[t.p - 1] = S.score;
       S.state = "over"; S.overAt = performance.now(); S.shown = 0; S.newBest = false; sfx("over");
@@ -2166,7 +2178,7 @@ function SHELL() {
     } else if (S.state === "play" && dt > 0) {
       S.t += dt; if (RQ.length && G.remote && G.remote(RQ[0])) RQ.shift(); G.update(dt);
       if (S.state === "play" && S.quick) { S.qpT -= dt; if (S.qpT <= 0) { S.qpT = 0; over("TIME'S UP!"); } }
-      else if (S.state === "play" && G.autoCk && !S.practice && !S.duo && !S.tt) { ckT += dt; if (ckT >= 20) { ckT = 0; if (S.score > 0) { saveGame({ auto: 1, label: "SCORE " + fmt(Math.floor(S.score)) }); pop(G.w / 2, 70, "✓ CHECKPOINT", "#3dffa8"); } } }
+      else if (S.state === "play" && G.autoCk && !S.practice && !S.duo && !S.tt) { ckT += dt; if (ckT >= 60) { ckT = 0; if (S.score > 0) { saveGame({ auto: 1, label: "SCORE " + fmt(Math.floor(S.score)) }); pop(G.w / 2, 70, "✓ CHECKPOINT", "#3dffa8"); } } }
     }
     stepFx(dt);
     x.setTransform(dpr, 0, 0, dpr, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = "source-over"; x.shadowBlur = 0;
