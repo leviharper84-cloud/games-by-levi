@@ -699,6 +699,7 @@ html.playing .ach-pop.show { transform: translate(-50%, 0); }
 .adv-wrap { display:flex; flex-direction:column; gap:12px; }
 .adv-day.today .adv-lab { color:#ffd66b; }
 /* Event egg hunt */
+body:has(.modal.open) .ev-egg, body:has(.modal.open) .ev-fall, body:has(.pg-ov) .ev-egg, body:has(.tut-ov) .ev-egg { display: none !important; }
 .ev-fall { position: fixed; inset: 0; pointer-events: none; z-index: 5; overflow: hidden; } .ev-fall span { position: absolute; top: -40px; opacity: .55; animation: evFall linear infinite; }
 @keyframes evFall { to { transform: translate(40px, 110vh) rotate(260deg); } }
 .ev-egg { position:fixed; z-index:8000; font-size:2.2rem; cursor:pointer; animation:eggPulse 1.6s ease-in-out infinite; user-select:none; filter:drop-shadow(0 0 10px rgba(255,214,107,.8)); }
@@ -5390,133 +5391,89 @@ function tunnelGame() {
   });
 }
 
-/* ---------- 23 Drift Circuit ---------- */
-function driftGame() {
-  const W = 520, H = 560, HW = 34, LAPS = 3;
-  const RAW = [[110, 482], [270, 506], [430, 482], [478, 392], [424, 312], [326, 318], [272, 250], [330, 172], [440, 146], [462, 74], [340, 40], [170, 52], [72, 112], [72, 222], [150, 300], [100, 390]];
-  const P = [];
-  for (let i = 0; i < RAW.length; i++) {
-    const p0 = RAW[(i - 1 + RAW.length) % RAW.length], p1 = RAW[i], p2 = RAW[(i + 1) % RAW.length], p3 = RAW[(i + 2) % RAW.length];
-    for (let t = 0; t < 1; t += 1 / 16) {
-      const t2 = t * t, t3 = t2 * t;
-      P.push([.5 * (2 * p1[0] + (-p0[0] + p2[0]) * t + (2 * p0[0] - 5 * p1[0] + 4 * p2[0] - p3[0]) * t2 + (-p0[0] + 3 * p1[0] - 3 * p2[0] + p3[0]) * t3),
-        .5 * (2 * p1[1] + (-p0[1] + p2[1]) * t + (2 * p0[1] - 5 * p1[1] + 4 * p2[1] - p3[1]) * t2 + (-p0[1] + 3 * p1[1] - 3 * p2[1] + p3[1]) * t3)]);
+/* ---------- Neon Darts ---------- */
+function dartsGame() {
+  const W = 420, H = 640, BX0 = 210, BY = 255, BR = 165;
+  const ORDER = [20, 1, 18, 4, 13, 6, 10, 15, 2, 17, 3, 19, 7, 16, 8, 11, 14, 9, 12, 5];
+  const RING = { bull: 9, outer: 20, tIn: 92, tOut: 103, dIn: 153, dOut: 165 };
+  let ax, ay, t, darts, flying, round, dartsLeft, roundPts, level, target, turn, pts, rounds, msgT, boardX, keysAim, holding;
+  const sway = () => (S.practice ? 8 : Math.min(48, 12 + level * 3));
+  const bx = () => boardX;
+  function scoreAt(px, py) {
+    const dx = px - bx(), dy = py - BY, r = Math.hypot(dx, dy);
+    if (r <= RING.bull) return [50, "BULLSEYE"]; if (r <= RING.outer) return [25, "BULL"]; if (r > RING.dOut) return [0, "MISS"];
+    let a = Math.atan2(dx, -dy) * 180 / Math.PI; a = (a + 360 + 9) % 360; const n = ORDER[Math.floor(a / 18)];
+    if (r >= RING.tIn && r <= RING.tOut) return [n * 3, "TRIPLE " + n]; if (r >= RING.dIn) return [n * 2, "DOUBLE " + n]; return [n, String(n)];
+  }
+  function newRound() { dartsLeft = 3; roundPts = 0; darts = []; }
+  function aimPos() { const A = sway(), k = holding ? .35 : 1; return [ax + Math.sin(t * 1.7) * A * k + Math.sin(t * 3.1) * A * .35 * k, ay + Math.cos(t * 1.3) * A * k + Math.sin(t * 2.3) * A * .3 * k]; }
+  function throwDart() {
+    if (flying || dartsLeft <= 0 || S.state !== "play" || msgT > 0) return;
+    const [tx, ty] = aimPos(); flying = { sx: W / 2, sy: H - 40, tx, ty, k: 0 }; dartsLeft--; sfx("jump");
+  }
+  function land(f) {
+    const [p, label] = scoreAt(f.tx, f.ty); darts.push({ x: f.tx - bx(), y: f.ty, p });
+    roundPts += p; sfx(p >= 50 ? "level" : p ? "hit" : "bad"); pop(f.tx, f.ty - 18, p ? label + " +" + p : "MISS", p >= 40 ? "#ffd66b" : p ? "#22e4ff" : "#ff4d6d");
+    if (p >= 50) { burst(f.tx, f.ty, "#ffd66b", 30, 240, .6); flash("#ffd66b", .2); } else if (p) burst(f.tx, f.ty, "#22e4ff", 10, 140, .3);
+    if (S.duo) { pts[turn] += p; } else S.score += p * (S.quick ? 1 : level);
+    if (dartsLeft > 0) return;
+    msgT = 1.3;
+    if (S.duo) {
+      banner((turn ? "P2" : "P1") + " SCORED " + roundPts, turn ? "#ffd66b" : "#22e4ff");
+      if (turn === 1) rounds++; turn = 1 - turn;
+      if (rounds >= 5) { const w = pts[0] === pts[1] ? 0 : pts[0] > pts[1] ? 1 : 2; setTimeout(() => over(w ? "PLAYER " + w + " WINS" : "IT'S A TIE"), 900); }
+      return;
     }
+    if (S.quick || S.practice) { banner("ROUND: " + roundPts, "#3dffa8"); return; }
+    if (roundPts >= target) {
+      const bonus = (roundPts - target) * 5 * level; S.score += bonus; banner("LEVEL " + level + " CLEAR!" + (bonus ? " +" + bonus : ""), "#3dffa8"); sfx("level");
+      level++; target = targetFor(level);
+      saveGame({ level, label: "LEVEL " + level, stop: level % 3 === 1, next: "Score " + target + " with 3 darts" + (level >= 4 ? " · the board slides now!" : "") });
+    } else setTimeout(() => over("NEEDED " + target + " · GOT " + roundPts), 700);
   }
-  const NP = P.length;
-  const TAN = P.map((p, i) => { const q = P[(i + 1) % NP], o = P[(i - 1 + NP) % NP]; return Math.atan2(q[1] - o[1], q[0] - o[0]); });
-  const SEG = P.map((p, i) => Math.hypot(P[(i + 1) % NP][0] - p[0], P[(i + 1) % NP][1] - p[1]));
-  const CURV = P.map((_, i) => { let s = 0; for (let k = 0; k < 10; k++) { let d = TAN[(i + k + 1) % NP] - TAN[(i + k) % NP]; d = Math.atan2(Math.sin(d), Math.cos(d)); s += Math.abs(d); } return s; });
-  const CARC = ["#ff2bd6", "#ffc23d", "#b6ff3b"];
-  let me, ai, race, skid, driftPts, driftShow, finished, placeOrder, nextT, raceT, touches = new Map();
-  function nearest(px, py, hint) {
-    let best = hint, bd = 1e9;
-    for (let k = -25; k <= 25; k++) { const i = (hint + k + NP) % NP, d = (P[i][0] - px) ** 2 + (P[i][1] - py) ** 2; if (d < bd) { bd = d; best = i; } }
-    return [best, Math.sqrt(bd)];
-  }
-  function startRace() {
-    const sp = (i) => P[(NP - 4 - i * 9 + NP) % NP];
-    const lane = (i) => { const k = (NP - 4 - i * 9 + NP) % NP, t = TAN[k]; return [-Math.sin(t) * (i % 2 ? 14 : -14), Math.cos(t) * (i % 2 ? 14 : -14)]; };
-    const k0 = (NP - 4 - 3 * 9 + NP) % NP;
-    me = { x: sp(3)[0] + lane(3)[0], y: sp(3)[1] + lane(3)[1], a: TAN[k0], vx: 0, vy: 0, idx: k0, lap: -1, prog: 0, done: false };
-    const skill = S.practice ? .78 : Math.min(1.12, .86 + race * .05);
-    ai = [0, 1, 2].map((i) => { const k = (NP - 4 - i * 9 + NP) % NP; return { s: k - NP, v: 0, lane: (i % 2 ? 14 : -14), max: 228 * skill * (1 - i * .03), c: CARC[i], done: false, x: 0, y: 0, a: 0, wob: Math.random() * 6 }; });
-    skid = []; driftPts = 0; driftShow = 0; finished = []; placeOrder = 0; nextT = 0; raceT = 0;
-  }
-  function aiPos(o) {
-    const s = ((o.s % NP) + NP) % NP, i = Math.floor(s), f = s - i, a0 = P[i], a1 = P[(i + 1) % NP];
-    const t = TAN[i], lane = o.lane + Math.sin(S.t * .7 + o.wob) * 6;
-    o.x = a0[0] + (a1[0] - a0[0]) * f - Math.sin(t) * lane; o.y = a0[1] + (a1[1] - a0[1]) * f + Math.cos(t) * lane; o.a = t;
-  }
-  function finish(who) {
-    finished.push(who);
-    if (who === "me") {
-      const place = finished.length, pts = [600, 350, 180, 40][place - 1] + race * 50;
-      S.score += pts; banner(["1ST", "2ND", "3RD", "4TH"][place - 1] + " PLACE  +" + pts, place === 1 ? "#ffd66b" : "#22e4ff"); sfx(place <= 3 ? "level" : "bad");
-      if (place === 1) { burst(me.x, me.y, "#ffd66b", 40, 300, 1); flash("#ffd66b", .3); }
-      if (place > 3 && !S.practice) { nextT = -1; over("4TH PLACE"); return; }
-      nextT = 2.4;
-    }
-  }
-  function drawCar(px, py, a, c, me2) {
-    x.save(); x.translate(px, py); x.rotate(a);
-    glow(c, me2 ? 18 : 12); x.fillStyle = ca(c, .85); rr(-11, -6.5, 22, 13, 4); x.fill(); glow();
-    x.fillStyle = "rgba(10,8,30,.85)"; rr(-2, -5, 8, 10, 2); x.fill();
-    x.fillStyle = "#ffffff"; x.fillRect(9, -5, 2, 3); x.fillRect(9, 2, 2, 3);
-    x.fillStyle = "#ff4d6d"; x.fillRect(-11, -5, 2, 3); x.fillRect(-11, 2, 2, 3);
-    x.restore();
-  }
+  const targetFor = (lv) => Math.min(140, 25 + lv * 10);
   game({
-    title: "Drift Circuit", easy: "slower rivals and any finish moves you on", w: W, h: H, color: "#22e4ff", bpm: 138,
-    help: ["You're the cyan car. The gas is automatic", "← → steer, hold ↓ or Space to drift", "Touch: hold left or right side to steer, both to drift", "Finish top 3 to reach the next race. Drifting scores bonus"],
-    init() { race = 1; touches.clear(); startRace(); },
-    down(px, py, pid) { touches.set(pid, px); },
-    move(px, py, pid) { if (touches.has(pid)) touches.set(pid, px); },
-    up(px, py, pid) { touches.delete(pid); },
-    hud() { const pos = 1 + ai.filter((o) => (o.done && !me.done) || (!o.done && !me.done && o.s > me.prog)).length; return "RACE " + race + "  ·  LAP " + Math.max(1, Math.min(LAPS, me.lap + 1)) + "/" + LAPS + "  ·  POS " + (me.done ? finished.indexOf("me") + 1 : pos) + "/4"; },
-    summary() { return ["RACES FINISHED: " + (race - 1 + (me && me.done ? 1 : 0))]; },
+    title: "Neon Darts", w: W, h: H, color: "#ff2bd6", bpm: 104, easy: "a steadier hand and no target to beat",
+    duo: "take turns throwing 3 darts. 5 rounds each. Highest total wins.",
+    help: ["Move your finger or mouse to aim, let go (or Space) to throw", "Your aim wobbles. Hold still and it steadies a little", "Triples ×3, doubles ×2, bull 25, bullseye 50", "Beat the target score with 3 darts to level up. From level 4 the board slides!"],
+    load(d) { if (d && d.level) { level = d.level | 0; target = targetFor(level); newRound(); } },
+    init() { ax = BX0; ay = BY; t = 0; flying = null; level = 1; target = targetFor(1); turn = 0; pts = [0, 0]; rounds = 0; msgT = 0; boardX = BX0; holding = false; newRound(); },
+    hud() {
+      if (S.duo) return "ROUND " + Math.min(5, rounds + 1) + "/5  ·  P1 " + pts[0] + "  ·  P2 " + pts[1] + "  ·  PLAYER " + (turn + 1) + "'S DARTS";
+      if (S.quick || S.practice) return "DARTS LEFT " + dartsLeft + "  ·  THIS ROUND " + roundPts;
+      return "LEVEL " + level + "  ·  TARGET " + target + "  ·  THIS ROUND " + roundPts + "  ·  DARTS " + dartsLeft;
+    },
+    summary() { return S.duo ? ["P1 " + pts[0] + "  :  " + pts[1] + " P2"] : ["REACHED LEVEL " + level]; },
+    down(px, py) { ax = px; ay = Math.min(py, H - 140); holding = true; },
+    move(px, py) { ax = px; ay = Math.min(py, H - 140); },
+    up() { holding = false; throwDart(); },
+    key(k, rep) { if (k === " " && !rep) throwDart(); },
     update(dt) {
-      raceT += dt;
-      if (nextT > 0) { nextT -= dt; if (nextT <= 0) { race++; startRace(); banner("RACE " + race, "#22e4ff"); } }
-      let st = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
-      let drift = !!(S.keys.ArrowDown || S.keys.s || S.keys[" "]);
-      if (!S.down) touches.clear();
-      if (touches.size && !st) { let l = false, r = false; touches.forEach((tx) => { if (tx < W / 2) l = true; else r = true; }); if (l && r) drift = true; else st = l ? -1 : 1; }
-      const fx = Math.cos(me.a), fy = Math.sin(me.a);
-      let fwd = me.vx * fx + me.vy * fy, lat = -me.vx * fy + me.vy * fx;
-      const [ni, nd] = nearest(me.x, me.y, me.idx); me.idx = ni;
-      const on = nd < HW + 4, maxV = me.done ? 120 : on ? 250 : 120;
-      fwd += (on ? 300 : 200) * dt;
-      fwd *= Math.exp(-(on ? .25 : 2.4) * dt); if (fwd > maxV) fwd -= (fwd - maxV) * Math.min(1, dt * 4);
-      if (drift) fwd *= Math.exp(-.35 * dt);
-      lat *= Math.exp(-(drift ? 1.6 : 9) * dt);
-      const turn = (drift ? 3.3 : 2.6) * Math.min(1, Math.abs(fwd) / 110);
-      me.a += st * turn * dt;
-      const nfx = Math.cos(me.a), nfy = Math.sin(me.a);
-      me.vx = nfx * fwd - nfy * lat; me.vy = nfy * fwd + nfx * lat;
-      me.x += me.vx * dt; me.y += me.vy * dt;
-      if (me.x < 8 || me.x > W - 8) { me.vx *= -.4; me.x = Math.max(8, Math.min(W - 8, me.x)); }
-      if (me.y < 8 || me.y > H - 8) { me.vy *= -.4; me.y = Math.max(8, Math.min(H - 8, me.y)); }
-      if (Math.abs(lat) > 55 && on && fwd > 90) {
-        driftPts += Math.abs(lat) * dt * .25; driftShow = .4;
-        skid.push({ x: me.x - nfx * 8, y: me.y - nfy * 8, l: 3 }); if (Math.random() < .5) burst(me.x - nfx * 10, me.y - nfy * 10, "#bfefff", 1, 60, .4, 3);
-      } else if (driftShow > 0) { driftShow -= dt; if (driftShow <= 0 && driftPts >= 5) { const p = Math.floor(driftPts); S.score += p; pop(me.x, me.y - 22, "DRIFT +" + p, "#ff2bd6"); sfx("score"); driftPts = 0; } else if (driftShow <= 0) driftPts = 0; }
-      if (!on && fwd > 100 && Math.random() < .3) burst(me.x, me.y, "#3dffa8", 1, 50, .4, 2);
-      const prevIdx = me.lastIdx === undefined ? ni : me.lastIdx;
-      if (prevIdx > NP * .8 && ni < NP * .2) { me.lap++; if (me.lap >= 1 && me.lap < LAPS && !me.done) { banner("LAP " + (me.lap + 1) + "/" + LAPS); sfx("blip"); } if (me.lap === LAPS - 1 && !me.done) banner("FINAL LAP", "#ffd66b"); if (me.lap >= LAPS && !me.done) { me.done = true; finish("me"); } }
-      else if (prevIdx < NP * .2 && ni > NP * .8) me.lap--;
-      me.lastIdx = ni; me.prog = me.lap * NP + ni;
-      for (const o of ai) {
-        const i = ((Math.floor(o.s) % NP) + NP) % NP, want = Math.min(o.max, o.max * (1.25 - CURV[i] * .55));
-        o.v += (Math.max(90, want) - o.v) * Math.min(1, dt * 1.6);
-        o.s += o.v * dt / Math.max(1, SEG[i]);
-        aiPos(o);
-        if (!o.done && o.s >= NP * LAPS) { o.done = true; finish(o); }
-        const d = Math.hypot(o.x - me.x, o.y - me.y);
-        if (d < 15 && d > 0) { const nx = (me.x - o.x) / d, ny = (me.y - o.y) / d; me.x += nx * (15 - d); me.y += ny * (15 - d); me.vx += nx * 40; me.vy += ny * 40; o.v *= .96; if (Math.random() < .2) sfx("hit"); }
-      }
-      if (!me.done && ai.every((o) => o.done) && !S.practice) { me.done = true; finish("me"); }
-      for (const s of skid) s.l -= dt; skid = skid.filter((s) => s.l > 0); if (skid.length > 600) skid.splice(0, skid.length - 600);
+      t += dt; if (msgT > 0) { msgT -= dt; if (msgT <= 0) newRound(); }
+      const kx = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), ky = (S.keys.ArrowDown || S.keys.s ? 1 : 0) - (S.keys.ArrowUp || S.keys.w ? 1 : 0);
+      if (kx || ky) { ax = Math.max(20, Math.min(W - 20, ax + kx * 220 * dt)); ay = Math.max(60, Math.min(H - 140, ay + ky * 220 * dt)); }
+      boardX = !S.duo && !S.quick && !S.practice && level >= 4 ? BX0 + Math.sin(t * (.6 + level * .05)) * Math.min(70, (level - 3) * 14) : BX0;
+      if (flying) { flying.k += dt / .22; if (flying.k >= 1) { const f = flying; flying = null; land(f); } }
     },
     draw() {
-      bg("#03020a");
-      x.strokeStyle = "rgba(61,255,168,.05)"; x.lineWidth = 1; x.beginPath(); for (let i = 0; i < W; i += 26) { x.moveTo(i, 0); x.lineTo(i, H); } for (let j = 0; j < H; j += 26) { x.moveTo(0, j); x.lineTo(W, j); } x.stroke();
-      const path = () => { x.beginPath(); P.forEach((p, i) => (i ? x.lineTo(p[0], p[1]) : x.moveTo(p[0], p[1]))); x.closePath(); };
-      x.lineJoin = "round"; x.lineCap = "round";
-      path(); glow("#22e4ff", 16); x.strokeStyle = "#22e4ff"; x.lineWidth = HW * 2 + 6; x.stroke(); glow();
-      path(); x.strokeStyle = "#ff2bd6"; x.lineWidth = HW * 2 + 2; x.setLineDash([12, 12]); x.stroke(); x.setLineDash([]);
-      path(); x.strokeStyle = "#0d0a1e"; x.lineWidth = HW * 2 - 2; x.stroke();
-      path(); x.strokeStyle = "rgba(255,255,255,.08)"; x.lineWidth = 2; x.setLineDash([14, 16]); x.stroke(); x.setLineDash([]);
-      const s0 = P[0], t0 = TAN[0];
-      x.save(); x.translate(s0[0], s0[1]); x.rotate(t0);
-      for (let i = -4; i < 4; i++) for (let j = 0; j < 2; j++) { x.fillStyle = (i + j) % 2 ? "#ffffff" : "#05030c"; x.fillRect(j * 6 - 6, i * (HW / 4), 6, HW / 4); }
-      x.restore();
-      for (const s of skid) { x.fillStyle = "rgba(191,239,255," + (s.l / 3 * .35) + ")"; x.fillRect(s.x - 2, s.y - 2, 4, 4); }
-      for (const o of ai) drawCar(o.x, o.y, o.a, o.c, false);
-      drawCar(me.x, me.y, me.a, ({ "dr-pink": "#ff2bd6", "dr-lime": "#b6ff3b", "dr-gold": "#ffd66b" })[(window.SKIN0 || {}).drift] || "#22e4ff", true);
-      if (driftShow > 0 && driftPts > 3) txt("DRIFT " + Math.floor(driftPts), me.x, me.y - 22, 12, "#ff2bd6", "center", "d");
-      if (raceT < 1.2 && S.state === "play") { glow("#3dffa8", 20); txt("GO!", W / 2, H / 2, 54, "#3dffa8", "center", "d"); glow(); }
-      if (me.done && S.state === "play") txt("FINISHED  ·  NEXT RACE COMING UP", W / 2, H / 2 + 50, 13, "#d8d0f5");
+      bg("#06020e"); const cx = bx();
+      const g = x.createRadialGradient(cx, BY, 20, cx, BY, BR + 40); g.addColorStop(0, "rgba(255,43,214,.12)"); g.addColorStop(1, "rgba(0,0,0,0)"); x.fillStyle = g; x.fillRect(0, 0, W, H);
+      x.fillStyle = "#120a1e"; x.beginPath(); x.arc(cx, BY, BR + 22, 0, 7); x.fill(); glow("#ff2bd6", 18); x.strokeStyle = "#ff2bd6"; x.lineWidth = 3; x.stroke(); glow();
+      for (let i = 0; i < 20; i++) {
+        const a0 = (i * 18 - 9 - 90) * Math.PI / 180, a1 = a0 + 18 * Math.PI / 180, dark = i % 2 === 0;
+        const seg = (r0, r1, col) => { x.fillStyle = col; x.beginPath(); x.arc(cx, BY, r1, a0, a1); x.arc(cx, BY, r0, a1, a0, true); x.closePath(); x.fill(); };
+        seg(RING.outer, RING.tIn, dark ? "#1b1030" : "#e8e0c8"); seg(RING.tIn, RING.tOut, dark ? "#ff2e4d" : "#3dffa8"); seg(RING.tOut, RING.dIn, dark ? "#1b1030" : "#e8e0c8"); seg(RING.dIn, RING.dOut, dark ? "#ff2e4d" : "#3dffa8");
+        const am = (i * 18 - 90) * Math.PI / 180; txt(String(ORDER[i]), cx + Math.cos(am) * (BR + 12), BY + Math.sin(am) * (BR + 12) + 1, 11, "#ffffff", "center", "d");
+      }
+      x.fillStyle = "#3dffa8"; x.beginPath(); x.arc(cx, BY, RING.outer, 0, 7); x.fill(); glow("#ff2e4d", 12); x.fillStyle = "#ff2e4d"; x.beginPath(); x.arc(cx, BY, RING.bull, 0, 7); x.fill(); glow();
+      for (const d of darts) { const dx = cx + d.x; x.strokeStyle = skinCol("darts", "#ffd66b"); x.lineWidth = 3; x.beginPath(); x.moveTo(dx, d.y); x.lineTo(dx + 8, d.y + 16); x.stroke(); x.fillStyle = "#ff2bd6"; x.beginPath(); x.moveTo(dx + 8, d.y + 16); x.lineTo(dx + 15, d.y + 20); x.lineTo(dx + 9, d.y + 24); x.closePath(); x.fill(); x.fillStyle = "#fff"; x.beginPath(); x.arc(dx, d.y, 2.5, 0, 7); x.fill(); }
+      if (flying) { const k = flying.k, fx = flying.sx + (flying.tx - flying.sx) * k, fy = flying.sy + (flying.ty - flying.sy) * k - Math.sin(k * Math.PI) * 60, sc = 1.8 - k * .8; x.save(); x.translate(fx, fy); x.scale(sc, sc); x.strokeStyle = skinCol("darts", "#ffd66b"); x.lineWidth = 3; x.beginPath(); x.moveTo(0, 0); x.lineTo(8, 16); x.stroke(); x.fillStyle = "#ff2bd6"; x.beginPath(); x.moveTo(8, 16); x.lineTo(15, 20); x.lineTo(9, 24); x.closePath(); x.fill(); x.restore(); }
+      if (S.state === "play" && !flying && dartsLeft > 0 && msgT <= 0) { const [px, py] = aimPos(); glow("#ffffff", 10); x.strokeStyle = "#ffffff"; x.lineWidth = 2; x.beginPath(); x.arc(px, py, 10, 0, 7); x.moveTo(px - 16, py); x.lineTo(px - 5, py); x.moveTo(px + 5, py); x.lineTo(px + 16, py); x.moveTo(px, py - 16); x.lineTo(px, py - 5); x.moveTo(px, py + 5); x.lineTo(px, py + 16); x.stroke(); glow(); }
+      for (let i = 0; i < 3; i++) { const on = i < dartsLeft; x.globalAlpha = on ? 1 : .25; x.strokeStyle = "#ffd66b"; x.lineWidth = 3; x.beginPath(); x.moveTo(W / 2 - 30 + i * 30, H - 60); x.lineTo(W / 2 - 30 + i * 30, H - 30); x.stroke(); x.fillStyle = "#ff2bd6"; x.fillRect(W / 2 - 34 + i * 30, H - 30, 8, 10); x.globalAlpha = 1; }
+      if (S.duo) { txt("P1 " + pts[0], 16, 30, 16, turn === 0 ? "#22e4ff" : "#8f86b5", "left", "d"); txt(pts[1] + " P2", W - 16, 30, 16, turn === 1 ? "#ffd66b" : "#8f86b5", "right", "d"); }
+      else if (!S.quick && !S.practice) { txt("LEVEL " + level, 16, 30, 15, "#ff2bd6", "left", "d"); txt("TARGET " + target, W - 16, 30, 15, roundPts >= target ? "#3dffa8" : "#ffd66b", "right", "d"); txt("THIS ROUND " + roundPts, W / 2, H - 80, 13, roundPts >= target ? "#3dffa8" : "#ffffff", "center", "d"); }
+      else txt("THIS ROUND " + roundPts, W / 2, H - 80, 13, "#ffffff", "center", "d");
+      if (S.state === "play" && dartsLeft === 3 && !darts.length && msgT <= 0) txt("AIM, THEN LET GO TO THROW", W / 2, H - 100, 10, "rgba(255,255,255,.5)", "center");
     },
   });
 }
@@ -10437,7 +10394,7 @@ function fighterGame() {
     { key: "slide", title: "Slide 15", genre: "Puzzle", fn: slideGame },
     { key: "gems", title: "Gem Match", genre: "Puzzle", fn: gemGame },
     { key: "tunnel", title: "Tunnel Rush", genre: "Racing", fn: tunnelGame },
-    { key: "drift", title: "Drift Circuit", genre: "Racing", fn: driftGame },
+    { key: "darts", title: "Neon Darts", genre: "Sports", fn: dartsGame },
     { key: "hop", title: "Sky Hop", genre: "Platformer", fn: hopGame },
     { key: "flip", title: "Gravity Flip", genre: "Platformer", fn: flipGame },
     { key: "quest", title: "Pixel Quest", genre: "Platformer", fn: questGame },
@@ -11329,7 +11286,7 @@ function fighterGame() {
   }
 
   /* ---------- Daily challenge ---------- */
-  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "drift", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling", "merge", "colordash", "blades", "solitaire", "fighters"];
+  const DAILY_POOL = ["snake", "bricks", "blaster", "flap", "2048", "memory", "runner", "racer", "blocks", "targets", "golf", "void", "muncher", "missile", "storm", "slice", "mines", "slide", "gems", "tunnel", "darts", "hop", "flip", "quest", "hoops", "penalty", "tower", "beat", "simon", "orbit", "vortex", "evader", "laser", "bitshift", "core", "overdrive", "squash", "curling", "stack", "crossing", "whack", "bowling", "merge", "colordash", "blades", "solitaire", "fighters"];
   function dailyGameFor(day) { let h = 7; for (const ch of day) h = (h * 31 + ch.charCodeAt(0)) >>> 0; return DAILY_POOL[h % DAILY_POOL.length]; }
   let daily = null;
   async function loadDaily() { try { daily = await XR.daily(); } catch { const day = new Date().toISOString().slice(0, 10); daily = { day, game: dailyGameFor(day), endsAt: Date.parse(day + "T00:00:00Z") + 864e5, top: [], mine: null }; } renderDaily(); }
@@ -11577,9 +11534,9 @@ function fighterGame() {
     ["rc-lime", "racer", "Lime Racer", 300, "#b6ff3b", "A lime car for the racer", "", "r"],
     ["rc-gold", "racer", "Gold Racer", 75, "#ffd66b", "A golden car for the racer", "$", "e"],
     ["rc-rainbow", "racer", "Rainbow Racer", 8, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing car", "d", "e"],
-    ["dr-pink", "drift", "Pink Drifter", 250, "#ff2bd6", "A pink car for the drift game", "", "r"],
-    ["dr-lime", "drift", "Lime Drifter", 250, "#b6ff3b", "A lime car for the drift game", "", "r"],
-    ["dr-gold", "drift", "Gold Drifter", 60, "#ffd66b", "A golden car for the drift game", "$", "e"],
+    ["dr-pink", "darts", "Pink Darts", 250, "#ff2bd6", "Pink darts for Neon Darts", "", "r"],
+    ["dr-lime", "darts", "Lime Darts", 250, "#b6ff3b", "Lime darts for Neon Darts", "", "r"],
+    ["dr-gold", "darts", "Gold Darts", 60, "#ffd66b", "Golden darts for Neon Darts", "$", "e"],
     ["vd-pink", "void", "Pink Fighter", 250, "#ff2bd6", "A pink ship for the space shooter", "", "r"],
     ["vd-lime", "void", "Lime Fighter", 250, "#b6ff3b", "A lime ship for the space shooter", "", "r"],
     ["vd-gold", "void", "Gold Fighter", 60, "#ffd66b", "A golden ship for the space shooter", "$", "e"],
@@ -11913,7 +11870,7 @@ function fighterGame() {
   // The song games play: a shop song you equipped, otherwise the style picked in Settings.
   window.gblMusicPick = () => { try { const m = prog.equip && prog.equip.music; if (m === "mu-shuffle") { const own = (prog.owned || []).filter((id) => id.startsWith("mu-")); own.push("mu-synth"); return own[Math.random() * own.length | 0].slice(3); } if (m) return m.slice(3); if (settings.music === "off") return "off"; return settings.music || "synth"; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
-  const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], drift: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
+  const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
   const starsOf = (k) => { const t = STARS[k]; if (!t) return 0; const b = starBest(k); return t.filter((v) => b >= v).length; };
   const totalStars = () => Object.keys(STARS).reduce((a, k) => a + starsOf(k), 0);
@@ -12382,7 +12339,7 @@ function fighterGame() {
   window.gblPetChar = petCharEl; window.gblPetInfo = (id) => ({ mood: petMood(id), hunger: hungerPct(id), happy: happyPct(id), ...petXpInfo(id) });
   const cost = (n) => n === 0 ? 0 : Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
-  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["powerup", "⚡ Power-ups (used from a game's start screen)", ""], ["petfood", "🍽 Pet food", ""], ["decor", "🪴 Backyard decor", ""], ["pethouse", "🏡 Pet houses", "#ff8a1f"], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"], ["pong", "🏓 " + gname("pong"), "#6af7ff"], ["muncher", "🟡 " + gname("muncher"), "#ffc23d"], ["stack", "🧱 " + gname("stack"), "linear-gradient(90deg,#22e4ff,#a35bff,#ff2bd6)"], ["crossing", "🐸 " + gname("crossing"), "#22e4ff"], ["bowling", "🎳 " + gname("bowling"), "#22e4ff"], ["pool", "🎱 " + gname("pool"), "#3dffa8"], ["airhockey", "🏒 " + gname("airhockey"), "#22e4ff"], ["connect4", "🔴 " + gname("connect4"), "#ff2bd6"], ["chess", "♟ " + gname("chess"), "#22e4ff"], ["tunnel", "🌀 " + gname("tunnel"), "#ffffff"], ["orbit", "🪐 " + gname("orbit"), "#22e4ff"]];
+  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["powerup", "⚡ Power-ups (used from a game's start screen)", ""], ["petfood", "🍽 Pet food", ""], ["decor", "🪴 Backyard decor", ""], ["pethouse", "🏡 Pet houses", "#ff8a1f"], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["darts", "🎯 " + gname("darts"), "#ff2bd6"], ["void", "🛸 " + gname("void"), "#22e4ff"], ["pong", "🏓 " + gname("pong"), "#6af7ff"], ["muncher", "🟡 " + gname("muncher"), "#ffc23d"], ["stack", "🧱 " + gname("stack"), "linear-gradient(90deg,#22e4ff,#a35bff,#ff2bd6)"], ["crossing", "🐸 " + gname("crossing"), "#22e4ff"], ["bowling", "🎳 " + gname("bowling"), "#22e4ff"], ["pool", "🎱 " + gname("pool"), "#3dffa8"], ["airhockey", "🏒 " + gname("airhockey"), "#22e4ff"], ["connect4", "🔴 " + gname("connect4"), "#ff2bd6"], ["chess", "♟ " + gname("chess"), "#22e4ff"], ["tunnel", "🌀 " + gname("tunnel"), "#ffffff"], ["orbit", "🪐 " + gname("orbit"), "#22e4ff"]];
   const getShopGroups = () => { const ae = activeEvent(); return ae && EVENTS[ae] ? [["ev-" + ae, EVENTS[ae].name + " Event Shop ✨", EVENTS[ae].color], ...SHOP_GROUPS_BASE] : SHOP_GROUPS_BASE; };
   const SHOP_GROUPS = SHOP_GROUPS_BASE; // legacy alias
   const SPIN_MS = 24 * 3600 * 1000;
