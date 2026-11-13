@@ -1252,6 +1252,9 @@ html.calm *, html.calm *::before, html.calm *::after { animation-duration: .001s
 .art-flow { animation: artFlow 1.2s ease-in-out infinite alternate; } @keyframes artFlow { to { opacity: .55; transform: translateY(2px); } }
 .art-spark { animation: phZ 1.4s ease-in-out infinite; }
 html.calm .art-spin, html.calm .art-flick, html.calm .art-blink, html.calm .art-flow, html.calm .art-spark { animation: none; }
+.ph-pet.sleep { left: calc(4% + clamp(55px, 11vw, 95px)) !important; bottom: 26%; width: clamp(64px, 12vw, 100px); z-index: 2; }
+.ph-house { z-index: 1; } .ph-house small { order: -1; margin: 0 0 -14px; position: relative; z-index: 1; }
+.pg-ic.art-wrap { width: 44px; height: 44px; }
 .ph-guest .pv { filter: drop-shadow(0 0 10px rgba(255,123,230,.6)); } .ph-tag { position: absolute; top: -18%; left: 50%; transform: translateX(-50%); padding: 1px 8px; border-radius: 999px; background: rgba(7,4,15,.75); color: #ff7be6; font-size: .65rem; font-weight: 800; white-space: nowrap; }
 .ph-hearts { position: absolute; bottom: 30%; transform: translateX(-50%); font-size: 1.8rem; animation: phZ 1.2s ease-in-out infinite; pointer-events: none; }
 .pd-duo { display: flex; gap: 6px; } .pd-duo .pv { width: 100px; height: 100px; } .pd-ic { grid-row: span 2; width: 48px; height: 48px; } .pd-ic .pv { width: 100%; height: 100%; }
@@ -11714,8 +11717,8 @@ function fighterGame() {
   }
   function openPetGames(id) {
     const it = SHOP.find((q) => q[0] === id), o = pgOverlay("🎾 Play with " + it[2]);
-    const pick = el("div", { class: "pg-pick" }, ...[["catch", "🍖", "Treat Catch", "Catch treats, dodge the stinky ones"], ["fetch", "🎾", "Fetch", "Tap at the right moment to throw far"], ["peek", "🫣", "Peekaboo", "Find your pet under the cups"]].map(([k, ic, t, sub]) =>
-      el("button", { class: "pg-card", type: "button", onclick: () => runPetGame(k, id, o) }, el("span", { class: "pg-ic", text: ic }), el("b", { text: t }), el("small", { text: sub }))));
+    const pick = el("div", { class: "pg-pick" }, ...[["catch", "fd-steak", "Treat Catch", "Catch treats, dodge the stinky ones"], ["fetch", "ball", "Fetch", "Tap at the right moment to throw far"], ["peek", "cup", "Peekaboo", "Find your pet under the cups"]].map(([k, ic, t, sub]) =>
+      el("button", { class: "pg-card", type: "button", onclick: () => runPetGame(k, id, o) }, artEl(ic, "pg-ic"), el("b", { text: t }), el("small", { text: sub }))));
     const face = el("div", { class: "pg-face" }); face.innerHTML = petSVG(id, "happy", petEvo(id));
     o.body.replaceChildren(face, el("p", { class: "set-note", text: "Pick a game! Playing makes your pet happy and earns XP." }), pick);
   }
@@ -11847,6 +11850,7 @@ function fighterGame() {
     "zzz": '<text x="20" y="80" font-size="38" font-weight="900" fill="#fff" stroke="#3a2a7a" stroke-width="3" paint-order="stroke" font-family="system-ui,sans-serif">Z</text><text x="52" y="52" font-size="28" font-weight="900" fill="#fff" stroke="#3a2a7a" stroke-width="3" paint-order="stroke" font-family="system-ui,sans-serif">z</text><text x="74" y="30" font-size="20" font-weight="900" fill="#fff" stroke="#3a2a7a" stroke-width="3" paint-order="stroke" font-family="system-ui,sans-serif">z</text>',
     "ball": '<circle cx="50" cy="50" r="38" fill="#d8ff3b" stroke="#6a7a10" stroke-width="3"/><path d="M18 30 C40 40 40 60 18 70 M82 30 C60 40 60 60 82 70" stroke="#fff" stroke-width="5" fill="none"/>',
     "heart": '<path d="M50 86 C20 64 8 46 14 30 C20 14 42 12 50 30 C58 12 80 14 86 30 C92 46 80 64 50 86 Z" fill="#ff4d8d" stroke="#8a1440" stroke-width="3"/><ellipse cx="32" cy="32" rx="6" ry="9" fill="#ffb3cf" transform="rotate(-30 32 32)"/>',
+    "cup": '<path d="M24 30 h52 l-8 58 h-36 Z" fill="#ff4d6d" stroke="#7a1428" stroke-width="3" stroke-linejoin="round"/><rect x="20" y="22" width="60" height="10" rx="4" fill="#ff7b95" stroke="#7a1428" stroke-width="3"/><path d="M34 44 h32 M36 60 h28" stroke="#ffd0da" stroke-width="4" stroke-linecap="round"/>',
     "moon": '<path d="M62 12 C36 16 22 42 32 66 C42 88 70 92 88 76 C62 80 46 60 50 38 C52 26 56 18 62 12 Z" fill="#fff3c4" stroke="#c8b070" stroke-width="3"/><circle cx="44" cy="56" r="4" fill="#e8d8a0"/><circle cx="56" cy="74" r="3" fill="#e8d8a0"/>',
   };
   const artSVG = (k) => '<svg class="art" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + (ART[k] || ART.bowl) + "</svg>";
