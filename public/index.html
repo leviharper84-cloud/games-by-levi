@@ -9045,6 +9045,155 @@ function wordGame() {
 }
 
 /* ---------- Neon Platformer + level editor ---------- */
+/* ---------- Neon Pool ---------- */
+function poolGame() {
+  const W = 420, H = 720, R = 10, TX0 = 44, TX1 = 376, TY0 = 84, TY1 = 640, PR = 17;
+  const POCKETS = [[TX0 + 4, TY0 + 4], [TX1 - 4, TY0 + 4], [TX0 - 2, (TY0 + TY1) / 2], [TX1 + 2, (TY0 + TY1) / 2], [TX0 + 4, TY1 - 4], [TX1 - 4, TY1 - 4]];
+  const BC = ["#ffffff", "#ffd66b", "#22b4ff", "#ff2e4d", "#a35bff", "#ff8a1f", "#3dffa8", "#ff2bd6", "#1a1a2a", "#b6ff3b"];
+  const HEAD = [W / 2, TY1 - 130];
+  let balls, cue, phase, aim, power, drag, rotL, rotR, level, shotsLeft, potThis, firstHit, scratch, turn, pts, inHand, waitT, msg, combo, rackN, trail;
+  const moving = () => balls.some((b) => !b.in && (Math.abs(b.vx) > 1 || Math.abs(b.vy) > 1));
+  function rack(n) {
+    balls = [{ n: 0, x: HEAD[0], y: HEAD[1], vx: 0, vy: 0, in: false }]; cue = balls[0];
+    const nums = Array.from({ length: n }, (_, i) => i + 1); for (let i = nums.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [nums[i], nums[j]] = [nums[j], nums[i]]; }
+    let k = 0; for (let row = 0; k < n; row++) for (let i = 0; i <= row && k < n; i++) balls.push({ n: nums[k++], x: W / 2 + (i - row / 2) * (R * 2 + 1), y: TY0 + 150 - row * (R * 1.75 + .5), vx: 0, vy: 0, in: false });
+    rackN = n; phase = "aim"; aim = -Math.PI / 2; power = .55; drag = null; inHand = false; trail = [];
+  }
+  const solo = () => !S.duo;
+  const levelMode = () => solo() && !S.quick && !S.practice;
+  function newRack() {
+    const n = S.duo ? 9 : S.quick || S.practice ? 6 : Math.min(9, 2 + level);
+    rack(n); shotsLeft = levelMode() ? n + Math.max(2, 7 - level) : 99;
+    banner(S.duo ? "RACK 'EM UP!" : levelMode() ? "RACK " + level + " · " + n + " BALLS · " + shotsLeft + " SHOTS" : "RACK " + level, "#3dffa8");
+  }
+  function shoot() {
+    if (phase !== "aim" || S.state !== "play") return;
+    const v = 120 + 1180 * power; cue.vx = Math.cos(aim) * v; cue.vy = Math.sin(aim) * v; phase = "roll"; drag = null; inHand = false;
+    potThis = []; firstHit = null; scratch = false; trail = []; if (levelMode()) shotsLeft--; sfx("hit", .8 + power * .5);
+    burst(cue.x, cue.y, "#ffffff", 8, 120, .25, 2, aim + Math.PI, 1);
+  }
+  function step(h) {
+    for (const b of balls) { if (b.in) continue; b.x += b.vx * h; b.y += b.vy * h;
+      if (b.x < TX0 + R) { b.x = TX0 + R; b.vx = Math.abs(b.vx) * .78; if (Math.abs(b.vx) > 40) sfx("tick"); }
+      if (b.x > TX1 - R) { b.x = TX1 - R; b.vx = -Math.abs(b.vx) * .78; if (Math.abs(b.vx) > 40) sfx("tick"); }
+      if (b.y < TY0 + R) { b.y = TY0 + R; b.vy = Math.abs(b.vy) * .78; if (Math.abs(b.vy) > 40) sfx("tick"); }
+      if (b.y > TY1 - R) { b.y = TY1 - R; b.vy = -Math.abs(b.vy) * .78; if (Math.abs(b.vy) > 40) sfx("tick"); }
+      for (const [px, py] of POCKETS) if (Math.hypot(b.x - px, b.y - py) < PR) { b.in = true; b.vx = b.vy = 0; b.px = px; b.py = py; b.sink = .35; if (b.n === 0) scratch = true; else potThis.push(b.n); sfx(b.n ? "score" : "bad"); ring(px, py, BC[b.n], 4, 30, .35); break; }
+    }
+    for (let i = 0; i < balls.length; i++) for (let j = i + 1; j < balls.length; j++) {
+      const a = balls[i], c = balls[j]; if (a.in || c.in) continue;
+      const dx = c.x - a.x, dy = c.y - a.y, d = Math.hypot(dx, dy); if (d >= R * 2 || d === 0) continue;
+      const nx = dx / d, ny = dy / d, rel = (a.vx - c.vx) * nx + (a.vy - c.vy) * ny, ov = (R * 2 - d) / 2;
+      a.x -= nx * ov; a.y -= ny * ov; c.x += nx * ov; c.y += ny * ov;
+      if (rel > 0) { const imp = rel * .97; a.vx -= imp * nx; a.vy -= imp * ny; c.vx += imp * nx; c.vy += imp * ny; if (rel > 60) sfx("tick"); if (!firstHit && (a.n === 0 || c.n === 0)) firstHit = a.n === 0 ? c.n : a.n; }
+    }
+    for (const b of balls) { if (b.in) continue; const sp = Math.hypot(b.vx, b.vy); if (!sp) continue; const ns = Math.max(0, sp - (95 + sp * .32) * h); b.vx *= ns / sp; b.vy *= ns / sp; if (ns < 4) b.vx = b.vy = 0; }
+  }
+  function settle() {
+    const got = potThis.length, left = balls.filter((b) => b.n && !b.in).length;
+    if (S.duo) {
+      const sc = potThis.reduce((a, n) => a + n, 0); pts[turn] += sc; if (sc) pop(W / 2, 330, "P" + (turn + 1) + " +" + sc, turn ? "#ffd66b" : "#22e4ff");
+      if (scratch) { pts[turn] = Math.max(0, pts[turn] - 3); banner("SCRATCH! −3 · P" + (2 - turn) + "'S TURN", "#ff4d6d"); }
+      if (!left) { phase = "done"; const w = pts[0] === pts[1] ? 0 : pts[0] > pts[1] ? 1 : 2; return over(w ? "PLAYER " + w + " WINS" : "IT'S A TIE"); }
+      if (scratch || !got) { turn = 1 - turn; if (!scratch) banner("PLAYER " + (turn + 1) + "'S TURN", turn ? "#ffd66b" : "#22e4ff"); }
+      else banner("NICE! P" + (turn + 1) + " GOES AGAIN", "#3dffa8");
+    } else {
+      if (got) { combo = got > 1 ? got : 0; const gain = got * 100 * level * (got > 1 ? got : 1); S.score += gain; pop(W / 2, 330, (got > 1 ? got + " BALLS! " : "") + "+" + gain, "#ffd66b"); if (got > 1) { banner(got + "-BALL COMBO!", "#ffd66b"); sfx("level"); } }
+      if (scratch) { banner("SCRATCH!" + (levelMode() ? " −1 SHOT" : ""), "#ff4d6d"); if (levelMode()) shotsLeft = Math.max(0, shotsLeft - 1); }
+      if (!left) {
+        const bonus = (levelMode() ? shotsLeft * 150 : 200) * level; S.score += bonus; banner("TABLE CLEAR! +" + bonus, "#3dffa8"); sfx("level"); flash("#3dffa8", .25);
+        level++; newRack(); if (levelMode()) saveGame({ level, label: "RACK " + level, stop: level % 3 === 1, next: Math.min(9, 2 + level) + " balls on the next table, " + shotsLeft + " shots to clear it" }); return;
+      }
+      if (levelMode() && shotsLeft <= 0) { phase = "done"; return over("OUT OF SHOTS · " + left + " BALL" + (left > 1 ? "S" : "") + " LEFT"); }
+    }
+    if (scratch) { cue.in = false; cue.sink = 0; cue.x = HEAD[0]; cue.y = HEAD[1]; cue.vx = cue.vy = 0; inHand = true; for (const b of balls) if (b !== cue && !b.in && Math.hypot(b.x - cue.x, b.y - cue.y) < R * 2.2) cue.y = Math.min(TY1 - R, b.y + R * 2.4); }
+    phase = "aim";
+  }
+  /* first ball the cue would hit, for the aiming guide */
+  function ghost() {
+    const dx = Math.cos(aim), dy = Math.sin(aim); let best = null, bt = 1e9;
+    for (const b of balls) { if (b === cue || b.in) continue; const fx = b.x - cue.x, fy = b.y - cue.y, t = fx * dx + fy * dy; if (t <= 0) continue; const off = Math.abs(fx * dy - fy * dx); if (off >= R * 2) continue; const back = Math.sqrt(R * R * 4 - off * off), tt = t - back; if (tt < bt) { bt = tt; best = b; } }
+    let wt = 1e9; if (dx > 0) wt = Math.min(wt, (TX1 - R - cue.x) / dx); if (dx < 0) wt = Math.min(wt, (TX0 + R - cue.x) / dx); if (dy > 0) wt = Math.min(wt, (TY1 - R - cue.y) / dy); if (dy < 0) wt = Math.min(wt, (TY0 + R - cue.y) / dy);
+    if (best && bt < wt) { const gx = cue.x + dx * bt, gy = cue.y + dy * bt, nx = (best.x - gx) / (R * 2), ny = (best.y - gy) / (R * 2); return { x: gx, y: gy, b: best, nx, ny }; }
+    return { x: cue.x + dx * wt, y: cue.y + dy * wt, b: null };
+  }
+  game({
+    title: "Neon Pool", w: W, h: H, color: "#3dffa8", bpm: 92, easy: "unlimited shots and a full aiming guide",
+    duo: "take turns. Pot a ball to shoot again. Each ball is worth its number. Most points when the table is clear wins.",
+    help: ["Drag back from anywhere and let go to shoot", "◀ ▶ buttons (or arrow keys) fine-tune your aim", "The dotted guide shows which ball you'll hit and where it goes", "Clear each table before you run out of shots. Pot 2+ balls in one shot for a combo!"],
+    load(d) { if (d && d.level) { level = d.level | 0; newRack(); } },
+    init() { level = 1; turn = 0; pts = [0, 0]; combo = 0; rotL = rotR = false; newRack(); },
+    hud() {
+      if (S.duo) return "P1 " + pts[0] + "  ·  P2 " + pts[1] + "  ·  PLAYER " + (turn + 1) + "'S SHOT";
+      return "RACK " + level + "  ·  " + balls.filter((b) => b.n && !b.in).length + " BALLS LEFT" + (levelMode() ? "  ·  " + shotsLeft + " SHOTS" : "");
+    },
+    summary() { return S.duo ? ["P1 " + pts[0] + "  :  " + pts[1] + " P2"] : ["REACHED RACK " + level]; },
+    down(px, py) {
+      if (phase !== "aim" || S.state !== "play") return;
+      if (Math.hypot(px - 40, py - (H - 24)) < 30) { rotL = true; return; } if (Math.hypot(px - (W - 40), py - (H - 24)) < 30) { rotR = true; return; }
+      if (inHand && Math.hypot(px - cue.x, py - cue.y) < 26) { drag = { hand: true }; return; }
+      drag = { x: px, y: py };
+    },
+    move(px, py) {
+      if (!drag || phase !== "aim") return;
+      if (drag.hand) { cue.x = Math.max(TX0 + R, Math.min(TX1 - R, px)); cue.y = Math.max(TY0 + R, Math.min(TY1 - R, py)); return; }
+      const dx = drag.x - px, dy = drag.y - py, L = Math.hypot(dx, dy); if (L > 8) { aim = Math.atan2(dy, dx); power = Math.max(.05, Math.min(1, L / 220)); }
+    },
+    up(px, py) {
+      rotL = rotR = false; if (!drag) return; const d = drag; drag = null;
+      if (d.hand) { for (const b of balls) if (b !== cue && !b.in && Math.hypot(b.x - cue.x, b.y - cue.y) < R * 2) { cue.x = HEAD[0]; cue.y = HEAD[1]; } return; }
+      if (Math.hypot(d.x - px, d.y - py) > 14) shoot();
+    },
+    key(k) { if (k === " ") shoot(); },
+    update(dt) {
+      for (const b of balls) if (b.in && b.sink > 0) b.sink -= dt;
+      if (phase === "aim") {
+        const k = (S.keys.ArrowRight || S.keys.d || rotR ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a || rotL ? 1 : 0); if (k) aim += k * (S.keys.Shift ? .25 : 1.1) * dt;
+        const kp = (S.keys.ArrowUp || S.keys.w ? 1 : 0) - (S.keys.ArrowDown || S.keys.s ? 1 : 0); if (kp) power = Math.max(.05, Math.min(1, power + kp * .7 * dt));
+        return;
+      }
+      if (phase === "roll") { trail.push([cue.x, cue.y]); if (trail.length > 10) trail.shift(); for (let s = 0; s < 8; s++) step(dt / 8); if (!moving()) settle(); }
+    },
+    draw() {
+      bg("#03070a");
+      const felt = skinCol("pool", "#0a4a3c");
+      x.fillStyle = "#1a0d2e"; rr(TX0 - 26, TY0 - 26, TX1 - TX0 + 52, TY1 - TY0 + 52, 22); x.fill();
+      glow("#ff2bd6", 18); x.strokeStyle = "#ff2bd6"; x.lineWidth = 3; rr(TX0 - 26, TY0 - 26, TX1 - TX0 + 52, TY1 - TY0 + 52, 22); x.stroke(); glow();
+      const g = x.createRadialGradient(W / 2, (TY0 + TY1) / 2, 40, W / 2, (TY0 + TY1) / 2, 380); g.addColorStop(0, felt); g.addColorStop(1, "#02140f");
+      x.fillStyle = g; x.fillRect(TX0, TY0, TX1 - TX0, TY1 - TY0);
+      glow("#3dffa8", 10); x.strokeStyle = "rgba(61,255,168,.6)"; x.lineWidth = 2; x.strokeRect(TX0, TY0, TX1 - TX0, TY1 - TY0); glow();
+      x.strokeStyle = "rgba(255,255,255,.12)"; x.setLineDash([4, 8]); x.beginPath(); x.moveTo(TX0, HEAD[1]); x.lineTo(TX1, HEAD[1]); x.stroke(); x.setLineDash([]);
+      for (let i = 1; i < 4; i++) { x.fillStyle = "rgba(255,214,107,.6)"; for (const yy of [TY0 - 13, TY1 + 13]) { x.beginPath(); x.arc(TX0 + (TX1 - TX0) * i / 4, yy, 2.5, 0, 7); x.fill(); } }
+      for (const [px, py] of POCKETS) { x.fillStyle = "#000"; x.beginPath(); x.arc(px, py, PR, 0, 7); x.fill(); glow("#ffd66b", 10); x.strokeStyle = "rgba(255,214,107,.6)"; x.lineWidth = 2; x.stroke(); glow(); }
+      if (trail.length > 1) { for (let k = 1; k < trail.length; k++) { x.globalAlpha = k / trail.length * .35; x.strokeStyle = "#ffffff"; x.lineWidth = R * 1.4 * k / trail.length; x.lineCap = "round"; x.beginPath(); x.moveTo(trail[k - 1][0], trail[k - 1][1]); x.lineTo(trail[k][0], trail[k][1]); x.stroke(); } x.globalAlpha = 1; x.lineCap = "butt"; }
+      for (const b of balls) {
+        let bx = b.x, by = b.y, r = R, a = 1; if (b.in) { if (!(b.sink > 0)) continue; const k = b.sink / .35; bx = b.px + (b.x - b.px) * k; by = b.py + (b.y - b.py) * k; r = R * k; a = k; }
+        x.globalAlpha = a; x.fillStyle = "rgba(0,0,0,.4)"; x.beginPath(); x.ellipse(bx + 2, by + 3, r, r * .8, 0, 0, 7); x.fill();
+        const c = b.n === 0 ? skinCol("poolcue", "#ffffff") : BC[b.n]; const gr = x.createRadialGradient(bx - r * .35, by - r * .4, r * .1, bx, by, r); gr.addColorStop(0, "#ffffff"); gr.addColorStop(.3, c); gr.addColorStop(1, ca(c === "#1a1a2a" ? "#555577" : c, .7));
+        glow(c === "#1a1a2a" ? "#8888aa" : c, 8); x.fillStyle = gr; x.beginPath(); x.arc(bx, by, r, 0, 7); x.fill(); glow();
+        if (b.n && r > 5) { x.fillStyle = "#fff"; x.beginPath(); x.arc(bx, by, r * .45, 0, 7); x.fill(); txt(String(b.n), bx, by + 1, Math.round(r * .7), "#111", "center"); }
+        x.globalAlpha = 1;
+      }
+      if (phase === "aim" && S.state === "play") {
+        const gh = ghost(), col = power < .4 ? "#3dffa8" : power < .75 ? "#ffc23d" : "#ff4d6d";
+        x.strokeStyle = "rgba(255,255,255,.45)"; x.setLineDash([4, 6]); x.lineWidth = 1.5; x.beginPath(); x.moveTo(cue.x, cue.y); x.lineTo(gh.x, gh.y); x.stroke(); x.setLineDash([]);
+        x.strokeStyle = "rgba(255,255,255,.7)"; x.lineWidth = 1.5; x.beginPath(); x.arc(gh.x, gh.y, R, 0, 7); x.stroke();
+        if (gh.b) { const L = S.practice ? 160 : 70; x.strokeStyle = ca(BC[gh.b.n], .9); x.lineWidth = 2; x.beginPath(); x.moveTo(gh.b.x, gh.b.y); x.lineTo(gh.b.x + gh.nx * L, gh.b.y + gh.ny * L); x.stroke(); }
+        const back = 18 + power * 70, ca0 = Math.cos(aim), sa0 = Math.sin(aim);
+        x.lineCap = "round"; x.lineWidth = 6; x.strokeStyle = "#c88a4a"; x.beginPath(); x.moveTo(cue.x - ca0 * (R + back), cue.y - sa0 * (R + back)); x.lineTo(cue.x - ca0 * (R + back + 190), cue.y - sa0 * (R + back + 190)); x.stroke();
+        x.strokeStyle = "#ffffff"; x.beginPath(); x.moveTo(cue.x - ca0 * (R + back), cue.y - sa0 * (R + back)); x.lineTo(cue.x - ca0 * (R + back + 8), cue.y - sa0 * (R + back + 8)); x.stroke(); x.lineCap = "butt";
+        x.fillStyle = "rgba(255,255,255,.12)"; x.fillRect(W / 2 - 90, H - 26, 180, 10); x.fillStyle = col; x.fillRect(W / 2 - 90, H - 26, 180 * power, 10);
+        for (const [bx0, lab, on] of [[40, "◀", rotL], [W - 40, "▶", rotR]]) { x.fillStyle = on ? "rgba(61,255,168,.3)" : "rgba(255,255,255,.1)"; x.beginPath(); x.arc(bx0, H - 24, 20, 0, 7); x.fill(); txt(lab, bx0, H - 18, 16, on ? "#3dffa8" : "rgba(255,255,255,.7)", "center"); }
+        if (inHand) txt("BALL IN HAND: DRAG THE WHITE BALL TO MOVE IT", W / 2, TY1 + 42, 10, "#ffd66b", "center");
+        else if (!drag) txt("DRAG BACK TO SHOOT", W / 2, TY1 + 42, 10, "rgba(255,255,255,.5)", "center");
+      }
+      if (S.duo) { txt("P1 " + pts[0], 16, 34, 16, turn === 0 ? "#22e4ff" : "#8f86b5", "left", "d"); txt(pts[1] + " P2", W - 16, 34, 16, turn === 1 ? "#ffd66b" : "#8f86b5", "right", "d"); }
+      else { txt("RACK " + level, 16, 34, 15, "#3dffa8", "left", "d"); if (levelMode()) { txt(shotsLeft + " SHOTS", W - 16, 34, 15, shotsLeft <= 2 ? "#ff4d6d" : "#ffffff", "right", "d"); } }
+      const left = balls.filter((b) => b.n && !b.in).sort((a, b) => a.n - b.n); left.forEach((b, i) => { const X = W / 2 - (left.length - 1) * 9 + i * 18; x.fillStyle = BC[b.n]; x.beginPath(); x.arc(X, 30, 8, 0, 7); x.fill(); txt(String(b.n), X, 31, 8, b.n === 8 ? "#fff" : "#111", "center"); });
+    },
+  });
+}
+
 function platGame() {
   const T = 24, CW = 20, CH = 15, W = CW * T, H = CH * T + 56, BAR = CH * T;
   const LV = [
@@ -10409,6 +10558,7 @@ function fighterGame() {
     { key: "bubbles", title: "Bubble Shooter", genre: "Puzzle", fn: bubbleGame },
     { key: "words", title: "Word Hunt", genre: "Puzzle", fn: wordGame },
     { key: "platformer", title: "Neon Platformer", genre: "Platformer", fn: platGame },
+    { key: "pool", title: "Neon Pool", genre: "Sports", fn: poolGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -10422,6 +10572,7 @@ function fighterGame() {
     { key: "chess", how: "Full chess with castling, en passant and promotion. Checkmate the other king.", keys: "Arrows move, Space picks and moves", touch: "Tap a piece, tap a dot, then pass the iPad" },
     { key: "connect4", how: "Classic Connect Four. Drop discs and get 4 in a row first.", keys: "← → pick a column, Space drops", touch: "Tap a column, then pass the iPad" },
     { key: "reversi", how: "Flip your rival's discs by trapping them. Most discs at the end wins.", keys: "Arrows move, Space places", touch: "Tap a glowing dot, then pass the iPad" },
+    { key: "pool", how: "Take turns. Pot a ball to shoot again. Each ball scores its number. Most points when the table is clear wins.", keys: "Drag back to shoot, ← → aim, ↑ ↓ power, Space shoots", touch: "Drag back and let go, then pass the iPad" },
     { key: "bowling", how: "Same obstacle lanes for both players, 10 frames each. Highest score wins.", keys: "Drag back to aim and set power, Space bowls, ← → hook while rolling", touch: "Drag back and let go, swipe to hook, then pass the iPad" },
     { key: "hoops", how: "Same shooting spots for both players, 5 shots each. Most points wins.", keys: "Arrows aim, Space shoots", touch: "Drag back and let go, then pass the iPad" },
     { key: "fighters", how: "Street fighting! Pick a fighter each, then punch, kick, block and fire specials. Win 2 rounds to win.", keys: "P1 W A S D + F G H  ·  P2 arrows + K L Enter", touch: "Each player uses the buttons on their side" },
@@ -11664,6 +11815,10 @@ function fighterGame() {
     ["bw-pink", "bowling", "Pink Ball", 300, "#ff2bd6", "A hot pink bowling ball.", "", "c"],
     ["bw-fire", "bowling", "Fireball", 1200, "#ff8a1f", "Strikes with heat.", "", "r"],
     ["bw-rainbow", "bowling", "Rainbow Ball", 6500, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "The ball of legends. LEGENDARY!", "", "l"],
+    ["pl-ocean", "pool", "Ocean Felt", 250, "#22b4ff", "Blue table felt for Neon Pool", "", "c"],
+    ["pl-ruby", "pool", "Ruby Felt", 300, "#ff2e4d", "Red table felt for Neon Pool", "", "c"],
+    ["pl-violet", "pool", "Violet Felt", 450, "#a35bff", "Purple table felt for Neon Pool", "", "r"],
+    ["pl-galaxy", "pool", "Galaxy Felt", 2000, "linear-gradient(135deg,#1a0b3a,#a35bff,#ff2bd6)", "A swirling space table for Neon Pool", "", "e"],
     ["bw-ice", "bowling", "Ice Ball", 400, "#9ff3ff", "A frosty bowling ball.", "", "c"],
     ["bw-violet", "bowling", "Violet Ball", 500, "#a35bff", "A deep purple bowling ball.", "", "c"],
     ["bw-gold", "bowling", "Gold Ball", 900, "#ffd66b", "Shiny and golden.", "", "r"],
@@ -12240,7 +12395,7 @@ function fighterGame() {
   window.gblPetChar = petCharEl; window.gblPetInfo = (id) => ({ mood: petMood(id), hunger: hungerPct(id), happy: happyPct(id), ...petXpInfo(id) });
   const cost = (n) => n === 0 ? 0 : Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
-  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["powerup", "⚡ Power-ups (used from a game's start screen)", ""], ["petfood", "🍽 Pet food", ""], ["decor", "🪴 Backyard decor", ""], ["pethouse", "🏡 Pet houses", "#ff8a1f"], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"], ["pong", "🏓 " + gname("pong"), "#6af7ff"], ["muncher", "🟡 " + gname("muncher"), "#ffc23d"], ["stack", "🧱 " + gname("stack"), "linear-gradient(90deg,#22e4ff,#a35bff,#ff2bd6)"], ["crossing", "🐸 " + gname("crossing"), "#22e4ff"], ["bowling", "🎳 " + gname("bowling"), "#22e4ff"], ["airhockey", "🏒 " + gname("airhockey"), "#22e4ff"], ["connect4", "🔴 " + gname("connect4"), "#ff2bd6"], ["chess", "♟ " + gname("chess"), "#22e4ff"], ["tunnel", "🌀 " + gname("tunnel"), "#ffffff"], ["orbit", "🪐 " + gname("orbit"), "#22e4ff"]];
+  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["powerup", "⚡ Power-ups (used from a game's start screen)", ""], ["petfood", "🍽 Pet food", ""], ["decor", "🪴 Backyard decor", ""], ["pethouse", "🏡 Pet houses", "#ff8a1f"], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["racer", "🏎 " + gname("racer"), "#22e4ff"], ["drift", "🚗 " + gname("drift"), "#22e4ff"], ["void", "🛸 " + gname("void"), "#22e4ff"], ["pong", "🏓 " + gname("pong"), "#6af7ff"], ["muncher", "🟡 " + gname("muncher"), "#ffc23d"], ["stack", "🧱 " + gname("stack"), "linear-gradient(90deg,#22e4ff,#a35bff,#ff2bd6)"], ["crossing", "🐸 " + gname("crossing"), "#22e4ff"], ["bowling", "🎳 " + gname("bowling"), "#22e4ff"], ["pool", "🎱 " + gname("pool"), "#3dffa8"], ["airhockey", "🏒 " + gname("airhockey"), "#22e4ff"], ["connect4", "🔴 " + gname("connect4"), "#ff2bd6"], ["chess", "♟ " + gname("chess"), "#22e4ff"], ["tunnel", "🌀 " + gname("tunnel"), "#ffffff"], ["orbit", "🪐 " + gname("orbit"), "#22e4ff"]];
   const getShopGroups = () => { const ae = activeEvent(); return ae && EVENTS[ae] ? [["ev-" + ae, EVENTS[ae].name + " Event Shop ✨", EVENTS[ae].color], ...SHOP_GROUPS_BASE] : SHOP_GROUPS_BASE; };
   const SHOP_GROUPS = SHOP_GROUPS_BASE; // legacy alias
   const SPIN_MS = 24 * 3600 * 1000;
