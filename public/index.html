@@ -8759,6 +8759,82 @@ function pinballGame() {
   });
 }
 
+/* ---------- Bubble Shooter ---------- */
+function bubbleGame() {
+  const W = 420, H = 640, R = 18, COLS = 11, DY = R * Math.sqrt(3), OX = (W - (COLS * 2 * R + R)) / 2 + R, LOSE = H - 120, SX = W / 2, SY = H - 60;
+  const CS = ["#ff2bd6", "#22e4ff", "#ffd66b", "#b6ff3b", "#a35bff", "#ff8a1f"];
+  let grid, shot, next, cur, aim, shots, drop, level, top, colorsN, falling, pops;
+  const cellXY = (r, c) => [OX + c * 2 * R + ((r + top) % 2 ? R : 0), 40 + r * DY + R];
+  const rowLen = (r) => ((r + top) % 2 ? COLS - 1 : COLS);
+  const nbrs = (r, c) => { const odd = (r + top) % 2; return [[r, c - 1], [r, c + 1], [r - 1, c - (odd ? 0 : 1)], [r - 1, c + (odd ? 1 : 0)], [r + 1, c - (odd ? 0 : 1)], [r + 1, c + (odd ? 1 : 0)]].filter(([a, b]) => a >= 0 && b >= 0 && b < rowLen(a)); };
+  const get = (r, c) => (grid[r] ? grid[r][c] : undefined);
+  const present = () => { const s = new Set(); grid.forEach((row) => row.forEach((v) => { if (v != null) s.add(v); })); return [...s]; };
+  const pickColor = () => { const p = present(); return p.length ? p[Math.random() * p.length | 0] : Math.random() * colorsN | 0; };
+  function newLevel(lv) {
+    level = lv; colorsN = Math.min(6, 3 + Math.floor(lv / 2)); top = 0; grid = [];
+    const rows = Math.min(9, 4 + lv); for (let r = 0; r < rows; r++) grid.push(Array.from({ length: rowLen(r) }, () => Math.random() * colorsN | 0));
+    shots = 0; drop = Math.max(4, 9 - lv); cur = pickColor(); next = pickColor(); shot = null;
+  }
+  function addRow() { top = (top + 1) % 2; grid.unshift(Array.from({ length: rowLen(0) }, () => pickColor())); sfx("bad"); shake(4, .2); }
+  function snap(bx, by) {
+    let best = null, bd = 1e9;
+    for (let r = 0; r < grid.length + 1; r++) for (let c = 0; c < rowLen(r); c++) { if (get(r, c) != null) continue; const [cx, cy] = cellXY(r, c); const d = Math.hypot(bx - cx, by - cy); if (d < bd && (r === 0 || nbrs(r, c).some(([a, b]) => get(a, b) != null))) { bd = d; best = [r, c]; } }
+    return best;
+  }
+  function place(r, c, col) {
+    while (grid.length <= r) grid.push(Array.from({ length: rowLen(grid.length) }, () => null));
+    grid[r][c] = col;
+    const same = [[r, c]], seen = new Set([r + "," + c]);
+    for (let i = 0; i < same.length; i++) for (const [a, b] of nbrs(...same[i])) { const k = a + "," + b; if (!seen.has(k) && get(a, b) === col) { seen.add(k); same.push([a, b]); } }
+    if (same.length >= 3) {
+      same.forEach(([a, b]) => { const [x0, y0] = cellXY(a, b); burst(x0, y0, CS[col], 8, 160, .4); grid[a][b] = null; });
+      const pts = same.length * 10; S.score += pts; pop(...cellXY(r, c), "+" + pts, CS[col]); sfx("pop");
+      const keep = new Set(), q = []; (grid[0] || []).forEach((v, c2) => { if (v != null) { keep.add("0," + c2); q.push([0, c2]); } });
+      for (let i = 0; i < q.length; i++) for (const [a, b] of nbrs(...q[i])) { const k = a + "," + b; if (!keep.has(k) && get(a, b) != null) { keep.add(k); q.push([a, b]); } }
+      let fell = 0; grid.forEach((row, a) => row.forEach((v, b) => { if (v != null && !keep.has(a + "," + b)) { const [x0, y0] = cellXY(a, b); falling.push({ x: x0, y: y0, vy: 0, c: v }); grid[a][b] = null; fell++; } }));
+      if (fell) { const fp = fell * 25; S.score += fp; pop(W / 2, LOSE - 30, "DROP +" + fp, "#ffd66b"); sfx("score"); }
+    } else { shots++; sfx("tick"); if (shots % drop === 0) addRow(); }
+    while (grid.length && grid[grid.length - 1].every((v) => v == null)) grid.pop();
+    if (!present().length) { S.score += 500 * level; banner("BOARD CLEAR! +" + 500 * level, "#3dffa8"); sfx("level"); saveGame({ level: level + 1, label: "LEVEL " + (level + 1), stop: true, next: "More colours and faster ceiling drops" }); newLevel(level + 1); return; }
+    for (let a = 0; a < grid.length; a++) if (grid[a].some((v) => v != null) && cellXY(a, 0)[1] + R > LOSE) { if (S.practice) { grid = grid.slice(0, a); break; } return over("THE BUBBLES REACHED THE BOTTOM"); }
+  }
+  function fire() { if (shot || S.state !== "play") return; shot = { x: SX, y: SY, vx: Math.cos(aim) * 900, vy: Math.sin(aim) * 900, c: cur }; cur = next; next = pickColor(); sfx("blip"); }
+  game({
+    load(d) { if (d && d.level) newLevel(d.level | 0); },
+    title: "Bubble Shooter", w: W, h: H, color: "#22e4ff", bpm: 118, easy: "the bubbles never reach you",
+    help: ["Aim with your finger or mouse, release to shoot", "Bounce off the walls to reach tricky spots", "Match 3+ of the same colour to pop them. Hanging bubbles drop", "Miss too often and the ceiling comes down. Clear the board to level up"],
+    init() { falling = []; pops = []; aim = -Math.PI / 2; newLevel(1); },
+    hud() { return "LEVEL " + level + "  ·  CEILING IN " + (drop - (shots % drop)); },
+    summary() { return ["REACHED LEVEL " + level]; },
+    move(px, py) { aim = Math.max(-Math.PI + .15, Math.min(-.15, Math.atan2(py - SY, px - SX))); },
+    down(px, py) { this.move(px, py); },
+    up() { fire(); },
+    key(k, rep) { if (k === " " && !rep) fire(); if (k === "x" || k === "Shift") { const t = cur; cur = next; next = t; sfx("tick"); } },
+    update(dt) {
+      const k = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0); if (k) aim = Math.max(-Math.PI + .15, Math.min(-.15, aim + k * 1.8 * dt));
+      for (const f of falling) { f.vy += 1400 * dt; f.y += f.vy * dt; } falling = falling.filter((f) => f.y < H + 30);
+      if (!shot) return;
+      for (let s = 0; s < 4; s++) {
+        shot.x += shot.vx * dt / 4; shot.y += shot.vy * dt / 4;
+        if (shot.x < R) { shot.x = R; shot.vx = Math.abs(shot.vx); sfx("tick"); } if (shot.x > W - R) { shot.x = W - R; shot.vx = -Math.abs(shot.vx); sfx("tick"); }
+        let hit = shot.y < 40 + R;
+        if (!hit) for (let r = 0; r < grid.length && !hit; r++) for (let c = 0; c < grid[r].length; c++) if (grid[r][c] != null) { const [cx, cy] = cellXY(r, c); if (Math.hypot(shot.x - cx, shot.y - cy) < R * 1.75) { hit = true; break; } }
+        if (hit) { const sp = snap(shot.x, shot.y); const c0 = shot.c; shot = null; if (sp) place(sp[0], sp[1], c0); return; }
+      }
+    },
+    draw() {
+      bg("#06030f"); x.fillStyle = "rgba(255,255,255,.03)"; x.fillRect(0, 0, W, H);
+      x.strokeStyle = "rgba(255,77,109,.5)"; x.setLineDash([6, 6]); x.lineWidth = 2; x.beginPath(); x.moveTo(0, LOSE); x.lineTo(W, LOSE); x.stroke(); x.setLineDash([]);
+      const ball = (X, Y, c, a) => { x.globalAlpha = a || 1; glow(CS[c], 10); const g = x.createRadialGradient(X - 6, Y - 6, 2, X, Y, R); g.addColorStop(0, "#ffffff"); g.addColorStop(.35, CS[c]); g.addColorStop(1, ca(CS[c], .6)); x.fillStyle = g; x.beginPath(); x.arc(X, Y, R - 1, 0, 7); x.fill(); glow(); if ((window.SET0 || {}).cb) txt("●▲■◆★✚"[c], X, Y + 1, 13, "rgba(10,4,24,.8)", "center"); x.globalAlpha = 1; };
+      grid.forEach((row, r) => row.forEach((v, c) => { if (v != null) ball(...cellXY(r, c), v); }));
+      for (const f of falling) ball(f.x, f.y, f.c, .8);
+      if (!shot && S.state === "play") { x.strokeStyle = "rgba(255,255,255,.35)"; x.setLineDash([4, 8]); x.lineWidth = 2; x.beginPath(); let px = SX, py = SY, vx = Math.cos(aim), vy = Math.sin(aim); x.moveTo(px, py); for (let i = 0; i < 60; i++) { px += vx * 10; py += vy * 10; if (px < R || px > W - R) vx = -vx; if (py < 40) break; x.lineTo(px, py); } x.stroke(); x.setLineDash([]); }
+      if (shot) ball(shot.x, shot.y, shot.c);
+      ball(SX, SY, cur); ball(SX + 70, SY + 14, next, .7); txt("NEXT", SX + 70, SY + 44, 9, "#9a90c0", "center");
+    },
+  });
+}
+
 /* ---------- 53 Neon Bowling ---------- */
 function bowlGame() {
   const W = 360, H = 680, LX = 60, LW = 240, BR = 13, PRr = 9, FOUL = 520, PINY = 120;
@@ -9892,6 +9968,7 @@ function fighterGame() {
     { key: "fighters", title: "Neon Fighters", genre: "Action", fn: fighterGame },
     { key: "bossrush", title: "Boss Rush", genre: "Action", fn: bossGame },
     { key: "pinball", title: "Neon Pinball", genre: "Arcade", fn: pinballGame },
+    { key: "bubbles", title: "Bubble Shooter", genre: "Puzzle", fn: bubbleGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
