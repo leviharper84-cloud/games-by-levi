@@ -2506,9 +2506,9 @@ function SHELL() {
   }, 250);
   setInterval(() => { const d = { ...DG, st: S.state, paused: !!S.paused, fresh: !!S.fresh, pts: PT.size, hasTouch: HAS_TOUCH, w: innerWidth, h: innerHeight, title: G && G.title, ua: navigator.userAgent.slice(0, 160) }; const k = JSON.stringify(d); if (k !== dgLast) { dgLast = k; try { parent.postMessage({ type: "gbl:diag", d }, "*"); } catch (_) {} } }, 3000);
   window.__gs = { G: () => G, start };
-  const SKC = { pink: "#ff2bd6", lime: "#b6ff3b", gold: "#ffd66b", ice: "#9ff3ff", fire: "#ff8a1f", violet: "#a35bff", white: "#ffffff" };
+  const SKC = { pink: "#ff2bd6", lime: "#b6ff3b", gold: "#ffd66b", ice: "#9ff3ff", fire: "#ff8a1f", violet: "#a35bff", white: "#ffffff", mint: "#3dffa8", ruby: "#ff2e4d", ocean: "#22b4ff", shadow: "#6a6a8a" };
   const hueHex = (h) => { const f = (n) => { const k = (n + h / 30) % 12, c = .62 - .38 * Math.max(-1, Math.min(k - 3, 9 - k, 1)); return Math.round(255 * c).toString(16).padStart(2, "0"); }; return "#" + f(0) + f(8) + f(4); };
-  const skinCol = (k, def) => { const id = (window.SKIN0 || {})[k]; if (!id) return def; const t = String(id).split("-").pop(); return t === "rainbow" ? hueHex(Math.floor(S.clock * 90) % 360) : SKC[t] || def; };
+  const skinCol = (k, def) => { const id = (window.SKIN0 || {})[k]; if (!id) return def; const t = String(id).split("-").pop(); return t === "rainbow" ? hueHex(Math.floor(S.clock * 90) % 360) : t === "galaxy" ? hueHex(250 + Math.floor(40 + 40 * Math.sin(S.clock * 2))) : SKC[t] || def; };
   Object.assign(window, { skinCol, toneAt: (f, d, delay, vol, type) => { if (!ac || S.sound < 1 || S.paused) return; voice(f, f, d, type || "triangle", vol || .1, ac.currentTime + Math.max(0, delay || 0), 2600); }, saveGame, sendMove, BK: () => (window.BOTK == null ? 1 : window.BOTK), S, x, game, over, glow, bg, grid, techBg, txt, rr, ca, glitchText, burst, ring, pop, banner, shake, flash, sfx });
 }
 
@@ -3847,6 +3847,11 @@ function golfGame() {
     }
     const par = Math.max(2, Math.min(5, 2 + (walls.length > 1 ? 1 : 0) + (water.length ? 1 : 0) + (mill ? 1 : 0)));
     const h = { par, start: [sx, sy], cup: [cx, cy], walls };
+    const inside = (px, py) => inPoly(px, py, walls[0]) && !walls.slice(1).some((P) => inPoly(px, py, P));
+    for (let i = bump.length - 1; i >= 0; i--) if (!inside(bump[i][0], bump[i][1])) bump.splice(i, 1);
+    for (let i = water.length - 1; i >= 0; i--) if (!inside((water[i][0] + water[i][2]) / 2, (water[i][1] + water[i][3]) / 2)) water.splice(i, 1);
+    for (let i = sand.length - 1; i >= 0; i--) if (!inside((sand[i][0] + sand[i][2]) / 2, (sand[i][1] + sand[i][3]) / 2)) sand.splice(i, 1);
+    if (mill && !inside(mill[0], mill[1])) mill = null;
     if (water.length) h.water = water;
     if (bump.length) h.bump = bump;
     if (sand.length) h.sand = sand;
@@ -3876,6 +3881,46 @@ function golfGame() {
     return false;
   }
   function genHole() { for (let i = 0; i < 60; i++) { const h = genHole0(); if (playable(h)) return h; } return { ...ALL[Math.random() * ALL.length | 0] }; }
+  /* ----- Level mode (normal runs): endless levels of 9 holes that get harder ----- */
+  const okSpot = (h, px, py, pad) => !(h.bump || []).some((q) => Math.hypot(px - q[0], py - q[1]) < q[2] + 40) && !(h.water || []).some((w) => px > w[0] - 30 && px < w[2] + 30 && py > w[1] - 30 && py < w[3] + 30) && !(h.mill && Math.hypot(px - h.mill[0], py - h.mill[1]) < h.mill[2] + 30) && inPoly(px, py, h.walls[0]) && !h.walls.slice(1).some((P) => inPoly(px, py, P)) && Math.hypot(px - h.start[0], py - h.start[1]) > pad && Math.hypot(px - h.cup[0], py - h.cup[1]) > pad && h.walls.every((P) => P.every((q, k) => segD(px, py, q[0], q[1], P[(k + 1) % P.length][0], P[(k + 1) % P.length][1]) > 24));
+  function harden(h, d) {
+    const r = Math.random, xs = h.walls[0].map((q) => q[0]), ys = h.walls[0].map((q) => q[1]);
+    const L = Math.min(...xs), Rr = Math.max(...xs), T = Math.min(...ys), Bt = Math.max(...ys);
+    const spot = (pad, tries) => { for (let i = 0; i < (tries || 30); i++) { const px = L + 30 + r() * (Rr - L - 60), py = T + 70 + r() * (Bt - T - 150); if (okSpot(h, px, py, pad)) return [px | 0, py | 0]; } return null; };
+    let extra = 0;
+    for (let i = 0, n = Math.min(4, Math.floor(d / 2)); i < n; i++) { const q = spot(60); if (q) { (h.bump = h.bump || []).push([q[0], q[1], 11 + (r() * 10 | 0)]); extra += .5; } }
+    if (r() < Math.min(.7, .1 + d * .06)) { const q = spot(80); if (q) { const ww = 60 + r() * 60 | 0, wh = 40 + r() * 40 | 0, w = [q[0] - ww / 2 | 0, q[1] - wh / 2 | 0, q[0] + ww / 2 | 0, q[1] + wh / 2 | 0]; const inW = (pt) => pt[0] > w[0] - 14 && pt[0] < w[2] + 14 && pt[1] > w[1] - 14 && pt[1] < w[3] + 14; if (!inW(h.start) && !inW(h.cup)) { (h.water = h.water || []).push(w); extra++; } } }
+    if (h.mill) h.mill = [h.mill[0], h.mill[1], h.mill[2], h.mill[3] * (1 + d * .08)];
+    else if (d >= 2 && r() < .15 + d * .05) { const q = spot(75); if (q) { let wd = 1e9; for (const P of h.walls) P.forEach((p0, k) => { const p1 = P[(k + 1) % P.length]; wd = Math.min(wd, segD(q[0], q[1], p0[0], p0[1], p1[0], p1[1])); }); const ml = Math.min(40 + (r() * 22 | 0), wd - 12); if (ml >= 28) { h.mill = [q[0], q[1], ml | 0, (r() < .5 ? 1 : -1) * (1.5 + d * .12)]; extra++; } } }
+    if (d >= 2 && r() < .45) { const q = spot(50); if (q) { const a = Math.atan2(h.cup[1] - q[1], h.cup[0] - q[0]) + (r() - .5) * 1.4; h.boost = [[q[0], q[1], +a.toFixed(2)]]; } }
+    if (d >= 3 && r() < .4) { const a = spot(55), c = spot(55); if (a && c && Math.hypot(a[0] - c[0], a[1] - c[1]) > 140) h.portal = [[a[0], a[1], c[0], c[1]]]; }
+    if (d >= 4 && r() < .45) { const q = spot(70); if (q) { const span = 50 + r() * 70 | 0; h.slide = [[Math.max(L + 30, q[0] - span), q[1], Math.min(Rr - 30, q[0] + span), 56, 1 + d * .1 + r()]]; extra++; } }
+    if (d >= 5 && r() < .35) { const q = spot(45); if (q) h.ice = [[q[0] - 50, q[1] - 35, q[0] + 50, q[1] + 35]]; }
+    h.par = Math.min(6, h.par + Math.floor(extra / 1.5));
+    return h;
+  }
+  function genLevelHole(d) {
+    for (let i = 0; i < 80; i++) { const h = harden(genHole0(), d); if (playable(h)) return h; }
+    return genHole();
+  }
+  let LV = 0, lvBase = 0, lvDeaths = 0, mullLeft = 0, trail = [], portT = 0, slideT = 0;
+  const lvMode = () => !S.duo && !S.quick && !S.practice && !S.online;
+  const lvSeed = (lv) => ((lvBase + lv * 2654435761) >>> 0);
+  const THEMES = [["#063a26", "#07452e", "#22e4ff", "#020509"], ["#2a0a3a", "#33104a", "#ff2bd6", "#08020c"], ["#06283a", "#08324a", "#9ff3ff", "#01060c"], ["#3a1406", "#4a1a08", "#ff8a1f", "#0c0402"], ["#2a2a06", "#353508", "#ffd66b", "#080802"]];
+  const theme = () => (LV ? THEMES[(LV - 1) % THEMES.length] : THEMES[0]);
+  const NEWS = { 2: "New: speed pads! Roll over them for a boost.", 3: "New: portals! Go in one, pop out the other.", 4: "New: sliding blocks. Time your shot!", 5: "New: ice patches. The ball barely slows down.", 6: "Fewer strokes allowed per hole from here on." };
+  function buildLevel(lv) {
+    const oldR = Math.random; let sd = lvSeed(lv);
+    Math.random = () => ((sd = (sd * 1664525 + 1013904223) >>> 0) / 4294967296);
+    try {
+      const d = lv - 1, hand = Math.max(0, 3 - Math.floor(lv / 2)), ids = ALL.map((_, i) => i);
+      for (let i = ids.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [ids[i], ids[j]] = [ids[j], ids[i]]; }
+      const picked = ids.slice(0, hand).map((i) => ({ ...ALL[i], id: i + 1 }));
+      while (picked.length < 9) picked.push({ ...genLevelHole(d + Math.floor(picked.length / 3) * .5), id: 0 });
+      picked.sort((a, b2) => a.par - b2.par + (Math.random() - .5));
+      HOLES = picked;
+    } finally { Math.random = oldR; }
+  }
   function buildHoles(seed) {
     const oldR = Math.random; let sd = seed >>> 0;
     if (seed != null) Math.random = () => ((sd = (sd * 1664525 + 1013904223) >>> 0) / 4294967296);
@@ -3884,7 +3929,7 @@ function golfGame() {
   let HOLES = [], hi, hole, SEGS, b, aim, power, drag, phase, wait, strokes, last, card, player, millA, bumpFx, golfRotL, golfRotR, ghost = false, ghostT = 0, waitSeed = false;
   const myTurn = () => !S.online || player + 1 === S.online;
   const net = (m) => { if (S.online && !ghost && myTurn()) sendMove(m); };
-  const maxS = () => (S.practice ? 15 : 8);
+  const maxS = () => (S.practice ? 15 : LV ? Math.max(hole.par + 2, 9 - Math.ceil(LV / 2)) : 8);
   const sum = (a) => a.reduce((s, v) => s + (v || 0), 0);
   const parSoFar = () => HOLES.slice(0, card[0].length).reduce((s, h) => s + h.par, 0);
   function loadHole(i) {
@@ -3892,7 +3937,7 @@ function golfGame() {
     for (const poly of hole.walls) for (let k = 0; k < poly.length; k++) { const a = poly[k], c = poly[(k + 1) % poly.length]; SEGS.push([a[0], a[1], c[0], c[1]]); }
     placeBall();
   }
-  function placeBall() { b = { x: hole.start[0], y: hole.start[1], vx: 0, vy: 0 }; last = { x: b.x, y: b.y }; strokes = 0; phase = "aim"; aim = -Math.PI / 2; power = .45; drag = null; golfRotL = golfRotR = false; ghost = false; }
+  function placeBall() { trail = []; portT = 0; b = { x: hole.start[0], y: hole.start[1], vx: 0, vy: 0 }; last = { x: b.x, y: b.y }; strokes = 0; phase = "aim"; aim = -Math.PI / 2; power = .45; drag = null; golfRotL = golfRotR = false; ghost = false; }
   function collide(ax, ay, bx, by, e, extra) {
     const dx = bx - ax, dy = by - ay, L2 = dx * dx + dy * dy || 1;
     let t = ((b.x - ax) * dx + (b.y - ay) * dy) / L2; t = t < 0 ? 0 : t > 1 ? 1 : t;
@@ -3931,10 +3976,27 @@ function golfGame() {
     banner((S.duo ? "P" + (player + 1) + " · " : "") + name, strokes === 1 ? "#ffd66b" : COLS[player]);
     sfx(d <= 0 ? "level" : "score"); burst(b.x, b.y, "#ffd66b", 30, 260, .7); ring(b.x, b.y, "#ffd66b", 6, 70, .5);
     if (strokes === 1) { flash("#ffd66b", .35); shake(6, .3); }
-    if (!S.duo) { const pts = Math.max(0, hole.par + 3 - strokes) * 100 + (strokes === 1 ? 300 : 0); S.score += pts; if (pts) pop(b.x, b.y - 34, "+" + pts, "#ffd66b"); }
+    if (!S.duo) { const pts = (Math.max(0, hole.par + 3 - strokes) * 100 + (strokes === 1 ? 300 : 0)) * (LV || 1); S.score += pts; if (pts) pop(b.x, b.y - 34, "+" + pts, "#ffd66b"); }
   }
-  function pickup() { net({ ev: "p" }); phase = "pickup"; wait = 1.3; record(maxS()); banner("PICKED UP · " + maxS() + " STROKES", "#ff4d6d"); sfx("bad"); }
+  function pickup() {
+    if (LV && mullLeft > 0) { mullLeft--; placeBall(); banner("⛳ MULLIGAN! PLAY THE HOLE AGAIN", "#3dffa8"); sfx("power"); return; }
+    if (LV) { phase = "dead"; wait = 2; lvDeaths++; banner(LV > 1 ? "PICKED UP! BACK TO LEVEL " + (LV - 1) : "PICKED UP! RESTART LEVEL 1", "#ff4d6d"); sfx("over"); shake(6, .4); flash("#ff4d6d", .25); return; }
+    net({ ev: "p" }); phase = "pickup"; wait = 1.3; record(maxS()); banner("PICKED UP · " + maxS() + " STROKES", "#ff4d6d"); sfx("bad");
+  }
+  function lvSave(stop, label, next) { saveGame({ lv: LV, base: lvBase, hi, deaths: lvDeaths, card: card[0].slice(), label, stop, next }); }
+  function dropLevel() {
+    const from = LV; LV = Math.max(1, LV - 1); buildLevel(LV); card[0] = []; loadHole(0);
+    lvSave(true, from > 1 ? "BACK TO LEVEL " + LV : "LEVEL 1 AGAIN", from > 1 ? "You got picked up on level " + from + ". Beat these 9 holes to climb back up!" : "Same 9 holes. You can do it!");
+  }
+  function nextLevelHole() {
+    if (hi + 1 < HOLES.length) { loadHole(hi + 1); banner("LEVEL " + LV + " · HOLE " + (hi + 1) + " · PAR " + hole.par, theme()[2]); lvSave(false, "HOLE " + (hi + 1)); return; }
+    const par = HOLES.reduce((a, h) => a + h.par, 0), tot = sum(card[0]), bonus = (LV * 500) + Math.max(0, par - tot) * 100 * LV;
+    S.score += bonus; banner("LEVEL " + LV + " CLEAR! +" + bonus, "#ffd66b"); sfx("level"); flash("#ffd66b", .3);
+    LV++; buildLevel(LV); card[0] = []; loadHole(0);
+    lvSave(true, "LEVEL " + LV, (NEWS[LV] || "Harder holes, more hazards.") + " Max " + maxS() + " strokes per hole.");
+  }
   function nextTurn() {
+    if (LV) { if (phase === "dead") dropLevel(); else nextLevelHole(); return; }
     if (S.duo && player === 0) { player = 1; placeBall(); banner(S.online ? (myTurn() ? "YOUR TURN" : "FRIEND'S TURN") : "PLAYER 2'S TURN", COLS[1]); return; }
     player = 0;
     if (hi + 1 >= HOLES.length) {
@@ -3963,19 +4025,35 @@ function golfGame() {
         b.x = bp[0] + nx * (bp[2] + BR); b.y = bp[1] + ny * (bp[2] + BR);
       }
     }
+    for (const sl of hole.slide || []) { const cx = slideX(sl), hw = sl[3] / 2; const pts = [[cx - hw, sl[1] - 9], [cx + hw, sl[1] - 9], [cx + hw, sl[1] + 9], [cx - hw, sl[1] + 9]]; for (let k = 0; k < 4; k++) if (collide(pts[k][0], pts[k][1], pts[(k + 1) % 4][0], pts[(k + 1) % 4][1], .85, 0)) sfx("tick"); }
+    for (const bo of hole.boost || []) if (Math.abs(b.x - bo[0]) < 20 && Math.abs(b.y - bo[1]) < 20 && portT <= 0) { const sp0 = Math.hypot(b.vx, b.vy); b.vx = Math.cos(bo[2]) * Math.max(sp0, 520); b.vy = Math.sin(bo[2]) * Math.max(sp0, 520); portT = .35; sfx("power"); burst(bo[0], bo[1], "#3dffa8", 12, 180, .3); }
+    for (const pt of hole.portal || []) for (const [ax, ay, bx2, by2] of [[pt[0], pt[1], pt[2], pt[3]], [pt[2], pt[3], pt[0], pt[1]]]) if (portT <= 0 && Math.hypot(b.x - ax, b.y - ay) < 13) { b.x = bx2; b.y = by2; portT = .5; trail = []; sfx("power"); ring(bx2, by2, "#a35bff", 6, 40, .4); burst(ax, ay, "#a35bff", 14, 160, .35); }
+    portT -= h;
     for (const w of hole.water || []) if (b.x > w[0] && b.x < w[2] && b.y > w[1] && b.y < w[3]) { splash(); return; }
-    let sand = false;
+    let sand = false, ice = false;
+    for (const ic of hole.ice || []) if (b.x > ic[0] && b.x < ic[2] && b.y > ic[1] && b.y < ic[3]) ice = true;
     for (const sd of hole.sand || []) if (b.x > sd[0] && b.x < sd[2] && b.y > sd[1] && b.y < sd[3]) sand = true;
     const sp = Math.hypot(b.vx, b.vy), dc = Math.hypot(b.x - hole.cup[0], b.y - hole.cup[1]);
     if (dc < 11 && sp < 340) { sink(); return; }
     if (dc < 18 && sp < 220) { b.vx += (hole.cup[0] - b.x) * 7 * h; b.vy += (hole.cup[1] - b.y) * 7 * h; }
-    const ns = Math.max(0, sp - (sand ? 760 : 170) * h - sp * .25 * h);
+    const ns = Math.max(0, sp - (sand ? 760 : ice ? 25 : 170) * h - sp * (ice ? .04 : .25) * h);
     if (sp > 0) { b.vx *= ns / sp; b.vy *= ns / sp; }
   }
+  const slideX = (sl) => sl[0] + (sl[2] - sl[0]) * (.5 + .5 * Math.sin(slideT * sl[4]));
+  function guideDots() {
+    const keep = b, out = []; b = { x: keep.x, y: keep.y, vx: Math.cos(aim) * MAXV * Math.max(.05, power), vy: Math.sin(aim) * MAXV * Math.max(.05, power) };
+    try { for (let i = 0; i < 90; i++) { const hh = 1 / 60; for (let k = 0; k < 3; k++) { b.x += b.vx * hh / 3; b.y += b.vy * hh / 3; for (const sg of SEGS) collide(sg[0], sg[1], sg[2], sg[3], .78, 0); } const sp = Math.hypot(b.vx, b.vy), ns = Math.max(0, sp - 170 * hh - sp * .25 * hh); if (sp > 0) { b.vx *= ns / sp; b.vy *= ns / sp; } if (i % 4 === 0) out.push([b.x, b.y]); if (ns < 20) break; } } finally { b = keep; }
+    return out;
+  }
   game({
-    load(d) { if (Array.isArray(d.holes) && d.holes.length === 9 && d.holes.every((i) => ALL[i])) { HOLES = d.holes.map((i) => ({ ...ALL[i], id: i + 1 })); card = [(d.card || []).slice(), []]; loadHole(Math.min(8, d.hi || 0)); } },
+    pups: [{ id: "pu-gf-mull", name: "Mulligan", icon: "⛳" }, { id: "pu-gf-guide", name: "Aim Guide", icon: "🎯" }],
+    start() { mullLeft = LV && pupOn("pu-gf-mull") ? 1 : 0; },
+    load(d) {
+      if (d && d.lv && lvMode()) { LV = Math.max(1, d.lv | 0); lvBase = d.base >>> 0; lvDeaths = d.deaths | 0; buildLevel(LV); card = [(d.card || []).slice(0, 9), []]; loadHole(Math.min(8, d.hi | 0)); return; }
+      if (LV) return;
+      if (Array.isArray(d.holes) && d.holes.length === 9 && d.holes.every((i) => ALL[i])) { HOLES = d.holes.map((i) => ({ ...ALL[i], id: i + 1 })); card = [(d.card || []).slice(), []]; loadHole(Math.min(8, d.hi || 0)); } },
     title: "Mini Golf", duo: "take turns on the same 9 random holes. Fewest total strokes wins.", easy: "water costs no strokes, 15 tries per hole, an aiming guide", w: W, h: H, color: "#3dffa8", bpm: 98,
-    help: ["Drag back from the ball and release to shoot", "Tap ◀ ▶ buttons to rotate aim · Power bar shows shot strength", "Water costs a stroke. Sand slows you down.", "9 random holes out of 50 courses. Beat par for bonus points"],
+    help: ["Drag back from the ball and release to shoot", "Tap ◀ ▶ buttons to rotate aim · Power bar shows shot strength", "Water costs a stroke. Sand slows you down.", "Levels of 9 holes get harder and harder", "Get picked up (run out of strokes) and you drop back a level!", "Speed pads, portals, sliders and ice show up on later levels"],
     remote(m) {
       if (!m) return true;
       if (m.seed != null) { buildHoles(+m.seed); waitSeed = false; loadHole(0); banner("HOLE 1 · FRIEND SHOOTS FIRST", COLS[0]); return true; }
@@ -3996,14 +4074,18 @@ function golfGame() {
       if (S.online === 1) { const sd = (Math.random() * 1e9) | 0; buildHoles(sd); sendMove({ seed: sd }); }
       else if (S.online === 2) { buildHoles(1); waitSeed = true; }
       else buildHoles();
+      LV = 0; slideT = 0; trail = [];
+      if (lvMode()) { LV = 1; lvBase = (Math.random() * 4e9) >>> 0; lvDeaths = 0; buildLevel(1); }
       loadHole(0); },
     hud() {
       if (S.online) return waitSeed ? "WAITING FOR YOUR FRIEND..." : "HOLE " + (hi + 1) + "/9  ·  " + (myTurn() ? "YOUR SHOT" : "FRIEND'S SHOT") + " " + (strokes + (phase === "aim" ? 1 : 0)) + "  ·  YOU " + sum(card[S.online - 1]) + "  ·  FRIEND " + sum(card[2 - S.online]);
       if (S.duo) return "HOLE " + (hi + 1) + "/9  ·  PLAYER " + (player + 1) + "'S TURN  ·  P1 " + sum(card[0]) + "  ·  P2 " + sum(card[1]);
       const diff = sum(card[0]) - parSoFar();
+      if (LV) return "LEVEL " + LV + "  ·  HOLE " + (hi + 1) + "/9  ·  PAR " + hole.par + "  ·  STROKE " + strokes + "/" + maxS() + (mullLeft ? "  ·  ⛳" : "");
       return "HOLE " + (hi + 1) + "/9  ·  PAR " + hole.par + "  ·  STROKE " + strokes + "  ·  " + (diff === 0 ? "EVEN" : diff > 0 ? "+" + diff : diff);
     },
     summary() {
+      if (LV) return ["REACHED LEVEL " + LV];
       const t0 = sum(card[0]), par = HOLES.reduce((s, h) => s + h.par, 0);
       if (S.duo) return ["STROKES  P1 " + t0 + " : " + sum(card[1]) + " P2   (PAR " + par + ")"];
       const d = t0 - par; return ["STROKES " + t0 + "   PAR " + par + "   " + (d === 0 ? "EVEN" : d > 0 ? "+" + d : String(d))];
@@ -4024,8 +4106,9 @@ function golfGame() {
     key(k) { if (k === " ") shoot(); },
     update(dt) {
       if (hole.mill) millA += dt * hole.mill[3];
+      slideT += dt;
       for (const f of bumpFx) f.l -= dt; bumpFx = bumpFx.filter((f) => f.l > 0);
-      if (phase === "sunk" || phase === "pickup") { wait -= dt; if (wait <= 0) nextTurn(); return; }
+      if (phase === "sunk" || phase === "pickup" || phase === "dead") { wait -= dt; if (wait <= 0) nextTurn(); return; }
       if (phase === "wait" || waitSeed) return;
       if (ghost) ghostT += dt;
       if (phase === "aim") {
@@ -4036,14 +4119,19 @@ function golfGame() {
         if (kp) power = Math.max(.05, Math.min(1, power + kp * .8 * dt));
         return;
       }
+      if (phase === "roll") { trail.push([b.x, b.y]); if (trail.length > 14) trail.shift(); }
       for (let s = 0; s < 6; s++) { step(dt / 6); if (phase !== "roll") return; }
       if (Math.hypot(b.vx, b.vy) < 6) { b.vx = b.vy = 0; if (ghost) { phase = "wait"; return; } if (strokes >= maxS()) pickup(); else { phase = "aim"; net({ ev: "r", x: Math.round(b.x), y: Math.round(b.y), k: strokes }); } }
     },
     draw() {
-      bg("#020509");
+      const TH = theme();
+      bg(TH[3]);
       const outer = hole.walls[0], path = (poly) => { x.beginPath(); poly.forEach(([px, py], i) => (i ? x.lineTo(px, py) : x.moveTo(px, py))); x.closePath(); };
+      x.save(); x.translate(6, 8); path(outer); x.fillStyle = "rgba(0,0,0,.45)"; x.fill(); x.restore();
       x.save(); path(outer); x.clip();
-      for (let yy = 0; yy < H; yy += 32) { x.fillStyle = (yy / 32) % 2 ? "#063a26" : "#07452e"; x.fillRect(0, yy, W, 32); }
+      for (let yy = 0; yy < H; yy += 32) { x.fillStyle = (yy / 32) % 2 ? TH[0] : TH[1]; x.fillRect(0, yy, W, 32); }
+      x.fillStyle = "rgba(255,255,255,.035)"; for (let i = 0; i < 70; i++) x.fillRect((i * 97) % W, (i * 61) % H, 2, 5);
+      for (const ic of hole.ice || []) { x.fillStyle = "rgba(190,240,255,.35)"; rr(ic[0], ic[1], ic[2] - ic[0], ic[3] - ic[1], 12); x.fill(); x.strokeStyle = "rgba(255,255,255,.5)"; x.lineWidth = 1.5; for (let k = 0; k < 4; k++) { x.beginPath(); x.moveTo(ic[0] + 12 + k * 22, ic[1] + 8); x.lineTo(ic[0] + 4 + k * 22, ic[3] - 8); x.stroke(); } }
       x.restore();
       for (const sd of hole.sand || []) {
         x.fillStyle = "rgba(225,184,110,.45)"; rr(sd[0], sd[1], sd[2] - sd[0], sd[3] - sd[1], 16); x.fill();
@@ -4055,8 +4143,11 @@ function golfGame() {
         for (let yy = w[1] + 12; yy < w[3]; yy += 18) for (let xx = w[0]; xx < w[2]; xx += 6) { const yw = yy + Math.sin(xx / 14 + S.clock * 3 + yy) * 2.5; if (xx === w[0]) x.moveTo(xx, yw); else x.lineTo(xx, yw); }
         x.stroke(); glow("#2aa8ff", 10); x.strokeStyle = "#2aa8ff"; x.lineWidth = 1.5; x.strokeRect(w[0], w[1], w[2] - w[0], w[3] - w[1]); glow();
       }
-      for (const poly of hole.walls.slice(1)) { path(poly); x.fillStyle = "#0b1020"; x.fill(); glow("#22e4ff", 12); x.strokeStyle = "#22e4ff"; x.lineWidth = 3; x.stroke(); glow(); }
-      path(outer); glow("#22e4ff", 16); x.strokeStyle = "#22e4ff"; x.lineWidth = 4; x.stroke(); glow();
+      for (const poly of hole.walls.slice(1)) { x.save(); x.translate(3, 5); path(poly); x.fillStyle = "rgba(0,0,0,.4)"; x.fill(); x.restore(); path(poly); x.fillStyle = "#0b1020"; x.fill(); glow(TH[2], 12); x.strokeStyle = TH[2]; x.lineWidth = 3; x.stroke(); glow(); }
+      path(outer); glow(TH[2], 16); x.strokeStyle = TH[2]; x.lineWidth = 4; x.stroke(); glow();
+      for (const bo of hole.boost || []) { x.save(); x.translate(bo[0], bo[1]); x.rotate(bo[2]); x.fillStyle = "rgba(61,255,168,.22)"; rr(-20, -16, 40, 32, 8); x.fill(); glow("#3dffa8", 10); x.fillStyle = "#3dffa8"; for (let k = 0; k < 3; k++) { const ox = -12 + k * 10 + (S.clock * 30 % 10); x.beginPath(); x.moveTo(ox, -8); x.lineTo(ox + 7, 0); x.lineTo(ox, 8); x.lineTo(ox + 3, 0); x.closePath(); x.fill(); } glow(); x.restore(); }
+      for (const pt of hole.portal || []) for (const [px0, py0, c] of [[pt[0], pt[1], "#a35bff"], [pt[2], pt[3], "#ff7be6"]]) { glow(c, 18); x.strokeStyle = c; x.lineWidth = 3; x.beginPath(); x.arc(px0, py0, 14 + Math.sin(S.clock * 5) * 2, 0, 7); x.stroke(); x.fillStyle = ca(c, .3); x.fill(); glow(); x.strokeStyle = "#fff"; x.lineWidth = 1.5; x.beginPath(); x.arc(px0, py0, 6, S.clock * 4, S.clock * 4 + 4); x.stroke(); }
+      for (const sl of hole.slide || []) { const cx = slideX(sl), hw = sl[3] / 2; x.fillStyle = "rgba(0,0,0,.4)"; x.fillRect(cx - hw + 3, sl[1] - 9 + 5, sl[3], 18); glow("#ffd66b", 14); x.fillStyle = "#ffd66b"; rr(cx - hw, sl[1] - 9, sl[3], 18, 5); x.fill(); glow(); x.fillStyle = "rgba(0,0,0,.35)"; for (let k = 0; k < 4; k++) x.fillRect(cx - hw + 6 + k * (sl[3] - 12) / 4, sl[1] - 9, 5, 18); }
       for (const bp of hole.bump || []) {
         const hitFx = bumpFx.find((f) => f.x === bp[0] && f.y === bp[1]);
         x.beginPath(); x.arc(bp[0], bp[1], bp[2], 0, 7); x.fillStyle = hitFx ? "#ff2bd6" : "#16061f"; x.fill();
@@ -4074,9 +4165,10 @@ function golfGame() {
         glow("#ff8a1f", 16); x.strokeStyle = "#ff8a1f"; x.lineWidth = 8; x.lineCap = "round"; x.beginPath(); x.moveTo(mx - c * ml, my - s * ml); x.lineTo(mx + c * ml, my + s * ml); x.stroke(); glow();
         x.fillStyle = "#ffc23d"; x.beginPath(); x.arc(mx, my, 9, 0, 7); x.fill(); x.lineCap = "butt";
       }
+      if (trail.length > 1 && phase === "roll") { for (let k = 1; k < trail.length; k++) { x.globalAlpha = k / trail.length * .5; x.strokeStyle = COLS[player]; x.lineWidth = BR * 1.4 * k / trail.length; x.lineCap = "round"; x.beginPath(); x.moveTo(trail[k - 1][0], trail[k - 1][1]); x.lineTo(trail[k][0], trail[k][1]); x.stroke(); } x.globalAlpha = 1; x.lineCap = "butt"; }
       if (phase !== "sunk") {
         x.fillStyle = "rgba(0,0,0,.45)"; x.beginPath(); x.ellipse(b.x + 3, b.y + 4, BR, BR * .7, 0, 0, 7); x.fill();
-        glow(COLS[player], 16); const gsk = (window.SKIN0 || {}).golf; x.fillStyle = S.duo || !gsk ? "#ffffff" : gsk === "gf-rainbow" ? "hsl(" + Math.floor(S.clock * 120) % 360 + ",100%,65%)" : gsk === "gf-gold" ? "#ffd66b" : "#ff7be6"; x.beginPath(); x.arc(b.x, b.y, BR, 0, 7); x.fill(); glow();
+        glow(COLS[player], 16); const gsk = (window.SKIN0 || {}).golf; x.fillStyle = S.duo || !gsk ? "#ffffff" : gsk === "gf-rainbow" ? "hsl(" + Math.floor(S.clock * 120) % 360 + ",100%,65%)" : gsk === "gf-gold" ? "#ffd66b" : gsk === "gf-pink" ? "#ff7be6" : skinCol("golf", "#ffffff"); x.beginPath(); x.arc(b.x, b.y, BR, 0, 7); x.fill(); glow();
         x.strokeStyle = COLS[player]; x.lineWidth = 2; x.beginPath(); x.arc(b.x, b.y, BR, 0, 7); x.stroke();
       }
       if (phase === "aim" && S.state === "play" && myTurn() && !waitSeed) {
@@ -4101,7 +4193,8 @@ function golfGame() {
         }
         /* aim arrow (always visible in aim phase) */
         const len = 28 + power * 140;
-        if (S.practice || drag) {
+        if (LV && pupOn("pu-gf-guide")) { glow("#ffffff", 6); x.fillStyle = "rgba(255,255,255,.55)"; for (const [gx, gy] of guideDots()) { x.beginPath(); x.arc(gx, gy, 2.2, 0, 7); x.fill(); } glow(); }
+        else if (S.practice || drag) {
           x.strokeStyle = "rgba(255,255,255,.18)"; x.lineWidth = 2; x.setLineDash([4, 8]);
           x.beginPath(); x.moveTo(b.x, b.y); x.lineTo(b.x + ca0 * (60 + power * 330), b.y + sa0 * (60 + power * 330)); x.stroke(); x.setLineDash([]);
         }
@@ -4126,7 +4219,8 @@ function golfGame() {
         drawRotBtn(44, H - 60, "◀", golfRotL);
         drawRotBtn(W - 44, H - 60, "▶", golfRotR);
       }
-      txt("HOLE " + (hi + 1) + "  ·  PAR " + hole.par, 16, 30, 14, "#3dffa8", "left", "d"); txt("COURSE #" + hole.id + " OF " + ALL.length, 16, 50, 11, "#8fe8c8", "left");
+      txt((LV ? "LV " + LV + " · " : "") + "HOLE " + (hi + 1) + "  ·  PAR " + hole.par, 16, 30, 14, LV ? TH[2] : "#3dffa8", "left", "d"); txt(hole.id && hole.id <= ALL.length ? "COURSE #" + hole.id + " OF " + ALL.length : "RANDOM COURSE", 16, 50, 11, "#8fe8c8", "left");
+      if (LV) { for (let k = 0; k < 9; k++) { x.fillStyle = k < hi ? TH[2] : k === hi ? "#ffffff" : "rgba(255,255,255,.18)"; x.beginPath(); x.arc(W / 2 - 24 + k * 14, 46, k === hi ? 4.5 : 3.5, 0, 7); x.fill(); } txt(Math.max(0, maxS() - strokes) + " STROKES LEFT", W - 16, 50, 10, maxS() - strokes <= 2 ? "#ff4d6d" : "#d8d0f5", "right"); }
       txt(S.duo ? "PLAYER " + (player + 1) : "STROKE " + strokes, W - 16, 30, 14, S.duo ? COLS[player] : "#ffffff", "right", "d");
     },
   });
@@ -11222,6 +11316,10 @@ function fighterGame() {
     ["gf-pink", "golf", "Pink Ball", 200, "#ff7be6", "A pink ball for Mini Golf", "", "r"],
     ["gf-gold", "golf", "Gold Ball", 380, "#ffd66b", "A golden ball for Mini Golf", "", "r"],
     ["gf-rainbow", "golf", "Rainbow Ball", 620, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing ball for Mini Golf", "", "e"],
+    ["gf-mint", "golf", "Mint Ball", 250, "#3dffa8", "A fresh mint-green ball for Mini Golf", "", "c"],
+    ["gf-ice", "golf", "Ice Ball", 300, "#9ff3ff", "A frosty blue ball for Mini Golf", "", "c"],
+    ["gf-fire", "golf", "Fire Ball", 450, "#ff8a1f", "A blazing orange ball for Mini Golf", "", "r"],
+    ["gf-galaxy", "golf", "Galaxy Ball", 2500, "linear-gradient(135deg,#1a0b3a,#a35bff,#ff2bd6)", "A swirling space ball for Mini Golf", "", "e"],
     ["hb-blue", "hoops", "Ice Ball", 250, "#22e4ff", "A blue basketball for Hoop Shot", "", "r"],
     ["hb-gold", "hoops", "Gold Ball", 450, "#ffd66b", "A golden basketball for Hoop Shot", "", "r"],
     ["hb-rainbow", "hoops", "Rainbow Ball", 750, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing basketball for Hoop Shot", "", "e"],
@@ -11441,6 +11539,10 @@ function fighterGame() {
     ["bw-pink", "bowling", "Pink Ball", 300, "#ff2bd6", "A hot pink bowling ball.", "", "c"],
     ["bw-fire", "bowling", "Fireball", 1200, "#ff8a1f", "Strikes with heat.", "", "r"],
     ["bw-rainbow", "bowling", "Rainbow Ball", 6500, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "The ball of legends. LEGENDARY!", "", "l"],
+    ["bw-ice", "bowling", "Ice Ball", 400, "#9ff3ff", "A frosty bowling ball.", "", "c"],
+    ["bw-violet", "bowling", "Violet Ball", 500, "#a35bff", "A deep purple bowling ball.", "", "c"],
+    ["bw-gold", "bowling", "Gold Ball", 900, "#ffd66b", "Shiny and golden.", "", "r"],
+    ["bw-galaxy", "bowling", "Galaxy Ball", 3000, "linear-gradient(135deg,#1a0b3a,#a35bff,#ff2bd6)", "A swirling space ball.", "", "e"],
     ["ah-lime", "airhockey", "Toxic Mallet", 300, "#b6ff3b", "A slime-green mallet.", "", "c"],
     ["ah-gold", "airhockey", "Gold Mallet", 1100, "#ffd66b", "Smack it in style.", "", "r"],
     ["ah-rainbow", "airhockey", "Rainbow Mallet", 3800, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A colour-cycling mallet. Epic!", "", "e"],
@@ -11457,6 +11559,10 @@ function fighterGame() {
     ["ob-gold", "orbit", "Gold Rocket", 1100, "#ffd66b", "Shiny gold thrusters.", "", "r"],
     ["ob-rainbow", "orbit", "Rainbow Rocket", 6000, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "Orbits in every colour. LEGENDARY!", "", "l"],
     // ⚡ Power-ups (consumable, used from a game's start screen, never in Quick Play)
+    ["pu-gf-mull", "powerup", "⛳ Mulligan · Mini Golf", 200, "linear-gradient(135deg,#3dffa8,#ffd66b)", "Replay a hole once instead of getting picked up (level mode).", "", "r"],
+    ["pu-gf-guide", "powerup", "🎯 Aim Guide · Mini Golf", 150, "linear-gradient(135deg,#ffffff,#22e4ff)", "See where your shot will roll and bounce for a whole run.", "", "c"],
+    ["pu-bw-save", "powerup", "🛟 Second Chance · Neon Bowling", 200, "linear-gradient(135deg,#ff2bd6,#ffd66b)", "Miss a whole lane once without dropping a level.", "", "r"],
+    ["pu-bw-guide", "powerup", "🎯 Aim Line · Neon Bowling", 150, "linear-gradient(135deg,#ffffff,#ff2bd6)", "See the ball's path before you bowl, for a whole run.", "", "c"],
     ["pu-gm-moves", "powerup", "➕ +5 Moves · Gem Match", 150, "linear-gradient(135deg,#3dffa8,#22e4ff)", "Five extra moves on your next Gem Match run.", "", "c"],
     ["pu-gm-bomb", "powerup", "💣 Bomb Start · Gem Match", 250, "linear-gradient(135deg,#ffd66b,#ff8a1f)", "Start Gem Match with 2 bombs on the board.", "", "r"],
     ["pu-gm-rainbow", "powerup", "🌈 Rainbow Start · Gem Match", 400, "linear-gradient(90deg,#ff2bd6,#ffd66b,#3dffa8,#22e4ff)", "Start Gem Match with a rainbow orb.", "", "e"],
