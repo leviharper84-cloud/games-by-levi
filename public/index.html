@@ -9051,11 +9051,13 @@ function poolGame() {
   const POCKETS = [[TX0 + 4, TY0 + 4], [TX1 - 4, TY0 + 4], [TX0 - 2, (TY0 + TY1) / 2], [TX1 + 2, (TY0 + TY1) / 2], [TX0 + 4, TY1 - 4], [TX1 - 4, TY1 - 4]];
   const BC = ["#ffffff", "#ffd66b", "#22b4ff", "#ff2e4d", "#a35bff", "#ff8a1f", "#3dffa8", "#ff2bd6", "#1a1a2a", "#b6ff3b"];
   const HEAD = [W / 2, TY1 - 130];
+  let ghostOn = false, ghostT = 0, waitSeed = false, seed = 0;
+  const myTurn = () => !S.online || turn + 1 === S.online;
   let balls, cue, phase, aim, power, drag, rotL, rotR, level, shotsLeft, potThis, firstHit, scratch, turn, pts, inHand, waitT, msg, combo, rackN, trail;
   const moving = () => balls.some((b) => !b.in && (Math.abs(b.vx) > 1 || Math.abs(b.vy) > 1));
   function rack(n) {
     balls = [{ n: 0, x: HEAD[0], y: HEAD[1], vx: 0, vy: 0, in: false }]; cue = balls[0];
-    const nums = Array.from({ length: n }, (_, i) => i + 1); for (let i = nums.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [nums[i], nums[j]] = [nums[j], nums[i]]; }
+    const nums = Array.from({ length: n }, (_, i) => i + 1); let sd = (seed + level * 7919) >>> 0; const rnd = S.duo ? () => ((sd = (sd * 1664525 + 1013904223) >>> 0) / 4294967296) : Math.random; for (let i = nums.length - 1; i > 0; i--) { const j = rnd() * (i + 1) | 0; [nums[i], nums[j]] = [nums[j], nums[i]]; }
     let k = 0; for (let row = 0; k < n; row++) for (let i = 0; i <= row && k < n; i++) balls.push({ n: nums[k++], x: W / 2 + (i - row / 2) * (R * 2 + 1), y: TY0 + 150 - row * (R * 1.75 + .5), vx: 0, vy: 0, in: false });
     rackN = n; phase = "aim"; aim = -Math.PI / 2; power = .55; drag = null; inHand = false; trail = [];
   }
@@ -9066,8 +9068,10 @@ function poolGame() {
     rack(n); shotsLeft = levelMode() ? n + Math.max(2, 7 - level) : 99;
     banner(S.duo ? "RACK 'EM UP!" : levelMode() ? "RACK " + level + " · " + n + " BALLS · " + shotsLeft + " SHOTS" : "RACK " + level, "#3dffa8");
   }
-  function shoot() {
-    if (phase !== "aim" || S.state !== "play") return;
+  function shoot(remote) {
+    if (phase !== "aim" || S.state !== "play" || waitSeed) return;
+    if (S.online && !remote) { if (!myTurn()) return; sendMove({ a: +aim.toFixed(4), p: +power.toFixed(4), cx: Math.round(cue.x), cy: Math.round(cue.y) }); }
+    ghostOn = !!remote; ghostT = 0;
     const v = 120 + 1180 * power; cue.vx = Math.cos(aim) * v; cue.vy = Math.sin(aim) * v; phase = "roll"; drag = null; inHand = false;
     potThis = []; firstHit = null; scratch = false; trail = []; if (levelMode()) shotsLeft--; sfx("hit", .8 + power * .5);
     burst(cue.x, cue.y, "#ffffff", 8, 120, .25, 2, aim + Math.PI, 1);
@@ -9122,14 +9126,30 @@ function poolGame() {
     duo: "take turns. Pot a ball to shoot again. Each ball is worth its number. Most points when the table is clear wins.",
     help: ["Drag back from anywhere and let go to shoot", "◀ ▶ buttons (or arrow keys) fine-tune your aim", "The dotted guide shows which ball you'll hit and where it goes", "Clear each table before you run out of shots. Pot 2+ balls in one shot for a combo!"],
     load(d) { if (d && d.level) { level = d.level | 0; newRack(); } },
-    init() { level = 1; turn = 0; pts = [0, 0]; combo = 0; rotL = rotR = false; newRack(); },
+    init() { level = 1; turn = 0; pts = [0, 0]; combo = 0; rotL = rotR = false; ghostOn = false; waitSeed = false; seed = (Math.random() * 1e9) >>> 0;
+      if (S.online === 1) sendMove({ seed }); else if (S.online === 2) { waitSeed = true; seed = 1; }
+      newRack(); },
+    remote(m) {
+      if (!m) return true;
+      if (m.seed != null) { seed = m.seed >>> 0; waitSeed = false; newRack(); return true; }
+      if (waitSeed) return false;
+      if (m.a != null) { if (myTurn()) return true; if (phase !== "aim") return false; cue.x = +m.cx; cue.y = +m.cy; aim = +m.a; power = +m.p; shoot(true); return true; }
+      if (m.ev === "s") {
+        if (myTurn()) return true;
+        if (phase === "roll" && ghostT < 8) return false;
+        (m.b || []).forEach((q, i) => { const bb = balls[i]; if (!bb) return; const wasIn = bb.in; bb.x = +q[0]; bb.y = +q[1]; bb.vx = bb.vy = 0; bb.in = !!q[2]; if (bb.in && !wasIn) { bb.px = bb.x; bb.py = bb.y; bb.sink = 0; } });
+        potThis = (m.pot || []).map(Number); scratch = !!m.scr; ghostOn = false; settle(); return true;
+      }
+      return true;
+    },
     hud() {
+      if (S.online) return waitSeed ? "WAITING FOR YOUR FRIEND..." : "YOU " + pts[S.online - 1] + "  ·  FRIEND " + pts[2 - S.online] + "  ·  " + (myTurn() ? "YOUR SHOT" : "FRIEND'S SHOT");
       if (S.duo) return "P1 " + pts[0] + "  ·  P2 " + pts[1] + "  ·  PLAYER " + (turn + 1) + "'S SHOT";
       return "RACK " + level + "  ·  " + balls.filter((b) => b.n && !b.in).length + " BALLS LEFT" + (levelMode() ? "  ·  " + shotsLeft + " SHOTS" : "");
     },
     summary() { return S.duo ? ["P1 " + pts[0] + "  :  " + pts[1] + " P2"] : ["REACHED RACK " + level]; },
     down(px, py) {
-      if (phase !== "aim" || S.state !== "play") return;
+      if (phase !== "aim" || S.state !== "play" || !myTurn() || waitSeed) return;
       if (Math.hypot(px - 40, py - (H - 24)) < 30) { rotL = true; return; } if (Math.hypot(px - (W - 40), py - (H - 24)) < 30) { rotR = true; return; }
       if (inHand && Math.hypot(px - cue.x, py - cue.y) < 26) { drag = { hand: true }; return; }
       drag = { x: px, y: py };
@@ -9147,12 +9167,13 @@ function poolGame() {
     key(k) { if (k === " ") shoot(); },
     update(dt) {
       for (const b of balls) if (b.in && b.sink > 0) b.sink -= dt;
-      if (phase === "aim") {
+      if (phase === "aim" && myTurn()) {
         const k = (S.keys.ArrowRight || S.keys.d || rotR ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a || rotL ? 1 : 0); if (k) aim += k * (S.keys.Shift ? .25 : 1.1) * dt;
         const kp = (S.keys.ArrowUp || S.keys.w ? 1 : 0) - (S.keys.ArrowDown || S.keys.s ? 1 : 0); if (kp) power = Math.max(.05, Math.min(1, power + kp * .7 * dt));
         return;
       }
-      if (phase === "roll") { trail.push([cue.x, cue.y]); if (trail.length > 10) trail.shift(); for (let s = 0; s < 8; s++) step(dt / 8); if (!moving()) settle(); }
+      if (phase === "roll") { if (ghostOn) ghostT += dt; trail.push([cue.x, cue.y]); if (trail.length > 10) trail.shift(); for (let s = 0; s < 8; s++) step(dt / 8);
+        if (!moving()) { if (S.online && !myTurn()) phase = "gwait"; else { if (S.online) sendMove({ ev: "s", b: balls.map((q) => [Math.round(q.x * 10) / 10, Math.round(q.y * 10) / 10, q.in ? 1 : 0]), pot: potThis, scr: scratch ? 1 : 0 }); settle(); } } }
     },
     draw() {
       bg("#03070a");
@@ -9174,7 +9195,8 @@ function poolGame() {
         if (b.n && r > 5) { x.fillStyle = "#fff"; x.beginPath(); x.arc(bx, by, r * .45, 0, 7); x.fill(); txt(String(b.n), bx, by + 1, Math.round(r * .7), "#111", "center"); }
         x.globalAlpha = 1;
       }
-      if (phase === "aim" && S.state === "play") {
+      if (S.online && !myTurn() && S.state === "play") txt("FRIEND IS SHOOTING...", W / 2, TY1 + 42, 11, "#ffd66b", "center", "d");
+      if (phase === "aim" && S.state === "play" && myTurn() && !waitSeed) {
         const gh = ghost(), col = power < .4 ? "#3dffa8" : power < .75 ? "#ffc23d" : "#ff4d6d";
         x.strokeStyle = "rgba(255,255,255,.45)"; x.setLineDash([4, 6]); x.lineWidth = 1.5; x.beginPath(); x.moveTo(cue.x, cue.y); x.lineTo(gh.x, gh.y); x.stroke(); x.setLineDash([]);
         x.strokeStyle = "rgba(255,255,255,.7)"; x.lineWidth = 1.5; x.beginPath(); x.arc(gh.x, gh.y, R, 0, 7); x.stroke();
@@ -11421,7 +11443,7 @@ function fighterGame() {
   setInterval(() => { if (!document.hidden) { if (daily && Date.now() > daily.endsAt) loadDaily(); else renderDaily(); } }, 30000);
 
   /* ---------- Online 2-player (turn-based games) ---------- */
-  const ONLINE = [["ttt", "Tic-Tac-Toe"], ["dots", "Dots & Boxes"], ["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"], ["penalty", "Penalty Kick"], ["memory", "Memory Grid"], ["guesswho", "Guess Who"], ["golf", "Mini Golf"], ["hoops", "Hoop Shot"], ["bowling", "Neon Bowling"]];
+  const ONLINE = [["ttt", "Tic-Tac-Toe"], ["dots", "Dots & Boxes"], ["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"], ["penalty", "Penalty Kick"], ["memory", "Memory Grid"], ["guesswho", "Guess Who"], ["golf", "Mini Golf"], ["hoops", "Hoop Shot"], ["bowling", "Neon Bowling"], ["pool", "Neon Pool"]];
   let room = null, waitTimer = null;
   function renderOnline() {
     const box = $("#online-box"); if (!box) return;

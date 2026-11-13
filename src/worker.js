@@ -332,7 +332,7 @@ async function postDaily(request, env, user) {
 /* Online rooms for turn-based 2-player games                          */
 /* ------------------------------------------------------------------ */
 
-const ONLINE_GAMES = new Set(["ttt", "dots", "connect4", "reversi", "chess", "penalty", "memory", "guesswho", "golf", "hoops", "bowling"]);
+const ONLINE_GAMES = new Set(["ttt", "dots", "connect4", "reversi", "chess", "penalty", "memory", "guesswho", "golf", "hoops", "bowling", "pool"]);
 async function createRoom(request, env, user) {
   if (!user) fail(401, "Log in to play online.");
   await limit(env, "room:" + user.id, 20, 10 * MIN, "You've made a lot of rooms. Try again in a few minutes.");
