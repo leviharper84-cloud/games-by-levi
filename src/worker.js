@@ -59,6 +59,8 @@ const SCHEMA = [
   "CREATE TABLE IF NOT EXISTS likes (user_id INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE, game TEXT NOT NULL, PRIMARY KEY (user_id, game))",
   "CREATE TABLE IF NOT EXISTS help_requests (id INTEGER PRIMARY KEY AUTOINCREMENT, user_id INTEGER, username TEXT NOT NULL DEFAULT 'Guest', msg TEXT NOT NULL, ts INTEGER NOT NULL, status TEXT NOT NULL DEFAULT 'new', admin_note TEXT NOT NULL DEFAULT '')",
   "CREATE INDEX IF NOT EXISTS help_by_ts ON help_requests(ts DESC)",
+  "CREATE TABLE IF NOT EXISTS bans (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, until INTEGER NOT NULL, reason TEXT NOT NULL DEFAULT '', at INTEGER NOT NULL)",
+  "CREATE TABLE IF NOT EXISTS mutes (user_id INTEGER PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE, until INTEGER NOT NULL, at INTEGER NOT NULL)",
 ];
 let tablesReady = null;
 function ensureTables(env) {
@@ -148,6 +150,9 @@ async function handle(request, env, url) {
       if (method === "DELETE") return adminDeleteUser(env, user, +m[1]);
     }
     if ((m = path.match(/^\/api\/admin\/users\/(\d+)\/reset$/)) && method === "POST") return adminReset(request, env, +m[1]);
+    if ((m = path.match(/^\/api\/admin\/users\/(\d+)\/(ban|mute)$/))) return adminBan(request, env, +m[1], m[2], method);
+    if ((m = path.match(/^\/api\/admin\/users\/(\d+)\/logout$/)) && method === "POST") return adminLogout(env, +m[1]);
+    if ((m = path.match(/^\/api\/admin\/users\/(\d+)\/message$/)) && method === "POST") return adminMessage(request, env, +m[1]);
     fail(404, "Not found.");
   }
   if (path === "/api/submissions" && method === "GET") return listSubmissions(env);
@@ -205,6 +210,7 @@ async function login(request, env) {
   }
   const { hash } = await hashPassword(password, row.salt, row.iterations);
   if (!sameString(hash, row.pass_hash)) fail(401, "Wrong username or password.");
+  if (!isAdminName(lc, env)) { const ban = await env.DB.prepare("SELECT until, reason FROM bans WHERE user_id = ?").bind(row.id).first(); if (ban && ban.until > Date.now()) fail(403, (ban.until > 4e15 ? "This account is banned." : "This account is banned until " + new Date(ban.until).toUTCString().slice(0, 16) + ".") + (ban.reason ? " Reason: " + ban.reason : "")); }
 
   await env.DB.prepare("DELETE FROM rate WHERE key = ?").bind("login:" + lc).run();
   const cookie = await createSession(env, row.id);
@@ -416,6 +422,7 @@ async function getFriends(env, user) {
   return json({ friends, incoming, outgoing, challenges, visits });
 }
 async function addFriend(request, env, user) {
+  if (user) await notMuted(env, user, "add friends");
   if (!user) fail(401, "Log in to add friends.");
   await limit(env, "friend:" + user.id, 30, HOUR, "You've sent a lot of friend requests. Try again later.");
   const b = await readJson(request), name = cleanName(b.username).toLowerCase();
@@ -441,6 +448,7 @@ async function friendAction(env, user, id, act) {
   return json({ ok: true });
 }
 async function createChallenge(request, env, user) {
+  if (user) await notMuted(env, user, "send challenges");
   if (!user) fail(401, "Log in to send challenges.");
   await limit(env, "chal:" + user.id, 40, HOUR, "That's a lot of challenges! Try again later.");
   const b = await readJson(request), to = Math.floor(Number(b.to)), game = String(b.game || "");
@@ -454,6 +462,7 @@ async function createChallenge(request, env, user) {
   return json({ ok: true, score: best.score });
 }
 async function createPlaydate(request, env, user) {
+  if (user) await notMuted(env, user, "send playdates");
   if (!user) fail(401, "Log in first.");
   await limit(env, "play:" + user.id, 30, HOUR, "That's a lot of playdates! Try again later.");
   const b = await readJson(request), to = Math.floor(Number(b.to)), pet = itemId(b.pet, "pet-");
@@ -719,8 +728,8 @@ async function currentUser(request, env) {
   const token = readCookie(request);
   if (!token) return null;
   return env.DB.prepare(
-    "SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token_hash = ? AND s.expires_at > ?"
-  ).bind(await sha256hex(token), Date.now()).first();
+    "SELECT u.*, b.until AS ban_until FROM sessions s JOIN users u ON u.id = s.user_id LEFT JOIN bans b ON b.user_id = u.id WHERE s.token_hash = ? AND s.expires_at > ?"
+  ).bind(await sha256hex(token), Date.now()).first().then((u) => (u && u.ban_until > Date.now() && !isAdmin(u, env) ? null : u));
 }
 
 async function hashPassword(password, saltB64, iterations = PBKDF2_ITERATIONS) {
@@ -933,11 +942,11 @@ async function adminUsers(env, url) {
   const q = "%" + String(url.searchParams.get("q") || "").toLowerCase().replace(/[%_]/g, "") + "%";
   const { results } = await env.DB.prepare(`
     SELECT u.id, u.username, u.created_at, u.avatar_i, u.avatar_c, p.data, p.at,
-      (SELECT COUNT(*) FROM scores s WHERE s.user_id = u.id) AS nscores
+      (SELECT COUNT(*) FROM scores s WHERE s.user_id = u.id) AS nscores, (SELECT until FROM bans b WHERE b.user_id = u.id) AS ban_until, (SELECT until FROM mutes mu WHERE mu.user_id = u.id) AS mute_until
     FROM users u LEFT JOIN progress p ON p.user_id = u.id
     WHERE u.username_lc LIKE ? ORDER BY COALESCE(p.at, u.created_at) DESC LIMIT 300
   `).bind(q).all();
-  return json({ users: results.map((r) => ({ id: r.id, username: r.username, joined: r.created_at, av: { i: r.avatar_i, c: r.avatar_c }, lastSeen: r.at || r.created_at, scores: r.nscores, admin: isAdminName(r.username, env), ...progSummary(r.data) })) });
+  return json({ users: results.map((r) => ({ id: r.id, username: r.username, joined: r.created_at, av: { i: r.avatar_i, c: r.avatar_c }, lastSeen: r.at || r.created_at, scores: r.nscores, admin: isAdminName(r.username, env), banned: r.ban_until > Date.now(), muted: r.mute_until > Date.now(), ...progSummary(r.data) })) });
 }
 async function adminUser(env, id) {
   const u = await env.DB.prepare("SELECT id, username, created_at, avatar_i, avatar_c FROM users WHERE id = ?").bind(id).first();
@@ -945,7 +954,8 @@ async function adminUser(env, id) {
   const p = await env.DB.prepare("SELECT data, at FROM progress WHERE user_id = ?").bind(id).first();
   const { results } = await env.DB.prepare("SELECT game, score, at FROM scores WHERE user_id = ? ORDER BY score DESC").bind(id).all();
   let data = null; try { data = p ? JSON.parse(p.data) : null; } catch {}
-  return json({ user: { id: u.id, username: u.username, joined: u.created_at, av: { i: u.avatar_i, c: u.avatar_c }, admin: isAdminName(u.username, env) }, progress: data, summary: progSummary(p && p.data), lastSeen: p ? p.at : null, scores: results });
+  const now = Date.now(), ban = await env.DB.prepare("SELECT until, reason FROM bans WHERE user_id = ? AND until > ?").bind(id, now).first(), mute = await env.DB.prepare("SELECT until FROM mutes WHERE user_id = ? AND until > ?").bind(id, now).first();
+  return json({ user: { id: u.id, username: u.username, joined: u.created_at, av: { i: u.avatar_i, c: u.avatar_c }, admin: isAdminName(u.username, env) }, ban: ban || null, mute: mute || null, progress: data, summary: progSummary(p && p.data), lastSeen: p ? p.at : null, scores: results });
 }
 async function adminEditUser(request, env, me, id) {
   const b = await readJson(request);
@@ -959,13 +969,14 @@ async function adminEditUser(request, env, me, id) {
     await env.DB.prepare("UPDATE users SET username = ?, username_lc = ? WHERE id = ?").bind(name, lc, id).run();
   }
   const keys = ["coins", "cash", "gems", "xp"].filter((k) => b[k] != null);
-  if (keys.length || b.giveItems || b.takeItems) {
+  if (keys.length || b.giveItems || b.takeItems || b.takeItem) {
     const row = await env.DB.prepare("SELECT data FROM progress WHERE user_id = ?").bind(id).first();
     let p = {}; try { p = row ? JSON.parse(row.data) || {} : {}; } catch {}
     p.stats = p.stats || {};
     for (const k of keys) p.stats[k] = Math.floor(num(b[k], 0, 1e9, 0));
     if (Array.isArray(b.giveItems)) p.owned = [...new Set([...(p.owned || []), ...b.giveItems.map(String).slice(0, 300)])];
     if (b.takeItems) { p.owned = []; p.equip = {}; }
+    if (b.takeItem) { const t = String(b.takeItem); p.owned = (p.owned || []).filter((x) => x !== t); for (const k of Object.keys(p.equip || {})) if (p.equip[k] === t) delete p.equip[k]; }
     const now = Date.now(); p.stats.wAt = now; p.adminAt = now;
     await env.DB.prepare("INSERT INTO progress (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data").bind(id, JSON.stringify(p), now).run();
   }
@@ -980,11 +991,52 @@ async function adminReset(request, env, id) {
   await env.DB.batch(ops);
   return adminUser(env, id);
 }
+async function notMuted(env, user, what) {
+  if (isAdmin(user, env)) return;
+  const m = await env.DB.prepare("SELECT until FROM mutes WHERE user_id = ?").bind(user.id).first();
+  if (m && m.until > Date.now()) fail(403, "The admin has paused your ability to " + what + (m.until > 4e15 ? "." : " until " + new Date(m.until).toUTCString().slice(0, 16) + "."));
+}
+async function adminTarget(env, id) {
+  const u = await env.DB.prepare("SELECT id, username_lc FROM users WHERE id = ?").bind(id).first();
+  if (!u) fail(404, "That player doesn't exist.");
+  if (isAdminName(u.username_lc, env)) fail(400, "You can't do that to the admin account.");
+  return u;
+}
+async function adminBan(request, env, id, kind, method) {
+  await adminTarget(env, id);
+  const table = kind === "ban" ? "bans" : "mutes";
+  if (method === "DELETE") { await env.DB.prepare(`DELETE FROM ${table} WHERE user_id = ?`).bind(id).run(); return adminUser(env, id); }
+  if (method !== "POST") fail(405, "Method not allowed.");
+  const b = await readJson(request), days = num(b.days, 0, 3650, 0), now = Date.now(), until = days > 0 ? now + days * 864e5 : 8e15;
+  if (kind === "ban") {
+    await env.DB.batch([env.DB.prepare("INSERT INTO bans (user_id, until, reason, at) VALUES (?, ?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET until = excluded.until, reason = excluded.reason, at = excluded.at").bind(id, until, String(b.reason || "").slice(0, 120), now), env.DB.prepare("DELETE FROM sessions WHERE user_id = ?").bind(id)]);
+  } else await env.DB.prepare("INSERT INTO mutes (user_id, until, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET until = excluded.until, at = excluded.at").bind(id, until, now).run();
+  return adminUser(env, id);
+}
+async function adminLogout(env, id) {
+  await adminTarget(env, id);
+  await env.DB.prepare("DELETE FROM sessions WHERE user_id = ?").bind(id).run();
+  return adminUser(env, id);
+}
+async function adminMessage(request, env, id) {
+  await adminTarget(env, id);
+  const b = await readJson(request), text = String(b.text || "").trim().slice(0, 300);
+  if (!text) fail(400, "Write a message first.");
+  const c = Math.floor(num(b.c, 0, 100000, 0)), d = Math.floor(num(b.d, 0, 10000, 0)), g = Math.floor(num(b.g, 0, 1000, 0));
+  const row = await env.DB.prepare("SELECT data FROM progress WHERE user_id = ?").bind(id).first();
+  let p = {}; try { p = row ? JSON.parse(row.data) || {} : {}; } catch {}
+  p.stats = p.stats || {}; const now = Date.now();
+  p.stats.coins = (+p.stats.coins || 0) + c; p.stats.cash = (+p.stats.cash || 0) + d; p.stats.gems = (+p.stats.gems || 0) + g;
+  p.inbox = [...(Array.isArray(p.inbox) ? p.inbox : []), { id: now, t: text, c, d, g }].slice(-20);
+  p.stats.wAt = now; p.adminAt = now;
+  await env.DB.prepare("INSERT INTO progress (user_id, data, at) VALUES (?, ?, ?) ON CONFLICT(user_id) DO UPDATE SET data = excluded.data").bind(id, JSON.stringify(p), now).run();
+  return adminUser(env, id);
+}
 async function adminDeleteUser(env, me, id) {
   if (id === me.id) fail(400, "You can't delete your own admin account.");
   const u = await env.DB.prepare("SELECT username_lc FROM users WHERE id = ?").bind(id).first();
   if (!u) fail(404, "That player doesn't exist.");
-  await env.DB.batch(["sessions", "scores", "progress", "settings", "daily", "submissions", "likes"].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(id))
+  await env.DB.batch(["sessions", "scores", "progress", "settings", "daily", "submissions", "likes", "bans", "mutes"].map((t) => env.DB.prepare(`DELETE FROM ${t} WHERE user_id = ?`).bind(id))
     .concat([env.DB.prepare("DELETE FROM users WHERE id = ?").bind(id)]));
   return json({ ok: true });
 }

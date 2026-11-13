@@ -1264,6 +1264,8 @@ html.calm .art-spin, html.calm .art-flick, html.calm .art-blink, html.calm .art-
 .pd-duo { display: flex; gap: 6px; } .pd-duo .pv { width: 100px; height: 100px; } .pd-ic { grid-row: span 2; width: 48px; height: 48px; } .pd-ic .pv { width: 100%; height: 100%; }
 
 /* ---------- Tutorial ---------- */
+.adm-mod { display: grid; gap: 8px; padding: 10px 0; border-top: 1px solid var(--line-2); } .adm-items { display: flex; flex-wrap: wrap; gap: 6px; } .adm-item { display: inline-flex; gap: 6px; align-items: center; }
+.inbox-msg { display: grid; gap: 4px; padding: 10px 12px; border-radius: 12px; background: rgba(255,255,255,.05); margin-bottom: 8px; } .inbox-msg p { margin: 0; white-space: pre-wrap; } .inbox-gift { color: #ffd66b; } .inbox-msg small { color: var(--muted); }
 .tut-ov { position: fixed; inset: 0; z-index: 140; }
 .tut-head { display: flex; gap: 12px; align-items: center; } .tut-mascot { width: 64px; height: 64px; flex: none; } .tut-mascot svg { width: 100%; height: 100%; }
 .tut-dots { display: flex; gap: 5px; margin-bottom: 6px; } .tut-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.18); } .tut-dots i.past { background: rgba(255,214,107,.5); } .tut-dots i.on { background: #ffd66b; width: 18px; border-radius: 4px; }
@@ -11323,7 +11325,17 @@ function fighterGame() {
   }
   async function loadProg() {
     if (!XR.can()) return;
-    try { const r = await XR.loadProg(); if (r && typeof r === "object") { if ((+r.adminAt || 0) > (+prog.adminSeen || 0)) { prog = { ...EMPTY_PROG(), ...r, adminSeen: +r.adminAt }; delete prog.adminAt; if (typeof renderWallet === "function") renderWallet(); } else prog = mergeProg(prog, r); } saveProg(); renderExtras(); checkAch(true); } catch {}
+    try { const r = await XR.loadProg(); setTimeout(showInbox, 800); if (r && typeof r === "object") { if ((+r.adminAt || 0) > (+prog.adminSeen || 0)) { prog = { ...EMPTY_PROG(), ...r, adminSeen: +r.adminAt }; delete prog.adminAt; if (typeof renderWallet === "function") renderWallet(); } else prog = mergeProg(prog, r); } saveProg(); renderExtras(); checkAch(true); } catch {}
+  }
+  function showInbox() {
+    const seen = +((prog.stats || {}).inboxSeen) || 0, msgs = (prog.inbox || []).filter((m) => m && +m.id > seen);
+    if (!msgs.length || document.querySelector(".inbox-ov")) return;
+    const ov = el("div", { class: "pg-ov inbox-ov", role: "dialog", "aria-label": "Message from Levi" });
+    const close = () => { prog.stats.inboxSeen = Math.max(...msgs.map((m) => +m.id)); saveProg(); ov.remove(); };
+    ov.append(el("div", { class: "pg-box" }, el("div", { class: "pg-head" }, el("b", { text: "✉️ Message from Levi" }), el("button", { class: "btn sm", type: "button", text: "✕ Close", onclick: close })),
+      ...msgs.map((m) => el("div", { class: "inbox-msg" }, el("p", { text: m.t }), (m.c || m.d || m.g) ? el("b", { class: "inbox-gift", text: "🎁 Gift: " + [m.c ? "+" + fmt(m.c) + " ⚡" : "", m.d ? "+$" + fmt(m.d) : "", m.g ? "+" + m.g + " 💎" : ""].filter(Boolean).join("  ") }) : null, el("small", { text: new Date(+m.id).toLocaleString() }))),
+      el("button", { class: "btn hot", type: "button", text: "Got it!", onclick: close })));
+    document.body.append(ov); sfxHub();
   }
   const stat = (k) => (prog && prog.stats && +prog.stats[k]) || 0;
   const isFav = (k) => !!(prog && prog.favs.includes(k));
@@ -13175,7 +13187,7 @@ function fighterGame() {
     function drawUsers() {
       list.replaceChildren(...(adm.users.length ? adm.users.map((u) => el("div", { class: "adm-user" + (adm.open === u.id ? " open" : "") },
         el("button", { class: "adm-urow", type: "button", onclick: () => { adm.open = adm.open === u.id ? null : u.id; drawUsers(); } },
-          avEl(u.av, "sm"), el("b", { text: u.username + (u.admin ? " 👑" : "") }), el("span", { text: "LV " + u.level }), el("span", { text: "⚡" + fmt(u.coins) + "  $" + fmt(u.cash) + "  💎" + fmt(u.gems) }), el("span", { text: u.played + " plays · " + u.badges + " badges" }), el("small", { text: ago(u.lastSeen) })),
+          avEl(u.av, "sm"), el("b", { text: u.username + (u.admin ? " 👑" : "") + (u.banned ? " 🚫" : "") + (u.muted ? " 🔇" : "") }), el("span", { text: "LV " + u.level }), el("span", { text: "⚡" + fmt(u.coins) + "  $" + fmt(u.cash) + "  💎" + fmt(u.gems) }), el("span", { text: u.played + " plays · " + u.badges + " badges" }), el("small", { text: ago(u.lastSeen) })),
         adm.open === u.id ? userPanel(u.id) : null)) : [el("p", { class: "set-note", text: "No players found." })]));
     }
     function userPanel(id) {
@@ -13201,8 +13213,35 @@ function fighterGame() {
           el("button", { class: "btn sm", type: "button", text: "Reset progress", onclick: async () => { if (confirm("Reset ALL of " + u.username + "'s progress (coins, levels, badges, items)?")) redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "progress" } }, "Progress reset")); } }),
           el("button", { class: "btn sm", type: "button", text: "Delete all scores", onclick: async () => { if (confirm("Delete every high score " + u.username + " has?")) { redo(await admCall("/admin/users/" + id + "/reset", { method: "POST", body: { what: "scores" } }, "Scores deleted")); refresh("scores"); } } }),
           u.admin ? null : el("button", { class: "btn sm danger", type: "button", text: "🗑 Delete account", onclick: async () => { if (!confirm("Delete " + u.username + "'s account forever? This can't be undone.")) return; if (await admCall("/admin/users/" + id, { method: "DELETE" }, "Account deleted")) { adm.open = null; loadUsers(); refresh("scores"); } } })),
+        u.admin ? null : modBlock(r, redo),
+        u.admin ? null : itemsBlock(r, redo),
         r.scores.length ? el("div", { class: "adm-scores" }, el("label", { class: "adm-lab", text: "High scores" }), ...r.scores.map((sc) => el("div", { class: "adm-score" }, el("span", { text: titleOf(sc.game) }), el("b", { text: fmt(sc.score) }),
           el("button", { class: "linkbtn", type: "button", text: "delete", onclick: async () => { const ok = await admCall("/admin/scores", { method: "DELETE", body: { game: sc.game, user: id } }, "Score deleted"); if (ok) { redo(await admCall("/admin/users/" + id)); refresh("scores"); } } })))) : el("p", { class: "set-note", text: "No high scores yet." }));
+    }
+    function modBlock(r, redo) {
+      const u = r.user, id = u.id, when = (t) => (t > 4e15 ? "forever" : "until " + new Date(t).toLocaleString());
+      const dur = () => el("select", { class: "adm-in sm" }, ...[["1", "1 day"], ["3", "3 days"], ["7", "1 week"], ["30", "30 days"], ["0", "Forever"]].map(([v, t]) => el("option", { value: v, text: t })));
+      const bd = dur(), md = dur(), why = el("input", { class: "adm-in", type: "text", maxlength: 120, placeholder: "Reason (they'll see this)" });
+      const msg = el("textarea", { class: "adm-in adm-ta", rows: 2, maxlength: 300, placeholder: "Message to " + u.username + " (shows up next time they open the site)" });
+      const gc = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "+ coins" }), gg = el("input", { class: "adm-in sm", type: "number", min: 0, placeholder: "+ 💎" });
+      return el("div", { class: "adm-mod" },
+        el("label", { class: "adm-lab", text: "🛡 Moderation" }),
+        el("p", { class: "set-note", text: (r.ban ? "🚫 Banned " + when(r.ban.until) + (r.ban.reason ? " · " + r.ban.reason : "") : "✅ Not banned") + "  ·  " + (r.mute ? "🔇 Muted " + when(r.mute.until) + " (can't add friends, challenge or send playdates)" : "🔊 Not muted") }),
+        el("div", { class: "adm-row wrapr" }, bd, why,
+          el("button", { class: "btn sm danger", type: "button", text: "🚫 Ban", onclick: async () => { if (confirm("Ban " + u.username + " for " + bd.selectedOptions[0].text + "? They'll be logged out and can't log in.")) redo(await admCall("/admin/users/" + id + "/ban", { method: "POST", body: { days: +bd.value, reason: why.value } }, "Banned")); } }),
+          r.ban ? el("button", { class: "btn sm", type: "button", text: "Unban", onclick: async () => redo(await admCall("/admin/users/" + id + "/ban", { method: "DELETE" }, "Unbanned ✓")) }) : null),
+        el("div", { class: "adm-row wrapr" }, md,
+          el("button", { class: "btn sm", type: "button", text: "🔇 Mute", onclick: async () => redo(await admCall("/admin/users/" + id + "/mute", { method: "POST", body: { days: +md.value } }, "Muted")) }),
+          r.mute ? el("button", { class: "btn sm", type: "button", text: "Unmute", onclick: async () => redo(await admCall("/admin/users/" + id + "/mute", { method: "DELETE" }, "Unmuted ✓")) }) : null,
+          el("button", { class: "btn sm", type: "button", text: "🚪 Log out everywhere", onclick: async () => { if (confirm("Log " + u.username + " out on every device?")) redo(await admCall("/admin/users/" + id + "/logout", { method: "POST" }, "Logged out ✓")); } })),
+        el("label", { class: "adm-lab", text: "✉️ Send a message (and an optional gift)" }), msg,
+        el("div", { class: "adm-row" }, gc, gg, el("button", { class: "btn sm hot", type: "button", text: "Send", onclick: async () => { if (!msg.value.trim()) return toast("Write a message first"); const x2 = await admCall("/admin/users/" + id + "/message", { method: "POST", body: { text: msg.value, c: +gc.value || 0, g: +gg.value || 0 } }, "Message sent ✓"); if (x2) redo(x2); } })));
+    }
+    function itemsBlock(r, redo) {
+      const own = ((r.progress && r.progress.owned) || []).map((k) => SHOP.find((it) => it[0] === k)).filter(Boolean);
+      if (!own.length) return null;
+      return el("div", { class: "adm-mod" }, el("label", { class: "adm-lab", text: "🎒 Their items (" + own.length + ") · tap ✕ to take one away" }),
+        el("div", { class: "adm-items" }, ...own.map((it) => el("span", { class: "chip adm-item" }, it[2], el("button", { class: "linkbtn", type: "button", "aria-label": "Take " + it[2], text: "✕", onclick: async () => { if (confirm("Take " + it[2] + " from " + r.user.username + "?")) redo(await admCall("/admin/users/" + r.user.id, { method: "PATCH", body: { takeItem: it[0] } }, "Taken ✓")); } })))));
     }
     async function loadUsersQuiet() { const r = await admCall("/admin/users?q=" + encodeURIComponent(adm.q)); if (r) adm.users = r.users; }
     const players = el("div", { class: "adm-card" }, el("h3", { text: "👥 Players" }), q, el("p", { class: "set-note", text: "Tap a player to see and change everything about them. Changes reach them the next time they load the site." }), list);
