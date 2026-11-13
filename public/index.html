@@ -2082,7 +2082,12 @@ function SHELL() {
     }
   }
   let runId = 0;
-  function saveGame(d) { if (S.practice || S.duo || S.tt || S.quick) return; SAVED = d ? { ...d, score: Math.floor(S.score), run: runId } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); if (SAVED && SAVED.score > 0) parent.postMessage({ type: "gbl:ckpt", score: SAVED.score }, "*"); } catch (e) {} }
+  function saveGame(d) { if (S.practice || S.duo || S.tt || S.quick) return; SAVED = d ? { ...d, score: Math.floor(S.score), run: runId } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); if (SAVED && SAVED.score > 0) parent.postMessage({ type: "gbl:ckpt", score: SAVED.score }, "*"); } catch (e) {}
+    if (d && !d.auto && d.stop !== false && S.state === "play" && !S.paused) {
+      const tips = (G.help || []).slice(); S.ck = { label: d.label || "CHECKPOINT", score: Math.floor(S.score), t: S.t, best: Math.max(S.best || 0, Math.floor(S.score)), resp: S.respawns, tip: tips.length ? tips[Math.random() * tips.length | 0] : "", next: d.next || "" };
+      S.paused = true; S.keys = {}; pzBtn.textContent = "▶"; sfx("level");
+    }
+  }
   function start(practice, duo, cont, quick) {
     if (window.TOUR0) { duo = true; practice = false; }
     S.quick = !!quick && !duo && !practice && !window.TOUR0 && !window.ONLINE0; S.qpT = 90; ckT = 0;
@@ -2134,7 +2139,7 @@ function SHELL() {
     if (!S.practice && !S.duo) { try { parent.postMessage({ type: "gbl:score", score: S.score, quick: !!S.quick }, "*"); } catch (e) {} }
   }
   const canStart = () => (S.state === "title" || (S.state === "over" && !window.TOUR0)) && performance.now() - S.overAt > 700;
-  function togglePause() { if (S.state === "play" || S.state === "count") { S.paused = !S.paused; S.keys = {}; pzBtn.textContent = S.paused ? "▶" : "II"; if (!S.paused && ac) seqT = ac.currentTime + .03; } }
+  function togglePause() { if (S.state === "play" || S.state === "count") { S.paused = !S.paused; if (!S.paused) S.ck = null; S.keys = {}; pzBtn.textContent = S.paused ? "▶" : "II"; if (!S.paused && ac) seqT = ac.currentTime + .03; } }
   function cycleSound() { S.sound = (S.sound + 2) % 3; sndBtn.textContent = ["♪ OFF", "♪ FX", "♪ ALL"][S.sound]; audio(); }
 
   /* ----- rendering ----- */
@@ -2265,6 +2270,17 @@ function SHELL() {
     if (S.flashA > 0) { x.fillStyle = ca(S.flashC, S.flashA * .55); x.fillRect(0, 0, G.w, G.h); }
     drawBanner(); corners();
     if (S.state !== "play") overlay();
+    else if (S.paused && S.ck) {
+      const k = S.ck, pw = Math.min(G.w - 30, 380), ph = 300, px = (G.w - pw) / 2, py = (G.h - ph) / 2, mm = Math.floor(k.t / 60), ss = String(Math.floor(k.t % 60)).padStart(2, "0");
+      x.fillStyle = "rgba(3,2,10,.82)"; x.fillRect(0, 0, G.w, G.h); glow("#3dffa8", 24); x.fillStyle = "rgba(10,6,24,.96)"; x.strokeStyle = "#3dffa8"; x.lineWidth = 2.5; rr(px, py, pw, ph, 18); x.fill(); x.stroke(); glow();
+      txt("✓ CHECKPOINT SAVED", G.w / 2, py + 30, 13, "#3dffa8", "center", "d");
+      glitchText(String(k.label).toUpperCase(), G.w / 2, py + 68, Math.min(30, pw / Math.max(8, String(k.label).length) * 1.6), G.color);
+      const row = (a, b, y) => { txt(a, px + 28, y, 12, "#9a90c0", "left", "d"); txt(b, px + pw - 28, y, 14, "#ffffff", "right", "d"); };
+      row("SCORE", fmt(k.score), py + 112); row("TIME THIS RUN", mm + ":" + ss, py + 136); row("BEST", fmt(k.best), py + 160); if (k.resp != null) row("RESPAWNS LEFT", "↺ " + k.resp, py + 184);
+      if (k.next) txt("NEXT: " + String(k.next).toUpperCase(), G.w / 2, py + 214, 11, "#ffd66b", "center", "d");
+      if (k.tip) { const t0 = "💡 " + k.tip, cut = t0.length > 52 ? t0.slice(0, 50) + "…" : t0; txt(cut, G.w / 2, py + 240, 11, "#d8d0f5", "center"); }
+      txt(Math.floor(S.clock * 2) % 2 ? "▶ TAP CONTINUE OR PRESS SPACE" : "", G.w / 2, py + ph - 24, 12, G.color, "center", "d");
+    }
     else if (S.paused) { x.fillStyle = "rgba(3,2,10,.7)"; x.fillRect(0, 0, G.w, G.h); glitchText("PAUSED", G.w / 2, G.h / 2 - 10, Math.min(40, G.w / 9), G.color); txt("P, SPACE OR TAP TO RESUME", G.w / 2, G.h / 2 + 30, 12, "#d8d0f5"); }
     if (S.paused && S.state === "count") { x.fillStyle = "rgba(3,2,10,.7)"; x.fillRect(0, 0, G.w, G.h); glitchText("PAUSED", G.w / 2, G.h / 2, 36, G.color); }
     x.setTransform(1, 0, 0, 1, 0, 0); if (SET0.crt !== false) x.drawImage(ov, 0, 0);
@@ -2281,7 +2297,7 @@ function SHELL() {
     const qpBtn = document.getElementById("qp"); if (qpBtn) { const showQ = showP && !window.ONLINE0 && !(isOver && (S.duo || S.tt)) && !duoDefault(); if (qpBtn.hidden === showQ) qpBtn.hidden = !showQ; const ql = isOver && S.quick ? "⚡ QUICK AGAIN" : "⚡ QUICK PLAY"; if (qpBtn.textContent !== ql) qpBtn.textContent = ql; }
     if (contBtn) { const showC = showP && S.state === "title" && !!SAVED && !!G.load; if (contBtn.hidden === showC) contBtn.hidden = !showC; const cl = "▶ CONTINUE" + (SAVED && SAVED.label ? " · " + SAVED.label : ""); if (showC && contBtn.textContent !== cl) contBtn.textContent = cl; }
     if (duoBtn.hidden === showD) duoBtn.hidden = !showD;
-    const label = S.paused ? "▶ RESUME" : isOver && S.tt && !S.tt.done ? "▶ PLAYER 2 GO!" : isOver ? (S.duo || S.tt ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? (window.ONLINE0 ? "▶ START ONLINE MATCH" : window.BOT0 ? "▶ START VS BOT" : "▶ START 2 PLAYERS") : "▶ START";
+    const label = S.paused ? (S.ck ? "▶ CONTINUE" : "▶ RESUME") : isOver && S.tt && !S.tt.done ? "▶ PLAYER 2 GO!" : isOver ? (S.duo || S.tt ? "▶ REMATCH" : S.practice ? "▶ PRACTICE AGAIN" : "▶ PLAY AGAIN") : duoDefault() ? (window.ONLINE0 ? "▶ START ONLINE MATCH" : window.BOT0 ? "▶ START VS BOT" : "▶ START 2 PLAYERS") : "▶ START";
     if (goBtn.textContent !== label) goBtn.textContent = label;
     const plabel = isOver && S.practice ? "RANKED GAME" : "PRACTICE";
     if (pracBtn.textContent !== plabel) pracBtn.textContent = plabel;
@@ -3905,7 +3921,7 @@ function golfGame() {
     }
     loadHole(hi + 1); banner("HOLE " + (hi + 1) + " · COURSE #" + hole.id + " · PAR " + hole.par, "#3dffa8");
     if (S.online) banner(myTurn() ? "HOLE " + (hi + 1) + " · YOUR SHOT" : "HOLE " + (hi + 1) + " · FRIEND'S SHOT", COLS[player]);
-    saveGame({ holes: HOLES.map((h) => h.id - 1), hi, card: card[0].slice(), label: "HOLE " + (hi + 1) + " OF 9" });
+    saveGame({ holes: HOLES.map((h) => h.id - 1), hi, card: card[0].slice(), label: "HOLE " + (hi + 1) + " OF 9", stop: hi === 3 || hi === 6, next: (9 - hi) + " holes to go" });
   }
   function step(h) {
     b.x += b.vx * h; b.y += b.vy * h;
@@ -6138,7 +6154,8 @@ function towerGame() {
         banner("WAVE " + wave + " CLEAR  +$" + bonus, "#3dffa8");
         const nu = ORDER.find((k) => TT[k].at === wave + 0 && wave > 0); if (nu) setTimeout(() => { banner("🔓 NEW WEAPON: " + TT[nu].name + "!", TT[nu].c); sfx("level"); flash(TT[nu].c, .3); selType = nu; }, 1600);
         if (mapFor(wave + 1) !== mapI) setTimeout(() => banner("⚠ NEXT WAVE: NEW MAP!", MAPS[mapFor(wave + 1)].col), 3200);
-        saveGame({ wave, money, lives, kills, towers: [...towers.values()].map((t) => [t.c, t.r, t.t, t.lvl]), label: "WAVE " + (wave + 1) });
+        const nxt = ORDER.find((k2) => TT[k2].at > wave);
+        saveGame({ wave, money, lives, kills, towers: [...towers.values()].map((t) => [t.c, t.r, t.t, t.lvl]), label: "WAVE " + (wave + 1), stop: wave % 10 === 0, next: (nxt ? TT[nxt].name + " unlocks at wave " + TT[nxt].at : "Every weapon unlocked!") + (mapFor(wave + 10) !== mapFor(wave) ? " · new map soon" : "") });
       }
     },
     draw() {
