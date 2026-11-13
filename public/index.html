@@ -1241,6 +1241,17 @@ html.calm *, html.calm *::before, html.calm *::after { animation-duration: .001s
 .ph-acts { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; } .ph-foods .rew-tabs { margin-bottom: 6px; } .ph-deco { margin-bottom: 14px; }
 @media (max-width: 700px) { .ph-panel { grid-template-columns: 1fr; } .ph-scene { aspect-ratio: 4 / 3; } }
 
+.art-wrap { display: inline-block; line-height: 0; } .art-wrap .art, .sw.artsw .art { width: 100%; height: 100%; display: block; }
+.sw.artsw { padding: 3px; } .chip .chip-art { width: 1.4em; height: 1.4em; vertical-align: middle; margin-right: 4px; }
+.ph-sun { width: clamp(54px, 9vw, 84px); aspect-ratio: 1; } .ph-house-art { width: clamp(110px, 22vw, 190px); aspect-ratio: 1; filter: drop-shadow(0 6px 10px rgba(0,0,0,.35)); }
+.ph-slot .art-wrap { width: clamp(48px, 9vw, 80px); aspect-ratio: 1; } .ph-z, .ph-bowl, .ph-ball { width: 40%; aspect-ratio: 1; line-height: 0; } .ph-z svg, .ph-bowl svg, .ph-ball svg { width: 100%; height: 100%; }
+.ph-hearts.art-wrap { width: 44px; aspect-ratio: 1; }
+.art-spin { transform-origin: 50px 50px; animation: artSpin 14s linear infinite; } @keyframes artSpin { to { transform: rotate(360deg); } }
+.art-flick { transform-origin: 50px 74px; animation: artFlick .5s ease-in-out infinite alternate; } @keyframes artFlick { to { transform: scale(.88, 1.1); opacity: .85; } }
+.art-blink { animation: artBlink 1s steps(2) infinite; } @keyframes artBlink { 50% { opacity: .25; } }
+.art-flow { animation: artFlow 1.2s ease-in-out infinite alternate; } @keyframes artFlow { to { opacity: .55; transform: translateY(2px); } }
+.art-spark { animation: phZ 1.4s ease-in-out infinite; }
+html.calm .art-spin, html.calm .art-flick, html.calm .art-blink, html.calm .art-flow, html.calm .art-spark { animation: none; }
 .ph-guest .pv { filter: drop-shadow(0 0 10px rgba(255,123,230,.6)); } .ph-tag { position: absolute; top: -18%; left: 50%; transform: translateX(-50%); padding: 1px 8px; border-radius: 999px; background: rgba(7,4,15,.75); color: #ff7be6; font-size: .65rem; font-weight: 800; white-space: nowrap; }
 .ph-hearts { position: absolute; bottom: 30%; transform: translateX(-50%); font-size: 1.8rem; animation: phZ 1.2s ease-in-out infinite; pointer-events: none; }
 .pd-duo { display: flex; gap: 6px; } .pd-duo .pv { width: 100px; height: 100px; } .pd-ic { grid-row: span 2; width: 48px; height: 48px; } .pd-ic .pv { width: 100%; height: 100%; }
@@ -11468,29 +11479,29 @@ function fighterGame() {
     ["t-bossslayer", "title", "BOSS SLAYER 👹", 0, "linear-gradient(135deg,#ff4d6d,#ffd66b,#ff2bd6)", "Beat all 5 bosses in the Boss Rush weekend event.", "boss", "l"],
     ["pet-bossbot", "pet", "Boss Bot 🤖", 0, "linear-gradient(135deg,#ff4d6d,#ffd66b,#22e4ff)", "A mini OMEGA. Only for Boss Rush champions.", "boss", "l"],
     // 🏡 Pet stuff: food (consumable), yard decor, pet houses
-    ["fd-kibble", "petfood", "🥣 Kibble Bag", 20, "linear-gradient(135deg,#c88a4a,#ffd66b)", "+25 hunger. Simple and tasty.", "", "c"],
-    ["fd-fish", "petfood", "🐟 Fresh Fish", 45, "linear-gradient(135deg,#22e4ff,#9ff3ff)", "+40 hunger, a bit happier, +1 pet XP.", "", "c"],
-    ["fd-steak", "petfood", "🥩 Big Steak", 80, "linear-gradient(135deg,#ff4d6d,#c88a4a)", "+60 hunger, +2 pet XP.", "", "r"],
-    ["fd-cake", "petfood", "🍰 Party Cake", 90, "linear-gradient(135deg,#ff7be6,#fff3c4)", "+30 hunger and +30 happiness.", "", "r"],
-    ["fd-apple", "petfood", "🍎 Golden Apple", 300, "linear-gradient(135deg,#ffd66b,#ff4d6d)", "A full belly and +6 pet XP.", "", "e"],
-    ["fd-candy", "petfood", "🍬 Star Candy", 1200, "linear-gradient(135deg,#ff2bd6,#ffd66b,#22e4ff)", "Full belly, full happiness, +12 pet XP!", "", "l"],
-    ["dc-tree", "decor", "Oak Tree 🌳", 150, "#3dffa8", "A shady tree for the backyard.", "", "c"],
-    ["dc-flowers", "decor", "Flower Bed 🌷", 120, "#ff7be6", "Pretty flowers to sniff.", "", "c"],
-    ["dc-log", "decor", "Cozy Log 🪵", 100, "#c88a4a", "A log to nap on.", "", "c"],
-    ["dc-teddy", "decor", "Big Teddy 🧸", 200, "#c88a4a", "A cuddly friend for your pet.", "", "c"],
-    ["dc-campfire", "decor", "Campfire 🔥", 350, "#ff8a1f", "Warm and toasty at night.", "", "r"],
-    ["dc-fountain", "decor", "Fountain ⛲", 600, "#22e4ff", "A splashy fountain.", "", "r"],
-    ["dc-pool", "decor", "Splash Pool 🏊", 700, "#9ff3ff", "Cool off on hot days.", "", "r"],
-    ["dc-slide", "decor", "Play Slide 🛝", 800, "#ffd66b", "Wheee!", "", "r"],
-    ["dc-tent", "decor", "Circus Tent 🎪", 1500, "#ff2bd6", "Showtime in the backyard.", "", "e"],
-    ["dc-ferris", "decor", "Ferris Wheel 🎡", 2500, "#a35bff", "A tiny fairground ride.", "", "e"],
-    ["dc-rainbow", "decor", "Rainbow Arch 🌈", 4000, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A magic rainbow over the yard.", "", "e"],
-    ["dc-castle", "decor", "Castle Tower 🏰", 7000, "#ffd66b", "A royal tower. LEGENDARY!", "", "l"],
-    ["dc-ufo", "decor", "Landed UFO 🛸", 8000, "linear-gradient(135deg,#22e4ff,#a35bff)", "Visitors from space. LEGENDARY!", "", "l"],
-    ["hs-mushroom", "pethouse", "Mushroom House 🍄", 500, "#ff4d6d", "A cute spotted mushroom home.", "", "r"],
-    ["hs-pagoda", "pethouse", "Pagoda 🏯", 1500, "#ff2bd6", "A peaceful pagoda.", "", "e"],
-    ["hs-rocket", "pethouse", "Rocket House 🚀", 3000, "#22e4ff", "Ready for lift-off.", "", "e"],
-    ["hs-castle", "pethouse", "Royal Castle 🏰", 6500, "#ffd66b", "Fit for a pet king. LEGENDARY!", "", "l"],
+    ["fd-kibble", "petfood", "Kibble Bag", 20, "linear-gradient(135deg,#c88a4a,#ffd66b)", "+25 hunger. Simple and tasty.", "", "c"],
+    ["fd-fish", "petfood", "Fresh Fish", 45, "linear-gradient(135deg,#22e4ff,#9ff3ff)", "+40 hunger, a bit happier, +1 pet XP.", "", "c"],
+    ["fd-steak", "petfood", "Big Steak", 80, "linear-gradient(135deg,#ff4d6d,#c88a4a)", "+60 hunger, +2 pet XP.", "", "r"],
+    ["fd-cake", "petfood", "Party Cake", 90, "linear-gradient(135deg,#ff7be6,#fff3c4)", "+30 hunger and +30 happiness.", "", "r"],
+    ["fd-apple", "petfood", "Golden Apple", 300, "linear-gradient(135deg,#ffd66b,#ff4d6d)", "A full belly and +6 pet XP.", "", "e"],
+    ["fd-candy", "petfood", "Star Candy", 1200, "linear-gradient(135deg,#ff2bd6,#ffd66b,#22e4ff)", "Full belly, full happiness, +12 pet XP!", "", "l"],
+    ["dc-tree", "decor", "Oak Tree", 150, "#3dffa8", "A shady tree for the backyard.", "", "c"],
+    ["dc-flowers", "decor", "Flower Bed", 120, "#ff7be6", "Pretty flowers to sniff.", "", "c"],
+    ["dc-log", "decor", "Cozy Log", 100, "#c88a4a", "A log to nap on.", "", "c"],
+    ["dc-teddy", "decor", "Big Teddy", 200, "#c88a4a", "A cuddly friend for your pet.", "", "c"],
+    ["dc-campfire", "decor", "Campfire", 350, "#ff8a1f", "Warm and toasty at night.", "", "r"],
+    ["dc-fountain", "decor", "Fountain", 600, "#22e4ff", "A splashy fountain.", "", "r"],
+    ["dc-pool", "decor", "Splash Pool", 700, "#9ff3ff", "Cool off on hot days.", "", "r"],
+    ["dc-slide", "decor", "Play Slide", 800, "#ffd66b", "Wheee!", "", "r"],
+    ["dc-tent", "decor", "Circus Tent", 1500, "#ff2bd6", "Showtime in the backyard.", "", "e"],
+    ["dc-ferris", "decor", "Ferris Wheel", 2500, "#a35bff", "A tiny fairground ride.", "", "e"],
+    ["dc-rainbow", "decor", "Rainbow Arch", 4000, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A magic rainbow over the yard.", "", "e"],
+    ["dc-castle", "decor", "Castle Tower", 7000, "#ffd66b", "A royal tower. LEGENDARY!", "", "l"],
+    ["dc-ufo", "decor", "Landed UFO", 8000, "linear-gradient(135deg,#22e4ff,#a35bff)", "Visitors from space. LEGENDARY!", "", "l"],
+    ["hs-mushroom", "pethouse", "Mushroom House", 500, "#ff4d6d", "A cute spotted mushroom home.", "", "r"],
+    ["hs-pagoda", "pethouse", "Pagoda", 1500, "#ff2bd6", "A peaceful pagoda.", "", "e"],
+    ["hs-rocket", "pethouse", "Rocket House", 3000, "#22e4ff", "Ready for lift-off.", "", "e"],
+    ["hs-castle", "pethouse", "Royal Castle", 6500, "#ffd66b", "Fit for a pet king. LEGENDARY!", "", "l"],
     // 👑 More legendaries
     ["pet-kraken", "pet", "Kraken 🐙", 7000, "linear-gradient(135deg,#0b2a4a,#22e4ff,#a35bff)", "Lord of the deep. Tentacles everywhere.", "", "l"],
     ["pet-wolf", "pet", "Shadow Wolf 🐺", 6000, "linear-gradient(135deg,#1a1a2e,#a35bff,#ffffff)", "Hunts by moonlight. Howls at high scores.", "", "l"],
@@ -11681,8 +11692,8 @@ function fighterGame() {
     return d;
   }
   /* Swap emoji pet icons for the drawn characters wherever they appear. */
-  const upgradePetIcons = (root) => { (root.querySelectorAll ? root.querySelectorAll(".sw[data-pet]:not(.pvd)") : []).forEach((n) => { n.classList.add("pvd"); n.innerHTML = petSVG(n.dataset.pet, "happy", (prog.pets && prog.pets[n.dataset.pet] && prog.pets[n.dataset.pet].evo)); }); };
-  new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches && n.matches(".sw[data-pet]")) upgradePetIcons(n.parentNode || n); else upgradePetIcons(n); } }).observe(document.body, { childList: true, subtree: true });
+  const upgradePetIcons = (root) => { if (root.querySelectorAll) root.querySelectorAll(".sw[data-art]:not(.pvd)").forEach((n) => { n.classList.add("pvd", "artsw"); n.innerHTML = window.gblArt(n.dataset.art); }); (root.querySelectorAll ? root.querySelectorAll(".sw[data-pet]:not(.pvd)") : []).forEach((n) => { n.classList.add("pvd"); n.innerHTML = petSVG(n.dataset.pet, "happy", (prog.pets && prog.pets[n.dataset.pet] && prog.pets[n.dataset.pet].evo)); }); };
+  new MutationObserver((ms) => { for (const m of ms) for (const n of m.addedNodes) if (n.nodeType === 1) { if (n.matches && n.matches(".sw[data-pet],.sw[data-art]")) upgradePetIcons(n.parentNode || n); else upgradePetIcons(n); } }).observe(document.body, { childList: true, subtree: true });
   /* ---------- Pet arcade: mini-games starring your pet ---------- */
   const petImgCache = {};
   function petImg(id, mood) { const k = id + mood; if (!petImgCache[k]) { const im = new Image(); im.src = "data:image/svg+xml;charset=utf-8," + encodeURIComponent(petSVG(id, mood, petEvo(id))); petImgCache[k] = im; } return petImgCache[k]; }
@@ -11805,9 +11816,45 @@ function fighterGame() {
     o.body.replaceChildren(face, el("p", { class: "eyebrow", text: "What happened" }), el("ul", { class: "trip-log" }, ...tripLog(t).map(([, e]) => el("li", { text: it[2].split(" ")[0] + " " + e }))),
       el("div", { class: "trip-haul" }, el("b", { text: "+" + coins0 + " ⚡" }), extra ? el("span", { text: extra }) : null), el("button", { class: "btn hot", type: "button", text: "Yay!", onclick: () => o.close() }));
   }
+  /* ---------- Drawn art for Pet Home (houses, decor, food, sky) ---------- */
+  const ART = {
+    "": '<rect x="18" y="44" width="64" height="46" rx="4" fill="#ffe2b8" stroke="#7a4a1d" stroke-width="3"/><path d="M10 48 L50 14 L90 48 Z" fill="#ff6b3d" stroke="#7a2e14" stroke-width="3" stroke-linejoin="round"/><rect x="64" y="20" width="10" height="16" fill="#9a5b2e" stroke="#5a3010" stroke-width="2"/><rect x="42" y="62" width="16" height="28" rx="3" fill="#9a5b2e" stroke="#5a3010" stroke-width="2"/><circle cx="54" cy="77" r="1.8" fill="#ffd66b"/><rect x="24" y="56" width="14" height="12" fill="#9ff3ff" stroke="#5a3010" stroke-width="2"/><rect x="62" y="56" width="14" height="12" fill="#9ff3ff" stroke="#5a3010" stroke-width="2"/><path d="M31 56v12M24 62h14M69 56v12M62 62h14" stroke="#5a3010" stroke-width="1.5"/>',
+    "hs-mushroom": '<path d="M34 54 h32 v34 a4 4 0 0 1 -4 4 h-24 a4 4 0 0 1 -4 -4 Z" fill="#fff3d6" stroke="#8a6a3a" stroke-width="3"/><path d="M8 56 C8 18 92 18 92 56 Z" fill="#ff3d5a" stroke="#8a1424" stroke-width="3"/><circle cx="30" cy="38" r="6" fill="#fff"/><circle cx="52" cy="28" r="7" fill="#fff"/><circle cx="72" cy="40" r="5" fill="#fff"/><circle cx="46" cy="48" r="4" fill="#fff"/><rect x="43" y="68" width="14" height="24" rx="7" fill="#9a5b2e" stroke="#5a3010" stroke-width="2"/><circle cx="54" cy="81" r="1.6" fill="#ffd66b"/>',
+    "hs-pagoda": '<rect x="30" y="66" width="40" height="26" fill="#ffe2b8" stroke="#7a2e14" stroke-width="3"/><path d="M14 68 L50 52 L86 68 Z" fill="#ff2bd6" stroke="#6a0a5a" stroke-width="3" stroke-linejoin="round"/><rect x="36" y="42" width="28" height="12" fill="#ffe2b8" stroke="#7a2e14" stroke-width="3"/><path d="M22 44 L50 30 L78 44 Z" fill="#ff2bd6" stroke="#6a0a5a" stroke-width="3" stroke-linejoin="round"/><path d="M32 30 L50 14 L68 30 Z" fill="#ff2bd6" stroke="#6a0a5a" stroke-width="3" stroke-linejoin="round"/><path d="M50 14 V6" stroke="#ffd66b" stroke-width="3"/><circle cx="50" cy="5" r="3" fill="#ffd66b"/><rect x="44" y="74" width="12" height="18" fill="#7a2e14"/>',
+    "hs-castle": '<rect x="22" y="40" width="56" height="52" fill="#d9d4ea" stroke="#5a5470" stroke-width="3"/><rect x="10" y="28" width="18" height="64" fill="#c8c2dc" stroke="#5a5470" stroke-width="3"/><rect x="72" y="28" width="18" height="64" fill="#c8c2dc" stroke="#5a5470" stroke-width="3"/><path d="M10 28 v-6 h5 v6 h4 v-6 h5 v6 M72 28 v-6 h5 v6 h4 v-6 h5 v6" stroke="#5a5470" stroke-width="2.5" fill="#c8c2dc"/><path d="M22 40 v-6 h6 v6 h6 v-6 h6 v6 h6 v-6 h6 v6 h6 v-6 h6 v6 h6 v-6 h4 v6" stroke="#5a5470" stroke-width="2.5" fill="#d9d4ea"/><path d="M19 22 V8" stroke="#5a5470" stroke-width="2"/><path d="M19 8 l12 4 l-12 4 Z" fill="#ff2bd6"/><path d="M81 22 V8" stroke="#5a5470" stroke-width="2"/><path d="M81 8 l12 4 l-12 4 Z" fill="#22e4ff"/><path d="M40 92 V72 a10 10 0 0 1 20 0 V92 Z" fill="#7a4a1d" stroke="#3a2010" stroke-width="2.5"/><rect x="45" y="48" width="10" height="12" rx="5" fill="#2a2440"/>',
+    "hs-rocket": '<path d="M50 6 C70 22 72 52 66 78 H34 C28 52 30 22 50 6 Z" fill="#e8f6ff" stroke="#3a4a6a" stroke-width="3"/><path d="M50 6 C58 12 62 20 64 28 H36 C38 20 42 12 50 6 Z" fill="#ff4d6d" stroke="#3a4a6a" stroke-width="3"/><circle cx="50" cy="44" r="9" fill="#22e4ff" stroke="#3a4a6a" stroke-width="3"/><path d="M34 62 L18 84 L34 80 Z M66 62 L82 84 L66 80 Z" fill="#ff4d6d" stroke="#3a4a6a" stroke-width="3" stroke-linejoin="round"/><rect x="44" y="64" width="12" height="14" rx="3" fill="#3a4a6a"/><path class="art-flick" d="M40 80 Q50 100 60 80 Z" fill="#ffd66b"/>',
+    "dc-tree": '<rect x="44" y="56" width="12" height="34" rx="3" fill="#8a5a2e" stroke="#4a2a10" stroke-width="2.5"/><circle cx="50" cy="34" r="22" fill="#3dbb63" stroke="#1d6a35" stroke-width="3"/><circle cx="32" cy="46" r="15" fill="#43c96b" stroke="#1d6a35" stroke-width="3"/><circle cx="68" cy="46" r="15" fill="#43c96b" stroke="#1d6a35" stroke-width="3"/><circle cx="44" cy="28" r="5" fill="#7fe39a"/>',
+    "dc-flowers": '<ellipse cx="50" cy="80" rx="40" ry="12" fill="#6a4a2a" stroke="#3a2010" stroke-width="2.5"/>' + [[22, "#ff2bd6"], [36, "#ffd66b"], [50, "#ff4d6d"], [64, "#22e4ff"], [78, "#a35bff"]].map(([x0, c], i) => `<path d="M${x0} 78 V${56 - (i % 2) * 8}" stroke="#2a8a48" stroke-width="3"/><g transform="translate(${x0} ${54 - (i % 2) * 8})">${[0, 72, 144, 216, 288].map((a) => `<ellipse cx="0" cy="-6" rx="4" ry="6" fill="${c}" transform="rotate(${a})"/>`).join("")}<circle r="3.5" fill="#fff3a0"/></g>`).join(""),
+    "dc-log": '<rect x="14" y="58" width="68" height="26" rx="4" fill="#9a6a3a" stroke="#4a2a10" stroke-width="3"/><ellipse cx="82" cy="71" rx="8" ry="13" fill="#d9a46a" stroke="#4a2a10" stroke-width="3"/><ellipse cx="82" cy="71" rx="4" ry="7" fill="none" stroke="#9a6a3a" stroke-width="2"/><path d="M26 64 h30 M30 76 h24" stroke="#6a4020" stroke-width="2"/><path d="M40 58 C40 48 50 46 52 40" stroke="#3dbb63" stroke-width="3" fill="none"/><ellipse cx="54" cy="38" rx="6" ry="3" fill="#43c96b"/>',
+    "dc-teddy": '<circle cx="32" cy="24" r="9" fill="#c88a4a" stroke="#5a3010" stroke-width="2.5"/><circle cx="68" cy="24" r="9" fill="#c88a4a" stroke="#5a3010" stroke-width="2.5"/><ellipse cx="50" cy="72" rx="24" ry="20" fill="#c88a4a" stroke="#5a3010" stroke-width="3"/><circle cx="50" cy="38" r="20" fill="#c88a4a" stroke="#5a3010" stroke-width="3"/><ellipse cx="50" cy="45" rx="8" ry="6" fill="#f2d0a0"/><circle cx="42" cy="34" r="2.6" fill="#2a1a10"/><circle cx="58" cy="34" r="2.6" fill="#2a1a10"/><ellipse cx="50" cy="42" rx="3" ry="2" fill="#2a1a10"/><ellipse cx="50" cy="74" rx="11" ry="10" fill="#f2d0a0"/><path d="M44 66 l12 0 l-6 6 Z" fill="#ff4d6d"/>',
+    "dc-campfire": '<path d="M24 86 L76 74 M24 74 L76 86" stroke="#7a4a1d" stroke-width="8" stroke-linecap="round"/><g class="art-flick"><path d="M50 30 C64 44 66 58 58 74 H42 C34 58 38 44 50 30 Z" fill="#ff8a1f"/><path d="M50 46 C58 56 58 64 54 74 H46 C42 64 44 56 50 46 Z" fill="#ffd66b"/></g><circle cx="30" cy="40" r="2" fill="#ffd66b" class="art-spark"/><circle cx="70" cy="34" r="1.6" fill="#ff8a1f" class="art-spark"/>',
+    "dc-fountain": '<ellipse cx="50" cy="80" rx="38" ry="12" fill="#8fd8ff" stroke="#3a6a9a" stroke-width="3"/><ellipse cx="50" cy="78" rx="30" ry="7" fill="#22b4ff" opacity=".6"/><rect x="45" y="44" width="10" height="34" fill="#c8c2dc" stroke="#5a5470" stroke-width="2.5"/><ellipse cx="50" cy="44" rx="18" ry="6" fill="#c8c2dc" stroke="#5a5470" stroke-width="2.5"/><g class="art-flow" fill="none" stroke="#9ff3ff" stroke-width="3" stroke-linecap="round"><path d="M50 40 C50 20 30 24 26 42"/><path d="M50 40 C50 20 70 24 74 42"/><path d="M50 40 V18"/></g>',
+    "dc-pool": '<ellipse cx="50" cy="66" rx="42" ry="22" fill="#e8f6ff" stroke="#3a6a9a" stroke-width="3"/><ellipse cx="50" cy="66" rx="34" ry="16" fill="#22b4ff"/><path class="art-flow" d="M24 64 q6 -4 12 0 t12 0 t12 0 t12 0" stroke="#bff6ff" stroke-width="2.5" fill="none"/><path d="M78 40 V62 M86 40 V62 M78 48 h8 M78 56 h8" stroke="#9a9ab8" stroke-width="3"/><circle cx="34" cy="70" r="5" fill="#ffd66b" stroke="#a8711d" stroke-width="2"/>',
+    "dc-slide": '<path d="M24 90 V30 M38 90 V30 M24 44 h14 M24 58 h14 M24 72 h14" stroke="#ff4d6d" stroke-width="4"/><rect x="20" y="24" width="22" height="8" rx="3" fill="#ffd66b" stroke="#a8711d" stroke-width="2"/><path d="M40 30 C62 32 66 70 92 86" stroke="#ffd66b" stroke-width="10" fill="none" stroke-linecap="round"/><path d="M40 30 C62 32 66 70 92 86" stroke="#a8711d" stroke-width="2" fill="none" stroke-dasharray="2 12"/>',
+    "dc-tent": '<path d="M10 88 L50 18 L90 88 Z" fill="#fff" stroke="#6a0a5a" stroke-width="3" stroke-linejoin="round"/><path d="M50 18 L30 88 M50 18 L70 88 M50 18 L42 88 M50 18 L58 88" stroke="#ff2bd6" stroke-width="5"/><path d="M40 88 L50 62 L60 88 Z" fill="#2a1430"/><path d="M50 18 V6" stroke="#6a0a5a" stroke-width="2"/><path class="art-flick" d="M50 6 l14 4 l-14 4 Z" fill="#ffd66b"/>',
+    "dc-ferris": '<path d="M50 50 L30 92 M50 50 L70 92 M24 92 h52" stroke="#9a9ab8" stroke-width="4"/><g class="art-spin"><circle cx="50" cy="50" r="36" fill="none" stroke="#a35bff" stroke-width="3"/>' + Array.from({ length: 8 }, (_, i) => { const a = i * Math.PI / 4, X = 50 + Math.cos(a) * 36, Y = 50 + Math.sin(a) * 36; return `<path d="M50 50 L${X.toFixed(1)} ${Y.toFixed(1)}" stroke="#c8a8ff" stroke-width="2"/><rect x="${(X - 5).toFixed(1)}" y="${(Y - 4).toFixed(1)}" width="10" height="9" rx="2" fill="${["#ff2bd6", "#22e4ff", "#ffd66b", "#3dffa8"][i % 4]}" stroke="#2a1430" stroke-width="1.5"/>`; }).join("") + '</g><circle cx="50" cy="50" r="5" fill="#ffd66b"/>',
+    "dc-rainbow": ["#ff2e4d", "#ff8a1f", "#ffd66b", "#3dffa8", "#22e4ff", "#a35bff"].map((c, i) => `<path d="M${8 + i * 5} 86 A${42 - i * 5} ${42 - i * 5} 0 0 1 ${92 - i * 5} 86" stroke="${c}" stroke-width="5.5" fill="none"/>`).join("") + '<ellipse cx="14" cy="86" rx="12" ry="7" fill="#fff"/><ellipse cx="86" cy="86" rx="12" ry="7" fill="#fff"/>',
+    "dc-castle": '<rect x="28" y="30" width="44" height="62" fill="#d9d4ea" stroke="#5a5470" stroke-width="3"/><path d="M24 30 h52 l-4 -8 h-44 Z" fill="#c8c2dc" stroke="#5a5470" stroke-width="2.5"/><path d="M28 22 v-6 h6 v6 h6 v-6 h6 v6 h6 v-6 h6 v6 h6 v-6 h6 v6" stroke="#5a5470" stroke-width="2.5" fill="#c8c2dc"/><path d="M40 92 V74 a10 10 0 0 1 20 0 V92 Z" fill="#7a4a1d" stroke="#3a2010" stroke-width="2.5"/><rect x="45" y="42" width="10" height="14" rx="5" fill="#2a2440"/><path d="M50 16 V2" stroke="#5a5470" stroke-width="2"/><path class="art-flick" d="M50 2 l14 4 l-14 4 Z" fill="#ffd66b"/>',
+    "dc-ufo": '<ellipse cx="50" cy="88" rx="26" ry="5" fill="rgba(0,0,0,.25)"/><path d="M36 76 L28 88 M64 76 L72 88" stroke="#9a9ab8" stroke-width="3"/><ellipse cx="50" cy="58" rx="22" ry="18" fill="#9ff3ff" stroke="#3a6a9a" stroke-width="3" opacity=".9"/><ellipse cx="50" cy="70" rx="44" ry="12" fill="#c8c2dc" stroke="#5a5470" stroke-width="3"/>' + [22, 36, 50, 64, 78].map((x0, i) => `<circle class="art-blink" style="animation-delay:${i * .2}s" cx="${x0}" cy="${70 + (i === 0 || i === 4 ? -2 : 1)}" r="3.5" fill="${["#ff2bd6", "#ffd66b", "#3dffa8", "#ffd66b", "#ff2bd6"][i]}"/>`).join("") + '<circle cx="50" cy="56" r="6" fill="#3dffa8"/><circle cx="48" cy="54" r="1.5" fill="#111"/><circle cx="53" cy="54" r="1.5" fill="#111"/>',
+    "bowl": '<path d="M16 54 h68 C82 78 68 88 50 88 C32 88 18 78 16 54 Z" fill="#ff4d6d" stroke="#7a1428" stroke-width="3"/><ellipse cx="50" cy="54" rx="34" ry="8" fill="#c88a4a" stroke="#7a1428" stroke-width="3"/>',
+    "fd-kibble": '<path d="M16 54 h68 C82 78 68 88 50 88 C32 88 18 78 16 54 Z" fill="#22e4ff" stroke="#1a4a7a" stroke-width="3"/><ellipse cx="50" cy="54" rx="34" ry="8" fill="#8a5a2e" stroke="#1a4a7a" stroke-width="3"/>' + [[36, 48], [48, 44], [60, 48], [42, 52], [56, 52]].map(([x0, y0]) => `<circle cx="${x0}" cy="${y0}" r="5" fill="#c88a4a" stroke="#5a3010" stroke-width="1.5"/>`).join(""),
+    "fd-fish": '<path d="M14 50 C30 26 66 26 78 50 C66 74 30 74 14 50 Z" fill="#22b4ff" stroke="#1a4a7a" stroke-width="3"/><path d="M78 50 L94 36 L94 64 Z" fill="#22b4ff" stroke="#1a4a7a" stroke-width="3" stroke-linejoin="round"/><circle cx="30" cy="46" r="4" fill="#fff"/><circle cx="31" cy="46" r="2" fill="#111"/><path d="M44 40 q6 10 0 20 M54 38 q6 12 0 24" stroke="#1a4a7a" stroke-width="2" fill="none"/>',
+    "fd-steak": '<path d="M20 40 C20 22 60 18 76 32 C92 46 84 74 60 78 C40 82 20 66 20 40 Z" fill="#c8323a" stroke="#5a1018" stroke-width="3"/><path d="M30 44 C34 32 56 30 66 40" stroke="#fff3e0" stroke-width="4" fill="none"/><circle cx="62" cy="56" r="8" fill="#fff3e0" stroke="#5a1018" stroke-width="2"/><path d="M68 62 L88 82" stroke="#fff3e0" stroke-width="7" stroke-linecap="round"/><circle cx="90" cy="84" r="5" fill="#fff3e0"/>',
+    "fd-cake": '<rect x="20" y="50" width="60" height="34" rx="4" fill="#ffd0f0" stroke="#8a2a6a" stroke-width="3"/><path d="M20 58 C30 66 40 52 50 60 C60 68 70 54 80 60 V50 H20 Z" fill="#fff" stroke="#8a2a6a" stroke-width="2.5"/><rect x="47" y="30" width="6" height="20" fill="#22e4ff" stroke="#1a4a7a" stroke-width="1.5"/><path class="art-flick" d="M50 18 C55 24 55 28 50 30 C45 28 45 24 50 18 Z" fill="#ffd66b"/><circle cx="34" cy="72" r="3" fill="#ff2bd6"/><circle cx="66" cy="74" r="3" fill="#22e4ff"/><circle cx="50" cy="76" r="3" fill="#ffd66b"/>',
+    "fd-apple": '<path d="M50 30 C30 18 12 34 16 56 C20 80 38 90 50 82 C62 90 80 80 84 56 C88 34 70 18 50 30 Z" fill="#ffd66b" stroke="#a8711d" stroke-width="3"/><path d="M50 30 C50 22 54 14 58 10" stroke="#5a3010" stroke-width="3" fill="none"/><path d="M56 18 C66 10 76 14 72 22 C66 26 58 24 56 18 Z" fill="#3dbb63" stroke="#1d6a35" stroke-width="2"/><ellipse cx="34" cy="46" rx="5" ry="9" fill="#fff8d0" transform="rotate(20 34 46)"/>',
+    "fd-candy": '<path d="M14 36 L30 50 L14 64 Z M86 36 L70 50 L86 64 Z" fill="#ff2bd6" stroke="#6a0a5a" stroke-width="3" stroke-linejoin="round"/><circle cx="50" cy="50" r="22" fill="#ffd66b" stroke="#a8711d" stroke-width="3"/><path d="M50 34 L54 46 L66 46 L56 53 L60 65 L50 58 L40 65 L44 53 L34 46 L46 46 Z" fill="#fff" stroke="#a8711d" stroke-width="1.5"/>',
+    "sun": '<g class="art-spin">' + Array.from({ length: 12 }, (_, i) => { const a = i * Math.PI / 6; return `<path d="M${(50 + Math.cos(a) * 30).toFixed(1)} ${(50 + Math.sin(a) * 30).toFixed(1)} L${(50 + Math.cos(a) * 44).toFixed(1)} ${(50 + Math.sin(a) * 44).toFixed(1)}" stroke="#ffd66b" stroke-width="5" stroke-linecap="round"/>`; }).join("") + '</g><circle cx="50" cy="50" r="24" fill="#ffd66b" stroke="#ff8a1f" stroke-width="3"/>',
+    "zzz": '<text x="20" y="80" font-size="38" font-weight="900" fill="#fff" stroke="#3a2a7a" stroke-width="3" paint-order="stroke" font-family="system-ui,sans-serif">Z</text><text x="52" y="52" font-size="28" font-weight="900" fill="#fff" stroke="#3a2a7a" stroke-width="3" paint-order="stroke" font-family="system-ui,sans-serif">z</text><text x="74" y="30" font-size="20" font-weight="900" fill="#fff" stroke="#3a2a7a" stroke-width="3" paint-order="stroke" font-family="system-ui,sans-serif">z</text>',
+    "ball": '<circle cx="50" cy="50" r="38" fill="#d8ff3b" stroke="#6a7a10" stroke-width="3"/><path d="M18 30 C40 40 40 60 18 70 M82 30 C60 40 60 60 82 70" stroke="#fff" stroke-width="5" fill="none"/>',
+    "heart": '<path d="M50 86 C20 64 8 46 14 30 C20 14 42 12 50 30 C58 12 80 14 86 30 C92 46 80 64 50 86 Z" fill="#ff4d8d" stroke="#8a1440" stroke-width="3"/><ellipse cx="32" cy="32" rx="6" ry="9" fill="#ffb3cf" transform="rotate(-30 32 32)"/>',
+    "moon": '<path d="M62 12 C36 16 22 42 32 66 C42 88 70 92 88 76 C62 80 46 60 50 38 C52 26 56 18 62 12 Z" fill="#fff3c4" stroke="#c8b070" stroke-width="3"/><circle cx="44" cy="56" r="4" fill="#e8d8a0"/><circle cx="56" cy="74" r="3" fill="#e8d8a0"/>',
+  };
+  const artSVG = (k) => '<svg class="art" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">' + (ART[k] || ART.bowl) + "</svg>";
+  const artEl = (k, cls) => { const n = el("span", { class: "art-wrap" + (cls ? " " + cls : "") }); n.innerHTML = artSVG(k); return n; };
+  window.gblArt = artSVG;
   /* ---------- Pet Home page: house, decorated backyard, foods, naps ---------- */
   const FOODS = { "fd-kibble": [25, 0, 0], "fd-fish": [40, 8, 1], "fd-steak": [60, 5, 2], "fd-cake": [30, 30, 2], "fd-apple": [100, 15, 6], "fd-candy": [100, 100, 12] };
-  const HOUSES = { "": ["🏠", "Cottage", "#ff8a1f"], "hs-mushroom": ["🍄", "Mushroom House", "#ff4d6d"], "hs-pagoda": ["🏯", "Pagoda", "#ff2bd6"], "hs-castle": ["🏰", "Castle", "#ffd66b"], "hs-rocket": ["🚀", "Rocket House", "#22e4ff"] };
+  const HOUSES = { "": ["", "Cottage", "#ff8a1f"], "hs-mushroom": ["hs-mushroom", "Mushroom House", "#ff4d6d"], "hs-pagoda": ["hs-pagoda", "Pagoda", "#ff2bd6"], "hs-castle": ["hs-castle", "Castle", "#ffd66b"], "hs-rocket": ["hs-rocket", "Rocket House", "#22e4ff"] };
   const YARD_SLOTS = [[30, 84], [44, 70], [56, 88], [70, 72], [82, 86], [92, 70]];
   let phEdit = null, phAnim = null, phState = { x: 50, tx: 50, act: "idle", until: 0, flip: false };
   const energyPct = (id) => { const pd = petData(id); if (pd.energy == null) { pd.energy = 100; pd.eAt = Date.now(); } return Math.max(0, Math.min(100, Math.round(pd.energy + (Date.now() - (pd.eAt || Date.now())) / 36e5 * 12))); };
@@ -11821,7 +11868,7 @@ function fighterGame() {
     pd.fed = Math.min(Date.now(), pd.fed + f[0] / 100 * 24 * 36e5); if (Date.now() - pd.fed > 24 * 36e5) pd.fed = Date.now() - 2 * 36e5;
     if (f[1]) pd.played = Math.min(Date.now(), pd.played + f[1] / 100 * 18 * 36e5);
     if (f[2]) petGainXp(id, f[2]); weekBump("feeds"); saveProg(); sfxHub();
-    phState.act = "eat"; phState.until = Date.now() + 2600; phState.food = SHOP.find((q) => q[0] === food)[2].split(" ")[0];
+    phState.act = "eat"; phState.until = Date.now() + 2600; phState.food = food;
     renderPetHome(); renderPet();
   }
   /* ---------- Pet playdates: a friend's pet comes over to play ---------- */
@@ -11863,17 +11910,17 @@ function fighterGame() {
     const it = SHOP.find((q) => q[0] === id), house = HOUSES[(prog.equip || {}).pethouse || ""] || HOUSES[""], night = isNight(), sleeping = napping(id) || (night && !phState.awake);
     const yard = (prog.yard || []).slice(0, YARD_SLOTS.length);
     const scene = el("div", { class: "ph-scene" + (night ? " night" : "") });
-    scene.append(el("div", { class: "ph-sun", text: night ? "🌙" : "☀️" }), el("div", { class: "ph-hill" }), el("div", { class: "ph-grass" }),
-      el("div", { class: "ph-house", style: "--hc:" + house[2] }, el("span", { text: house[0] }), el("small", { text: it[2].split(" ")[0] + "'s " + house[1] })));
+    scene.append(artEl(night ? "moon" : "sun", "ph-sun"), el("div", { class: "ph-hill" }), el("div", { class: "ph-grass" }),
+      el("div", { class: "ph-house", style: "--hc:" + house[2] }, artEl(house[0], "ph-house-art"), el("small", { text: it[2].split(" ")[0] + "'s " + house[1] })));
     YARD_SLOTS.forEach(([lx, ty], i) => {
       const d = yard[i] && SHOP.find((q) => q[0] === yard[i]);
-      const slot = el("button", { class: "ph-slot" + (phEdit === i ? " on" : "") + (d ? "" : " empty"), type: "button", style: "left:" + lx + "%;top:" + ty + "%", "aria-label": d ? d[2] : "Empty spot", onclick: () => { phEdit = phEdit === i ? null : i; renderPetHome(); } }, el("span", { text: d ? d[2].split(" ").pop() : "+" }));
+      const slot = el("button", { class: "ph-slot" + (phEdit === i ? " on" : "") + (d ? "" : " empty"), type: "button", style: "left:" + lx + "%;top:" + ty + "%", "aria-label": d ? d[2] : "Empty spot", onclick: () => { phEdit = phEdit === i ? null : i; renderPetHome(); } }, d ? artEl(d[0]) : el("span", { text: "+" }));
       scene.append(slot);
     });
     const petNode = el("div", { class: "ph-pet" + (phState.flip ? " flip" : "") + (sleeping ? " sleep" : "") + (phState.act === "eat" && phState.until > Date.now() ? " eat" : "") + (phState.act === "play" && phState.until > Date.now() ? " play" : ""), style: "left:" + (sleeping ? 30 : phState.x) + "%" });
-    petNode.innerHTML = petSVG(id, sleeping ? "sleep" : petMood(id), petEvo(id)) + (sleeping ? '<span class="ph-z">💤</span>' : "") + (phState.act === "eat" && phState.until > Date.now() ? '<span class="ph-bowl">' + (phState.food || "🍖") + "</span>" : "") + (phState.act === "play" && phState.until > Date.now() ? '<span class="ph-ball">🎾</span>' : "");
+    petNode.innerHTML = petSVG(id, sleeping ? "sleep" : petMood(id), petEvo(id)) + (sleeping ? '<span class="ph-z">' + artSVG("zzz") + "</span>" : "") + (phState.act === "eat" && phState.until > Date.now() ? '<span class="ph-bowl">' + artSVG(phState.food || "bowl") + "</span>" : "") + (phState.act === "play" && phState.until > Date.now() ? '<span class="ph-ball">' + artSVG("ball") + "</span>" : "");
     scene.append(petNode);
-    if (playdate && playdate.until > Date.now()) { const g = el("div", { class: "ph-pet ph-guest play", style: "left:" + playdate.x + "%" }); g.innerHTML = petSVG(playdate.f.pet, "happy", false) + '<span class="ph-tag">' + playdate.f.name + "</span>"; scene.append(g, el("div", { class: "ph-hearts", text: "💕" })); }
+    if (playdate && playdate.until > Date.now()) { const g = el("div", { class: "ph-pet ph-guest play", style: "left:" + playdate.x + "%" }); g.innerHTML = petSVG(playdate.f.pet, "happy", false) + '<span class="ph-tag">' + playdate.f.name + "</span>"; scene.append(g, artEl("heart", "ph-hearts")); }
     const away = petAway(id);
     if (away) { petNode.hidden = true; scene.append(el("div", { class: "ph-away", text: "🧭 Out on an adventure!" })); }
     const bar = (label, pct, col) => el("div", { class: "pet-bar" }, el("span", { text: label }), el("span", { class: "w-bar big" }, el("i", { style: "width:" + Math.round(pct) + "%;background:" + col })), el("small", { text: Math.round(pct) + "%" }));
@@ -11891,13 +11938,13 @@ function fighterGame() {
       el("button", { class: "btn sm", type: "button", text: "🛒 Pet shop", onclick: () => { if (window.gblShopTab) window.gblShopTab("shop"); location.hash = "#shop"; setTimeout(() => { const c = [...document.querySelectorAll("#shop-page .chip")].find((x2) => x2.textContent.includes("Pet stuff")); if (c) c.click(); }, 300); } }));
     const foods = Object.keys(FOODS).map((k) => [k, ((prog.food || {})[k]) | 0, SHOP.find((q) => q[0] === k)]).filter(([, , q]) => q);
     const foodRow = el("div", { class: "ph-foods" }, el("p", { class: "eyebrow", text: "🍽 Feed" }),
-      el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", disabled: busy, text: "🥣 Basic bowl · 15 ⚡", onclick: () => { feedPet(id); phState.act = "eat"; phState.until = Date.now() + 2600; phState.food = "🥣"; renderPetHome(); } }),
-        ...foods.map(([k, n, q]) => el("button", { class: "chip", type: "button", disabled: busy || n <= 0, title: q[5], text: q[2] + " ×" + n, onclick: () => feedWith(id, k) }))));
+      el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", disabled: busy, onclick: () => { feedPet(id); phState.act = "eat"; phState.until = Date.now() + 2600; phState.food = "bowl"; renderPetHome(); } }, artEl("bowl", "chip-art"), "Basic bowl · 15 ⚡"),
+        ...foods.map(([k, n, q]) => el("button", { class: "chip", type: "button", disabled: busy || n <= 0, title: q[5], onclick: () => feedWith(id, k) }, artEl(k, "chip-art"), q[2] + " ×" + n))));
     let decoUI = null;
     if (phEdit != null) {
       const owned = (prog.owned || []).map((d) => SHOP.find((q) => q[0] === d)).filter((q) => q && q[1] === "decor");
       decoUI = el("div", { class: "ph-deco panel lit" }, el("p", { class: "eyebrow", text: "🪴 Decorate spot " + (phEdit + 1) }),
-        owned.length ? el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", text: "Empty", onclick: () => { const y = (prog.yard || []).slice(); y[phEdit] = null; prog.yard = y; saveProg(); phEdit = null; renderPetHome(); } }), ...owned.map((q) => el("button", { class: "chip", type: "button", text: q[2], onclick: () => { const y = (prog.yard || []).slice(); while (y.length < YARD_SLOTS.length) y.push(null); y[phEdit] = q[0]; prog.yard = y; saveProg(); sfxHub(); phEdit = null; renderPetHome(); } })))
+        owned.length ? el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", text: "Empty", onclick: () => { const y = (prog.yard || []).slice(); y[phEdit] = null; prog.yard = y; saveProg(); phEdit = null; renderPetHome(); } }), ...owned.map((q) => el("button", { class: "chip", type: "button", onclick: () => { const y = (prog.yard || []).slice(); while (y.length < YARD_SLOTS.length) y.push(null); y[phEdit] = q[0]; prog.yard = y; saveProg(); sfxHub(); phEdit = null; renderPetHome(); } }, artEl(q[0], "chip-art"), q[2])))
           : el("p", { class: "set-note", text: "You don't own any decorations yet — get some in the Shop under 🏡 Pet stuff." }));
     }
     root.replaceChildren(...[scene, decoUI].filter(Boolean), el("div", { class: "ph-panel" }, stats, el("div", {}, acts, foodRow, el("p", { class: "set-note", text: "Tap a + spot in the yard to decorate it. Change your pet's house in the Shop." }))));
@@ -12233,7 +12280,7 @@ function fighterGame() {
     const dealTag = o.dealPct ? el("span", { class: "deal-tag", text: "-" + o.dealPct + "%" }) : null;
     const listen = igrp === "music" ? el("button", { class: "btn sm shop-listen", type: "button", "aria-label": "Listen to " + name, text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
     if (!has && !inSeason(id)) return null;
-    const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null, "data-pet": igrp === "pet" ? id : null });
+    const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null, "data-pet": igrp === "pet" ? id : null, "data-art": ["petfood", "decor", "pethouse"].includes(igrp) ? id : null });
     if (cur === "lv" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🔒 Level " + price0 }));
     if (cur === "boss" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "👹 Beat Boss Rush" }));
     if (cur === "season" && !has) return el("div", { class: "shop-item locked" + tag }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), el("button", { class: "btn sm", type: "button", disabled: true, text: "🎟 Season pass reward" }));
@@ -12265,7 +12312,7 @@ function fighterGame() {
         el("div", { class: "shop-grid" }, shuffle, ...items.map(([id, igrp, name, , col, sub, , rar]) => {
           const on = eq2[igrp] === id;
           const rarBadge = rar ? el("span", { class: "rar rar-" + rar, text: RAR_LABEL[rar] }) : null;
-          const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null, "data-pet": igrp === "pet" ? id : null });
+          const icon = el("span", { class: "sw" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null, "data-pet": igrp === "pet" ? id : null, "data-art": ["petfood", "decor", "pethouse"].includes(igrp) ? id : null });
           const listen = igrp === "music" ? el("button", { class: "btn sm shop-listen", type: "button", text: prev && prev.id === id.slice(3) && !prev.shop ? "■" : "▶", onclick: (e) => { e.stopPropagation(); preview(id.slice(3), e.currentTarget); } }) : null;
           return el("div", { class: "shop-item" + (on ? " on" : "") + (rar ? " rk-" + rar : "") }, icon, el("b", { text: name }), rarBadge, el("small", { text: sub }), listen,
             el("button", { class: "btn sm" + (on ? "" : " hot"), type: "button", text: on ? "Unequip" : "Equip", onclick: () => { prog.equip = { ...eq2, [igrp]: on ? null : id }; saveProg(); toast(on ? name + " removed" : name + " equipped"); rerender(); } }));
@@ -12311,7 +12358,7 @@ function fighterGame() {
     const card = el("div", { class: "crate-card cr-card rk-" + rank, hidden: true },
       el("div", { class: "cr-shine" }),
       el("p", { class: "eyebrow", text: rank === "l" ? "👑 LEGENDARY DROP!" : "You got " + (rank === "e" ? "an " : "a ") + RAR_LABEL[rank] + "!" }),
-      el("span", { class: "sw big" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null, "data-pet": igrp === "pet" ? id : null }),
+      el("span", { class: "sw big" + (igrp === "title" ? " ttl" : igrp === "pet" ? " petsw" : ""), style: "background:" + col, text: igrp === "pet" ? PET_EMO[id] : null, "data-pet": igrp === "pet" ? id : null, "data-art": ["petfood", "decor", "pethouse"].includes(igrp) ? id : null }),
       el("b", { text: name }), el("span", { class: "rar rar-" + rank, text: RAR_LABEL[rank] }), el("small", { text: sub }),
       el("button", { class: "btn sm hot", type: "button", text: "Sweet!", onclick: () => close() }));
     const hint = el("p", { class: "cr-hint", text: "tap to skip" });
@@ -12495,7 +12542,7 @@ function fighterGame() {
       const r = spReward(i, premium), got = (premium ? s0.prem : s0.free).includes(i), ready = i <= t && !got && (!premium || s0.premium);
       const it = r.k === "item" ? SHOP.find((q) => q[0] === r.id) : null;
       return el("button", { class: "sp-cell" + (premium ? " prem" : "") + (got ? " got" : ready ? " ready" : i <= t ? "" : " locked") + (r.k === "item" || r.r === "l" ? " big" : ""), type: "button", disabled: !ready, onclick: () => claimSeason(i, premium) },
-        r.k === "item" && it ? el("span", { class: "sw" + (it[1] === "pet" ? " petsw" : " ttl"), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null, "data-pet": it[1] === "pet" ? it[0] : null }) : null,
+        r.k === "item" && it ? el("span", { class: "sw" + (it[1] === "pet" ? " petsw" : " ttl"), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null, "data-pet": it[1] === "pet" ? it[0] : null, "data-art": ["petfood", "decor", "pethouse"].includes(it[1]) ? it[0] : null }) : null,
         el("b", { text: it ? it[2] : r.label }), el("small", { text: got ? "✓" : ready ? "CLAIM" : premium && !s0.premium ? "🔒" : "TIER " + i }));
     };
     const track = el("div", { class: "sp-track" }, ...Array.from({ length: SP_TIERS }, (_, k) => k + 1).map((i) => el("div", { class: "sp-col" + (i === t + 1 ? " next" : "") }, el("div", { class: "sp-num" + (i <= t ? " on" : ""), text: String(i) }), cell(i, false), cell(i, true))));
@@ -12836,7 +12883,7 @@ function fighterGame() {
     const rarest = ownedItems.slice().sort((a, b2) => rank(b2) - rank(a) || cost(b2[3]) - cost(a[3]))[0];
     const counts = { c: 0, r: 0, e: 0, l: 0 }; ownedItems.forEach((it) => { if (it[7]) counts[it[7]]++; });
     const got = ACH.filter((a) => prog.ach[a[0]]).length;
-    const miniCard = (it, label) => it ? el("div", { class: "shop-item rk-" + (it[7] || "c") }, el("span", { class: "sw" + (it[1] === "title" ? " ttl" : it[1] === "pet" ? " petsw" : ""), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null, "data-pet": it[1] === "pet" ? it[0] : null }), el("b", { text: it[2] }), it[7] ? el("span", { class: "rar rar-" + it[7], text: RAR_LABEL[it[7]] }) : null, el("small", { text: label || it[5] })) : null;
+    const miniCard = (it, label) => it ? el("div", { class: "shop-item rk-" + (it[7] || "c") }, el("span", { class: "sw" + (it[1] === "title" ? " ttl" : it[1] === "pet" ? " petsw" : ""), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null, "data-pet": it[1] === "pet" ? it[0] : null, "data-art": ["petfood", "decor", "pethouse"].includes(it[1]) ? it[0] : null }), el("b", { text: it[2] }), it[7] ? el("span", { class: "rar rar-" + it[7], text: RAR_LABEL[it[7]] }) : null, el("small", { text: label || it[5] })) : null;
     const cell = (v, l) => el("div", { class: "pc-cell" }, el("b", { text: v }), el("small", { text: l }));
     const header = el("div", { class: "prof-head" },
       el("div", { class: "prof-av" + (eq.frame ? " fr-" + eq.frame.slice(3) : "") }, avEl(me ? me.av : null, "lg")),
@@ -12850,7 +12897,7 @@ function fighterGame() {
     const shelf = prog.shelf || [null, null, null];
     const shelfEl = el("div", { class: "prof-shelf" }, el("p", { class: "eyebrow set-h2", text: "✨ Show-off shelf" }), el("p", { class: "set-note", text: "Pick your 3 proudest items. Tap a slot to change it." }),
       el("div", { class: "shop-grid shelf-grid" }, ...shelf.map((id, i) => { const it = id && item(id); return el("button", { class: "shop-item shelf-slot" + (it ? " rk-" + (it[7] || "c") : " empty") + (shelfPick === i ? " on" : ""), type: "button", onclick: () => { shelfPick = shelfPick === i ? null : i; renderProfile(); } },
-        it ? el("span", { class: "sw" + (it[1] === "title" ? " ttl" : it[1] === "pet" ? " petsw" : ""), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null, "data-pet": it[1] === "pet" ? it[0] : null }) : el("span", { class: "sw", style: "background:rgba(255,255,255,.08)", text: "+" }),
+        it ? el("span", { class: "sw" + (it[1] === "title" ? " ttl" : it[1] === "pet" ? " petsw" : ""), style: "background:" + it[4], text: it[1] === "pet" ? PET_EMO[it[0]] : null, "data-pet": it[1] === "pet" ? it[0] : null, "data-art": ["petfood", "decor", "pethouse"].includes(it[1]) ? it[0] : null }) : el("span", { class: "sw", style: "background:rgba(255,255,255,.08)", text: "+" }),
         el("b", { text: it ? it[2] : "Empty slot " + (i + 1) }), it && it[7] ? el("span", { class: "rar rar-" + it[7], text: RAR_LABEL[it[7]] }) : null); })),
       shelfPick != null ? el("div", { class: "shelf-pick" }, el("p", { class: "set-note", text: "Choose an item for slot " + (shelfPick + 1) + ":" }), el("div", { class: "rew-tabs shop-chips" }, el("button", { class: "chip", type: "button", text: "Clear slot", onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = null; prog.shelf = s2; shelfPick = null; saveProg(); renderProfile(); } }), ...ownedItems.filter((it) => it[1] !== "boost" && it[1] !== "powerup" && it[1] !== "petfood").sort((a, b2) => rank(b2) - rank(a)).map((it) => el("button", { class: "chip", type: "button", text: (it[1] === "pet" ? PET_EMO[it[0]] + " " : "") + it[2] + (it[7] === "l" ? " 👑" : ""), onclick: () => { const s2 = (prog.shelf || [null, null, null]).slice(); s2[shelfPick] = it[0]; prog.shelf = s2; shelfPick = null; saveProg(); sfxHub(); renderProfile(); } })))) : null);
     const favEl = el("div", { class: "prof-two" },
