@@ -1261,6 +1261,11 @@ html.calm .art-spin, html.calm .art-flick, html.calm .art-blink, html.calm .art-
 
 /* ---------- Tutorial ---------- */
 .tut-ov { position: fixed; inset: 0; z-index: 140; }
+.tut-head { display: flex; gap: 12px; align-items: center; } .tut-mascot { width: 64px; height: 64px; flex: none; } .tut-mascot svg { width: 100%; height: 100%; }
+.tut-dots { display: flex; gap: 5px; margin-bottom: 6px; } .tut-dots i { width: 7px; height: 7px; border-radius: 50%; background: rgba(255,255,255,.18); } .tut-dots i.past { background: rgba(255,214,107,.5); } .tut-dots i.on { background: #ffd66b; width: 18px; border-radius: 4px; }
+.tut-list { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: .88rem; color: var(--fg); } .tut-list li::marker { color: #ffd66b; }
+.tut-picks { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; } .tut-picks[hidden], .tut-list[hidden], .tut-mascot[hidden] { display: none; }
+
 .tut-hole { position: fixed; border-radius: 14px; box-shadow: 0 0 0 9999px rgba(4,2,10,.78), 0 0 0 3px #ffd66b, 0 0 30px rgba(255,214,107,.6); transition: all .3s var(--ease); pointer-events: none; }
 .tut-card { position: fixed; z-index: 1; display: grid; gap: 8px; width: min(340px, calc(100vw - 24px)); padding: 16px 18px; border-radius: 18px; background: var(--panel-solid); border: 1px solid #ffd66b; box-shadow: 0 20px 60px rgba(0,0,0,.6); transition: top .3s var(--ease), left .3s var(--ease); }
 .tut-card b { font-size: 1.1rem; } .tut-card p { margin: 0; color: var(--fg); line-height: 1.45; font-size: .92rem; } .tut-n { color: var(--muted); font-family: var(--f-mono); letter-spacing: .1em; }
@@ -12991,21 +12996,24 @@ function fighterGame() {
   /* ---------- New-player tutorial (spotlight tour with Skip) ---------- */
   (function () {
     const STEPS = [
-      { title: "Welcome to Games by Levi! 👋", text: "Want a 30-second tour? You can skip it any time." },
-      { hash: "library", sel: "#library .card.game", title: "🎮 Pick a game", text: "Tap any game to play. Start = the full game (it saves checkpoints). ⚡ Quick Play = a 90-second sprint with its own leaderboard. Practice = no pressure." },
-      { sel: "[data-wallet]", title: "⚡ Your wallet & rewards", text: "Coins, cash and gems. Tap here for daily missions, the 🎟 Season Pass, the spin wheel and weekly challenges." },
-      { sel: '.links a[href="#shop"]', title: "🛒 The Shop", text: "Music, pets, titles, game skins, power-ups, mystery crates and daily deals." },
-      { sel: '.links a[href="#pethome"]', title: "🏡 Your pet", text: "Feed your pet, play mini-games with it, send it on adventures and decorate its backyard." },
+      { title: "Hi! I'm Laser Pup 👋", text: "Welcome to Games by Levi — 60+ games, pets, prizes and friends. Want a quick tour? It takes 30 seconds and you can skip any time.", mascot: "happy" },
+      { hash: "library", sel: "#library .card.game", title: "🎮 Pick a game", text: "Tap any game card to open it. On its start screen you get three ways to play:", list: ["▶ Start — the full game. It saves checkpoints and gets harder as you go", "⚡ Quick Play — a 90-second sprint with its own leaderboard", "Practice — easy mode, no pressure"] },
+      { title: "🕹 Controls", text: "Every game works with touch and keyboard:", list: ["Touch: tap, drag or swipe on the game screen", "Keyboard: arrow keys / WASD and Space", "II pauses · ✕ leaves · each start screen shows that game's controls"], mascot: "ok" },
+      { sel: "[data-wallet]", title: "⚡ Coins & rewards", text: "Playing earns coins. Tap your wallet for daily missions, the 🎟 Season Pass, the prize wheel and weekly challenges." },
+      { sel: '.links a[href="#shop"]', title: "🛒 The Shop", text: "Spend coins on music, pets, titles, game skins, power-ups, mystery crates and daily deals." },
+      { sel: '.links a[href="#pethome"]', title: "🏡 Your pet", text: "Adopt a pet in the Shop, then feed it, play mini-games, send it on adventures and decorate its backyard. A happy pet gives you bonus coins!" },
       { sel: '.links a[href="#friends"]', title: "👥 Friends", text: "Add friends by username, challenge their high scores and invite their pets over for playdates." },
-      { sel: '.links a[href="#leaderboards"]', title: "🏆 Leaderboards", text: "See the best players — full-game boards and ⚡ Quick Play boards." },
-      { sel: "#help-open-btn", title: "❓ Help", text: "Stuck, or have an idea? Tap here to send Levi a message. You can also replay this tour from here." },
-      { title: "You're ready! 🎉", text: "Games save as you go, so you can always continue. Have fun!", last: true },
+      { sel: '.links a[href="#online"]', title: "🌐 Play together", text: "2 Players = pass the iPad. Online = play a friend on their own device with a room code. Tournaments let up to 5 friends battle." },
+      { sel: '.links a[href="#leaderboards"]', title: "🏆 Leaderboards", text: "Beat the best scores — there are full-game boards and ⚡ Quick Play boards for every game." },
+      { sel: "#help-open-btn", title: "❓ Help", text: "Stuck, or have an idea for Levi? Tap here to send a message. You can replay this tour from here too." },
+      { title: "You're ready! 🎉", text: "Pick your first game, or close this and explore:", last: true, mascot: "happy", picks: [["Neon Snake", "🐍"], ["Mini Golf", "⛳"], ["Bubble Shooter", "🫧"], ["Neon Bowling", "🎳"]] },
     ];
     let i = 0, ov = null;
     const done = () => { try { return localStorage.getItem("gbl-tut-done") === "1"; } catch { return true; } };
     const mark = () => { try { localStorage.setItem("gbl-tut-done", "1"); } catch {} };
+    const gameOpen = () => !!document.querySelector(".modal.open, .pg-ov");
     function close(finished) {
-      if (ov) ov.remove(); ov = null; mark(); removeEventListener("resize", place); removeEventListener("scroll", place, true);
+      if (ov) ov.remove(); ov = null; mark(); removeEventListener("resize", place); removeEventListener("scroll", place, true); removeEventListener("keydown", onKey, true);
       if (finished && !(prog.stats || {}).tutReward) { prog.stats.tutReward = 1; saveProg(); giveCoins(200, "tutorial complete!"); if (window.gblConfetti) window.gblConfetti(90); }
     }
     function place() {
@@ -13013,32 +13021,45 @@ function fighterGame() {
       const t = st.sel && [...document.querySelectorAll(st.sel)].find((n) => n.offsetParent !== null && n.getBoundingClientRect().width > 0);
       if (!t) { hole.style.cssText = "left:50%;top:40%;width:0;height:0"; card.style.cssText = "left:50%;top:50%;transform:translate(-50%,-50%)"; return; }
       const r = t.getBoundingClientRect(), pad = 8; hole.style.cssText = `left:${r.left - pad}px;top:${r.top - pad}px;width:${r.width + pad * 2}px;height:${r.height + pad * 2}px`;
-      const cw = Math.min(340, innerWidth - 24), below = r.bottom + 14 + 200 < innerHeight, left = Math.max(12, Math.min(innerWidth - cw - 12, r.left + r.width / 2 - cw / 2));
-      card.style.cssText = `left:${left}px;width:${cw}px;` + (below ? `top:${r.bottom + 14}px` : `top:${Math.max(12, r.top - 14)}px;transform:translateY(-100%)`);
+      const cw = Math.min(360, innerWidth - 24), ch = card.offsetHeight || 220, below = r.bottom + 14 + ch < innerHeight, left = Math.max(12, Math.min(innerWidth - cw - 12, r.left + r.width / 2 - cw / 2));
+      card.style.cssText = `left:${left}px;width:${cw}px;` + (below ? `top:${r.bottom + 14}px` : `top:${Math.max(12 + ch, r.top - 14)}px;transform:translateY(-100%)`);
     }
+    function onKey(e) {
+      if (!ov) return;
+      if (e.key === "Escape") { e.preventDefault(); close(false); }
+      else if (e.key === "ArrowRight" || e.key === "Enter") { if (document.activeElement && document.activeElement.closest && document.activeElement.closest(".tut-picks")) return; e.preventDefault(); next(); }
+      else if (e.key === "ArrowLeft") { e.preventDefault(); if (i > 0) { i--; show(); } }
+    }
+    function next() { if (STEPS[i].last) return close(true); i++; show(); }
     function show() {
       const st = STEPS[i];
       if (st.hash && location.hash !== "#" + st.hash) location.hash = "#" + st.hash;
       ov.querySelector(".tut-t").textContent = st.title; ov.querySelector(".tut-x").textContent = st.text;
-      ov.querySelector(".tut-n").textContent = (i + 1) + " / " + STEPS.length;
-      ov.querySelector(".tut-back").hidden = i === 0; ov.querySelector(".tut-next").textContent = st.last ? "Let's play! ▸" : i === 0 ? "Show me ▸" : "Next ▸";
+      const ul = ov.querySelector(".tut-list"); ul.replaceChildren(...(st.list || []).map((li) => el("li", { text: li }))); ul.hidden = !st.list;
+      const mas = ov.querySelector(".tut-mascot"); mas.hidden = !st.mascot; if (st.mascot && typeof petSVG === "function") mas.innerHTML = petSVG("pet-dog", st.mascot, false);
+      const picks = ov.querySelector(".tut-picks"); picks.hidden = !st.picks;
+      picks.replaceChildren(...(st.picks || []).map(([name, ic]) => el("button", { class: "btn sm", type: "button", text: ic + " " + name, onclick: () => { close(true); location.hash = "#library"; setTimeout(() => { const c = document.querySelector('.card.game[aria-label="Play ' + name + '"]'); if (c) c.click(); }, 400); } })));
+      ov.querySelector(".tut-dots").replaceChildren(...STEPS.map((_, k) => el("i", { class: k === i ? "on" : k < i ? "past" : "" })));
+      ov.querySelector(".tut-back").hidden = i === 0; ov.querySelector(".tut-next").textContent = st.last ? "Explore ▸" : i === 0 ? "Show me ▸" : "Next ▸";
       ov.querySelector(".tut-skip").hidden = !!st.last; ov.querySelector(".tut-reward").hidden = !st.last || !!(prog.stats || {}).tutReward;
-      setTimeout(() => { const t = st.sel && document.querySelector(st.sel); if (t && t.scrollIntoView) t.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(place, 350); }, st.hash ? 250 : 0); place();
+      setTimeout(() => { const t = st.sel && document.querySelector(st.sel); if (t && t.scrollIntoView) t.scrollIntoView({ block: "center", behavior: "smooth" }); setTimeout(place, 350); }, st.hash ? 250 : 0); place(); requestAnimationFrame(place);
     }
     function open() {
       if (ov) return; i = 0;
       ov = el("div", { class: "tut-ov", role: "dialog", "aria-label": "Tutorial" }, el("div", { class: "tut-hole" }),
-        el("div", { class: "tut-card" }, el("small", { class: "tut-n" }), el("b", { class: "tut-t" }), el("p", { class: "tut-x" }), el("p", { class: "tut-reward", text: "🎁 Finish the tour for +200 ⚡" }),
+        el("div", { class: "tut-card" }, el("div", { class: "tut-head" }, el("div", { class: "tut-mascot" }), el("div", {}, el("div", { class: "tut-dots" }), el("b", { class: "tut-t" }))), el("p", { class: "tut-x" }), el("ul", { class: "tut-list" }), el("div", { class: "tut-picks" }), el("p", { class: "tut-reward", text: "🎁 +200 ⚡ for finishing the tour!" }),
           el("div", { class: "tut-btns" }, el("button", { class: "linkbtn tut-skip", type: "button", text: "Skip tutorial", onclick: () => close(false) }), el("span", { class: "sp" }),
             el("button", { class: "btn sm tut-back", type: "button", text: "◂ Back", onclick: () => { i = Math.max(0, i - 1); show(); } }),
-            el("button", { class: "btn sm hot tut-next", type: "button", onclick: () => { if (STEPS[i].last) return close(true); i++; show(); } }))));
-      document.body.append(ov); addEventListener("resize", place); addEventListener("scroll", place, true);
-      ov.addEventListener("keydown", (e) => { if (e.key === "Escape") close(false); });
+            el("button", { class: "btn sm hot tut-next", type: "button", onclick: next }))));
+      document.body.append(ov); addEventListener("resize", place); addEventListener("scroll", place, true); addEventListener("keydown", onKey, true);
       show(); ov.querySelector(".tut-next").focus();
     }
     window.gblTutorial = open;
     const rb = document.getElementById("tut-replay"); if (rb) rb.onclick = () => { const hm = document.getElementById("help-modal"); if (hm) hm.hidden = true; open(); };
-    setTimeout(() => { if (!done() && !document.querySelector(".modal.open")) { const home = document.getElementById("home"); if (home && !home.hidden) { const iv = setInterval(() => { if (home.hidden) { clearInterval(iv); setTimeout(open, 900); } }, 500); } else open(); } }, 1800);
+    /* First visit: wait until the player has left the home screen and isn't inside a game, then offer the tour. */
+    setTimeout(() => { if (done()) return; const home = document.getElementById("home"); const iv = setInterval(() => { if (done()) return clearInterval(iv); if ((!home || home.hidden) && !gameOpen() && !document.querySelector(".tut-ov")) { clearInterval(iv); setTimeout(() => { if (!gameOpen()) open(); }, 700); } }, 600); }, 1500);
+    /* If a game opens while the tour is showing (e.g. an online invite link), get out of the way and offer it again later. */
+    setInterval(() => { if (ov && gameOpen()) { ov.remove(); ov = null; removeEventListener("keydown", onKey, true); } }, 500);
   })();
   /* ---------- Help / Request modal ---------- */
   (function () {
