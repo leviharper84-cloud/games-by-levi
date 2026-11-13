@@ -9153,6 +9153,11 @@ function platGame() {
 function bowlGame() {
   const W = 360, H = 680, LX = 60, LW = 240, BR = 13, PRr = 9, FOUL = 520, PINY = 120;
   let pins, ball, phase, frame, roll, frames, aim, pow, drag, settleT, msg, obs, laneName, bumpT = [0, 0];
+  let LV = 0, lvBase = 0, lvDeaths = 0, saveLeft = 0, lvLanes = [], fi = 0, lr = [], laneCard = [], lvWait = 0, lanePick = null;
+  let pl = 0, FP = [[], []], duoSeed = 0, waitSeed = false, ghost = false, ghostT = 0, spinSent = 0, trail = [];
+  const lvMode = () => !S.duo && !S.quick && !S.practice && !S.online;
+  const myTurn = () => !S.online || pl + 1 === S.online;
+  const seeded = (seed, fn) => { const oldR = Math.random; let sd = seed >>> 0; Math.random = () => ((sd = (sd * 1664525 + 1013904223) >>> 0) / 4294967296); try { return fn(); } finally { Math.random = oldR; } };
   // Mini-golf style lanes: every frame gets its own obstacle course.
   const B = (x0, y0, r) => ({ k: "bump", x: x0, y: y0, r }), WL = (x1, y1, x2, y2) => ({ k: "wall", x1, y1, x2, y2 });
   const SL = (y0, w, sp, ph) => ({ k: "slide", y: y0, w, sp, ph: ph || 0 }), SP = (x0, y0, len, sp) => ({ k: "spin", x: x0, y: y0, len, sp, a: 0 });
@@ -9174,6 +9179,12 @@ function bowlGame() {
     [4, "Funnel", () => [WL(62, 200, 155, 330), WL(298, 200, 205, 330), BO(180, 420)]],
     [4, "Portal Maze", () => [PT(100, 420, 260, 220), PT(260, 420, 100, 220), SP(180, 320, 50, 1.6)]],
     [4, "Chaos Lane", () => [SL(240, 56, 2), SP(180, 340, 46, -2.2), SM(180, 430, 36), B(110, 300, 12), B(250, 300, 12)]],
+    [2, "Post Party", () => [B(110, 260, 12), B(250, 260, 12), B(180, 350, 14), B(115, 440, 10), B(245, 440, 10)]],
+    [3, "Slalom", () => [WL(62, 240, 140, 240), WL(220, 330, 298, 330), WL(62, 420, 140, 420)]],
+    [3, "Portal Pair", () => [PT(110, 450, 250, 250), PT(250, 450, 110, 250), B(180, 350, 20)]],
+    [4, "Spinner Gauntlet", () => [SP(120, 250, 45, 2.2), SP(240, 330, 45, -2.2), SP(120, 410, 45, 2.2)]],
+    [4, "Slime Maze", () => [SM(120, 300, 40), SM(240, 380, 40), WL(150, 240, 210, 240), B(180, 450, 14)]],
+    [4, "Rocket Run", () => [BO(180, 460), BO(180, 340), SL(260, 60, 2.2), B(110, 250, 12), B(250, 250, 12)]],
   ];
   const segDist = (px, py, ax, ay, bx, by) => { const dx = bx - ax, dy = by - ay, L = dx * dx + dy * dy || 1; let t = ((px - ax) * dx + (py - ay) * dy) / L; t = Math.max(0, Math.min(1, t)); return Math.hypot(px - ax - t * dx, py - ay - t * dy); };
   /* The ball must have a clear route from the foul line to the pins (bumpers and fixed walls block; moving things don't). */
@@ -9183,13 +9194,13 @@ function bowlGame() {
     while (q.length) { const [px, py] = q.pop(); if (py < 150) return true; for (const [dx, dy] of [[ST, 0], [-ST, 0], [0, ST], [0, -ST]]) { const nx = px + dx, ny = py + dy, k = nx * 1000 + ny; if (ny > 600 || seen.has(k)) continue; seen.add(k); if (free(nx, ny)) q.push([nx, ny]); } }
     return false;
   }
-  function genBowlLane() { for (let i = 0; i < 40; i++) { const l = genBowlLane0(); if (laneOpen(l[2]())) return l; } return LANES[Math.random() * 4 | 0]; }
-  function genBowlLane0() {
+  function genBowlLane(extra) { for (let i = 0; i < 40; i++) { const l = genBowlLane0(extra); if (laneOpen(l[2]())) return l; } return LANES[Math.random() * 4 | 0]; }
+  function genBowlLane0(extra) {
     const r = Math.random, cx = 180;
     const adj = ["Wild","Neon","Storm","Chaos","Blitz","Surge","Vortex","Hyper","Frenzy","Turbo","Drift","Zap","Craze","Flux","Rogue","Nitro","Warp","Blaze","Nova","Apex"];
     const noun = ["Shot","Spin","Run","Zone","Lane","Wave","Rush","Blast","Path","Line","Trip","Roll","Arc","Flow","Track","Course","Ramp","Loop","Drop","Ride"];
     const name = adj[r() * adj.length | 0] + " " + noun[r() * noun.length | 0];
-    const snap = [], n = 1 + (r() * 3 | 0);
+    const snap = [], n = Math.min(6, 1 + (r() * 3 | 0) + (extra | 0));
     const pool = ["bump","slide","spin","portal","wall","boost","slime"], used = new Set();
     for (let i = 0; i < n; i++) {
       let t; for (let tries = 0; tries < 8; tries++) { t = pool[r() * pool.length | 0]; if (!used.has(t)) break; } used.add(t);
@@ -9204,13 +9215,58 @@ function bowlGame() {
     return [1, name, () => snap.map((o) => ({ ...o }))];
   }
   const p = (n) => n | 0;
-  function newLane() {
+  function pickLane() {
     const tier = S.practice ? 1 : Math.min(4, 1 + Math.floor(frame / 2.5));
-    let pick;
-    if (Math.random() < 0.6) { pick = genBowlLane(); }
-    else { const pool = LANES.filter((l) => l[0] <= tier && (frame < 3 || l[0] >= tier - 1)); pick = pool[Math.random() * pool.length | 0]; }
-    obs = pick[2](); laneName = pick[1];
-    banner("FRAME " + (frame + 1) + " · " + laneName.toUpperCase(), "#ff2bd6");
+    if (Math.random() < 0.6) return genBowlLane();
+    const pool = LANES.filter((l) => l[0] <= tier && (frame < 3 || l[0] >= tier - 1)); return pool[Math.random() * pool.length | 0];
+  }
+  function newLane() {
+    const pick = S.duo ? seeded(duoSeed + frame * 7919, pickLane) : pickLane();
+    lanePick = pick; obs = pick[2](); laneName = pick[1];
+    banner((S.duo ? "P" + (pl + 1) + " · " : "") + "FRAME " + (frame + 1) + " · " + laneName.toUpperCase(), pl ? "#ffd66b" : "#ff2bd6");
+  }
+  /* ----- Level mode: endless levels of 9 lanes ----- */
+  const lvSeed = (lv) => ((lvBase + lv * 2654435761) >>> 0);
+  function buildLevel(lv) {
+    lvLanes = seeded(lvSeed(lv), () => {
+      const tier = Math.min(4, 1 + Math.floor((lv - 1) / 2)), out = [];
+      for (let i = 0; i < 9; i++) {
+        if (i % 2 === 1) { const pool = LANES.filter((l) => l[0] <= tier && l[0] >= tier - 1); out.push(pool[Math.random() * pool.length | 0]); }
+        else out.push(genBowlLane(Math.min(3, Math.floor(lv / 2) + (i > 5 ? 1 : 0))));
+      }
+      return out;
+    });
+  }
+  function setLvLane() {
+    lanePick = lvLanes[fi]; obs = lanePick[2](); laneName = lanePick[1];
+    const k = 1 + (LV - 1) * .08; for (const o of obs) if (o.k === "slide" || o.k === "spin") o.sp *= k;
+    lr = []; rack(); pins.__base = 0; newBall();
+    banner("LEVEL " + LV + " · LANE " + (fi + 1) + " · " + laneName.toUpperCase(), "#ff2bd6");
+  }
+  function lvSave(stop, label, next) { saveGame({ lv: LV, base: lvBase, fi, deaths: lvDeaths, card: laneCard.slice(), label, stop, next }); }
+  function endRollLv() {
+    const before = lr.reduce((a, v) => a + v, 0), kn = Math.max(0, 10 - standing() - before);
+    lr.push(kn);
+    const strike = kn === 10 && lr.length === 1, spare = !strike && lr.length === 2 && before + kn === 10;
+    const pts = (kn * 10 + (strike ? 100 : spare ? 50 : 0)) * LV; S.score += pts;
+    if (strike) { banner("STRIKE! +" + pts, "#ffd66b"); sfx("level"); burst(W / 2, PINY, "#ffd66b", 50, 300, .8, 3); }
+    else if (spare) { banner("SPARE! +" + pts, "#3dffa8"); sfx("power"); }
+    else if (kn === 0) banner(lr.length === 1 ? "MISS! ONE MORE TRY..." : "MISS...", "#ff4d6d"); else pop(W / 2, 300, kn + " PINS +" + pts, "#22e4ff");
+    if (!(strike || lr.length === 2)) { pins = pins.filter((q) => !q.down); pins.__base = 10 - pins.length; newBall(); return; }
+    const tot = lr.reduce((a, v) => a + v, 0);
+    if (tot === 0) {
+      if (saveLeft > 0) { saveLeft--; banner("🛟 SECOND CHANCE! TRY THE LANE AGAIN", "#3dffa8"); sfx("power"); setLvLane(); return; }
+      phase = "dead"; lvWait = 2.2; lvDeaths++; banner(LV > 1 ? "NO PINS! BACK TO LEVEL " + (LV - 1) : "NO PINS! RESTART LEVEL 1", "#ff4d6d"); sfx("over"); shake(6, .4); flash("#ff4d6d", .25); return;
+    }
+    laneCard[fi] = lr.slice();
+    if (fi + 1 < 9) { fi++; setLvLane(); lvSave(false, "LANE " + (fi + 1)); return; }
+    const bonus = LV * 300; S.score += bonus; banner("LEVEL " + LV + " CLEAR! +" + bonus, "#ffd66b"); sfx("level"); flash("#ffd66b", .3);
+    LV++; buildLevel(LV); fi = 0; laneCard = []; setLvLane();
+    lvSave(true, "LEVEL " + LV, "Lanes get trickier and obstacles move faster. Knock down at least 1 pin on every lane!");
+  }
+  function dropLevel() {
+    const from = LV; LV = Math.max(1, LV - 1); buildLevel(LV); fi = 0; laneCard = []; setLvLane();
+    lvSave(true, from > 1 ? "BACK TO LEVEL " + LV : "LEVEL 1 AGAIN", from > 1 ? "You missed every pin on a level " + from + " lane. Clear these 9 lanes to climb back!" : "Same 9 lanes. Hit at least one pin on each!");
   }
   const segHit = (o, x1, y1, x2, y2, th, obj, rad) => {
     const dx = x2 - x1, dy = y2 - y1, L2 = dx * dx + dy * dy || 1, t = Math.max(0, Math.min(1, ((obj.x - x1) * dx + (obj.y - y1) * dy) / L2));
@@ -9228,15 +9284,15 @@ function bowlGame() {
       else if (o.k === "spin") { const ex = Math.cos(o.a) * o.len, ey = Math.sin(o.a) * o.len; if (segHit(o, o.x - ex, o.y - ey, o.x + ex, o.y + ey, 5, o0, rad) && isBall) { sfx("tick"); o0.vx += (Math.random() - .5) * 80; } }
       else if (isBall && o.k === "boost" && !o0.boosted && Math.abs(o0.x - o.x) < 30 && Math.abs(o0.y - o.y) < 18) { o0.boosted = true; o0.vy -= 380; o0.vx *= .6; sfx("power"); pop(o.x, o.y - 20, "BOOST!", "#3dffa8"); burst(o.x, o.y, "#3dffa8", 16, 200, .4, 2, -Math.PI / 2, 1); }
       else if (isBall && o.k === "slime" && Math.hypot(o0.x - o.x, o0.y - o.y) < o.r) { o0.vx *= .985; o0.vy *= .985; o0.spin *= .97; }
-      else if (isBall && o.k === "portal" && !(o0.ptT > 0) && Math.hypot(o0.x - o.ax, o0.y - o.ay) < 18) { o0.x = o.bx; o0.y = o.by; o0.ptT = .4; sfx("power"); ring(o.bx, o.by, "#a35bff", 6, 40, .4); burst(o.ax, o.ay, "#a35bff", 14, 160, .4, 2); }
+      else if (isBall && o.k === "portal" && !(o0.ptT > 0) && Math.hypot(o0.x - o.ax, o0.y - o.ay) < 18) { o0.x = o.bx; o0.y = o.by; o0.ptT = .4; trail = []; sfx("power"); ring(o.bx, o.by, "#a35bff", 6, 40, .4); burst(o.ax, o.ay, "#a35bff", 14, 160, .4, 2); }
     }
   }
   const slideX = (o) => LX + 30 + o.w / 2 + (LW - 60 - o.w) * (.5 + .5 * Math.sin(S.t * o.sp + o.ph));
   function rack() { pins = []; const sp = 30; for (let row = 0; row < 4; row++) for (let i = 0; i <= row; i++) pins.push({ x: W / 2 + (i - row / 2) * sp, y: PINY - row * 26, vx: 0, vy: 0, down: false, out: false }); }
   function newBall() { ball = { x: W / 2, y: 568, vx: 0, vy: 0, spin: 0, live: false }; phase = "aim"; aim = 0; pow = .7; }
   const standing = () => pins.filter((p) => !p.down).length;
-  function score() {
-    const rolls = frames.flat(); let t = 0, ri = 0; const out = [];
+  function score(frs) {
+    const rolls = (frs || frames).flat(); let t = 0, ri = 0; const out = [];
     for (let f = 0; f < 10; f++) {
       if (rolls[ri] == null) break;
       if (f < 9 && rolls[ri] === 10) { if (rolls[ri + 2] == null) { out.push(null); break; } t += 10 + rolls[ri + 1] + rolls[ri + 2]; ri += 1; }
@@ -9246,41 +9302,93 @@ function bowlGame() {
     }
     return out;
   }
-  function throwBall() { if (phase !== "aim") return; const sp = 520 + pow * 520; ball.vx = Math.sin(aim) * sp; ball.vy = -Math.cos(aim) * sp; ball.live = true; phase = "roll"; settleT = 0; sfx("blip"); }
+  function throwBall(remote) { if (phase !== "aim" || waitSeed) return; if (S.online && !remote) { if (!myTurn()) return; sendMove({ a: +aim.toFixed(4), p: +pow.toFixed(4) }); } ghost = !!remote; ghostT = 0; trail = []; const sp = 520 + pow * 520; ball.vx = Math.sin(aim) * sp; ball.vy = -Math.cos(aim) * sp; ball.live = true; phase = "roll"; settleT = 0; sfx("blip"); }
   function endRoll() {
+    if (LV) return endRollLv();
     const before = frames[frame].reduce((a, b) => a + b, 0), knocked = 10 - standing() - (frame === 9 ? 0 : before);
     let kn = frame === 9 ? (10 - standing()) - (pins.__base || 0) : knocked; kn = Math.max(0, kn);
     frames[frame].push(kn);
-    const f = frames[frame], last = frame === 9;
+    const f = frames[frame], last = frame === 9, who = S.duo ? (S.online ? (myTurn() ? "YOU · " : "FRIEND · ") : "P" + (pl + 1) + " · ") : "";
     let strike = kn === 10 && (f.length === 1 || (last && (f[f.length - 2] === 10 || (f.length === 3 && f[0] + f[1] === 10)))), spare = !strike && f.length >= 2 && (last ? (f.length === 2 && f[0] !== 10 && f[0] + f[1] === 10) : f[0] + f[1] === 10);
-    if (strike) { banner("STRIKE!", "#ffd66b"); sfx("level"); burst(W / 2, PINY, "#ffd66b", 50, 300, .8, 3); } else if (spare) { banner("SPARE!", "#3dffa8"); sfx("power"); } else if (kn === 0) banner("MISS...", "#ff4d6d"); else pop(W / 2, 300, kn + " PINS", "#22e4ff");
-    const sc = score(); S.score = sc.filter((v) => v != null).pop() || 0;
-    let nextFrame = false, reset = false;
-    if (!last) { if (strike || f.length === 2) nextFrame = true; }
-    else { const tot = f.length; if (tot === 3 || (tot === 2 && f[0] + f[1] < 10)) return over("FINAL SCORE " + S.score); if (strike || spare) reset = true; }
-    if (nextFrame) { frame++; rack(); pins.__base = 0; newLane(); }
-    else if (reset) { rack(); pins.__base = 0; }
+    if (strike) { banner(who + "STRIKE!", "#ffd66b"); sfx("level"); burst(W / 2, PINY, "#ffd66b", 50, 300, .8, 3); } else if (spare) { banner(who + "SPARE!", "#3dffa8"); sfx("power"); } else if (kn === 0) banner(who + "MISS...", "#ff4d6d"); else pop(W / 2, 300, kn + " PINS", "#22e4ff");
+    const tot0 = (fr) => score(fr).filter((v) => v != null).pop() || 0;
+    if (!S.duo) S.score = tot0(frames);
+    const done = last ? (f.length === 3 || (f.length === 2 && f[0] + f[1] < 10)) : (strike || f.length === 2);
+    if (done) {
+      if (S.duo && pl === 0) { pl = 1; frames = FP[1]; rack(); pins.__base = 0; obs = lanePick[2](); newBall(); banner((S.online ? (myTurn() ? "YOUR TURN" : "FRIEND'S TURN") : "PLAYER 2'S TURN") + " · " + laneName.toUpperCase(), "#ffd66b"); return; }
+      if (S.duo) { pl = 0; frames = FP[0]; }
+      if (last) {
+        if (S.duo) { const a = tot0(FP[0]), b = tot0(FP[1]); return over(a === b ? "IT'S A TIE" : "PLAYER " + (a > b ? 1 : 2) + " WINS"); }
+        return over("FINAL SCORE " + S.score);
+      }
+      frame++; rack(); pins.__base = 0; newLane();
+    }
+    else if (last && (strike || spare)) { rack(); pins.__base = 0; }
     else { pins = pins.filter((p) => !p.down); pins.__base = 10 - pins.length; }
     newBall();
   }
+  function settle() {
+    pins.forEach((p) => { if (p.out) p.down = true; });
+    if (S.online && !myTurn()) { phase = "gwait"; return; }
+    if (S.online) sendMove({ ev: "r", st: pins.filter((p) => !p.down).map((p) => [Math.round(p.x), Math.round(p.y)]) });
+    phase = "wait"; settleT = .7;
+  }
+  function aimDots() {
+    const t = { x: ball.x, y: ball.y, vx: Math.sin(aim) * (520 + pow * 520), vy: -Math.cos(aim) * (520 + pow * 520), spin: 0 }, out = [];
+    for (let i = 0; i < 160; i++) { const h = 1 / 120; t.x += t.vx * h; t.y += t.vy * h; if (t.x < LX + BR) { t.x = LX + BR; t.vx = Math.abs(t.vx) * .8; } if (t.x > LX + LW - BR) { t.x = LX + LW - BR; t.vx = -Math.abs(t.vx) * .8; } obstacleHits(t, BR, false); if (i % 6 === 0) out.push([t.x, t.y]); if (t.y < PINY + 20) break; }
+    return out;
+  }
   game({
     title: "Neon Bowling", w: W, h: H, color: "#ff2bd6", bpm: 110, easy: "easy lanes with fewer obstacles",
-    help: ["Drag back from the ball and let go to bowl", "Every frame is a new obstacle course, like mini golf!", "Bounce off bumpers, dodge sliders, ride portals and boost pads", "Bumpers on both sides: no gutter balls! Swipe while rolling to hook it"],
-    init() { frames = Array.from({ length: 10 }, () => []); frame = 0; rack(); pins.__base = 0; newBall(); newLane(); },
-    hud() { return "FRAME " + Math.min(10, frame + 1) + "/10  ·  " + laneName.toUpperCase() + "  ·  ROLL " + (frames[Math.min(9, frame)].length + 1) + "  ·  SCORE " + S.score; },
-    down(px, py) { drag = { x: px, y: py }; },
+    duo: "same lanes for both players, 10 frames each. Highest score wins.",
+    help: ["Drag back from the ball and let go to bowl", "Every lane is a new obstacle course, like mini golf!", "Bounce off bumpers, dodge sliders, ride portals and boost pads", "Swipe (or ← →) while rolling to hook it", "Levels of 9 lanes get harder and harder", "Miss every pin on a lane and you drop back a level!"],
+    pups: [{ id: "pu-bw-save", name: "Second Chance", icon: "🛟" }, { id: "pu-bw-guide", name: "Aim Line", icon: "🎯" }],
+    start() { saveLeft = LV && pupOn("pu-bw-save") ? 1 : 0; },
+    load(d) { if (!(d && d.lv && lvMode())) return; LV = Math.max(1, d.lv | 0); lvBase = d.base >>> 0; lvDeaths = d.deaths | 0; laneCard = Array.isArray(d.card) ? d.card.slice(0, 9) : []; buildLevel(LV); fi = Math.min(8, d.fi | 0); setLvLane(); },
+    remote(m) {
+      if (!m) return true;
+      if (m.seed != null) { duoSeed = m.seed >>> 0; waitSeed = false; newLane(); return true; }
+      if (waitSeed) return false;
+      if (m.a != null) { if (myTurn()) return true; if (phase !== "aim") return false; aim = +m.a; pow = +m.p; throwBall(true); return true; }
+      if (m.sp != null) { if (!myTurn() && ball.live) ball.spin = +m.sp; return true; }
+      if (m.ev === "r") {
+        if (myTurn()) return true;
+        if ((phase === "roll") && ghostT < 7) return false;
+        const base = pins.__base; pins = (m.st || []).map(([px, py]) => ({ x: +px, y: +py, vx: 0, vy: 0, down: false, out: false })); pins.__base = base; ball.live = false; ghost = false;
+        phase = "wait"; settleT = .3; return true;
+      }
+      return true;
+    },
+    init() {
+      FP = [Array.from({ length: 10 }, () => []), Array.from({ length: 10 }, () => [])]; pl = 0; frames = FP[0]; frame = 0; LV = 0; trail = []; ghost = false; waitSeed = false;
+      rack(); pins.__base = 0; newBall();
+      if (lvMode()) { LV = 1; lvBase = (Math.random() * 4e9) >>> 0; lvDeaths = 0; fi = 0; laneCard = []; buildLevel(1); setLvLane(); return; }
+      if (S.online === 1) { duoSeed = (Math.random() * 1e9) >>> 0; sendMove({ seed: duoSeed }); } else if (S.online === 2) { duoSeed = 1; waitSeed = true; } else duoSeed = (Math.random() * 1e9) >>> 0;
+      newLane();
+    },
+    hud() {
+      if (LV) return "LEVEL " + LV + "  ·  LANE " + (fi + 1) + "/9  ·  ROLL " + (lr.length + 1) + "/2  ·  " + laneName.toUpperCase() + (saveLeft ? "  ·  🛟" : "");
+      if (S.online) return waitSeed ? "WAITING FOR YOUR FRIEND..." : "FRAME " + Math.min(10, frame + 1) + "/10  ·  " + (myTurn() ? "YOUR TURN" : "FRIEND'S TURN") + "  ·  YOU " + (score(FP[S.online - 1]).filter((v) => v != null).pop() || 0) + "  ·  FRIEND " + (score(FP[2 - S.online]).filter((v) => v != null).pop() || 0);
+      if (S.duo) return "FRAME " + Math.min(10, frame + 1) + "/10  ·  PLAYER " + (pl + 1) + "  ·  P1 " + (score(FP[0]).filter((v) => v != null).pop() || 0) + "  ·  P2 " + (score(FP[1]).filter((v) => v != null).pop() || 0);
+      return "FRAME " + Math.min(10, frame + 1) + "/10  ·  " + laneName.toUpperCase() + "  ·  ROLL " + (frames[Math.min(9, frame)].length + 1) + "  ·  SCORE " + S.score;
+    },
+    summary() { if (LV) return ["REACHED LEVEL " + LV]; if (S.duo) return ["P1 " + (score(FP[0]).filter((v) => v != null).pop() || 0) + "  :  " + (score(FP[1]).filter((v) => v != null).pop() || 0) + " P2"]; return []; },
+    down(px, py) { if (!myTurn() || waitSeed) return; drag = { x: px, y: py }; },
     move(px, py) {
       if (!drag || !S.down) return;
       if (phase === "aim") { const dx = drag.x - px, dy = drag.y - py; if (Math.hypot(dx, dy) > 10) { aim = Math.max(-.4, Math.min(.4, Math.atan2(dx, -dy))); pow = Math.max(.1, Math.min(1, Math.hypot(dx, dy) / 180)); } }
-      else if (phase === "roll" && ball.y > 220) { ball.spin += (px - drag.x) * 1.4; ball.spin = Math.max(-260, Math.min(260, ball.spin)); drag.x = px; }
+      else if (phase === "roll" && ball.y > 220) { ball.spin += (px - drag.x) * 1.4; ball.spin = Math.max(-260, Math.min(260, ball.spin)); drag.x = px; if (S.online && S.clock - spinSent > .12) { spinSent = S.clock; sendMove({ sp: Math.round(ball.spin) }); } }
     },
     up() { if (phase === "aim" && drag && pow > .12 && (Math.abs(aim) > .001 || pow !== .7)) throwBall(); drag = null; },
     key(k) { if ((k === " " || k === "Enter") && phase === "aim") throwBall(); },
     update(dt) {
+      if (phase === "dead") { lvWait -= dt; if (lvWait <= 0) dropLevel(); return; }
+      if (ghost) ghostT += dt;
+      if (ball.live) { trail.push([ball.x, ball.y]); if (trail.length > 12) trail.shift(); } else if (trail.length) trail.shift();
       for (const o of obs) { if (o.k === "spin") o.a += o.sp * dt; if (o.flash) o.flash = Math.max(0, o.flash - dt); }
       bumpT = bumpT.map((v) => Math.max(0, v - dt));
-      if (phase === "aim") { const ka = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), kp = (S.keys.ArrowUp || S.keys.w ? 1 : 0) - (S.keys.ArrowDown || S.keys.s ? 1 : 0); aim = Math.max(-.4, Math.min(.4, aim + ka * dt * .4)); pow = Math.max(.1, Math.min(1, pow + kp * dt * .6)); return; }
-      if (phase === "roll") { const ks = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0); if (ks && ball.y > 220) ball.spin = Math.max(-260, Math.min(260, ball.spin + ks * 300 * dt)); }
+      if (phase === "aim" && myTurn()) { const ka = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), kp = (S.keys.ArrowUp || S.keys.w ? 1 : 0) - (S.keys.ArrowDown || S.keys.s ? 1 : 0); aim = Math.max(-.4, Math.min(.4, aim + ka * dt * .4)); pow = Math.max(.1, Math.min(1, pow + kp * dt * .6)); return; }
+      if (phase === "roll" && myTurn()) { const ks = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0); if (ks && ball.y > 220) { ball.spin = Math.max(-260, Math.min(260, ball.spin + ks * 300 * dt)); if (S.online && S.clock - spinSent > .12) { spinSent = S.clock; sendMove({ sp: Math.round(ball.spin) }); } } }
       const n = 4;
       for (let s = 0; s < n; s++) {
         const h = dt / n;
@@ -9289,13 +9397,13 @@ function bowlGame() {
           if (ball.x < LX + BR) { ball.x = LX + BR; ball.vx = Math.abs(ball.vx) * .8; bumpT[0] = .25; sfx("tick"); }
           if (ball.x > LX + LW - BR) { ball.x = LX + LW - BR; ball.vx = -Math.abs(ball.vx) * .8; bumpT[1] = .25; sfx("tick"); }
           if (ball.y < 20) ball.live = false;
-          if (!ball.gutter) { ball.ptT = (ball.ptT || 0) - h; obstacleHits(ball, BR, true); if (ball.y > H + 20 || Math.hypot(ball.vx, ball.vy) < 35) ball.live = false; }
+          if (!ball.gutter) { ball.ptT = (ball.ptT || 0) - h; obstacleHits(ball, BR, true); if (ball.vy > 0 && ball.y > PINY + 60) { ball.vy = -Math.max(240, ball.vy * .7); if (Math.abs(ball.vx) < 160) ball.vx = (ball.vx < 0 || (ball.vx === 0 && ball.x > W / 2) ? -1 : 1) * 200; } ball.rollT = (ball.rollT || 0) + h; if (ball.rollT > 7) ball.live = false; if (ball.y > H + 20 || Math.hypot(ball.vx, ball.vy) < 35) ball.live = false; }
           if (!ball.gutter) for (const p of pins) if (!p.out) { const dx = p.x - ball.x, dy = p.y - ball.y, d = Math.hypot(dx, dy); if (d < BR + PRr && d > 0) { const nx = dx / d, ny = dy / d, rel = (ball.vx - p.vx) * nx + (ball.vy - p.vy) * ny; if (rel > 0) { p.vx += rel * nx * 1.6; p.vy += rel * ny * 1.6; ball.vx -= rel * nx * .3; ball.vy -= rel * ny * .3; p.down = true; sfx("hit"); } p.x = ball.x + nx * (BR + PRr); p.y = ball.y + ny * (BR + PRr); } }
         }
         for (const p of pins) { if (p.out) continue; if (p.y > 140) obstacleHits(p, PRr, false); p.x += p.vx * h; p.y += p.vy * h; p.vx *= .995; p.vy *= .995; if (p.x < LX - 10 || p.x > LX + LW + 10 || p.y < -20 || p.y > H) p.out = true; }
         for (let i = 0; i < pins.length; i++) for (let j = i + 1; j < pins.length; j++) { const a = pins[i], b = pins[j]; if (a.out || b.out) continue; const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy); if (d < PRr * 2 && d > 0) { const nx = dx / d, ny = dy / d, rel = (a.vx - b.vx) * nx + (a.vy - b.vy) * ny; if (rel > 0) { a.vx -= rel * nx; a.vy -= rel * ny; b.vx += rel * nx; b.vy += rel * ny; if (Math.abs(rel) > 20) { a.down = b.down = true; sfx("tick"); } } const o = (PRr * 2 - d) / 2; a.x -= nx * o; a.y -= ny * o; b.x += nx * o; b.y += ny * o; } }
       }
-      if (phase === "roll") { const moving = ball.live || pins.some((p) => !p.out && Math.hypot(p.vx, p.vy) > 8); if (!ball.live) settleT += dt; if (!moving || settleT > 2.5) { pins.forEach((p) => { if (p.out) p.down = true; }); phase = "wait"; settleT = .7; } }
+      if (phase === "roll") { const moving = ball.live || pins.some((p) => !p.out && Math.hypot(p.vx, p.vy) > 8); if (!ball.live) settleT += dt; if (!moving || settleT > 2.5) settle(); }
       else if (phase === "wait") { settleT -= dt; if (settleT <= 0) { ball.gutter = false; endRoll(); } }
     },
     draw() {
@@ -9355,12 +9463,23 @@ function bowlGame() {
         glow(BSK, 20); x.fillStyle = g; x.beginPath(); x.arc(sx, cy, r, 0, 7); x.fill(); glow();
         const rot = (ball.y * .08) % 6.283; x.fillStyle = "rgba(4,2,12,.8)"; for (let i = 0; i < 3; i++) { const aa = rot + i * .5, hx = sx + Math.cos(aa) * r * .4, hy = cy - r * .2 + Math.sin(aa) * r * .2; if (Math.sin(aa) > -0.6) { x.beginPath(); x.arc(hx, hy, r * .13, 0, 7); x.fill(); } }
       }]);
+      if (trail.length > 1) for (let k = 1; k < trail.length; k++) { const a0 = P(trail[k - 1][0], trail[k - 1][1]), a1 = P(trail[k][0], trail[k][1]); x.globalAlpha = k / trail.length * .45; x.strokeStyle = skinCol("bowling", "#22e4ff"); x.lineWidth = BR * a1[2] * 1.3 * k / trail.length; x.lineCap = "round"; x.beginPath(); x.moveTo(a0[0], a0[1] - BR * a0[2]); x.lineTo(a1[0], a1[1] - BR * a1[2]); x.stroke(); x.globalAlpha = 1; x.lineCap = "butt"; }
       items.sort((a1, b1) => a1[0] - b1[0]).forEach((it) => it[1]());
-      if (phase === "aim") {
+      if (phase === "roll" && ball.live && Math.abs(ball.spin) > 20) { const sw = ball.spin / 260; x.fillStyle = "rgba(255,255,255,.12)"; x.fillRect(W / 2 - 60, H - 74, 120, 6); x.fillStyle = "#ffd66b"; x.fillRect(W / 2, H - 74, 60 * sw, 6); txt("HOOK", W / 2, H - 80, 9, "#ffd66b", "center"); }
+      if (phase === "aim" && myTurn() && !waitSeed && LV && pupOn("pu-bw-guide")) { glow("#ffffff", 6); x.fillStyle = "rgba(255,255,255,.6)"; for (const [gx, gy] of aimDots()) { const [sx, sy, sc0] = P(gx, gy); x.beginPath(); x.arc(sx, sy, 2.5 * sc0, 0, 7); x.fill(); } glow(); }
+      if (phase === "aim" && myTurn() && !waitSeed && !drag && S.state === "play") txt("DRAG BACK TO BOWL · SWIPE TO HOOK", W / 2, H - 70, 10, "rgba(255,255,255,.5)", "center");
+      if (S.online && !myTurn() && S.state === "play") txt("FRIEND IS BOWLING...", W / 2, H - 70, 11, "#ffd66b", "center", "d");
+      if (phase === "aim" && myTurn()) {
         const L = 90 + pow * 140; x.strokeStyle = "rgba(34,228,255,.75)"; x.setLineDash([6, 6]); x.lineWidth = 2; x.beginPath();
         for (let i = 0; i <= 12; i++) { const [sx, sy] = P(ball.x + Math.sin(aim) * L * i / 12, ball.y - Math.cos(aim) * L * i / 12); i ? x.lineTo(sx, sy) : x.moveTo(sx, sy); } x.stroke(); x.setLineDash([]);
         x.fillStyle = "rgba(255,255,255,.1)"; x.fillRect(20, H - 16, W - 40, 8); x.fillStyle = "#22e4ff"; x.fillRect(20, H - 16, (W - 40) * pow, 8);
       }
+      if (LV) {
+        for (let f = 0; f < 9; f++) { const X = 4 + f * 39, Y = H - 58, fr = f === fi ? lr : laneCard[f] || []; x.strokeStyle = f === fi ? "#ffd66b" : f < fi ? "rgba(61,255,168,.5)" : "rgba(255,255,255,.25)"; x.lineWidth = 1; x.strokeRect(X, Y, 37, 36); const marks = fr.map((v, i) => v === 10 && i === 0 ? "X" : i > 0 && fr[0] + v === 10 ? "/" : v === 0 ? "-" : String(v)); txt(marks.join(" "), X + 18, Y + 12, 10, "#ffffff", "center"); txt("L" + (f + 1), X + 18, Y + 28, 9, f === fi ? "#ffd66b" : "#8f86b5", "center"); }
+        txt("LEVEL " + LV, 12, 24, 13, "#ffd66b", "left", "d"); txt("LANE " + (fi + 1) + "/9", W - 12, 24, 12, "#22e4ff", "right", "d");
+        return;
+      }
+      if (S.duo) { txt("P1 " + (score(FP[0]).filter((v) => v != null).pop() || 0), 12, 24, 13, pl === 0 ? "#ff2bd6" : "#8f86b5", "left", "d"); txt((score(FP[1]).filter((v) => v != null).pop() || 0) + " P2", W - 12, 24, 13, pl === 1 ? "#ffd66b" : "#8f86b5", "right", "d"); }
       const sc = score();
       for (let f = 0; f < 10; f++) { const X = 4 + f * 35.2, Y = H - 58, fr = frames[f]; x.strokeStyle = f === frame ? "#ffd66b" : "rgba(255,255,255,.25)"; x.lineWidth = 1; x.strokeRect(X, Y, 34, 36); const marks = fr.map((v, i) => v === 10 && (i === 0 || f === 9) ? "X" : i > 0 && fr[i - 1] + v === 10 && fr[i - 1] !== 10 ? "/" : v === 0 ? "-" : String(v)); txt(marks.join(" "), X + 17, Y + 10, 9, "#ffffff", "center"); if (sc[f] != null) txt(String(sc[f]), X + 17, Y + 26, 11, "#ffd66b", "center", "d"); }
     },
@@ -10298,6 +10417,7 @@ function fighterGame() {
     { key: "chess", how: "Full chess with castling, en passant and promotion. Checkmate the other king.", keys: "Arrows move, Space picks and moves", touch: "Tap a piece, tap a dot, then pass the iPad" },
     { key: "connect4", how: "Classic Connect Four. Drop discs and get 4 in a row first.", keys: "← → pick a column, Space drops", touch: "Tap a column, then pass the iPad" },
     { key: "reversi", how: "Flip your rival's discs by trapping them. Most discs at the end wins.", keys: "Arrows move, Space places", touch: "Tap a glowing dot, then pass the iPad" },
+    { key: "bowling", how: "Same obstacle lanes for both players, 10 frames each. Highest score wins.", keys: "Drag back to aim and set power, Space bowls, ← → hook while rolling", touch: "Drag back and let go, swipe to hook, then pass the iPad" },
     { key: "hoops", how: "Same shooting spots for both players, 5 shots each. Most points wins.", keys: "Arrows aim, Space shoots", touch: "Drag back and let go, then pass the iPad" },
     { key: "fighters", how: "Street fighting! Pick a fighter each, then punch, kick, block and fire specials. Win 2 rounds to win.", keys: "P1 W A S D + F G H  ·  P2 arrows + K L Enter", touch: "Each player uses the buttons on their side" },
     { key: "ttt", how: "Classic tic-tac-toe. Get 3 in a row to win.", keys: "Tap a square, or 1-9", touch: "Tap a square, then pass the iPad" },
@@ -11145,7 +11265,7 @@ function fighterGame() {
   setInterval(() => { if (!document.hidden) { if (daily && Date.now() > daily.endsAt) loadDaily(); else renderDaily(); } }, 30000);
 
   /* ---------- Online 2-player (turn-based games) ---------- */
-  const ONLINE = [["ttt", "Tic-Tac-Toe"], ["dots", "Dots & Boxes"], ["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"], ["penalty", "Penalty Kick"], ["memory", "Memory Grid"], ["guesswho", "Guess Who"], ["golf", "Mini Golf"], ["hoops", "Hoop Shot"]];
+  const ONLINE = [["ttt", "Tic-Tac-Toe"], ["dots", "Dots & Boxes"], ["connect4", "Connect Four"], ["reversi", "Reversi"], ["chess", "Neon Chess"], ["penalty", "Penalty Kick"], ["memory", "Memory Grid"], ["guesswho", "Guess Who"], ["golf", "Mini Golf"], ["hoops", "Hoop Shot"], ["bowling", "Neon Bowling"]];
   let room = null, waitTimer = null;
   function renderOnline() {
     const box = $("#online-box"); if (!box) return;
