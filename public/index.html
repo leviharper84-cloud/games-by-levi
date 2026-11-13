@@ -11296,7 +11296,7 @@ function fighterGame() {
   window.gblOnSave = (g, data) => {
     if (!g || !g.key || !BUILTINS.some((b) => b.key === g.key)) return;
     prog.saves = prog.saves || {};
-    if (data && typeof data === "object") { prog.saves[g.key] = { ...data, at: Date.now() }; toast("Game saved ✓"); } else delete prog.saves[g.key];
+    if (data && typeof data === "object") { prog.saves[g.key] = { ...data, at: Date.now() }; toast("Game saved ✓"); const L = Math.min(999, (+data.lv || (g.key === "pool" ? +data.level : 0)) | 0); if (L > 0 && ["golf", "bowling", "pool"].includes(g.key)) { prog.stats["maxlv_" + g.key] = Math.max((prog.stats["maxlv_" + g.key] | 0), L); if (window.gblCheckAch) window.gblCheckAch(); } } else delete prog.saves[g.key];
     saveProg(); renderLibrary();
   };
   let progTimer = null;
@@ -11359,6 +11359,9 @@ function fighterGame() {
     ["star10", "⭐", "Rising Star", "Earn 10 stars", (c) => c.stars >= 10],
     ["star50", "🌟", "Superstar", "Earn 50 stars", (c) => c.stars >= 50],
     ["star100", "💫", "Star Collector", "Earn 100 stars", (c) => c.stars >= 100],
+    ["golf5", "⛳", "Course Master", "Reach level 5 in Mini Golf", (c) => c.golfLv >= 5],
+    ["bowl5", "🎳", "Lane Legend", "Reach level 5 in Neon Bowling", (c) => c.bowlLv >= 5],
+    ["pool6", "🎱", "Table Shark", "Clear 5 tables in Neon Pool", (c) => c.poolLv >= 6],
     ["starall", "🌠", "Galaxy Brain", "Earn every star in the hub", (c) => c.stars >= 180],
   ];
   const BTIER = { star100: 3, starall: 3, star50: 2, complete: 3, legend: 3, k50: 3, hacker: 3, collector: 3, lv25: 3, online5: 2, daily7: 2, marathon: 2, k10: 2, hard: 2, streak7: 2, diamond: 2, explorer: 2, champ: 2, spinner: 2 };
@@ -11372,6 +11375,7 @@ function fighterGame() {
       distinct: keys.length, total: Object.values(prog.played).reduce((a, b) => a + (+b || 0), 0),
       genres: new Set(keys.map((k) => BUILTINS.find((b) => b.key === k).genre)).size,
       max: stat("maxScore"), tourWins: stat("tourWins"), tourHard: stat("tourHard"), tourHacker: stat("tourHacker"), tourFriend: stat("tourFriend"),
+      golfLv: stat("maxlv_golf"), bowlLv: stat("maxlv_bowling"), poolLv: stat("maxlv_pool"),
       dailyDays: (prog.stats.dailyDays || []).length, favs: prog.favs.length, online: stat("online"), onlineWins: stat("onlineWins"),
     };
   }
