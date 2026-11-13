@@ -8905,6 +8905,116 @@ function wordGame() {
   });
 }
 
+/* ---------- Neon Platformer + level editor ---------- */
+function platGame() {
+  const T = 24, CW = 20, CH = 15, W = CW * T, H = CH * T + 56, BAR = CH * T;
+  const LV = [
+    ["....................", "....................", "....................", "....................", "....................", "....................", "....................", "..............o..G..", ".............#####..", "........o...........", ".......####.........", "...o................", "..###...............", "S...................", "####################"],
+    ["....................", "....................", "..................G.", "................####", "...........o........", "..........###.......", ".....o..............", "....###.......o.....", ".............###....", "..o.................", ".###........^.......", "...........###......", "S......o............", "###..#####...^^^..##", "###..#####..######.."],
+    ["....................", "G...................", "###.................", "....o...o...........", "...###.###....o.....", "............#####...", "...................o", "..........=......###", ".......o..#.........", "......###...........", "..o.................", ".###........o.......", "S.....^^...###...=..", "####..##..........##", "####..##^^^^^^^^^^##"],
+    ["....................", "..o..o..o..o..o..o..", ".##################.", "...................G", "................####", "...........=........", "..o.....####........", ".###................", ".....^..............", "....###..o..........", "........###...^.....", "..............###...", "S..o..=.........o...", "######.##^^^#####..=", "######.#########...#"],
+    ["G..................o", "##.................#", "....o........^.....#", "...###......###....#", "........=..........#", ".......###.....o...#", "...o..........###..#", "..###...............", ".......^^...........", "......####....o.....", "...........=###.....", "..o.................", ".###....^......o....", "S.....#####...###..=", "####^^#####^^^###^^#"],
+  ];
+  const SOLID = (ch) => ch === "#" || ch === "=";
+  let mode, lvI, map, pl, coins, got, lives, menuBtns, edTile, editMap, myLevels, custom, shareMsg, keysT, deadT, winT, unlocked;
+  try { myLevels = Array.isArray(window.MYLV0) ? window.MYLV0.slice(0, 10) : []; } catch { myLevels = []; }
+  const enc = (rows) => { const s = rows.join(""); let o = ""; for (let i = 0; i < s.length;) { let j = i; while (j < s.length && s[j] === s[i] && j - i < 99) j++; o += s[i] + (j - i > 1 ? String(j - i) : ""); i = j; } return "GBL1-" + btoa(o).replace(/=+$/, ""); };
+  const dec = (code) => { try { const raw = atob(String(code).trim().replace(/^GBL1-/, "")); let s = ""; for (let i = 0; i < raw.length;) { const ch = raw[i++]; let n = ""; while (i < raw.length && /[0-9]/.test(raw[i])) n += raw[i++]; s += ch.repeat(n ? parseInt(n, 10) : 1); } if (s.length !== CW * CH || /[^.#^oSG=]/.test(s) || (s.match(/S/g) || []).length !== 1 || !s.includes("G")) return null; return Array.from({ length: CH }, (_, r) => s.slice(r * CW, r * CW + CW)); } catch { return null; } };
+  const tile = (c, r) => (r < 0 ? "." : r >= CH || c < 0 || c >= CW ? "#" : map[r][c]);
+  function startLevel(rows, isCustom) {
+    map = rows.map((r) => r.split("")); custom = !!isCustom; coins = []; got = 0;
+    for (let r = 0; r < CH; r++) for (let c = 0; c < CW; c++) { if (map[r][c] === "S") { pl = { x: c * T + 4, y: r * T + 2, vx: 0, vy: 0, w: 16, h: 22, on: false, sx: c * T + 4, sy: r * T + 2 }; map[r][c] = "."; } if (map[r][c] === "o") { coins.push([c, r]); map[r][c] = "."; } }
+    lives = 3; deadT = 0; winT = 0; mode = "play";
+  }
+  function die() { if (deadT > 0) return; deadT = .8; sfx("boom"); burst(pl.x + 8, pl.y + 11, "#ff4d6d", 24, 220, .5); shake(6, .3); if (!S.practice) lives--; }
+  function respawn() { if (lives <= 0) { if (custom) { mode = "menu"; banner("OUT OF LIVES", "#ff4d6d"); return; } return over("OUT OF LIVES ON LEVEL " + (lvI + 1)); } pl.x = pl.sx; pl.y = pl.sy; pl.vx = pl.vy = 0; }
+  function menu() {
+    mode = "menu"; menuBtns = [];
+    LV.forEach((_, i) => menuBtns.push({ x: 30 + (i % 5) * 86, y: 90, w: 76, h: 60, t: "LEVEL " + (i + 1), lock: i > unlocked, act: () => { lvI = i; startLevel(LV[i]); banner("LEVEL " + (i + 1), "#22e4ff"); } }));
+    menuBtns.push({ x: 30, y: 180, w: 200, h: 54, t: "✏️ MAKE A LEVEL", act: () => { editMap = (myLevels[0] ? dec(myLevels[0]) : null) || LV[0].slice(); edit(); } });
+    menuBtns.push({ x: 250, y: 180, w: 200, h: 54, t: "📥 LOAD A CODE", act: () => { try { parent.postMessage({ type: "gbl:askcode" }, "*"); } catch (e) {} shareMsg = "Type the code in the box that pops up"; } });
+    myLevels.forEach((code, i) => menuBtns.push({ x: 30 + (i % 5) * 86, y: 290 + Math.floor(i / 5) * 50, w: 76, h: 40, t: "MY " + (i + 1), act: () => { const m = dec(code); if (m) { lvI = -1; startLevel(m, true); banner("MY LEVEL " + (i + 1), "#ffd66b"); } } }));
+  }
+  function edit() { mode = "edit"; edTile = "#"; shareMsg = ""; }
+  const PAL = [".", "#", "^", "o", "=", "S", "G"], PALN = { ".": "ERASE", "#": "BLOCK", "^": "SPIKE", "o": "COIN", "=": "BOUNCE", S: "START", G: "GOAL" };
+  const edBtns = () => [...PAL.map((t, i) => ({ x: 4 + i * 44, y: BAR + 8, w: 40, h: 40, tile: t })), { x: 318, y: BAR + 8, w: 50, h: 40, t: "▶ TEST" }, { x: 372, y: BAR + 8, w: 50, h: 40, t: "💾📤" }, { x: 426, y: BAR + 8, w: 50, h: 40, t: "✕" }];
+  function paint(px, py) { const c = Math.floor(px / T), r = Math.floor(py / T); if (c < 0 || r < 0 || c >= CW || r >= CH) return; if (edTile === "S") editMap = editMap.map((rw) => rw.replace("S", ".")); const row2 = editMap[r].split(""); row2[c] = edTile; editMap[r] = row2.join(""); }
+  const ctl = { l: false, r: false, j: false }, touchIds = new Map();
+  const touchZone = (px, py) => (py > BAR ? (px < 80 ? "l" : px < 160 ? "r" : px > W - 100 ? "j" : null) : null);
+  game({
+    remote(m) { if (m && m.code) { const lv = dec(m.code); if (!lv) { banner("THAT CODE DOESN'T WORK", "#ff4d6d"); return true; } lvI = -1; startLevel(lv, true); banner("FRIEND'S LEVEL!", "#ffd66b"); } return true; },
+    load(d) { if (d && d.unlocked != null) unlocked = Math.max(unlocked, d.unlocked | 0); },
+    title: "Neon Platformer", w: W, h: H, color: "#22e4ff", bpm: 132, easy: "unlimited lives",
+    help: ["← → (or A D) to run, ↑ / Space to jump. Touch: ◀ ▶ and ⤒ buttons", "Grab coins, dodge spikes, reach the flag", "Make your own levels: paint tiles, test, then share the code with friends", "Load a friend's code from the menu to play their level"],
+    init() { unlocked = unlocked || 0; menu(); },
+    hud() { return mode === "play" ? (custom ? "CUSTOM LEVEL" : "LEVEL " + (lvI + 1) + "/" + LV.length) + "  ·  COINS " + got + "/" + (got + coins.length) + "  ·  " + (S.practice ? "∞" : "♥".repeat(Math.max(0, lives))) : mode === "edit" ? "LEVEL EDITOR · " + PALN[edTile] : "PICK A LEVEL"; },
+    summary() { return ["LEVELS BEATEN " + unlocked]; },
+    down(px, py, pid) {
+      if (mode === "menu") { for (const b of menuBtns) if (!b.lock && px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) { sfx("blip"); b.act(); return; } return; }
+      if (mode === "edit") {
+        if (py > BAR) { for (const b of edBtns()) if (px >= b.x && px <= b.x + b.w && py >= b.y && py <= b.y + b.h) { sfx("tick"); if (b.tile) edTile = b.tile;
+          else if (b.t === "▶ TEST") { if (!editMap.join("").includes("S") || !editMap.join("").includes("G")) { shareMsg = "Add a START and a GOAL first!"; return; } lvI = -1; startLevel(editMap, true); custom = "test"; }
+          else if (b.t === "💾📤") { const code = enc(editMap); myLevels = [code, ...myLevels.filter((c) => c !== code)].slice(0, 10); try { parent.postMessage({ type: "gbl:mylevels", levels: myLevels }, "*"); parent.postMessage({ type: "gbl:share", code }, "*"); } catch (e) {} shareMsg = "Saved to My Levels! Share code shown on screen."; }
+          else menu(); } return; }
+        this._paint = true; paint(px, py); return;
+      }
+      const z = touchZone(px, py); if (z) { touchIds.set(pid, z); ctl[z] = true; }
+    },
+    move(px, py, pid) { if (mode === "edit" && this._paint && py < BAR) paint(px, py); if (mode === "play" && touchIds.has(pid)) { const z = touchZone(px, py), old = touchIds.get(pid); if (z !== old) { ctl[old] = false; if (z) { ctl[z] = true; touchIds.set(pid, z); } else touchIds.delete(pid); } } },
+    up(px, py, pid) { this._paint = false; const z = touchIds.get(pid); if (z) { ctl[z] = false; touchIds.delete(pid); } },
+    key(k, rep) { if (mode === "play" && k === "b" && custom) { mode = custom === "test" ? "edit" : "menu"; if (mode === "menu") menu(); } },
+    update(dt) {
+      if (mode !== "play") return;
+      if (deadT > 0) { deadT -= dt; if (deadT <= 0) respawn(); return; }
+      if (winT > 0) { winT -= dt; if (winT <= 0) { if (custom === "test") { mode = "edit"; return; } if (custom) { menu(); return; } unlocked = Math.max(unlocked, lvI + 1); if (lvI + 1 >= LV.length) return over("ALL LEVELS BEATEN — YOU WIN!"); saveGame({ unlocked, label: "LEVEL " + (lvI + 2), stop: true, next: "Level " + (lvI + 2) + " is unlocked" }); lvI++; startLevel(LV[lvI]); banner("LEVEL " + (lvI + 1), "#22e4ff"); } return; }
+      const L = ctl.l || S.keys.ArrowLeft || S.keys.a, R = ctl.r || S.keys.ArrowRight || S.keys.d, J = ctl.j || S.keys.ArrowUp || S.keys.w || S.keys[" "];
+      pl.vx += ((R ? 1 : 0) - (L ? 1 : 0)) * 1800 * dt; pl.vx *= Math.pow(pl.on ? .0008 : .05, dt); pl.vx = Math.max(-200, Math.min(200, pl.vx));
+      if (J && pl.on) { pl.vy = -430; pl.on = false; sfx("jump"); }
+      if (!J && pl.vy < -160) pl.vy = -160;
+      pl.vy = Math.min(700, pl.vy + 1300 * dt);
+      pl.x += pl.vx * dt; for (const [cx, cy] of [[pl.x, pl.y + 2], [pl.x + pl.w, pl.y + 2], [pl.x, pl.y + pl.h - 2], [pl.x + pl.w, pl.y + pl.h - 2]]) { const c = Math.floor(cx / T), r = Math.floor(cy / T); if (SOLID(tile(c, r))) { if (pl.vx > 0) pl.x = c * T - pl.w - .01; else if (pl.vx < 0) pl.x = (c + 1) * T + .01; pl.vx = 0; } }
+      pl.y += pl.vy * dt; pl.on = false;
+      for (const [cx, cy] of [[pl.x + 2, pl.y], [pl.x + pl.w - 2, pl.y], [pl.x + 2, pl.y + pl.h], [pl.x + pl.w - 2, pl.y + pl.h]]) { const c = Math.floor(cx / T), r = Math.floor(cy / T), t = tile(c, r); if (SOLID(t)) { if (pl.vy > 0) { pl.y = r * T - pl.h - .01; if (t === "=") { pl.vy = -620; sfx("power"); burst(pl.x + 8, pl.y + pl.h, "#ffd66b", 10, 160, .3); } else { pl.vy = 0; pl.on = true; } } else if (pl.vy < 0) { pl.y = (r + 1) * T + .01; pl.vy = 0; } } }
+      const cc = Math.floor((pl.x + pl.w / 2) / T), cr = Math.floor((pl.y + pl.h / 2) / T);
+      if (tile(cc, cr) === "^" || tile(Math.floor((pl.x + 3) / T), Math.floor((pl.y + pl.h - 3) / T)) === "^" || tile(Math.floor((pl.x + pl.w - 3) / T), Math.floor((pl.y + pl.h - 3) / T)) === "^" || pl.y > CH * T) return die();
+      coins = coins.filter(([c, r]) => { if (Math.abs(c * T + 12 - (pl.x + 8)) < 16 && Math.abs(r * T + 12 - (pl.y + 11)) < 18) { got++; S.score += 50; sfx("score"); burst(c * T + 12, r * T + 12, "#ffd66b", 10, 140, .3); return false; } return true; });
+      if (tile(cc, cr) === "G") { winT = 1.4; const b = custom ? 0 : 500 + got * 20; S.score += b; banner(custom ? "LEVEL COMPLETE!" : "LEVEL CLEAR! +" + b, "#3dffa8"); sfx("level"); flash("#3dffa8", .25); }
+    },
+    draw() {
+      bg("#05030f"); const g = x.createLinearGradient(0, 0, 0, BAR); g.addColorStop(0, "#0d0628"); g.addColorStop(1, "#1a0b3a"); x.fillStyle = g; x.fillRect(0, 0, W, BAR);
+      const drawTile = (t, c, r, a) => { const X = c * T, Y = r * T; x.globalAlpha = a || 1;
+        if (t === "#") { x.fillStyle = "#1b2a5a"; x.fillRect(X, Y, T, T); x.strokeStyle = "#22e4ff"; x.lineWidth = 1.5; x.strokeRect(X + .5, Y + .5, T - 1, T - 1); }
+        else if (t === "=") { x.fillStyle = "#5a4410"; x.fillRect(X, Y, T, T); glow("#ffd66b", 8); x.fillStyle = "#ffd66b"; x.fillRect(X + 2, Y, T - 4, 6); glow(); }
+        else if (t === "^") { glow("#ff4d6d", 8); x.fillStyle = "#ff4d6d"; x.beginPath(); for (let k = 0; k < 3; k++) { x.moveTo(X + k * 8, Y + T); x.lineTo(X + k * 8 + 4, Y + 8); x.lineTo(X + k * 8 + 8, Y + T); } x.fill(); glow(); }
+        else if (t === "o") { glow("#ffd66b", 10); x.fillStyle = "#ffd66b"; x.beginPath(); x.ellipse(X + 12, Y + 12, 6 * Math.abs(Math.cos(S.clock * 3 + c)) + 1, 7, 0, 0, 7); x.fill(); glow(); }
+        else if (t === "G") { x.fillStyle = "#fff"; x.fillRect(X + 4, Y + 2, 3, T - 2); glow("#3dffa8", 12); x.fillStyle = "#3dffa8"; x.beginPath(); x.moveTo(X + 7, Y + 2); x.lineTo(X + 21 + Math.sin(S.clock * 5) * 2, Y + 7); x.lineTo(X + 7, Y + 12); x.fill(); glow(); }
+        else if (t === "S") { x.strokeStyle = "#22e4ff"; x.setLineDash([3, 3]); x.strokeRect(X + 3, Y + 1, T - 6, T - 2); x.setLineDash([]); txt("S", X + 12, Y + 13, 12, "#22e4ff", "center", "d"); }
+        x.globalAlpha = 1; };
+      if (mode === "menu") {
+        txt("NEON PLATFORMER", W / 2, 44, 24, "#22e4ff", "center", "d");
+        for (const b of menuBtns) { x.fillStyle = b.lock ? "rgba(255,255,255,.04)" : "rgba(34,228,255,.12)"; x.strokeStyle = b.lock ? "rgba(255,255,255,.2)" : "#22e4ff"; x.lineWidth = 2; rr(b.x, b.y, b.w, b.h, 10); x.fill(); x.stroke(); txt(b.lock ? "🔒" : b.t, b.x + b.w / 2, b.y + b.h / 2 + 1, b.t.length > 8 ? 12 : 13, b.lock ? "#6c6290" : "#ffffff", "center", "d"); }
+        if (myLevels.length) txt("MY LEVELS", 30, 274, 12, "#ffd66b", "left", "d");
+        if (shareMsg) txt(shareMsg, W / 2, H - 20, 12, "#ffd66b", "center");
+        return;
+      }
+      if (mode === "edit") {
+        for (let r = 0; r < CH; r++) for (let c = 0; c < CW; c++) { x.strokeStyle = "rgba(255,255,255,.05)"; x.strokeRect(c * T, r * T, T, T); drawTile(editMap[r][c], c, r); }
+        x.fillStyle = "rgba(6,3,14,.96)"; x.fillRect(0, BAR, W, H - BAR);
+        for (const b of edBtns()) { const on = b.tile && b.tile === edTile; x.fillStyle = on ? "rgba(34,228,255,.3)" : "rgba(255,255,255,.06)"; x.strokeStyle = on ? "#22e4ff" : "rgba(255,255,255,.25)"; x.lineWidth = 2; rr(b.x, b.y, b.w, b.h, 8); x.fill(); x.stroke();
+          if (b.tile) { if (b.tile === ".") txt("⌫", b.x + 20, b.y + 21, 16, "#fff", "center"); else { x.save(); x.translate(b.x + 8, b.y + 8); x.scale(1, 1); drawTile(b.tile, 0, 0); x.restore(); } } else txt(b.t, b.x + b.w / 2, b.y + 21, 11, "#fff", "center", "d"); }
+        if (shareMsg) txt(shareMsg, W / 2, BAR - 12, 12, "#ffd66b", "center", "d");
+        return;
+      }
+      for (let r = 0; r < CH; r++) for (let c = 0; c < CW; c++) if (map[r][c] !== ".") drawTile(map[r][c], c, r);
+      for (const [c, r] of coins) drawTile("o", c, r);
+      if (deadT <= 0) { glow("#22e4ff", 14); x.fillStyle = "#22e4ff"; rr(pl.x, pl.y, pl.w, pl.h, 5); x.fill(); glow(); x.fillStyle = "#05030f"; x.fillRect(pl.x + (pl.vx >= 0 ? 9 : 3), pl.y + 6, 4, 4); }
+      x.fillStyle = "rgba(6,3,14,.9)"; x.fillRect(0, BAR, W, H - BAR);
+      if (matchMedia("(pointer: coarse)").matches || touchIds.size) { const btn = (X, lab, on) => { x.fillStyle = on ? "rgba(34,228,255,.35)" : "rgba(255,255,255,.08)"; x.strokeStyle = "#22e4ff"; x.lineWidth = 2; rr(X, BAR + 6, 70, 44, 12); x.fill(); x.stroke(); txt(lab, X + 35, BAR + 29, 20, "#fff", "center"); }; btn(5, "◀", ctl.l); btn(85, "▶", ctl.r); btn(W - 95, "⤒", ctl.j); }
+      else txt("← →  RUN   ·   ↑ / SPACE  JUMP" + (custom ? "   ·   B  BACK" : ""), W / 2, BAR + 28, 12, "#9a90c0", "center");
+    },
+  });
+}
+
 /* ---------- 53 Neon Bowling ---------- */
 function bowlGame() {
   const W = 360, H = 680, LX = 60, LW = 240, BR = 13, PRr = 9, FOUL = 520, PINY = 120;
@@ -10040,6 +10150,7 @@ function fighterGame() {
     { key: "pinball", title: "Neon Pinball", genre: "Arcade", fn: pinballGame },
     { key: "bubbles", title: "Bubble Shooter", genre: "Puzzle", fn: bubbleGame },
     { key: "words", title: "Word Hunt", genre: "Puzzle", fn: wordGame },
+    { key: "platformer", title: "Neon Platformer", genre: "Platformer", fn: platGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -10084,7 +10195,7 @@ function fighterGame() {
     return '<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
       '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Orbitron:wght@500;800;900&family=Share+Tech+Mono&display=swap"><style>' + SHELL_CSS +
       '</style></head><body><div id="hud"><span id="hl"></span><span id="hc"></span><span id="hr"></span><div id="ctl"><button id="snd" type="button" title="Sound (M)">♪ ALL</button><button id="pz" type="button" title="Pause (P)">II</button><button id="xq" type="button" title="Close" hidden>✕</button></div></div>' +
-      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="qp" type="button">⚡ QUICK PLAY</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button><div id="pups" hidden></div></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";window.PUPS0=" + JSON.stringify((prog && prog.pups) || {}) + ";window.QPBEST0=" + (myBest(g.key + "-qp") | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (window.gblEventActive && window.gblEventActive("halloween") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake && !settings.calm, flash: settings.flash && !settings.calm, crt: settings.crt, glow: settings.glow, cb: settings.cb === true, big: settings.big === true, calm: settings.calm === true }) + ";" + musicLib.toString() + ";(" +
+      '<div id="wrap"><canvas id="c"></canvas></div><div id="btns" hidden><button id="cont" type="button" hidden>▶ CONTINUE</button><button id="go" type="button">▶ START</button><button id="qp" type="button">⚡ QUICK PLAY</button><button id="prac" type="button">PRACTICE</button><button id="duo" type="button">2 PLAYERS</button><div id="pups" hidden></div></div><script>window.BEST0=' + (myBest(g.key) | 0) + ";window.MYLV0=" + JSON.stringify(((prog && prog.mylevels) || []).filter((c) => typeof c === "string" && /^GBL1-[A-Za-z0-9+/]{1,800}$/.test(c))) + ";window.PUPS0=" + JSON.stringify((prog && prog.pups) || {}) + ";window.QPBEST0=" + (myBest(g.key + "-qp") | 0) + ";" + (opts && opts.duo ? "window.DUO0=true;" : "") + (opts && opts.bot ? "window.BOT0=true;window.BOTK=" + (opts.botLevel == null ? 1 : opts.botLevel | 0) + ";" : "") + (opts && opts.tour ? "window.TOUR0=true;" : "") + (opts && opts.online ? "window.ONLINE0=" + (opts.online | 0) + ";window.TOUR0=true;" : "") + (opts && opts.slitherOnline ? ("window.SLWS0=" + JSON.stringify(location.origin.replace(/^http/, "ws") + "/api/slither") + ";window.SLNAME0=" + JSON.stringify(String(opts.name || "Player")) + ";window.TOUR0=true;").replace(/</g, "\\u003c") : "") + "window.STAR0=" + JSON.stringify(window.gblStarInfo ? window.gblStarInfo(g.key) : null) + ";window.SAVE0=" + JSON.stringify((prog && prog.saves && g.key && prog.saves[g.key]) || null).replace(/</g, "\\u003c") + ";window.EVENT0=" + (window.gblEventActive && window.gblEventActive("halloween") ? 1 : 0) + ";window.SKIN0=" + JSON.stringify((prog && prog.equip) || {}) + ";window.MUSIC0=" + JSON.stringify(window.gblMusicPick ? window.gblMusicPick() : settings.music) + ";window.MVOL0=" + (settings.mvol / 100) + ";window.SET0=" + JSON.stringify({ svol: settings.svol, shake: settings.shake && !settings.calm, flash: settings.flash && !settings.calm, crt: settings.crt, glow: settings.glow, cb: settings.cb === true, big: settings.big === true, calm: settings.calm === true }) + ";" + musicLib.toString() + ";(" +
       SHELL.toString() + ")();(" + g.fn.toString() + ")();<\/script></body></html>";
   }
 
@@ -10589,6 +10700,10 @@ function fighterGame() {
     if (d && d.type === "gbl:move") { if (current.onMove) current.onMove(d.move); return; }
     if (d && d.type === "gbl:match") { if (window.gblOnMatch) window.gblOnMatch(current, d.winner | 0); if (current.onMatch) { const f = current.onMatch; current.onMatch = null; f(d.winner | 0); } return; }
     if (d && d.type === "gbl:unlock") { if (current.g.key !== "bossrush" || !current.ranked) return; const ok = ["t-bossslayer", "pet-bossbot"].filter((id) => (d.ids || []).includes(id) && !(prog.owned || []).includes(id)); if (ok.length) { prog.owned = [...(prog.owned || []), ...ok]; saveProg(); setTimeout(() => { sfxLegendary(); if (window.gblConfetti) window.gblConfetti(200); coinPop("👑 BOSS SLAYER! Legendary title + Boss Bot pet unlocked!", true); }, 2500); } return; }
+    if (d && d.type === "gbl:mylevels") { if (current.g.key !== "platformer" || !Array.isArray(d.levels)) return; prog.mylevels = d.levels.filter((c) => typeof c === "string" && /^GBL1-[A-Za-z0-9+/]{1,800}$/.test(c)).slice(0, 10); saveProg(); return; }
+    if (d && d.type === "gbl:share") { if (current.g.key !== "platformer" || typeof d.code !== "string" || !/^GBL1-[A-Za-z0-9+/]{1,800}$/.test(d.code)) return; const code = d.code; const ov = el("div", { class: "pg-ov" }), box = el("div", { class: "pg-box" }, el("div", { class: "pg-head" }, el("b", { text: "📤 Share your level" }), el("button", { class: "btn sm", type: "button", text: "✕ Close", onclick: () => ov.remove() })), el("p", { class: "set-note", text: "Send this code to a friend. They tap Load a code in Neon Platformer and paste it." }), el("textarea", { class: "adm-in adm-ta lvl-code", readonly: true, rows: 3, text: code }), el("button", { class: "btn hot", type: "button", text: "📋 Copy code", onclick: () => { try { navigator.clipboard.writeText(code); toast("Copied!"); } catch { toast("Select the code and copy it"); } } })); ov.append(box); document.body.append(ov); return; }
+    if (d && d.type === "gbl:askcode") { if (current.g.key !== "platformer") return; const fr = current.frame, inp = el("textarea", { class: "adm-in adm-ta", rows: 3, placeholder: "Paste a level code (starts with GBL1-)" }); const ov = el("div", { class: "pg-ov" }); const go = () => { const v = inp.value.trim(); if (!/^GBL1-[A-Za-z0-9+/]{1,800}$/.test(v)) return toast("That doesn't look like a level code"); ov.remove(); try { fr.contentWindow.postMessage({ type: "gbl:remote", move: { code: v } }, "*"); fr.focus(); } catch {} };
+      ov.append(el("div", { class: "pg-box" }, el("div", { class: "pg-head" }, el("b", { text: "📥 Load a friend's level" }), el("button", { class: "btn sm", type: "button", text: "✕ Close", onclick: () => ov.remove() })), inp, el("button", { class: "btn hot", type: "button", text: "▶ Play it", onclick: go }))); document.body.append(ov); inp.focus(); return; }
     if (d && d.type === "gbl:pup") { const id = String(d.id || ""); if (prog.pups && prog.pups[id] > 0) { prog.pups[id]--; saveProg(); } return; }
     if (d && d.type === "gbl:ckpt") {
       const s = Math.floor(Number(d.score)); if (!current.ranked || !Number.isFinite(s) || s <= 0 || s > 1e7) return;
