@@ -2463,7 +2463,7 @@ function SHELL() {
   };
   function padButton(label, key, size, wide) {
     const b = document.createElement("button"); b.type = "button"; b.textContent = label;
-    b.style.cssText = "pointer-events:auto;width:" + (wide ? size * 2 + 8 : size) + "px;height:" + size + "px;font:800 " + (label.length > 2 ? 17 : 26) + "px Orbitron,system-ui,sans-serif;letter-spacing:.08em;color:#fff;background:rgba(34,228,255,.16);border:2px solid rgba(34,228,255,.75);border-radius:18px;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;padding:0";
+    b.style.cssText = "pointer-events:auto;width:" + (wide ? size * 2 + 8 : size) + "px;height:" + size + "px;font:800 " + (label.length > 2 ? Math.max(9, Math.min(17, Math.floor(((wide ? size * 2 + 8 : size) - 12) / (label.length * .92)))) : Math.min(26, Math.floor(size * .4))) + "px Orbitron,system-ui,sans-serif;letter-spacing:.08em;color:#fff;background:rgba(34,228,255,.16);border:2px solid rgba(34,228,255,.75);border-radius:18px;touch-action:none;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none;padding:0";
     const lit = (on) => { b.style.background = on ? "rgba(34,228,255,.5)" : "rgba(34,228,255,.16)"; };
     const press = (e) => {
       e.preventDefault(); e.stopPropagation(); audio(); lit(true);
@@ -3883,6 +3883,7 @@ function golfGame() {
       if (LV) return;
       if (Array.isArray(d.holes) && d.holes.length === 9 && d.holes.every((i) => ALL[i])) { HOLES = d.holes.map((i) => ({ ...ALL[i], id: i + 1 })); card = [(d.card || []).slice(), []]; loadHole(Math.min(8, d.hi || 0)); } },
     title: "Mini Golf", duo: "take turns on the same 9 random holes. Fewest total strokes wins.", easy: "water costs no strokes, 15 tries per hole, an aiming guide", w: W, h: H, color: "#3dffa8", bpm: 98,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["PUTT", " ", true]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Drag back from the ball and release to shoot", "Tap ◀ ▶ buttons to rotate aim · Power bar shows shot strength", "Water costs a stroke. Sand slows you down.", "Levels of 9 holes get harder and harder", "Get picked up (run out of strokes) and you drop back a level!", "Speed pads, portals, sliders and ice show up on later levels"],
     remote(m) {
       if (!m) return true;
@@ -4145,6 +4146,7 @@ function pingpongGame() {
   }
   game({
     title: "Ping Pong", duo: "P1: ← → move, ↑ swings (bottom). P2: A D move, W swings (top). iPad: drag to move, tap to swing. First to 11.", easy: "slow ball, gentle AI, a bigger swing window, no score limit", w: W, h: H, color: "#22e4ff", bpm: 124,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["SWING", " ", true]] },
     help: ["Move with the mouse, a finger or ← / →", "SWING with a tap, click, Space or ↑. No swing = soft block", "Perfect timing = POWER SHOT. Hit off-center to angle it", "It must bounce on the other side. First to 11"],
     init() { pads = [{ x: W / 2, tx: W / 2, y: PY[0], vx: 0, fl: 0, sw: -1, cd: 0 }, { x: W / 2, tx: W / 2, y: PY[1], vx: 0, fl: 0, sw: -1, cd: 0 }]; sc = [0, 0]; rally = 0; hits = 0; lvl = S.bot ? [1, 4, 7, 12][BK()] : 1; aiErr = 0; winner = -1; newBall(0); phase = "serve"; timer = 1.2; },
     hud() {
@@ -4484,6 +4486,7 @@ function missileGame() {
   function boom(px, py, max, c) { booms.push({ x: px, y: py, r: 0, max, t: 0, c }); }
   game({
     title: "Missile Defense", easy: "unlimited ammo, slower missiles", w: W, h: H, color: "#ff4d6d", bpm: 120,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["FIRE", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Tap near a missile. Your shot aims for you and explodes!", "Keyboard: arrows move the crosshair, Space fires", "Blasts destroy every missile they touch", "Protect your cities. Waves get bigger and faster"],
     init() { cities = [60, 130, 200, 320, 390, 460].map((px) => ({ x: px, alive: true })); inc = []; outs = []; booms = []; wave = 1; cx = W / 2; cy = H / 2; startWave(); },
     hud() { return "WAVE " + wave + "  ·  CITIES " + cities.filter((c) => c.alive).length + "  ·  AMMO " + (S.practice ? "∞" : ammo); },
@@ -4759,6 +4762,7 @@ function mineGame() {
   game({
     load(d) { level = d.level || 1; newBoard(); },
     title: "Mine Sweep", easy: "no timer, fewer mines, and a mine you hit just gets flagged", w: W, h: H, color: "#22e4ff", bpm: 104,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["OPEN", " "], ["FLAG", "f"]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Tap a square to open it. Numbers count nearby mines", "Hold a square (or use the FLAG button) to flag a mine", "Tap a number whose mines are flagged to open around it", "Keys: arrows move, Space opens, F flags. More mines each board"],
     init() { level = 1; cur = [5, 5]; flagMode = false; holdCell = null; newBoard(); },
     hud() { return "BOARD " + level + "  ·  MINES " + (mines - flags) + (S.practice ? "" : "  ·  TIME " + Math.ceil(timeLeft)); },
@@ -4840,6 +4844,7 @@ function slideGame() {
   game({
     load(d) { level = d.level || 1; setup(); },
     title: "Slide 15", easy: "no timer, take as long as you like", w: W, h: H, color: "#3dffa8", bpm: 100,
+    pad: "arrows",
     help: ["Slide the tiles back into order: 1, 2, 3...", "Tap a tile in the gap's row or column, or swipe", "Arrows slide a tile into the gap", "3×3, then 4×4, then 5×5 with less time"],
     init() { level = 1; setup(); },
     hud() { return "PUZZLE " + level + " (" + n + "×" + n + ")  ·  MOVES " + moves + (S.practice ? "" : "  ·  TIME " + Math.ceil(timeLeft)); },
@@ -5025,6 +5030,7 @@ function gemGame() {
     pups: [{ id: "pu-gm-moves", name: "+5 Moves", icon: "➕" }, { id: "pu-gm-bomb", name: "Bomb Start", icon: "💣" }, { id: "pu-gm-rainbow", name: "Rainbow Start", icon: "🌈" }],
     load(d) { newLevel(d.level || 1); },
     title: "Gem Match", easy: "unlimited moves, just match and relax", w: W, h: H, color: "#ff2bd6", bpm: 118,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["PICK", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Swipe a gem to swap it, or tap two gems side by side", "Match 4 = ⚡ blaster (clears a row/column). L or T = 💣 bomb. 5 = 🌈 rainbow orb", "Swap a rainbow orb with any gem to clear that whole colour", "Hit the target before you run out of moves. Spare moves = bonus points"],
     init() { combo = 1; sel = null; cur = 27; hint = null; idleT = 0; made = 0; pt = 0; newLevel(1); },
     start() { applyPups(); },
@@ -5243,6 +5249,7 @@ function dartsGame() {
   game({
     title: "Neon Darts", w: W, h: H, color: "#ff2bd6", bpm: 104, easy: "a steadier hand and no target to beat",
     duo: "take turns throwing 3 darts. 5 rounds each. Highest total wins.",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["THROW", " ", true]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Move your finger or mouse to aim, let go (or Space) to throw", "Your aim wobbles. Hold still and it steadies a little", "Triples ×3, doubles ×2, bull 25, bullseye 50", "Beat the target score with 3 darts to level up. From level 4 the board slides!"],
     load(d) { if (d && d.level) { level = d.level | 0; target = targetFor(level); newRound(); } },
     init() { ax = BX0; ay = BY; t = 0; flying = null; level = 1; target = targetFor(1); turn = 0; pts = [0, 0]; rounds = 0; msgT = 0; boardX = BX0; holding = false; newRound(); },
@@ -5715,6 +5722,7 @@ function hoopGame() {
       return true;
     },
     title: "Hoop Shot", duo: "Take turns shooting from the same spots, 5 shots each. Most points wins.", easy: "no timer and a full aiming guide", w: W, h: H, color: "#ff8a1f", bpm: 112,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["SHOOT", " ", true]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Drag back from anywhere and let go to shoot", "Keys: ↑ ↓ aim, ← → power, Space shoots", "Swish = no rim. 3 in a row and you're ON FIRE", "Each basket adds 2 seconds. The hoop starts moving"],
     init() { ghost = false; ghostWait = false; hy = 220; hoopX = BX; streak = 0; made = 0; level = 1; timeLeft = 45; drag = null; sdur = 0; duo = S.duo ? { pts: [0, 0], shot: 0, per: 5, seq: Array.from({ length: 30 }, (_, i) => [0, 3, 4, 1, 6, 2, 7, 5][(i >> 1) % 8]) } : null; newShot(); },
     hud() { if (S.online && duo) return "YOU " + duo.pts[S.online - 1] + "  ·  SHOT " + (Math.floor(duo.shot / 2) + 1) + "/" + duo.per + "  ·  FRIEND " + duo.pts[2 - S.online] + "  ·  " + (myTurn() ? "YOUR SHOT" : "FRIEND'S SHOT"); if (S.duo) return "P1 " + duo.pts[0] + "  ·  SHOT " + (Math.floor(duo.shot / 2) + 1) + "/" + duo.per + "  ·  " + duo.pts[1] + " P2  ·  " + (duo.shot % 2 ? "P2" : "P1") + " SHOOTS"; return "LEVEL " + level + "  ·  STREAK " + streak + (S.practice ? "" : "  ·  TIME " + Math.ceil(timeLeft)); },
@@ -5840,6 +5848,7 @@ function penaltyGame() {
       return true;
     },
     title: "Penalty Kick", duo: "Take turns. The kicker taps a spot, then hands over. The keeper taps where to dive. 5 kicks each.", easy: "slow keeper, perfect aim, no lives", w: W, h: H, color: "#3dffa8", bpm: 120,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["KICK", " ", true]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Tap or drag to aim at the goal, let go to shoot", "Keys: arrows aim, Space shoots", "Corners score double. Keep a streak for multipliers", "3 misses and you're out. The keeper gets better"],
     init() { lives = 3; goals = 0; streak = 0; level = 1; waitT = 0; msg = null; wob = 0; duo = S.duo ? { kick: 0, res: [[], []], win: 0 } : null; reset(); },
     hud() {
@@ -6010,6 +6019,7 @@ function towerGame() {
   game({
     load(d) { wave = d.wave || 0; setMap(mapFor(wave)); money = d.money || 160; lives = d.lives || 20; kills = d.kills || 0; towers = new Map((d.towers || []).filter((t) => TT[t[2]] && !PATH.has(t[0] + "," + t[1])).map(([c, r, t, l]) => [c + "," + r, { t, lvl: l, cd: 0, c, r, ang: 0, beam: null }])); between = 6; },
     title: "Tower Defense", easy: "lots of starting cash and enemies can't hurt you", w: W, h: H, color: "#ff4d6d", bpm: 112,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["BUILD", " "], ["SELL", "x"]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Pick a tower below, then tap an empty square to build. Tap a tower to UPGRADE or SELL it (70% back)", "A NEW WEAPON unlocks every 10 waves: Tesla, Sniper, Missile, Prism", "The MAP CHANGES every 20 waves. Towers on the new road are refunded", "Keys: 1-7 pick, arrows + Space build/upgrade, X sells, Enter next wave"],
     init() { setMap(0); towers = new Map(); ens = []; shots = []; money = S.practice ? 500 : 160; lives = 20; wave = 0; spawnQ = []; spawnT = 0; between = 6; selType = "L"; cur = [5, 4]; kills = 0; info = null; },
     hud() { return "WAVE " + wave + "  ·  LIVES " + (S.practice ? "∞" : lives) + "  ·  $" + money; },
@@ -6194,6 +6204,7 @@ function c4Game() {
     remote(c) { if (anim || endT || turn === S.online) return false; remoteNow = true; drop(c); remoteNow = false; return true; },
     load(d) { level = d.level || 1; newGame(); },
     title: "Connect Four", duo: "Pass and play: P1 is pink, P2 is gold. Tap a column to drop.", easy: "a sleepy AI that makes lots of mistakes", w: W, h: H, color: "#ff2bd6", bpm: 108,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["DROP", " ", true]] },
     help: ["Tap a column to drop your pink disc", "Get 4 in a row: across, down or diagonal", "Keys: ← → pick a column, Space or ↓ drops", "Beat the AI to level up. It thinks harder every level"],
     init() { level = S.bot ? [1, 3, 5, 7][BK()] : 1; cur = 3; startP = 1; newGame(); },
     hud() { if (S.online) return turn === S.online ? "YOUR TURN" : "FRIEND'S TURN"; if (S.duo) return "PLAYER " + turn + "'S TURN"; return "LEVEL " + level + "  ·  AI DEPTH " + (S.practice ? 1 : Math.min(7, level + 1)) + "  ·  " + (turn === 1 ? "YOUR TURN" : "AI THINKING"); },
@@ -6301,6 +6312,7 @@ function reversiGame() {
     remote(m) { if (endT || turn === S.online) return false; remoteNow = true; doMove(m[0], m[1]); remoteNow = false; return true; },
     load(d) { level = d.level || 1; newGame(); },
     title: "Reversi", duo: "Pass and play: P1 is cyan, P2 is pink. Tap a glowing dot to move.", easy: "the AI just picks random moves", w: W, h: H, color: "#22e4ff", bpm: 100,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["PLACE", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Tap a glowing dot to place a cyan disc", "Trap pink discs in a line to flip them to your color", "Most discs when the board is full wins. Corners are gold", "Keys: arrows move, Space places. The AI gets smarter"],
     init() { level = S.bot ? [1, 2, 3, 4][BK()] : 1; cur = [2, 3]; newGame(); },
     hud() { const a = count(b, 1), c2 = count(b, 2); if (S.online) return "YOU " + (S.online === 1 ? a : c2) + "  ·  FRIEND " + (S.online === 1 ? c2 : a) + "  ·  " + (turn === S.online ? "YOUR TURN" : "FRIEND'S TURN"); return (S.duo ? "P1 " + a + "  ·  " + c2 + " P2  ·  PLAYER " + turn + "'S TURN" : "LEVEL " + level + "  ·  YOU " + a + "  ·  AI " + c2); },
@@ -6415,6 +6427,7 @@ function beatGame() {
   }
   game({
     title: "Beat Lanes", easy: "slower songs and misses don't hurt", w: W, h: H, color: "#ff2bd6", bpm: 120, noMusic: true,
+    pad: { left: [["1", "d"], ["2", "f"]], right: [["3", "j"], ["4", "k"]] },
     help: ["Hit the notes as they cross the line, to the music!", "Tap the lanes, or press the arrow keys ← ↓ ↑ →", "Each song has 3 parts. Clear them for a harder song", "Songs: Twinkle Twinkle, Für Elise, Taco Rain, Mountain King, Rush!"],
     init() { notes = []; combo = 0; maxCombo = 0; hp = 100; judge = null; press = [0, 0, 0, 0]; stats = { PERFECT: 0, GREAT: 0, GOOD: 0, MISS: 0 }; si = 0; part = 1; round = 0; songsDone = 0; breakT = 0; travelV = travelGoal(); chart(LEAD); },
     hud() { return breakT > 0 ? "SONG CLEAR!" : song().name.toUpperCase() + "  ·  PART " + part + "/3  ·  COMBO " + combo; },
@@ -6510,6 +6523,7 @@ function simonGame() {
   }
   game({
     title: "Simon Glow", easy: "a wrong press just replays the pattern", w: W, h: H, color: "#22e4ff", bpm: 96,
+    pad: { left: [["▲", "ArrowUp"], ["◀", "ArrowLeft"]], right: [["▶", "ArrowRight"], ["▼", "ArrowDown"]] },
     help: ["Watch the pads light up, then repeat the pattern", "Tap the pads, or use the arrows / 1 2 3 4", "One more step every round, and it gets faster", "From round 10 the whole ring spins!"],
     init() { seq = [Math.random() * 4 | 0]; round = 1; rot = 0; lit = [0, 0, 0, 0]; best = 0; waitT = 0; show(); },
     hud() { return "ROUND " + round + "  ·  " + (phase === "input" ? "YOUR TURN " + idx + "/" + seq.length : phase === "show" ? "WATCH..." : "GET READY"); },
@@ -6734,6 +6748,7 @@ function chessGame() {
     remote(mv) { if (anim || endT || (white ? 1 : 2) === S.online) return false; const m = legal(white).find((q) => q.f === mv.f && q.t === mv.t && (!q.pr || q.pr === (mv.pr || "q"))); if (m) { remoteNow = true; doMove(m); remoteNow = false; } return true; },
     load(d) { level = d.level || 1; reset(); },
     title: "Neon Chess", duo: "pass and play. Player 1 is cyan (moves first), Player 2 is pink.", easy: "a beginner AI that makes lots of mistakes", w: W, h: H, color: "#22e4ff", bpm: 92,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["PICK", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Tap a piece, then tap a glowing dot to move. Pawns that reach the end pick a new piece", "Keys: arrows move the cursor, Space selects and moves", "You are cyan. Checkmate the pink king to win", "Win and the AI levels up. It thinks deeper each time"],
     init() { level = 1; cur = 52; reset(); },
     hud() {
@@ -6919,6 +6934,7 @@ function guessGame() {
     },
     load(d) { level = d.level || 1; deal(); },
     title: "Guess Who", duo: "One secret mystery bot. Take turns asking questions. First to guess it right wins.", easy: "a forgetful bot, and wrong guesses just flip that card", w: W, h: H, color: "#ff7be6", bpm: 100,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["ASK", "q"], ["GUESS", "g"], ["OK", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["The bot picked a secret character. Find out who it is!", "Ask yes/no questions. Wrong cards flip down by themselves", "Tap GUESS, then tap a card. A wrong guess loses", "Beat the bot before it guesses yours (shown bottom left)"],
     init() { level = 1; qScroll = 0; deal(); },
     hud() { if (S.online) return waitSeed ? "WAITING FOR YOUR FRIEND..." : duoTurn + 1 === S.online ? "YOUR TURN" : "FRIEND'S TURN"; return (S.duo && !S.bot ? "PLAYER " + (duoTurn + 1) + "'S TURN" : "LEVEL " + level + "  ·  QUESTIONS " + asked + "  ·  BOT HAS " + botUp.filter(Boolean).length + " LEFT"); },
@@ -7649,6 +7665,7 @@ function laserGame() {
   }
   game({
     title: "Laser Network", w: W, h: H, color: "#3dffa8", bpm: 96, easy: "no timer",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["TURN", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Tap a square to drop a mirror, tap again to turn it,", "tap a third time to pick it back up", "Bounce the laser through EVERY colored target", "Keyboard: arrows move the cursor, Space places"],
     repeat: true,
     init() { lvl = 1; newLevel(); },
@@ -7717,6 +7734,7 @@ function bitGame() {
   function shift(i, dir) { const r = rows[i]; if (!r) return; r.b = rot(r.b, dir); r.off = -dir * Z; sfx("blip"); combo = 0; check(); }
   game({
     title: "Bit Shift", w: W, h: H, color: "#3dffa8", bpm: 124, easy: "the stack rises very slowly", repeat: true,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["RISE", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Rows of 0s and 1s rise from the bottom", "Swipe a row left/right (or ↑↓ pick, ← → shift)", "Make a row MATCH the row next to it to clear both", "All 1s or all 0s clears too. Don't hit the top!"],
     init() { rows = []; sel = 0; lvl = 1; cleared = 0; combo = 0; riseMax = S.practice ? 12 : 5.5; riseT = riseMax; for (let i = 0; i < 4; i++) { let r; do { r = rnd(); } while (rows.length && same(r, rows[0])); rows.unshift(r); } sel = 0; },
     hud() { return "LEVEL " + lvl + "  ·  ROWS " + rows.length + "/" + R + "  ·  NEXT ROW " + Math.ceil(riseT) + "s"; },
@@ -7767,6 +7785,7 @@ function coreGame() {
   function fire(X, Y) { if (used) return; used = true; boom(X, Y, "#ffffff", true); sfx("boom"); shake(4, .2); }
   game({
     title: "Quantum Core", w: W, h: H, color: "#a35bff", bpm: 110, easy: "unlimited retries",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["BLAST", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["You get ONE tap per level!", "Your blast pops nearby shapes, and each of those", "explodes too, setting off a giant chain reaction", "Pop enough shapes to reach the goal"],
     init() { lvl = 1; lives = 3; curX = W / 2; curY = H / 2; newLevel(); },
     hud() { return "LEVEL " + lvl + "  ·  POPPED " + popped + " / " + goal + "  ·  LIVES " + (S.practice ? "∞" : "◆".repeat(Math.max(0, lives))); },
@@ -7886,6 +7905,7 @@ function curlGame() {
   }
   game({
     title: "Neon Curling", w: W, h: H, color: "#3dffa8", bpm: 92, easy: "no blockers to dodge",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["THROW", " ", true]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Drag back from your stone (like a slingshot) and let go", "While it slides, drag left/right or press ← → to curl it", "Stop in the middle of the rings: 10, 5, 3 or 1 points", "5 stones a round, 3 rounds. Knock stones in!"],
     init() { end = 1; newEnd(); },
     hud() { return "ROUND " + end + "/" + ENDS + "  ·  STONE " + Math.min(PER, thrown + (phase === "aim" ? 1 : 0)) + "/" + PER + "  ·  IN THE RINGS " + stones.reduce((a, s) => a + ptsOf(s), 0); },
@@ -8081,6 +8101,7 @@ function clashGame() {
   game({
     title: "Arena Clash", w: W, h: H, color: "#22e4ff", bpm: 150, easy: "a slow, sleepy CPU and unlimited lives",
     duo: "P1 steers with W A S D and fires with F. P2 steers with the arrows and fires with Enter. First to 3 rounds.",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["FIRE", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Light-cycle battle! You leave a glowing wall behind you", "Don't crash into any wall. Make your rival crash!", "Arrows or swipe to turn. Go backwards to do a U-turn!", "Space, F or tap fires a pulse that blasts holes in walls (3 per round)"],
     init() { wins = [0, 0]; lives = 3; lvl = 1; roundN = 0; newRound(); wait = 0; },
     hud() { return (S.duo ? "P1 " + wins[0] + " : " + wins[1] + " P2  ·  FIRST TO 3" : "ROUND " + lvl + "  ·  LIVES " + (S.practice ? "∞" : "◆".repeat(Math.max(0, lives)))) + "  ·  PULSES " + P[0].ammo + (S.duo ? " / " + P[1].ammo : ""); },
@@ -8750,6 +8771,7 @@ function poolGame() {
   game({
     title: "Neon Pool", w: W, h: H, color: "#3dffa8", bpm: 92, easy: "unlimited shots and a full aiming guide",
     duo: "take turns. Pot a ball to shoot again. Each ball is worth its number. Most points when the table is clear wins.",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["SHOOT", " ", true]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Drag back from anywhere and let go to shoot", "◀ ▶ buttons (or arrow keys) fine-tune your aim", "The dotted guide shows which ball you'll hit and where it goes", "Clear each table before you run out of shots. Pot 2+ balls in one shot for a combo!"],
     load(d) { if (d && d.level) { level = d.level | 0; newRack(); } },
     init() { level = 1; turn = 0; pts = [0, 0]; combo = 0; rotL = rotR = false; ghostOn = false; waitSeed = false; seed = (Math.random() * 1e9) >>> 0;
@@ -8897,6 +8919,7 @@ function bomberGame() {
   }
   game({
     title: "Fuse Box", w: W, h: H, color: "#ff8a1f", bpm: 132, easy: "unlimited lives and slower enemies",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["BOMB", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Arrows / WASD to walk, Space to drop a bomb", "Touch: drag anywhere to walk, tap (or the 💣 button) to drop a bomb", "Blasts break crates and can uncover power-ups: 💣 more bombs, 🔥 bigger blast, 👟 speed", "Beat every enemy, then find the hidden exit door. Don't stand in your own blast!"],
     load(d) { if (d && d.level) { newPlayer(); pl.maxB = d.maxB || 1; pl.fire = d.fire || 2; pl.sp = d.sp || 4.2; lives = Math.max(lives, d.lives || 3); build(d.level | 0); } },
     init() { lives = S.practice ? 99 : 3; newPlayer(); build(1); joy = null; },
@@ -9123,6 +9146,7 @@ function cratesGame() {
   const isDead = (a, b) => { if (onGoal(a, b)) return false; const wl = (dx, dy) => !!map[b + dy][a + dx]; return (wl(-1, 0) || wl(1, 0)) && (wl(0, -1) || wl(0, 1)); };
   game({
     title: "Crate Bot", w: W, h: H, color: "#ffd66b", bpm: 88, easy: "warns you when a crate gets stuck in a corner",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["UNDO", "u"], ["RESET", "r"]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Push every crate onto a glowing target", "Arrows / WASD, swipe, or tap next to your robot to move", "You can push but never pull. Don't trap a crate in a corner!", "↶ Undo (U) and ⟲ Restart (R) buttons at the bottom. Fewer moves = more points"],
     load(d) { if (d && d.level) loadLevel(d.level | 0); },
     init() { swipe = null; loadLevel(1); },
@@ -9298,6 +9322,7 @@ function tanksGame() {
   function joyDir() { const k = S.keys; if (k.ArrowUp || k.w) return "u"; if (k.ArrowDown || k.s) return "d"; if (k.ArrowLeft || k.a) return "l"; if (k.ArrowRight || k.d) return "r"; if (joy && Math.hypot(joy.dx, joy.dy) > 14) return Math.abs(joy.dx) > Math.abs(joy.dy) ? (joy.dx > 0 ? "r" : "l") : (joy.dy > 0 ? "d" : "u"); return null; }
   game({
     title: "Bounce Tanks", w: W, h: H, color: "#b6ff3b", bpm: 120, easy: "unlimited lives, and the base can't be destroyed",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["FIRE", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Arrows / WASD to drive, Space to fire", "Touch: drag anywhere to drive, tap (or 🔥) to fire", "Shells bounce off steel once and smash brick. Water blocks tanks, not shells", "Destroy every enemy tank and protect your ★ base! Flashing tanks drop power-ups"],
     load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); build(d.level | 0); spawnMe(); if (d.power) me.power = true; } },
     init() { lives = S.practice ? 99 : 3; me = null; build(1); spawnMe(); joy = null; boom = 0; },
@@ -9485,6 +9510,7 @@ function pipesGame() {
   }
   game({
     title: "Splash Pipes", w: W, h: H, color: "#22e4ff", bpm: 112, easy: "more time before the water starts, slower flow",
+    pad: { center: [["FAST FLOW", "f", true]] },
     help: ["Tap a square to place the NEXT pipe (shown on the left)", "Build a path from the green tap before the water starts flowing!", "Connect enough pipes to clear the level. Rocks block the way", "Water crossing a + twice = +500. Tap ▶▶ FLOW to speed the water up when you're done"],
     load(d) { if (d && d.level) newLevel(d.level | 0); },
     init() { newLevel(1); },
@@ -9639,6 +9665,7 @@ function drawGame() {
   game({
     title: "High Noon", w: W, h: H, color: "#ff8a1f", bpm: 92, easy: "a slow bandit and no lives lost",
     duo: "P1 taps the left half (or A), P2 the right half (or L). Fastest draw after FIRE! wins. Early shots lose. First to 5.",
+    pad: { center: [["FIRE!", " ", true]] },
     help: ["Wait for the sign to say FIRE! — then tap as fast as you can (or press Space)", "Shoot too early and you lose a life!", "Watch out for tricks: FIRM, FIVE, FISH… only FIRE! counts", "Beat the bandit to face a faster one. 3 lives"],
     load(d) { if (d && d.round) { round = d.round | 0; lives = Math.max(lives, d.lives || 3); newRound(); } },
     init() { round = 1; lives = S.practice ? 99 : 3; best = 9; wins = 0; duoPts = [0, 0]; rounds = 0; dust = Array.from({ length: 30 }, () => [Math.random() * W, 420 + Math.random() * 180, Math.random()]); sunT = 0; newRound(); },
@@ -9720,6 +9747,7 @@ function claimGame() {
   }
   game({
     title: "Fence In", w: W, h: H, color: "#ff2bd6", bpm: 118, easy: "unlimited lives and slower bouncers",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Move along the glowing edge with arrows / WASD, or drag anywhere", "Step into the dark area to draw a line. Get back to the edge to CLAIM that area", "If a bouncer touches your line (or a spark catches you) you lose a life", "Claim enough of the board to clear the level. Big claims score big!"],
     load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); newLevel(d.level | 0); } },
     init() { lives = S.practice ? 99 : 3; joy = null; moveAcc = 0; newLevel(1); },
@@ -9780,6 +9808,7 @@ function skeeGame() {
   }
   game({
     title: "Ring Roll", w: W, h: H, color: "#ffd66b", bpm: 104, easy: "no target score, just roll",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["ROLL", " ", true]] },
     help: ["Swipe UP to roll the ball. A faster swipe rolls harder (keyboard: hold Space, let go in the green, ← → aim)", "The ball jumps off the ramp and drops into a ring", "Middle = 50, then 40, 30, 20, 10. The two tiny corner cups are worth 100!", "Score the target with 9 balls to win the next game"],
     load(d) { if (d && d.level) newGame(d.level | 0); },
     init() { total = 0; msgT = 0; swipe = null; newGame(1); },
@@ -9849,6 +9878,7 @@ function plinkoGame() {
   }
   game({
     title: "Peg Party", w: W, h: H, color: "#ff8a1f", bpm: 116, easy: "unlimited balls",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["SHOOT", " ", true]] },
     help: ["Aim the cannon with your finger, mouse or ← →, then tap / Space to shoot", "Every peg you hit lights up and disappears after the shot", "Light ALL the orange pegs to clear the level. Green pegs give a big bonus", "Land in the moving bucket for a FREE BALL. 10 balls per level"],
     load(d) { if (d && d.level) newLevel(d.level | 0); },
     init() { aim = Math.PI / 2; aimDrag = false; trail = []; newLevel(1); },
@@ -10011,6 +10041,7 @@ function derbyGame() {
   }
   game({
     title: "Big Swing", w: W, h: H, color: "#ff8a1f", bpm: 120, easy: "slower pitches and no outs",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["SWING", " ", true]] },
     help: ["Tap where the ball will cross the plate, right when it gets there, to swing", "Keyboard: ← → move the bat, Space swings", "Early = pulled foul, late = sliced foul. Perfect timing = a moonshot!", "Watch for curveballs and changeups. Don't swing at balls outside the box"],
     load(d) { if (d && d.level) newRound(d.level | 0); },
     init() { batX = PX; best = 0; msgT = 0; crowd = Array.from({ length: 60 }, (_, i) => [i * 7 + Math.random() * 4, Math.random()]); newRound(1); },
@@ -10083,6 +10114,7 @@ function tilesGame() {
   }
   game({
     title: "Neon Keys", w: W, h: H, color: "#ff2bd6", noMusic: true, easy: "wrong taps don't count and it stays slow",
+    pad: { left: [["1", "d"], ["2", "f"]], right: [["3", "j"], ["4", "k"]] },
     help: ["Tap ONLY the glowing tiles, from the bottom up. Each tap plays the next note!", "Keyboard: D F J K for the four lanes", "Tapping an empty lane, or letting a tile slip past, ends the song", "Finish 40 tiles to clear the song. Every song is faster"],
     load(d) { if (d && d.level) newSong(d.level | 0); },
     init() { newSong(1); },
@@ -10279,6 +10311,7 @@ function artilleryGame() {
   game({
     title: "Hill Cannons", w: W, h: H, color: "#3dffa8", bpm: 100, easy: "no wind and a clumsy enemy",
     duo: "pass and play. Take turns aiming and firing. First to blow up the other tank wins.",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["FIRE", " ", true]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Drag BACK from your tank to aim and set power, let go to fire", "Keys: ← → aim, ↑ ↓ power, Space fires", "Check the WIND! Explosions blast holes in the hills", "Knock the enemy tank to 0 to win the battle. Each battle the enemy aims better"],
     load(d) { if (d && d.level) newMatch(d.level | 0); },
     init() { wins = 0; drag = null; kAim = 0; newMatch(1); },
@@ -10404,6 +10437,7 @@ function lockpickGame() {
   function fail() { failT = .8; shakeT = .4; sfx("bad"); if (!S.practice) lives--; }
   game({
     title: "Safe Cracker", w: W, h: H, color: "#ffd66b", bpm: 110, easy: "a bigger target and no lives lost",
+    pad: { center: [["CRACK", " ", true]] },
     help: ["The needle spins around the lock. Tap (or Space) when it's on the glowing spot!", "Every hit flips the needle's direction and moves the spot", "Miss, or let the needle sweep past the spot, and you lose a life", "Pop every pin to open the lock. Each lock is faster with more pins"],
     load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); newLock(d.level | 0); } },
     init() { lives = S.practice ? 99 : 3; shakeT = 0; newLock(1); },
@@ -10506,6 +10540,7 @@ function sodaGame() {
   function lose(why, r, xx) { if (!S.practice) lives--; crashFx = { r, x: xx, t: .8, why }; sfx("bad"); shake(5, .3); flash("#ff4d6d", .2); custs = custs.filter((c) => c.r !== r || c.x < xx - 40); if (lives <= 0) over(why + " · LEVEL " + level); }
   game({
     title: "Soda Slide", w: W, h: H, color: "#22e4ff", bpm: 132, easy: "unlimited lives and slow customers",
+    pad: { left: [["▲", "ArrowUp"], ["▼", "ArrowDown"]], right: [["SERVE", " ", true]] },
     help: ["Tap a counter (or ↑ ↓) to move there, tap again (or Space) to slide a soda", "Each soda pushes a thirsty customer back out the door", "Don't let customers reach your end, and don't slide sodas to nobody!", "Be on the right counter to catch the empty cups they slide back, or they smash!"],
     load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); newLevel(d.level | 0); } },
     init() { row = 0; lives = S.practice ? 99 : 3; pourT = 0; crashFx = null; newLevel(1); },
@@ -10564,6 +10599,7 @@ function rampGame() {
   function newRace(lv) { level = lv; build(lv); s = 0; v = 0; heat = 0; overT = 0; air = false; by = BASE; vy = 0; ang = 0; crashT = 0; combo = 0; timeLeft = S.practice ? 999 : Math.round(trackLen / 250 + 5 - Math.min(4, lv * .4)); banner("RACE " + lv + " · BEAT THE CLOCK!", "#ff8a1f"); }
   game({
     title: "Ramp Rider", w: W, h: H, color: "#ff8a1f", bpm: 140, easy: "no clock and soft landings",
+    pad: { left: [["↺", "ArrowLeft"], ["↻", "ArrowRight"]], right: [["TURBO", " ", true]] },
     help: ["HOLD anywhere (or Space) for TURBO. Watch the heat bar — overheat and you stall!", "Ride over blue strips to cool down. Mud slows you down", "In the air, lean with the ↺ ↻ buttons (or ← →) so your wheels match the ground", "Land flat for a PERFECT boost. Land badly and you crash! Finish before the clock runs out"],
     load(d) { if (d && d.level) newRace(d.level | 0); },
     init() { btn = { l: false, r: false, turbo: false }; dust = []; msgT = 0; newRace(1); },
@@ -11631,6 +11667,7 @@ function bowlGame() {
   game({
     title: "Neon Bowling", w: W, h: H, color: "#ff2bd6", bpm: 110, easy: "easy lanes with fewer obstacles",
     duo: "same lanes for both players, 10 frames each. Highest score wins.",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["BOWL", " ", true]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Drag back from the ball and let go to bowl", "Every lane is a new obstacle course, like mini golf!", "Bounce off bumpers, dodge sliders, ride portals and boost pads", "Swipe (or ← →) while rolling to hook it", "Levels of 9 lanes get harder and harder", "Miss every pin on a lane and you drop back a level!"],
     pups: [{ id: "pu-bw-save", name: "Second Chance", icon: "🛟" }, { id: "pu-bw-guide", name: "Aim Line", icon: "🎯" }],
     start() { saveLeft = LV && pupOn("pu-bw-save") ? 1 : 0; },
@@ -11927,6 +11964,7 @@ function tttGame() {
     remote(i) { if (endT || turn === S.online) return false; remoteNow = true; place(i); remoteNow = false; return true; },
     load(d) { level = d.level || 1; newGame(); },
     title: "Neon Tic-Tac-Toe", duo: "Pass and play: P1 is cyan X, P2 is pink O. Get 3 in a row!", easy: "a silly AI", w: W, h: H, color: "#22e4ff", bpm: 96,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["PLACE", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Tap a square to place your X", "Get 3 in a row to win: across, down or diagonal", "Keys: 1-9 or arrows + Space", "Beat the AI to level up. It gets smarter. A draw keeps you going"],
     init() { level = 1; cur = 4; startP = 1; newGame(); },
     hud() { if (S.online) return turn === S.online ? "YOUR TURN" : "FRIEND'S TURN"; if (S.duo) return "PLAYER " + turn + "'S TURN"; return "LEVEL " + level + "  ·  " + (turn === 1 ? "YOUR TURN" : "AI THINKING..."); },
@@ -12002,6 +12040,7 @@ function dotsGame() {
     remote(i) { if (endT || turn === S.online) return false; remoteNow = true; draw1(i); remoteNow = false; return true; },
     load(d) { level = d.level || 1; newGame(); },
     title: "Dots & Boxes", duo: "Pass and play: take turns drawing lines. Finish a box to score it and go again!", easy: "a sleepy AI", w: W, h: H, color: "#a35bff", bpm: 100,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["DRAW", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Tap between two dots to draw a line", "Close the 4th side of a box to win it AND go again", "Careful: don't draw the 3rd side of a box!", "Most boxes wins. Keys: arrows pick a line, Space draws"],
     init() { level = 1; cur = 0; startP = 1; newGame(); },
     hud() { const t = S.online ? (turn === S.online ? "YOUR TURN" : "FRIEND'S TURN") : S.duo ? "PLAYER " + turn + "'S TURN" : turn === 1 ? "YOUR TURN" : "AI THINKING"; return (S.duo ? "P1 " : "YOU ") + sc[1] + " : " + sc[2] + (S.duo ? " P2" : " AI") + "  ·  " + t + (S.duo ? "" : "  ·  LEVEL " + level); },
@@ -12107,6 +12146,7 @@ function solitaireGame() {
   }
   game({
     title: "Neon Solitaire", w: W, h: H, color: "#22e4ff", bpm: 84, easy: "free undo and no time pressure",
+    pad: { center: [["DRAW", " "], ["UNDO", "u"], ["HINT", "h"]] },
     help: ["Classic solitaire! Build the 4 piles from Ace to King", "TAP a card to move it to the best spot, or drag it", "Tableau: count down, switching pink and blue", "Tap the deck for a new card. UNDO and HINT are at the bottom"],
     init() { deal = 1; newDeal(); },
     hud() { return "DEAL " + deal + "  ·  MOVES " + moves + "  ·  " + Math.floor(timeT / 60) + ":" + String(Math.floor(timeT % 60)).padStart(2, "0"); },
