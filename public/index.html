@@ -10311,6 +10311,320 @@ function tilesGame() {
   });
 }
 
+/* ---------- Cave Copter ---------- */
+function copterGame() {
+  const W = 560, H = 400, STEP = 8, PX = 120;
+  let colOff = 0, cols, blocks, pl, dist, holding, speed, mid, gap, nextBlock, zone, smoke, crashT, shield;
+  function genCol() {
+    const tight = S.practice ? 0 : Math.min(150, dist / 28);
+    gap = Math.max(S.practice ? 210 : 125, 280 - tight);
+    mid += (Math.random() - .5) * 26 + (H / 2 - mid) * .02; mid = Math.max(gap / 2 + 20, Math.min(H - gap / 2 - 20, mid));
+    cols.push({ top: mid - gap / 2 + Math.sin(cols.length * .3) * 8, bot: mid + gap / 2 - Math.cos(cols.length * .27) * 8 });
+  }
+  function reset(d) {
+    dist = d || 0; colOff = 0; cols = []; blocks = []; mid = H / 2; gap = 280; for (let i = 0; i < W / STEP + 4; i++) genCol();
+    pl = { y: H / 2, vy: 0 }; speed = 180 + Math.min(200, dist / 25); nextBlock = 260; zone = Math.floor(dist / 1000); smoke = []; crashT = 0; shield = 1.2;
+  }
+  function crash() { if (crashT > 0 || shield > 0) return; if (S.practice) { pl.vy = 0; pl.y = (cols[Math.floor(PX / STEP)].top + cols[Math.floor(PX / STEP)].bot) / 2; shield = 1; sfx("bad"); return; } crashT = 1.2; sfx("boom"); shake(8, .4); burst(PX, pl.y, "#ff8a1f", 40, 260, .7); }
+  game({
+    title: "Cave Copter", w: W, h: H, color: "#3dffa8", bpm: 126, easy: "a wide cave, and crashes just bounce you back",
+    help: ["HOLD to fly up, let go to drop (tap, mouse, Space or ↑)", "Don't touch the cave walls or the floating blocks", "The cave gets narrower and faster the deeper you go", "Every 1,000 m is a checkpoint. Grab green orbs for +100"],
+    load(d) { if (d && d.dist) reset(d.dist); },
+    init() { holding = false; reset(0); },
+    hud() { return Math.floor(dist) + " m  ·  ZONE " + (zone + 1); },
+    summary() { return ["FLEW " + Math.floor(dist) + " m"]; },
+    down() { holding = true; },
+    up() { holding = false; },
+    update(dt) {
+      if (crashT > 0) { crashT -= dt; if (crashT <= 0) over("CRASHED AT " + Math.floor(dist) + " m"); return; }
+      shield = Math.max(0, shield - dt);
+      const up = holding || S.keys[" "] || S.keys.ArrowUp || S.keys.w;
+      pl.vy += (up ? -1150 : 650) * dt; pl.vy = Math.max(-320, Math.min(380, pl.vy)); pl.y += pl.vy * dt;
+      speed = Math.min(S.practice ? 220 : 400, 180 + dist / 25); const dx = speed * dt; dist += dx / 4; S.score += dx / 4;
+      let shift = dx; while (shift > 0) { const s = Math.min(shift, STEP); shift -= s; for (const b of blocks) b.x -= s; colOff += s; while (colOff >= STEP) { colOff -= STEP; cols.shift(); genCol(); } }
+      nextBlock -= dx; if (nextBlock <= 0) { nextBlock = Math.max(140, 320 - dist / 20) + Math.random() * 120; const c = cols[cols.length - 1], orb = Math.random() < .25; const bh = orb ? 0 : 40 + Math.random() * 40; blocks.push({ x: W + 20, y: c.top + 20 + Math.random() * Math.max(10, c.bot - c.top - 40 - bh), w: orb ? 0 : 22, h: bh, orb }); }
+      blocks = blocks.filter((b) => b.x > -40 && !b.got);
+      smoke.push([PX - 18, pl.y + 4, .6]); for (const s of smoke) { s[0] -= speed * dt; s[2] -= dt; } smoke = smoke.filter((s) => s[2] > 0);
+      const ci = Math.floor((PX + colOff) / STEP), c = cols[ci] || cols[0];
+      if (pl.y - 9 < c.top || pl.y + 9 > c.bot) crash();
+      for (const b of blocks) { if (b.orb) { if (Math.hypot(b.x - PX, b.y - pl.y) < 20) { b.got = true; S.score += 100; dist += 0; pop(PX, pl.y - 24, "+100", "#3dffa8"); sfx("score"); } continue; } if (PX + 16 > b.x && PX - 16 < b.x + b.w && pl.y + 8 > b.y && pl.y - 8 < b.y + b.h) crash(); }
+      const z = Math.floor(dist / 1000); if (z > zone) { zone = z; banner("ZONE " + (zone + 1) + " · " + zone * 1000 + " m!", "#3dffa8"); sfx("level"); saveGame({ dist: Math.floor(dist), label: zone * 1000 + " m", stop: zone % 2 === 0, next: "The cave gets tighter and faster" }); }
+    },
+    draw() {
+      bg("#03120a"); const hue = (zone * 50 + 140) % 360, wall = "hsl(" + hue + ",70%,22%)", edge = "hsl(" + hue + ",100%,60%)";
+      x.fillStyle = wall; x.beginPath(); x.moveTo(0, 0); cols.forEach((c, i) => x.lineTo(i * STEP - colOff, c.top)); x.lineTo(W, 0); x.fill();
+      x.beginPath(); x.moveTo(0, H); cols.forEach((c, i) => x.lineTo(i * STEP - colOff, c.bot)); x.lineTo(W, H); x.fill();
+      glow(edge, 10); x.strokeStyle = edge; x.lineWidth = 2; x.beginPath(); cols.forEach((c, i) => (i ? x.lineTo(i * STEP - colOff, c.top) : x.moveTo(-colOff, c.top))); x.stroke(); x.beginPath(); cols.forEach((c, i) => (i ? x.lineTo(i * STEP - colOff, c.bot) : x.moveTo(-colOff, c.bot))); x.stroke(); glow();
+      for (const b of blocks) { if (b.orb) { glow("#3dffa8", 14); x.fillStyle = "#3dffa8"; x.beginPath(); x.arc(b.x, b.y, 8, 0, 7); x.fill(); glow(); continue; } glow("#ff2bd6", 10); x.fillStyle = "#ff2bd6"; x.fillRect(b.x, b.y, b.w, b.h); glow(); }
+      for (const s of smoke) { x.fillStyle = "rgba(255,255,255," + s[2] * .25 + ")"; x.beginPath(); x.arc(s[0], s[1], 4 + (.6 - s[2]) * 10, 0, 7); x.fill(); }
+      if (crashT <= 0) { x.save(); x.translate(PX, pl.y); x.rotate(Math.max(-.3, Math.min(.3, pl.vy / 800))); x.globalAlpha = shield > 0 && Math.floor(S.clock * 12) % 2 ? .5 : 1; glow("#ffd66b", 12); x.fillStyle = "#ffd66b"; x.beginPath(); x.ellipse(0, 0, 16, 9, 0, 0, 7); x.fill(); x.fillRect(-28, -3, 14, 5); glow(); x.fillStyle = "#22e4ff"; x.beginPath(); x.ellipse(6, -2, 6, 5, 0, 0, 7); x.fill(); x.strokeStyle = "#ffffff"; x.lineWidth = 2; const r = Math.sin(S.clock * 60) * 18; x.beginPath(); x.moveTo(-r, -13); x.lineTo(r, -13); x.stroke(); x.beginPath(); x.moveTo(0, -9); x.lineTo(0, -13); x.stroke(); x.restore(); x.globalAlpha = 1; }
+      txt(Math.floor(dist) + " m", W - 14, 20, 16, "#ffffff", "right", "d");
+    },
+  });
+}
+
+/* ---------- Well Drop ---------- */
+function wellGame() {
+  const W = 400, H = 640, L = 36, R = W - 36, PW = 16, PH = 22;
+  let pl, plats, foes, gems, bullets, camY, genY, level, depthEnd, hp, ammo, maxAmmo, inv, touch, combo, gemsN, fxT;
+  function newWell(lv) {
+    level = lv; pl = { x: W / 2, y: 60, vx: 0, vy: 0, ground: null }; plats = []; foes = []; gems = []; bullets = []; camY = 0; genY = 220; combo = 0; fxT = 0;
+    depthEnd = 2600 + lv * 600; hp = Math.max(hp || 0, 4); maxAmmo = 8; ammo = maxAmmo; inv = 1;
+    plats.push({ x: L, y: 120, w: (R - L) * .55, top: true, start: true }); gen(); banner("WELL " + lv, "#22e4ff");
+  }
+  function gen() {
+    while (genY < camY + H + 300 && genY < depthEnd) {
+      const r = Math.random(), wdt = 60 + Math.random() * 110;
+      const px = r < .35 ? L : r < .7 ? R - wdt : L + 30 + Math.random() * (R - L - wdt - 60);
+      const p = { x: px, y: genY, w: wdt }; plats.push(p);
+      if (Math.random() < .35) for (let i = 0; i < 1 + (Math.random() * 3 | 0); i++) plats.push({ x: L + Math.random() * (R - L - 28), y: genY + 40 + Math.random() * 30, w: 28, block: true, h: 28 });
+      const d = Math.min(1, genY / 4000 + level * .08);
+      if (Math.random() < .45 + d * .3) { const kind = Math.random() < .5 - d * .2 ? "blob" : Math.random() < .5 ? "spike" : "bat"; foes.push(kind === "bat" ? { kind, x: L + Math.random() * (R - L), y: genY + 40, vx: 0, vy: 0, hp: 1 } : { kind, x: px + wdt / 2, y: genY - 12, vx: (Math.random() < .5 ? -1 : 1) * (30 + d * 40), plat: p, hp: kind === "spike" ? 2 : 1 }); }
+      if (Math.random() < .5) gems.push({ x: L + 20 + Math.random() * (R - L - 40), y: genY - 30 - Math.random() * 40, v: Math.random() < .15 ? 5 : 1 });
+      genY += 80 + Math.random() * 70;
+    }
+  }
+  function act() { if (S.state !== "play") return; if (pl.ground) { pl.vy = -460; pl.ground = null; sfx("jump"); } else if (ammo > 0) { ammo--; bullets.push({ x: pl.x, y: pl.y + PH / 2, vy: 760 }); pl.vy = Math.min(pl.vy, -60); sfx("laser"); burst(pl.x, pl.y + 12, "#ffd66b", 4, 80, .2, 2, Math.PI / 2, .5); } else sfx("tick"); }
+  function hurt() { if (inv > 0) return; if (!S.practice) hp--; inv = 1.2; combo = 0; sfx("bad"); shake(5, .25); flash("#ff4d6d", .25); pl.vy = -300; if (hp <= 0) over("DOWN AT " + Math.floor(pl.y / 10) + " m IN WELL " + level); }
+  function kill(f, how) { f.dead = true; combo++; const pts = (f.kind === "spike" ? 150 : f.kind === "bat" ? 100 : 60) * level * Math.min(8, combo); S.score += pts; pop(f.x, f.y - camY - 16, (combo > 1 ? combo + "× " : "") + "+" + pts, combo > 2 ? "#ffd66b" : "#ffffff"); burst(f.x, f.y - camY, f.kind === "spike" ? "#ff4d6d" : f.kind === "bat" ? "#a35bff" : "#3dffa8", 14, 160, .35); sfx("pop"); if (how === "stomp") { ammo = maxAmmo; pl.vy = -380; } }
+  game({
+    title: "Well Drop", w: W, h: H, color: "#22e4ff", bpm: 134, easy: "you can't lose health",
+    help: ["Drag left/right (or ← →) to move. Tap / Space / ↑ to jump", "In the air, tap again to fire your GUN BOOTS down. Each shot slows your fall", "Stomp green blobs to refill ammo. Red spikes and purple bats must be shot!", "Chain kills without landing for big combos. Reach the bottom of the well!"],
+    load(d) { if (d && d.level) { hp = d.hp || 4; newWell(d.level | 0); } },
+    init() { hp = 4; gemsN = 0; touch = null; newWell(1); },
+    hud() { return "WELL " + level + "  ·  " + Math.max(0, Math.floor(pl.y / 10)) + " / " + Math.floor(depthEnd / 10) + " m  ·  ♥ " + (S.practice ? "∞" : hp) + "  ·  AMMO " + ammo; },
+    summary() { return ["REACHED WELL " + level + " · " + gemsN + " GEMS"]; },
+    down(px, py) { touch = { x: px, sx: px, t: S.clock, moved: false }; },
+    move(px) { if (touch) { touch.x = px; if (Math.abs(px - touch.sx) > 12) touch.moved = true; } },
+    up() { if (touch && !touch.moved && S.clock - touch.t < .3) act(); touch = null; },
+    key(k, rep) { if ((k === " " || k === "ArrowUp" || k === "w" || k === "z") && !rep) act(); },
+    update(dt) {
+      inv = Math.max(0, inv - dt); fxT += dt;
+      let mv = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
+      if (!mv && touch && touch.moved) { const tx = touch.x; mv = Math.abs(tx - pl.x) < 8 ? 0 : Math.sign(tx - pl.x); }
+      pl.vx = mv * 190; pl.x = Math.max(L + PW / 2, Math.min(R - PW / 2, pl.x + pl.vx * dt));
+      pl.vy = Math.min(520, pl.vy + 1300 * dt); const py0 = pl.y; pl.y += pl.vy * dt; pl.ground = null;
+      if (pl.vy >= 0) for (const p of plats) { if (p.dead) continue; const top = p.y; if (pl.x + PW / 2 > p.x && pl.x - PW / 2 < p.x + p.w && py0 + PH / 2 <= top + 1 && pl.y + PH / 2 >= top) { pl.y = top - PH / 2; pl.vy = 0; pl.ground = p; if (ammo < maxAmmo) { ammo = maxAmmo; } combo = 0; break; } }
+      for (const b of bullets) { b.y += b.vy * dt; for (const p of plats) if (p.block && !p.dead && b.x > p.x && b.x < p.x + p.w && b.y > p.y && b.y < p.y + p.h) { p.dead = true; b.dead = true; S.score += 10; burst(p.x + p.w / 2, p.y - camY + 14, "#ff2bd6", 8, 120, .3); } for (const f of foes) if (!f.dead && Math.abs(f.x - b.x) < 14 && Math.abs(f.y - b.y) < 14) { f.hp--; b.dead = true; if (f.hp <= 0) kill(f, "shot"); else sfx("hit"); } if (b.y > camY + H + 20) b.dead = true; }
+      bullets = bullets.filter((b) => !b.dead); plats = plats.filter((p) => !p.dead && p.y > camY - 100);
+      for (const f of foes) {
+        if (f.dead) continue;
+        if (f.kind === "bat") { if (Math.abs(f.y - pl.y) < 300) { const a = Math.atan2(pl.y - f.y, pl.x - f.x); f.vx += Math.cos(a) * 120 * dt; f.vy += Math.sin(a) * 120 * dt; f.vx *= .98; f.vy *= .98; f.x += f.vx * dt; f.y += f.vy * dt; } }
+        else if (f.plat) { f.x += f.vx * dt; if (f.x < f.plat.x + 8 || f.x > f.plat.x + f.plat.w - 8) f.vx = -f.vx; if (f.plat.dead) f.dead = true; }
+        if (Math.abs(f.x - pl.x) < 16 && Math.abs(f.y - pl.y) < 20) { if (f.kind === "blob" && pl.vy > 0 && pl.y < f.y - 4) kill(f, "stomp"); else hurt(); }
+      }
+      foes = foes.filter((f) => !f.dead && f.y > camY - 120);
+      for (const g of gems) if (!g.got && Math.abs(g.x - pl.x) < 16 && Math.abs(g.y - pl.y) < 18) { g.got = true; gemsN += g.v; S.score += 25 * g.v * level; sfx("tick"); }
+      gems = gems.filter((g) => !g.got && g.y > camY - 100);
+      camY += (pl.y - 220 - camY) * Math.min(1, dt * 6); gen();
+      if (pl.y > depthEnd + 200) { const bonus = 1000 * level + gemsN * 10; S.score += bonus; banner("WELL " + level + " CLEAR! +" + bonus, "#3dffa8"); sfx("level"); newWell(level + 1); saveGame({ level, hp, label: "WELL " + level, stop: level % 2 === 1, next: "Deeper well, more enemies" }); }
+    },
+    draw() {
+      bg("#06040e"); const d = camY;
+      x.fillStyle = "#120a22"; x.fillRect(0, 0, L, H); x.fillRect(R, 0, W - R, H); x.strokeStyle = "rgba(34,228,255,.25)"; x.lineWidth = 2; x.beginPath(); x.moveTo(L, 0); x.lineTo(L, H); x.moveTo(R, 0); x.lineTo(R, H); x.stroke();
+      for (let yy = -((d % 60) + 60) % 60; yy < H; yy += 60) { x.fillStyle = "rgba(255,255,255,.04)"; x.fillRect(0, yy, L, 2); x.fillRect(R, yy + 30, W - R, 2); }
+      if (depthEnd - d < H) { x.fillStyle = "rgba(61,255,168,.15)"; x.fillRect(L, depthEnd + 200 - d, R - L, 20); txt("WELL BOTTOM", W / 2, depthEnd + 190 - d, 12, "#3dffa8", "center", "d"); }
+      for (const p of plats) { const Y = p.y - d; if (Y < -40 || Y > H + 40) continue; if (p.block) { glow("#ff2bd6", 6); x.fillStyle = "#6a1a5a"; x.fillRect(p.x, Y, p.w, p.h); x.strokeStyle = "#ff2bd6"; x.strokeRect(p.x + 1, Y + 1, p.w - 2, p.h - 2); glow(); } else { x.fillStyle = "#2a3a6a"; x.fillRect(p.x, Y, p.w, 10); glow("#22e4ff", 6); x.fillStyle = "#22e4ff"; x.fillRect(p.x, Y, p.w, 2); glow(); } }
+      for (const g of gems) { const Y = g.y - d; x.fillStyle = g.v > 1 ? "#ffd66b" : "#ff4d6d"; x.save(); x.translate(g.x, Y); x.rotate(Math.PI / 4 + fxT); x.fillRect(-4, -4, 8, 8); x.restore(); }
+      for (const f of foes) { const Y = f.y - d; if (Y < -30 || Y > H + 30) continue; if (f.kind === "blob") { glow("#3dffa8", 8); x.fillStyle = "#3dffa8"; x.beginPath(); x.ellipse(f.x, Y + 2, 12, 9 + Math.sin(fxT * 8) * 1.5, 0, 0, 7); x.fill(); glow(); x.fillStyle = "#111"; x.fillRect(f.x - 5, Y - 1, 3, 3); x.fillRect(f.x + 2, Y - 1, 3, 3); } else if (f.kind === "spike") { glow("#ff4d6d", 10); x.fillStyle = "#ff4d6d"; x.beginPath(); for (let k = 0; k < 10; k++) { const a = k * Math.PI / 5 + fxT, r = k % 2 ? 6 : 13; x.lineTo(f.x + Math.cos(a) * r, Y + Math.sin(a) * r); } x.closePath(); x.fill(); glow(); } else { glow("#a35bff", 10); x.fillStyle = "#a35bff"; const fl = Math.sin(fxT * 18) * 5; x.beginPath(); x.moveTo(f.x - 13, Y - 3 + fl); x.lineTo(f.x, Y + 5); x.lineTo(f.x + 13, Y - 3 + fl); x.lineTo(f.x, Y - 5); x.fill(); glow(); } }
+      x.fillStyle = "#ffd66b"; for (const b of bullets) { glow("#ffd66b", 8); x.fillRect(b.x - 2, b.y - d - 6, 4, 12); } glow();
+      const Y = pl.y - d; x.globalAlpha = inv > 0 && Math.floor(fxT * 14) % 2 ? .4 : 1; glow("#22e4ff", 12); x.fillStyle = "#e8f6ff"; rr(pl.x - PW / 2, Y - PH / 2, PW, PH, 5); x.fill(); glow(); x.fillStyle = "#22e4ff"; x.fillRect(pl.x - PW / 2, Y + 4, PW, 7); x.fillStyle = "#111"; x.fillRect(pl.x - 4, Y - 5, 3, 4); x.fillRect(pl.x + 2, Y - 5, 3, 4); x.globalAlpha = 1;
+      for (let i = 0; i < maxAmmo; i++) { x.fillStyle = i < ammo ? "#ffd66b" : "rgba(255,255,255,.12)"; x.fillRect(W - 24, 60 + i * 14, 12, 10); }
+      txt("♥".repeat(Math.max(0, S.practice ? 4 : hp)), 12, 20, 16, "#ff4d6d", "left"); txt(Math.max(0, Math.floor(pl.y / 10)) + " m", W - 12, 20, 13, "#22e4ff", "right", "d");
+      x.fillStyle = "rgba(255,255,255,.1)"; x.fillRect(W - 8, 60, 4, H - 120); x.fillStyle = "#3dffa8"; x.fillRect(W - 8, 60, 4, (H - 120) * Math.min(1, pl.y / (depthEnd + 200)));
+      if (combo > 1) txt(combo + "× COMBO", W / 2, 60, 18, "#ffd66b", "center", "d");
+    },
+  });
+}
+
+/* ---------- Hill Cannons ---------- */
+function artilleryGame() {
+  const W = 640, H = 420, G = 300;
+  let land, tanks, turn, shell, wind, level, phase, waitT, aiPlan, drag, msg, msgT, wins, kAim, craters;
+  function genLand() {
+    land = new Float32Array(W); const a = 40 + Math.random() * 50, b = 20 + Math.random() * 40, p1 = Math.random() * 6, p2 = Math.random() * 6;
+    for (let i = 0; i < W; i++) land[i] = H - 90 - a * Math.sin(i / W * Math.PI * (1 + level % 3) + p1) - b * Math.sin(i / 70 + p2) - 40 * Math.sin(i / W * Math.PI);
+  }
+  function newMatch(lv) {
+    level = lv; genLand(); craters = [];
+    const t0 = 60 + Math.random() * 60, t1 = W - 60 - Math.random() * 60;
+    tanks = [{ x: t0, hp: 100, ang: -.8, pow: .6, col: "#22e4ff" }, { x: t1, hp: 100, ang: -Math.PI + .8, pow: .6, col: S.duo ? "#ffd66b" : "#ff4d6d" }];
+    for (const t of tanks) settle(t); turn = 0; shell = null; aiPlan = null; phase = "aim"; newWind(); msgT = 0;
+    banner(S.duo ? "PLAYER 1 FIRES FIRST" : "BATTLE " + lv + " · DESTROY THE RED TANK", "#3dffa8");
+  }
+  function newWind() { wind = S.practice ? 0 : (Math.random() * 2 - 1) * Math.min(60, 10 + level * 6); }
+  const groundY = (xx) => land[Math.max(0, Math.min(W - 1, xx | 0))];
+  function settle(t) { t.y = groundY(t.x) - 6; }
+  function fire() { if (phase !== "aim" || S.state !== "play") return; const t = tanks[turn], v = 140 + t.pow * 300; shell = { x: t.x + Math.cos(t.ang) * 18, y: t.y - 8 + Math.sin(t.ang) * 18, vx: Math.cos(t.ang) * v, vy: Math.sin(t.ang) * v, trail: [] }; phase = "fly"; sfx("boom"); }
+  function explode(ex, ey) {
+    const R = 34; craters.push([ex, ey, R]); for (let i = Math.max(0, ex - R | 0); i < Math.min(W, ex + R); i++) { const dy = Math.sqrt(R * R - (i - ex) * (i - ex)); if (land[i] < ey + dy) land[i] = Math.max(land[i], ey + dy); land[i] = Math.min(H - 6, land[i]); }
+    burst(ex, ey, "#ff8a1f", 36, 260, .7); shake(7, .35); sfx("boom");
+    tanks.forEach((t, i) => { const d = Math.hypot(t.x - ex, t.y - ey); if (d < R + 26) { const dmg = Math.round(Math.max(8, 60 * (1 - d / (R + 26)))); t.hp = Math.max(0, t.hp - dmg); pop(t.x, t.y - 30, "-" + dmg, i === 0 ? "#22e4ff" : "#ff4d6d"); if (i === 1 && !S.duo) S.score += dmg * 10 * level; } settle(t); });
+  }
+  function planAI() {
+    const me = tanks[1], foe = tanks[0]; let best = null;
+    for (let a = -Math.PI + .25; a < -Math.PI / 2 + .05; a += .03) for (let p = .3; p <= 1; p += .05) { let xx = me.x + Math.cos(a) * 18, yy = me.y - 8 + Math.sin(a) * 18, v = 140 + p * 300, vx = Math.cos(a) * v, vy = Math.sin(a) * v; for (let k = 0; k < 600; k++) { const h = 1 / 60; vy += G * h; vx += wind * h; xx += vx * h; yy += vy * h; if (xx < 0 || xx >= W || yy >= groundY(xx)) break; } const d = Math.abs(xx - foe.x); if (!best || d < best.d) best = { a, p, d }; }
+    const err = S.practice ? .25 : Math.max(.02, .16 - level * .015); aiPlan = { a: best.a + (Math.random() - .5) * err, p: Math.min(1, Math.max(.2, best.p + (Math.random() - .5) * err * 1.2)) };
+  }
+  const human = () => turn === 0 || S.duo;
+  game({
+    title: "Hill Cannons", w: W, h: H, color: "#3dffa8", bpm: 100, easy: "no wind and a clumsy enemy",
+    duo: "pass and play. Take turns aiming and firing. First to blow up the other tank wins.",
+    help: ["Drag BACK from your tank to aim and set power, let go to fire", "Keys: ← → aim, ↑ ↓ power, Space fires", "Check the WIND! Explosions blast holes in the hills", "Knock the enemy tank to 0 to win the battle. Each battle the enemy aims better"],
+    load(d) { if (d && d.level) newMatch(d.level | 0); },
+    init() { wins = 0; drag = null; kAim = 0; newMatch(1); },
+    hud() { return (S.duo ? "P1 " + tanks[0].hp + "  ·  P2 " + tanks[1].hp : "BATTLE " + level + "  ·  YOU " + tanks[0].hp + "  ·  ENEMY " + tanks[1].hp) + "  ·  WIND " + (wind > 0 ? "→" : wind < 0 ? "←" : "") + Math.abs(Math.round(wind / 6)); },
+    summary() { return S.duo ? [] : ["WON " + wins + " BATTLES"]; },
+    down(px, py) { if (phase === "aim" && human()) drag = { x: px, y: py }; },
+    move(px, py) { if (!drag) return; const t = tanks[turn], dx = drag.x - px, dy = drag.y - py, L = Math.hypot(dx, dy); if (L > 8) { drag.moved = true; let a = Math.atan2(dy, dx); a = Math.max(-Math.PI + .1, Math.min(-.1, a)); t.ang = a; t.pow = Math.min(1, L / 170); } },
+    up() { if (drag && drag.moved) fire(); drag = null; },
+    key(k, rep) { if (k === " " && !rep && human()) fire(); },
+    update(dt) {
+      if (msgT > 0) msgT -= dt;
+      if (phase === "aim") {
+        const t = tanks[turn];
+        if (human()) { const ka = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), kp = (S.keys.ArrowUp || S.keys.w ? 1 : 0) - (S.keys.ArrowDown || S.keys.s ? 1 : 0); if (ka) t.ang = Math.max(-Math.PI + .1, Math.min(-.1, t.ang + ka * dt)); if (kp) t.pow = Math.max(.1, Math.min(1, t.pow + kp * dt * .6)); }
+        else { if (!aiPlan) { planAI(); waitT = 1; } waitT -= dt; t.ang += (aiPlan.a - t.ang) * Math.min(1, dt * 3); t.pow += (aiPlan.p - t.pow) * Math.min(1, dt * 3); if (waitT <= 0) { t.ang = aiPlan.a; t.pow = aiPlan.p; aiPlan = null; fire(); } }
+      } else if (phase === "fly") {
+        const s = shell; for (let k = 0; k < 3; k++) { const h = dt / 3; s.vy += G * h; s.vx += wind * h; s.x += s.vx * h; s.y += s.vy * h; s.trail.push([s.x, s.y]); if (s.trail.length > 40) s.trail.shift();
+          const hitTank = tanks.find((t) => Math.abs(t.x - s.x) < 14 && Math.abs(t.y - 4 - s.y) < 10);
+          if (s.x < -40 || s.x > W + 40 || s.y > H) { phase = "wait"; waitT = .6; msg = "MISS!"; msgT = 1; break; }
+          if (hitTank || (s.x >= 0 && s.x < W && s.y >= groundY(s.x))) { explode(s.x, s.y); phase = "wait"; waitT = 1; break; } }
+      } else if (phase === "wait") {
+        waitT -= dt; if (waitT > 0) return; shell = null;
+        const dead = tanks.findIndex((t) => t.hp <= 0);
+        if (dead >= 0) {
+          if (S.duo) return over("PLAYER " + (2 - dead) + " WINS");
+          if (dead === 1) { wins++; const bonus = tanks[0].hp * 20 * level; S.score += 500 * level + bonus; banner("VICTORY! +" + (500 * level + bonus), "#3dffa8"); sfx("level"); newMatch(level + 1); saveGame({ level, label: "BATTLE " + level, stop: level % 3 === 1, next: "The enemy aims better · stronger wind" }); return; }
+          return over("YOUR TANK WAS DESTROYED · BATTLE " + level);
+        }
+        turn = 1 - turn; newWind(); phase = "aim";
+      }
+    },
+    draw() {
+      const sky = x.createLinearGradient(0, 0, 0, H); sky.addColorStop(0, "#0a0620"); sky.addColorStop(1, "#3a1050"); x.fillStyle = sky; x.fillRect(0, 0, W, H);
+      x.fillStyle = "rgba(255,255,255,.5)"; for (let i = 0; i < 40; i++) x.fillRect((i * 97) % W, (i * 37) % 160, 1.5, 1.5);
+      const g = x.createLinearGradient(0, H - 200, 0, H); g.addColorStop(0, "#1d6a45"); g.addColorStop(1, "#0a2a1a"); x.fillStyle = g; x.beginPath(); x.moveTo(0, H); for (let i = 0; i < W; i += 2) x.lineTo(i, land[i]); x.lineTo(W, H); x.fill();
+      glow("#3dffa8", 8); x.strokeStyle = "#3dffa8"; x.lineWidth = 2; x.beginPath(); for (let i = 0; i < W; i += 2) (i ? x.lineTo(i, land[i]) : x.moveTo(i, land[i])); x.stroke(); glow();
+      tanks.forEach((t, i) => { glow(t.col, 12); x.fillStyle = t.col; rr(t.x - 14, t.y - 8, 28, 12, 4); x.fill(); x.beginPath(); x.arc(t.x, t.y - 8, 8, Math.PI, 0); x.fill(); x.strokeStyle = t.col; x.lineWidth = 4; x.beginPath(); x.moveTo(t.x, t.y - 8); x.lineTo(t.x + Math.cos(t.ang) * 20, t.y - 8 + Math.sin(t.ang) * 20); x.stroke(); glow();
+        x.fillStyle = "rgba(0,0,0,.5)"; x.fillRect(t.x - 20, t.y - 30, 40, 5); x.fillStyle = t.hp > 50 ? "#3dffa8" : t.hp > 25 ? "#ffd66b" : "#ff4d6d"; x.fillRect(t.x - 20, t.y - 30, 40 * t.hp / 100, 5);
+        if (i === turn && phase === "aim") txt("▼", t.x, t.y - 42 + Math.sin(S.clock * 6) * 3, 12, t.col, "center"); });
+      if (phase === "aim" && human()) { const t = tanks[turn]; x.fillStyle = "rgba(255,255,255,.12)"; x.fillRect(16, H - 22, 140, 8); x.fillStyle = "#ffd66b"; x.fillRect(16, H - 22, 140 * t.pow, 8); txt("POWER", 162, H - 18, 10, "#ffd66b", "left", "d");
+        if (S.practice || drag) { x.fillStyle = "rgba(255,255,255,.45)"; let xx = t.x + Math.cos(t.ang) * 18, yy = t.y - 8 + Math.sin(t.ang) * 18, v = 140 + t.pow * 300, vx = Math.cos(t.ang) * v, vy = Math.sin(t.ang) * v; for (let k = 0; k < (S.practice ? 60 : 14); k++) { for (let j = 0; j < 4; j++) { vy += G / 240; vx += (S.practice ? wind : 0) / 240; xx += vx / 240; yy += vy / 240; } x.beginPath(); x.arc(xx, yy, 2, 0, 7); x.fill(); } } }
+      if (shell) { x.strokeStyle = "rgba(255,214,107,.4)"; x.lineWidth = 2; x.beginPath(); shell.trail.forEach(([a, b], i) => (i ? x.lineTo(a, b) : x.moveTo(a, b))); x.stroke(); glow("#ffd66b", 12); x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(shell.x, shell.y, 4, 0, 7); x.fill(); glow(); }
+      txt("WIND " + (wind ? (wind > 0 ? "→ " : "← ") + Math.abs(Math.round(wind / 6)) : "CALM"), W / 2, 22, 13, "#9ff3ff", "center", "d"); x.fillStyle = "#9ff3ff"; x.fillRect(W / 2, 34, wind * 1.5, 3);
+      txt(S.duo ? "P1" : "YOU", 16, 22, 13, "#22e4ff", "left", "d"); txt(S.duo ? "P2" : "ENEMY", W - 16, 22, 13, tanks[1].col, "right", "d");
+      if (!human() && phase === "aim") txt("ENEMY IS AIMING…", W / 2, 60, 12, "#ff4d6d", "center", "d");
+      if (msgT > 0) txt(msg, W / 2, 120, 22, "#ffffff", "center", "d");
+    },
+  });
+}
+
+/* ---------- Blob Pop ---------- */
+function blobsGame() {
+  const C = 6, R = 12, CS = 44, OX = 20, OY = 50, W = OX * 2 + C * CS + 110, H = OY + R * CS + 30;
+  const COLS = ["#ff2bd6", "#22e4ff", "#3dffa8", "#ffd66b", "#a35bff"];
+  let g, cur, nxt, fallT, level, popped, phase, chain, popFx, dropT, swipe, lockT, fast;
+  const at = (c, r) => (c < 0 || c >= C || r >= R ? 9 : r < 0 ? -1 : g[r][c]);
+  const nColors = () => Math.min(5, 3 + Math.floor(level / 3));
+  const pair = () => [Math.random() * nColors() | 0, Math.random() * nColors() | 0];
+  function spawn() { cur = { c: 2, r: 0, rot: 0, p: nxt || pair() }; nxt = pair(); if (at(2, 0) !== -1 || at(2, 1) !== -1) { phase = "dead"; } lockT = 0; }
+  const sub = (k) => { const off = [[0, -1], [1, 0], [0, 1], [-1, 0]][k.rot % 4]; return [[k.c, k.r], [k.c + off[0], k.r + off[1]]]; };
+  const fits = (k) => sub(k).every(([c, r]) => c >= 0 && c < C && r < R && (r < 0 || g[r][c] === -1));
+  function tryMove(dc, dr, drot) { const k = { ...cur, c: cur.c + dc, r: cur.r + dr, rot: (cur.rot + (drot || 0) + 4) % 4 }; if (fits(k)) { cur = k; return true; } if (drot) { for (const kick of [-1, 1, 0]) { const k2 = { ...k, c: k.c + kick, r: k.r + (kick ? 0 : -1) }; if (fits(k2)) { cur = k2; return true; } } } return false; }
+  function lock() { sub(cur).forEach(([c, r], i) => { if (r >= 0) g[r][c] = cur.p[i]; }); cur = null; phase = "settle"; chain = 0; sfx("tick"); }
+  function gravity() { let moved = false; for (let c = 0; c < C; c++) for (let r = R - 2; r >= 0; r--) if (g[r][c] !== -1 && g[r + 1][c] === -1) { let rr2 = r; while (rr2 + 1 < R && g[rr2 + 1][c] === -1) { g[rr2 + 1][c] = g[rr2][c]; g[rr2][c] = -1; rr2++; } moved = true; } return moved; }
+  function findPops() {
+    const seen = Array.from({ length: R }, () => Array(C).fill(false)), out = [];
+    for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) { if (g[r][c] < 0 || seen[r][c]) continue; const col = g[r][c], grp = [[c, r]], q = [[c, r]]; seen[r][c] = true; while (q.length) { const [qc, qr] = q.pop(); for (const [dc, dr] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nc = qc + dc, nr = qr + dr; if (nc >= 0 && nr >= 0 && nc < C && nr < R && !seen[nr][nc] && g[nr][nc] === col) { seen[nr][nc] = true; grp.push([nc, nr]); q.push([nc, nr]); } } } if (grp.length >= 4) out.push(grp); }
+    return out;
+  }
+  function newLevel(lv, keep) { level = lv; if (!keep) { g = Array.from({ length: R }, () => Array(C).fill(-1)); popped = 0; } fallT = 0; phase = "fall"; nxt = null; spawn(); }
+  const fallSpeed = () => (S.practice ? .9 : Math.max(.12, .75 - level * .055));
+  game({
+    title: "Blob Pop", w: W, h: H, color: "#ff2bd6", bpm: 128, easy: "slow falling and only 3 colours",
+    help: ["Blobs fall in pairs. Connect 4 or more of the same colour to POP them", "Pops make blobs fall and can start CHAINS for huge points", "Arrows / swipe to move, ↑ / X / tap to spin, ↓ / swipe down to drop fast", "Pop 40 blobs to level up. Don't let them stack to the top!"],
+    load(d) { if (d && d.level) newLevel(d.level | 0); },
+    init() { popFx = []; fast = false; newLevel(1); },
+    hud() { return "LEVEL " + level + "  ·  POPPED " + popped + "/40"; },
+    summary() { return ["REACHED LEVEL " + level]; },
+    down(px, py) { swipe = { x: px, y: py, t: S.clock }; },
+    move(px, py) { if (!swipe || !cur) return; const dx = px - swipe.x, dy = py - swipe.y; if (Math.abs(dx) > 30 && Math.abs(dx) > Math.abs(dy)) { tryMove(Math.sign(dx), 0); swipe.x = px; swipe.y = py; swipe.used = true; sfx("tick"); } else if (dy > 40) { fast = true; swipe.used = true; } },
+    up() { if (swipe && !swipe.used && cur) { if (tryMove(0, 0, 1)) sfx("blip"); } swipe = null; fast = false; },
+    key(k) { if (!cur) return; if (k === "ArrowLeft" || k === "a") tryMove(-1, 0); else if (k === "ArrowRight" || k === "d") tryMove(1, 0); else if (k === "ArrowUp" || k === "x" || k === "w") tryMove(0, 0, 1); else if (k === "z") tryMove(0, 0, -1); else if (k === " ") { while (tryMove(0, 1)); lock(); } },
+    update(dt) {
+      for (const f of popFx) f.t -= dt; popFx = popFx.filter((f) => f.t > 0);
+      if (phase === "dead") { phase = "over"; return over("THE BLOBS REACHED THE TOP · LEVEL " + level); }
+      if (phase === "fall" && cur) { fallT += dt * (fast || S.keys.ArrowDown || S.keys.s ? 12 : 1); if (fallT >= fallSpeed()) { fallT = 0; if (!tryMove(0, 1)) lock(); } }
+      else if (phase === "settle") { dropT = (dropT || 0) + dt; if (dropT < .08) return; dropT = 0; if (gravity()) return;
+        const pops = findPops(); if (pops.length) { chain++; let n = 0; for (const grp of pops) { n += grp.length; for (const [c, r] of grp) { popFx.push({ x: OX + c * CS + CS / 2, y: OY + r * CS + CS / 2, c: COLS[g[r][c]], t: .35 }); g[r][c] = -1; } } popped += n; const pts = n * 10 * chain * chain * level; S.score += pts; pop(OX + C * CS / 2, OY + 40, (chain > 1 ? chain + " CHAIN! " : "") + "+" + pts, chain > 1 ? "#ffd66b" : "#ffffff"); sfx(chain > 1 ? "level" : "pop"); if (chain > 2) flash("#ff2bd6", .15); dropT = -.25; return; }
+        if (popped >= 40 && !S.practice && !S.quick) { banner("LEVEL " + (level + 1) + "!", "#3dffa8"); sfx("level"); newLevel(level + 1, true); popped = 0; saveGame({ level, label: "LEVEL " + level, stop: level % 3 === 1, next: nColors() + " colours · faster drops" }); return; }
+        phase = "fall"; spawn(); }
+    },
+    draw() {
+      bg("#0c0618"); x.fillStyle = "#140a26"; x.fillRect(OX, OY, C * CS, R * CS); x.strokeStyle = "rgba(255,43,214,.4)"; x.lineWidth = 2; x.strokeRect(OX, OY, C * CS, R * CS);
+      x.fillStyle = "rgba(255,77,109,.12)"; x.fillRect(OX + 2 * CS, OY, CS, CS);
+      const blob = (X, Y, col, s) => { glow(COLS[col], 10); x.fillStyle = COLS[col]; x.beginPath(); x.arc(X, Y, (CS / 2 - 3) * (s || 1), 0, 7); x.fill(); glow(); x.fillStyle = "rgba(255,255,255,.35)"; x.beginPath(); x.arc(X - 7, Y - 8, 5 * (s || 1), 0, 7); x.fill(); x.fillStyle = "#111"; x.beginPath(); x.arc(X - 6, Y + 1, 3, 0, 7); x.arc(X + 6, Y + 1, 3, 0, 7); x.fill(); };
+      for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) if (g[r][c] >= 0) { const X = OX + c * CS + CS / 2, Y = OY + r * CS + CS / 2; const col = g[r][c]; x.fillStyle = COLS[col]; if (at(c + 1, r) === col) x.fillRect(X, Y - 8, CS, 16); if (at(c, r + 1) === col) x.fillRect(X - 8, Y, 16, CS); blob(X, Y, col); }
+      if (cur) { let ghost = { ...cur }; while (fits({ ...ghost, r: ghost.r + 1 })) ghost.r++; sub(ghost).forEach(([c, r], i) => { if (r >= 0) { x.strokeStyle = COLS[cur.p[i]]; x.globalAlpha = .4; x.lineWidth = 2; x.beginPath(); x.arc(OX + c * CS + CS / 2, OY + r * CS + CS / 2, CS / 2 - 5, 0, 7); x.stroke(); x.globalAlpha = 1; } }); sub(cur).forEach(([c, r], i) => { if (r >= 0) blob(OX + c * CS + CS / 2, OY + r * CS + CS / 2 + fallT / fallSpeed() * 0, cur.p[i]); }); }
+      for (const f of popFx) { x.globalAlpha = f.t / .35; x.strokeStyle = f.c; x.lineWidth = 3; x.beginPath(); x.arc(f.x, f.y, CS / 2 + (1 - f.t / .35) * 20, 0, 7); x.stroke(); x.globalAlpha = 1; }
+      const nx = OX + C * CS + 30; txt("NEXT", nx + 30, OY + 10, 12, "#ff7be6", "center", "d"); if (nxt) { blob(nx + 30, OY + 50, nxt[0], .8); blob(nx + 30, OY + 86, nxt[1], .8); }
+      txt("LEVEL", nx + 30, OY + 160, 11, "#8f86b5", "center", "d"); txt(String(level), nx + 30, OY + 184, 24, "#ffffff", "center", "d");
+      txt("POPPED", nx + 30, OY + 230, 11, "#8f86b5", "center", "d"); txt(popped + "/40", nx + 30, OY + 254, 18, "#3dffa8", "center", "d");
+      if (chain > 1 && phase === "settle") txt(chain + " CHAIN!", nx + 30, OY + 320, 18, "#ffd66b", "center", "d");
+    },
+  });
+}
+
+/* ---------- Lock Pop ---------- */
+function lockpickGame() {
+  const W = 420, H = 600, CX = W / 2, CY = 300, RAD = 130;
+  let ang, dir, tgt, tw, left, level, lives, speed, passed, popT, failT, shakeT, perfect;
+  function newLock(lv) { level = lv; left = Math.min(30, 4 + lv * 2); ang = -Math.PI / 2; dir = 1; speed = (S.practice ? 1.5 : 1.9) + Math.min(2.6, lv * .16); popT = 0; failT = 0; perfect = 0; place(); banner("LOCK " + lv + " · " + left + " PINS", "#ffd66b"); }
+  function place() { tw = Math.max(.2, (S.practice ? .55 : .42) - level * .012); const off = (.9 + Math.random() * 2.2) * dir; tgt = norm(ang + off); passed = false; }
+  const norm = (a) => { while (a > Math.PI) a -= Math.PI * 2; while (a < -Math.PI) a += Math.PI * 2; return a; };
+  const diff = () => norm(ang - tgt);
+  function tap() {
+    if (S.state !== "play" || popT > 0 || failT > 0) return;
+    const d = Math.abs(diff());
+    if (d < tw / 2) { left--; const pts = (d < tw / 6 ? 30 : 10) * level; if (d < tw / 6) { perfect++; pop(CX, CY - 40, "PERFECT +" + pts, "#ffd66b"); } S.score += pts; sfx("score"); burst(CX + Math.cos(tgt) * RAD, CY + Math.sin(tgt) * RAD, "#ffd66b", 14, 160, .35); dir = -dir; speed += .05;
+      if (left <= 0) { popT = 1.2; const bonus = (100 + perfect * 20) * level; S.score += bonus; banner("UNLOCKED! +" + bonus, "#3dffa8"); sfx("level"); flash("#ffd66b", .25); } else place(); }
+    else fail();
+  }
+  function fail() { failT = .8; shakeT = .4; sfx("bad"); if (!S.practice) lives--; }
+  game({
+    title: "Lock Pop", w: W, h: H, color: "#ffd66b", bpm: 110, easy: "a bigger target and no lives lost",
+    help: ["The needle spins around the lock. Tap (or Space) when it's on the glowing spot!", "Every hit flips the needle's direction and moves the spot", "Miss, or let the needle sweep past the spot, and you lose a life", "Pop every pin to open the lock. Each lock is faster with more pins"],
+    load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); newLock(d.level | 0); } },
+    init() { lives = S.practice ? 99 : 3; shakeT = 0; newLock(1); },
+    hud() { return "LOCK " + level + "  ·  PINS LEFT " + left + "  ·  " + (S.practice ? "PRACTICE" : "LIVES " + lives); },
+    summary() { return ["OPENED " + (level - 1) + " LOCKS"]; },
+    down() { tap(); },
+    key(k, rep) { if (k === " " && !rep) tap(); },
+    update(dt) {
+      shakeT = Math.max(0, shakeT - dt);
+      if (popT > 0) { popT -= dt; if (popT <= 0) { newLock(level + 1); saveGame({ level, lives, label: "LOCK " + level, stop: level % 3 === 1, next: left + " pins · faster needle" }); } return; }
+      if (failT > 0) { failT -= dt; if (failT <= 0) { if (lives <= 0) return over("THE LOCK JAMMED · LOCK " + level); place(); } return; }
+      const before = diff(); ang = norm(ang + dir * speed * dt); const after = diff();
+      if (Math.abs(before) < tw / 2 || Math.abs(after) < tw / 2) passed = true;
+      if (passed && Math.abs(after) > tw / 2 + .05 && Math.sign(after) === dir && Math.abs(after) < 1) fail();
+    },
+    draw() {
+      bg("#0c0814"); const sx = shakeT ? (Math.random() - .5) * 10 : 0;
+      x.save(); x.translate(sx, 0);
+      glow("#ffd66b", 20); x.strokeStyle = "#ffd66b"; x.lineWidth = 10; x.beginPath(); x.arc(CX, CY - RAD - 30, 70, Math.PI, 0); x.stroke(); glow();
+      x.fillStyle = "#1a1030"; x.beginPath(); x.arc(CX, CY, RAD + 30, 0, 7); x.fill(); glow(failT ? "#ff4d6d" : "#ff2bd6", 18); x.strokeStyle = failT ? "#ff4d6d" : "#ff2bd6"; x.lineWidth = 6; x.stroke(); glow();
+      x.strokeStyle = "rgba(255,255,255,.08)"; x.lineWidth = 18; x.beginPath(); x.arc(CX, CY, RAD, 0, 7); x.stroke();
+      if (popT <= 0) { glow("#ffd66b", 16); x.strokeStyle = "#ffd66b"; x.lineWidth = 18; x.beginPath(); x.arc(CX, CY, RAD, tgt - tw / 2, tgt + tw / 2); x.stroke(); glow(); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(CX + Math.cos(tgt) * RAD, CY + Math.sin(tgt) * RAD, 4, 0, 7); x.fill(); }
+      glow("#22e4ff", 14); x.strokeStyle = "#22e4ff"; x.lineWidth = 5; x.lineCap = "round"; x.beginPath(); x.moveTo(CX, CY); x.lineTo(CX + Math.cos(ang) * (RAD + 14), CY + Math.sin(ang) * (RAD + 14)); x.stroke(); x.lineCap = "butt"; glow();
+      x.fillStyle = "#2a1a4a"; x.beginPath(); x.arc(CX, CY, 60, 0, 7); x.fill(); txt(popT > 0 ? "🔓" : String(left), CX, CY + 2, popT > 0 ? 44 : 46, popT > 0 ? "#3dffa8" : "#ffffff", "center", "d");
+      x.restore();
+      txt("LOCK " + level, 16, 26, 16, "#ffd66b", "left", "d"); if (!S.practice) txt("♥".repeat(Math.max(0, lives)), W - 16, 26, 18, "#ff4d6d", "right");
+      txt(dir > 0 ? "↻" : "↺", CX, H - 60, 30, "rgba(255,255,255,.3)", "center"); txt("TAP WHEN THE NEEDLE HITS THE GOLD!", CX, H - 24, 11, "rgba(255,255,255,.5)", "center", "d");
+    },
+  });
+}
+
 function platGame() {
   const T = 24, CW = 20, CH = 15, W = CW * T, H = CH * T + 56, BAR = CH * T;
   const LV = [
@@ -11690,6 +12004,11 @@ function fighterGame() {
     { key: "archery", title: "Wind Archer", genre: "Sports", fn: archeryGame },
     { key: "derby", title: "Home Run Derby", genre: "Sports", fn: derbyGame },
     { key: "tiles", title: "Neon Keys", genre: "Other", fn: tilesGame },
+    { key: "copter", title: "Cave Copter", genre: "Arcade", fn: copterGame },
+    { key: "well", title: "Well Drop", genre: "Platformer", fn: wellGame },
+    { key: "artillery", title: "Hill Cannons", genre: "Strategy", fn: artilleryGame },
+    { key: "blobs", title: "Blob Pop", genre: "Puzzle", fn: blobsGame },
+    { key: "lockpick", title: "Lock Pop", genre: "Other", fn: lockpickGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -11703,6 +12022,7 @@ function fighterGame() {
     { key: "chess", how: "Full chess with castling, en passant and promotion. Checkmate the other king.", keys: "Arrows move, Space picks and moves", touch: "Tap a piece, tap a dot, then pass the iPad" },
     { key: "connect4", how: "Classic Connect Four. Drop discs and get 4 in a row first.", keys: "← → pick a column, Space drops", touch: "Tap a column, then pass the iPad" },
     { key: "reversi", how: "Flip your rival's discs by trapping them. Most discs at the end wins.", keys: "Arrows move, Space places", touch: "Tap a glowing dot, then pass the iPad" },
+    { key: "artillery", how: "Pass and play tank battle on blow-up-able hills. Take turns aiming. First to knock the other tank out wins.", keys: "← → aim, ↑ ↓ power, Space fires", touch: "Drag back from your tank and let go, then pass the iPad" },
     { key: "draw", how: "A western duel! Wait for FIRE!, then tap your side first. Shooting early loses the round. First to 5.", keys: "P1 presses A, P2 presses L", touch: "P1 taps the left half, P2 taps the right half" },
     { key: "pool", how: "Take turns. Pot a ball to shoot again. Each ball scores its number. Most points when the table is clear wins.", keys: "Drag back to shoot, ← → aim, ↑ ↓ power, Space shoots", touch: "Drag back and let go, then pass the iPad" },
     { key: "bowling", how: "Same obstacle lanes for both players, 10 frames each. Highest score wins.", keys: "Drag back to aim and set power, Space bowls, ← → hook while rolling", touch: "Drag back and let go, swipe to hook, then pass the iPad" },
@@ -13124,7 +13444,7 @@ function fighterGame() {
   // The song games play: a shop song you equipped, otherwise the style picked in Settings.
   window.gblMusicPick = () => { try { const m = prog.equip && prog.equip.music; if (m === "mu-shuffle") { const own = (prog.owned || []).filter((id) => id.startsWith("mu-")); own.push("mu-synth"); return own[Math.random() * own.length | 0].slice(3); } if (m) return m.slice(3); if (settings.music === "off") return "off"; return settings.music || "synth"; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
-  const STARS = { tiles: [500, 2500, 8000], derby: [1500, 8000, 25000], archery: [800, 4000, 12000], plinko: [3000, 15000, 50000], skee: [800, 3000, 8000], claim: [3000, 15000, 50000], draw: [2000, 8000, 20000], bugs: [3000, 15000, 40000], pipes: [1500, 8000, 25000], horde: [3000, 15000, 50000], tanks: [1500, 8000, 25000], claw: [400, 2000, 6000], crates: [1500, 6000, 15000], swarm: [3000, 15000, 40000], bomber: [1000, 5000, 15000], snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
+  const STARS = { lockpick: [300, 1500, 5000], blobs: [2000, 10000, 40000], artillery: [2000, 10000, 30000], well: [2000, 10000, 30000], copter: [500, 2000, 6000], tiles: [500, 2500, 8000], derby: [1500, 8000, 25000], archery: [800, 4000, 12000], plinko: [3000, 15000, 50000], skee: [800, 3000, 8000], claim: [3000, 15000, 50000], draw: [2000, 8000, 20000], bugs: [3000, 15000, 40000], pipes: [1500, 8000, 25000], horde: [3000, 15000, 50000], tanks: [1500, 8000, 25000], claw: [400, 2000, 6000], crates: [1500, 6000, 15000], swarm: [3000, 15000, 40000], bomber: [1000, 5000, 15000], snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
   const starsOf = (k) => { const t = STARS[k]; if (!t) return 0; const b = starBest(k); return t.filter((v) => b >= v).length; };
   const totalStars = () => Object.keys(STARS).reduce((a, k) => a + starsOf(k), 0);
