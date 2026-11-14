@@ -9073,6 +9073,519 @@ function poolGame() {
   });
 }
 
+/* ---------- Bomb Maze ---------- */
+function bomberGame() {
+  const C = 13, R = 11, T = 34, W = C * T, H = R * T + 46, OY = 46;
+  const DIRS = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
+  let map, pl, bombs, fires, foes, items, level, lives, exit, joy, tapT, inv, clearT;
+  const at = (c, r) => (c < 0 || r < 0 || c >= C || r >= R ? 1 : map[r][c]);
+  const bombAt = (c, r) => bombs.find((b) => b.c === c && b.r === r);
+  const solid = (c, r, ignoreBomb) => at(c, r) !== 0 || (!ignoreBomb && !!bombAt(c, r));
+  function build(lv) {
+    level = lv; map = []; bombs = []; fires = []; foes = []; items = [];
+    for (let r = 0; r < R; r++) { const row = []; for (let c = 0; c < C; c++) row.push(r === 0 || c === 0 || r === R - 1 || c === C - 1 || (r % 2 === 0 && c % 2 === 0) ? 1 : 0); map.push(row); }
+    const safe = (c, r) => c + r <= 3;
+    const soft = [];
+    for (let r = 1; r < R - 1; r++) for (let c = 1; c < C - 1; c++) if (!map[r][c] && !safe(c, r) && Math.random() < Math.min(.62, .38 + lv * .03)) { map[r][c] = 2; soft.push([c, r]); }
+    soft.sort(() => Math.random() - .5);
+    exit = soft.length ? { c: soft[0][0], r: soft[0][1], open: false } : { c: C - 2, r: R - 2, open: false };
+    const kinds = ["bomb", "fire", "speed", "bomb", "fire"]; for (let i = 0; i < Math.min(soft.length - 1, 2 + (lv % 3)); i++) items.push({ c: soft[i + 1][0], r: soft[i + 1][1], k: kinds[(i + lv) % kinds.length], shown: false });
+    const n = Math.min(9, 2 + lv);
+    for (let i = 0, tries = 0; i < n && tries < 500; tries++) { const c = 1 + (Math.random() * (C - 2) | 0), r = 1 + (Math.random() * (R - 2) | 0); if (map[r][c] || c + r < 8) continue; foes.push({ c, r, x: c, y: r, tc: c, tr: r, sp: (S.practice ? 1.4 : 1.8) + Math.min(1.6, lv * .12), smart: i < Math.floor(lv / 2), hp: lv >= 5 && i === 0 ? 2 : 1, hurtT: 0 }); i++; }
+    if (pl) { pl.c = 1; pl.r = 1; pl.x = 1; pl.y = 1; pl.tc = 1; pl.tr = 1; pl.dead = 0; }
+    inv = 2; clearT = 0;
+  }
+  function newPlayer() { pl = { c: 1, r: 1, x: 1, y: 1, tc: 1, tr: 1, sp: 4.2, maxB: 1, fire: 2, dead: 0 }; }
+  function dropBomb() {
+    if (pl.dead || S.state !== "play") return; const c = Math.round(pl.x), r = Math.round(pl.y);
+    if (bombAt(c, r) || bombs.filter((b) => b.own).length >= pl.maxB) return;
+    bombs.push({ c, r, t: 2.2, own: true, fire: pl.fire }); sfx("tick");
+  }
+  function explode(b) {
+    bombs = bombs.filter((q) => q !== b); sfx("boom"); shake(5, .25);
+    const cells = [[b.c, b.r]];
+    for (const [dx, dy] of Object.values(DIRS)) for (let k = 1; k <= b.fire; k++) { const c = b.c + dx * k, r = b.r + dy * k, v = at(c, r); if (v === 1) break; cells.push([c, r]); if (v === 2) { map[r][c] = 0; burst(c * T + T / 2, OY + r * T + T / 2, "#c88a4a", 10, 140, .4); const it = items.find((q) => q.c === c && q.r === r); if (it) it.shown = true; if (exit.c === c && exit.r === r) exit.shown = true; S.score += 10; break; } }
+    for (const [c, r] of cells) { fires.push({ c, r, t: .45 }); const ob = bombAt(c, r); if (ob) ob.t = Math.min(ob.t, .05); }
+  }
+  function hurtPlayer() {
+    if (pl.dead || inv > 0) return; pl.dead = 1.4; sfx("over"); flash("#ff4d6d", .3); burst(pl.x * T + T / 2, OY + pl.y * T + T / 2, "#ffd66b", 30, 220, .6);
+  }
+  function stepMover(m, dt, wantDir) {
+    const sp = m.sp * dt;
+    if (m.x === m.tc && m.y === m.tr) {
+      if (!wantDir) return;
+      const [dx, dy] = DIRS[wantDir], nc = m.tc + dx, nr = m.tr + dy;
+      if (!solid(nc, nr, false)) { m.tc = nc; m.tr = nr; m.face = wantDir; }
+      return;
+    }
+    const dx = m.tc - m.x, dy = m.tr - m.y, d = Math.hypot(dx, dy);
+    if (d <= sp) { m.x = m.tc; m.y = m.tr; m.c = m.tc; m.r = m.tr; } else { m.x += dx / d * sp; m.y += dy / d * sp; }
+  }
+  function playerDir() {
+    const k = S.keys; if (k.ArrowUp || k.w) return "u"; if (k.ArrowDown || k.s) return "d"; if (k.ArrowLeft || k.a) return "l"; if (k.ArrowRight || k.d) return "r";
+    if (joy && Math.hypot(joy.dx, joy.dy) > 14) return Math.abs(joy.dx) > Math.abs(joy.dy) ? (joy.dx > 0 ? "r" : "l") : (joy.dy > 0 ? "d" : "u");
+    return null;
+  }
+  game({
+    title: "Bomb Maze", w: W, h: H, color: "#ff8a1f", bpm: 132, easy: "unlimited lives and slower enemies",
+    help: ["Arrows / WASD to walk, Space to drop a bomb", "Touch: drag anywhere to walk, tap (or the 💣 button) to drop a bomb", "Blasts break crates and can uncover power-ups: 💣 more bombs, 🔥 bigger blast, 👟 speed", "Beat every enemy, then find the hidden exit door. Don't stand in your own blast!"],
+    load(d) { if (d && d.level) { newPlayer(); pl.maxB = d.maxB || 1; pl.fire = d.fire || 2; pl.sp = d.sp || 4.2; lives = Math.max(lives, d.lives || 3); build(d.level | 0); } },
+    init() { lives = S.practice ? 99 : 3; newPlayer(); build(1); joy = null; },
+    hud() { return "LEVEL " + level + "  ·  ENEMIES " + foes.length + "  ·  " + (S.practice ? "" : "LIVES " + lives + "  ·  ") + "💣" + pl.maxB + "  🔥" + pl.fire; },
+    summary() { return ["REACHED LEVEL " + level]; },
+    down(px, py) { if (px > W - 64 && py > H - 64) { dropBomb(); return; } joy = { sx: px, sy: py, dx: 0, dy: 0, moved: false }; tapT = S.clock; },
+    move(px, py) { if (!joy) return; joy.dx = px - joy.sx; joy.dy = py - joy.sy; if (Math.hypot(joy.dx, joy.dy) > 14) joy.moved = true; },
+    up() { if (joy && !joy.moved && S.clock - tapT < .35) dropBomb(); joy = null; },
+    key(k, rep) { if ((k === " " || k === "x" || k === "Enter") && !rep) dropBomb(); },
+    update(dt) {
+      inv = Math.max(0, inv - dt);
+      if (pl.dead) { pl.dead -= dt; if (pl.dead <= 0) { pl.dead = 0; if (!S.practice) lives--; if (lives <= 0) return over("OUT OF LIVES · LEVEL " + level); pl.x = pl.c = pl.tc = 1; pl.y = pl.r = pl.tr = 1; inv = 2.5; bombs = bombs.filter((b) => !b.own); } }
+      else stepMover(pl, dt, playerDir());
+      for (const b of bombs) b.t -= dt; for (const b of bombs.slice()) if (b.t <= 0 && bombs.includes(b)) explode(b);
+      for (const f of fires) f.t -= dt; fires = fires.filter((f) => f.t > 0);
+      const onFire = (c, r) => fires.some((f) => f.c === c && f.r === r);
+      if (!pl.dead && onFire(Math.round(pl.x), Math.round(pl.y))) hurtPlayer();
+      for (const e of foes) {
+        e.hurtT = Math.max(0, e.hurtT - dt);
+        if (e.x === e.tc && e.y === e.tr) {
+          const opts = Object.keys(DIRS).filter((d) => !solid(e.tc + DIRS[d][0], e.tr + DIRS[d][1], false));
+          let pick = null;
+          if (e.smart && Math.random() < .7 && opts.length) pick = opts.sort((a, b) => Math.hypot(e.tc + DIRS[a][0] - pl.x, e.tr + DIRS[a][1] - pl.y) - Math.hypot(e.tc + DIRS[b][0] - pl.x, e.tr + DIRS[b][1] - pl.y))[0];
+          else if (e.dir && opts.includes(e.dir) && Math.random() < .75) pick = e.dir; else pick = opts[Math.random() * opts.length | 0];
+          e.dir = pick;
+        }
+        stepMover(e, dt, e.dir);
+        if (onFire(Math.round(e.x), Math.round(e.y)) && !e.hurtT) { e.hp--; e.hurtT = .6; if (e.hp <= 0) { e.dead = true; S.score += 100 * level; pop(e.x * T + T / 2, OY + e.y * T, "+" + 100 * level, "#ffd66b"); burst(e.x * T + T / 2, OY + e.y * T + T / 2, "#ff2bd6", 20, 200, .5); sfx("score"); } }
+        if (!pl.dead && !inv && Math.hypot(e.x - pl.x, e.y - pl.y) < .7) hurtPlayer();
+      }
+      foes = foes.filter((e) => !e.dead);
+      if (!foes.length && !exit.open) { exit.open = true; banner("EXIT OPEN!", "#3dffa8"); sfx("power"); }
+      for (const it of items) if (it.shown && !it.got && map[it.r][it.c] === 0 && Math.round(pl.x) === it.c && Math.round(pl.y) === it.r) { it.got = true; if (it.k === "bomb") pl.maxB = Math.min(6, pl.maxB + 1); else if (it.k === "fire") pl.fire = Math.min(7, pl.fire + 1); else pl.sp = Math.min(6.5, pl.sp + .5); S.score += 50; sfx("power"); pop(it.c * T + T / 2, OY + it.r * T, it.k === "bomb" ? "+1 BOMB" : it.k === "fire" ? "BIGGER BLAST" : "SPEED UP", "#3dffa8"); }
+      if (exit.open && map[exit.r][exit.c] === 0 && !pl.dead && Math.round(pl.x) === exit.c && Math.round(pl.y) === exit.r && pl.x === pl.tc && pl.y === pl.tr) {
+        S.score += 500 * level; banner("LEVEL " + level + " CLEAR!", "#3dffa8"); sfx("level");
+        build(level + 1); saveGame({ level, lives, maxB: pl.maxB, fire: pl.fire, sp: pl.sp, label: "LEVEL " + level, stop: level % 3 === 1, next: (2 + level) + " enemies on this level" + (level >= 5 ? " · some take 2 hits" : "") });
+      }
+    },
+    draw() {
+      bg("#0a0612");
+      txt("LV " + level, 14, 24, 16, "#ff8a1f", "left", "d"); txt(S.practice ? "PRACTICE" : "♥ ".repeat(Math.max(0, lives)).trim(), W / 2, 24, 15, "#ff4d6d", "center", "d"); txt("💣" + pl.maxB + "  🔥" + pl.fire, W - 14, 24, 14, "#ffd66b", "right");
+      for (let r = 0; r < R; r++) for (let c = 0; c < C; c++) {
+        const X = c * T, Y = OY + r * T, v = map[r][c];
+        x.fillStyle = (r + c) % 2 ? "#16301f" : "#183622"; x.fillRect(X, Y, T, T);
+        if (v === 1) { x.fillStyle = "#2a2440"; x.fillRect(X, Y, T, T); x.fillStyle = "#3d3560"; x.fillRect(X + 2, Y + 2, T - 4, T - 6); glow("#22e4ff", 6); x.strokeStyle = "rgba(34,228,255,.5)"; x.lineWidth = 1.5; x.strokeRect(X + 2.5, Y + 2.5, T - 5, T - 7); glow(); }
+        else if (v === 2) { x.fillStyle = "#8a5a2e"; rr(X + 2, Y + 2, T - 4, T - 4, 5); x.fill(); x.strokeStyle = "#c88a4a"; x.lineWidth = 2; x.beginPath(); x.moveTo(X + 6, Y + 6); x.lineTo(X + T - 6, Y + T - 6); x.moveTo(X + T - 6, Y + 6); x.lineTo(X + 6, Y + T - 6); x.stroke(); x.strokeRect(X + 5, Y + 5, T - 10, T - 10); }
+      }
+      if (exit.shown || exit.open) { if (map[exit.r][exit.c] === 0) { const X = exit.c * T, Y = OY + exit.r * T; glow(exit.open ? "#3dffa8" : "#555", exit.open ? 16 : 0); x.fillStyle = exit.open ? "#3dffa8" : "#3a3a50"; rr(X + 6, Y + 4, T - 12, T - 6, 6); x.fill(); glow(); x.fillStyle = "#0a0612"; x.fillRect(X + 11, Y + 10, T - 22, T - 14); txt(exit.open ? "EXIT" : "🔒", X + T / 2, Y - 2 + (exit.open ? 0 : T / 2), exit.open ? 8 : 12, "#3dffa8", "center", "d"); } }
+      for (const it of items) if (it.shown && !it.got && map[it.r][it.c] === 0) { const X = it.c * T + T / 2, Y = OY + it.r * T + T / 2; glow("#3dffa8", 10); x.fillStyle = "rgba(61,255,168,.25)"; x.beginPath(); x.arc(X, Y, 13, 0, 7); x.fill(); glow(); txt(it.k === "bomb" ? "💣" : it.k === "fire" ? "🔥" : "👟", X, Y + 1, 16, "#fff", "center"); }
+      for (const b of bombs) { const X = b.c * T + T / 2, Y = OY + b.r * T + T / 2, p = 1 + .08 * Math.sin(S.clock * (b.t < .8 ? 30 : 10)); x.fillStyle = "#111"; x.beginPath(); x.arc(X, Y + 2, 11 * p, 0, 7); x.fill(); glow("#ff4d6d", 10); x.strokeStyle = b.t < .8 ? "#ff4d6d" : "#ffd66b"; x.lineWidth = 2; x.stroke(); glow(); x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(X + 7, Y - 9, 2.5 + Math.random() * 1.5, 0, 7); x.fill(); }
+      for (const f of fires) { const X = f.c * T, Y = OY + f.r * T, a = Math.min(1, f.t / .2); x.globalAlpha = a; glow("#ff8a1f", 20); x.fillStyle = "#ff8a1f"; rr(X + 2, Y + 2, T - 4, T - 4, 8); x.fill(); x.fillStyle = "#ffd66b"; rr(X + 8, Y + 8, T - 16, T - 16, 6); x.fill(); glow(); x.globalAlpha = 1; }
+      for (const e of foes) { const X = e.x * T + T / 2, Y = OY + e.y * T + T / 2, bob = Math.sin(S.clock * 8 + e.tc) * 2; x.globalAlpha = e.hurtT ? .5 : 1; glow(e.smart ? "#ff2bd6" : "#a35bff", 12); x.fillStyle = e.smart ? "#ff2bd6" : "#a35bff"; x.beginPath(); x.arc(X, Y + bob, 12, Math.PI, 0); x.lineTo(X + 12, Y + 12 + bob); for (let k = 0; k < 4; k++) x.lineTo(X + 12 - (k + .5) * 6, Y + (k % 2 ? 12 : 7) + bob); x.closePath(); x.fill(); glow(); x.fillStyle = "#fff"; x.beginPath(); x.arc(X - 4, Y - 2 + bob, 3.5, 0, 7); x.arc(X + 4, Y - 2 + bob, 3.5, 0, 7); x.fill(); x.fillStyle = "#111"; x.beginPath(); x.arc(X - 4 + Math.sign(pl.x - e.x), Y - 2 + bob, 1.8, 0, 7); x.arc(X + 4 + Math.sign(pl.x - e.x), Y - 2 + bob, 1.8, 0, 7); x.fill(); if (e.hp > 1) txt("2", X, Y - 16 + bob, 9, "#ffd66b", "center", "d"); x.globalAlpha = 1; }
+      if (!pl.dead || Math.floor(S.clock * 10) % 2) { const X = pl.x * T + T / 2, Y = OY + pl.y * T + T / 2; x.globalAlpha = inv > 0 && Math.floor(S.clock * 12) % 2 ? .4 : 1; glow("#22e4ff", 14); x.fillStyle = "#e8f6ff"; x.beginPath(); x.arc(X, Y - 3, 9, 0, 7); x.fill(); x.fillStyle = "#22e4ff"; rr(X - 9, Y + 3, 18, 10, 4); x.fill(); glow(); x.fillStyle = "#111"; x.fillRect(X - 5, Y - 5, 3, 4); x.fillRect(X + 2, Y - 5, 3, 4); x.fillStyle = "#ff2bd6"; x.beginPath(); x.arc(X, Y - 13, 3, 0, 7); x.fill(); x.globalAlpha = 1; }
+      x.fillStyle = "rgba(255,138,31,.18)"; x.beginPath(); x.arc(W - 32, H - 32, 26, 0, 7); x.fill(); txt("💣", W - 32, H - 31, 20, "#fff", "center");
+      if (joy && joy.moved) { x.strokeStyle = "rgba(255,255,255,.25)"; x.lineWidth = 2; x.beginPath(); x.arc(joy.sx, joy.sy, 30, 0, 7); x.stroke(); x.fillStyle = "rgba(255,255,255,.25)"; const L = Math.min(30, Math.hypot(joy.dx, joy.dy)), a = Math.atan2(joy.dy, joy.dx); x.beginPath(); x.arc(joy.sx + Math.cos(a) * L, joy.sy + Math.sin(a) * L, 12, 0, 7); x.fill(); }
+    },
+  });
+}
+
+/* ---------- Star Swarm ---------- */
+function swarmGame() {
+  const W = 420, H = 640, PY = H - 64;
+  let pl, shots, eshots, foes, stage, lives, spawnQ, spawnT, diveT, stars, fireCd, dual, capT, respawnT, rescue, holding, targetX;
+  const COL = { boss: "#3dffa8", red: "#ff2e4d", blue: "#22e4ff" };
+  const slot = (e) => [W / 2 + (e.col - (e.rowN - 1) / 2) * 34 + Math.sin(S.clock * .9) * 18, 96 + e.row * 36];
+  const bez = (p, t) => { const u = 1 - t; return [u * u * u * p[0][0] + 3 * u * u * t * p[1][0] + 3 * u * t * t * p[2][0] + t * t * t * p[3][0], u * u * u * p[0][1] + 3 * u * u * t * p[1][1] + 3 * u * t * t * p[2][1] + t * t * t * p[3][1]]; };
+  function newStage(n) {
+    stage = n; foes = []; eshots = []; spawnQ = []; spawnT = .8; diveT = 3;
+    const rows = [["boss", 4], ["red", 8], ["blue", 10], ["blue", 10]].slice(0, n === 1 ? 3 : 4);
+    rows.forEach(([kind, cnt], row) => { for (let col = 0; col < cnt; col++) spawnQ.push({ kind, row, col, rowN: cnt, hp: kind === "boss" ? 2 : 1, state: "wait", x: 0, y: -40 }); });
+    spawnQ.forEach((e, i) => { e.group = Math.floor(i / 6); e.delay = e.group * 1.3 + (i % 6) * .12; e.side = e.group % 2 ? 1 : -1; });
+    banner(n % 4 === 0 ? "STAGE " + n + " · THEY'RE FAST!" : "STAGE " + n, "#22e4ff");
+  }
+  function respawn() { pl = { x: W / 2, alive: true }; respawnT = 0; }
+  function fire() {
+    if (!pl.alive || fireCd > 0 || S.state !== "play") return; const max = dual ? 4 : 2; if (shots.length >= max) return;
+    fireCd = .16; sfx("laser"); shots.push({ x: pl.x - (dual ? 14 : 0), y: PY - 14 }); if (dual) shots.push({ x: pl.x + 14, y: PY - 14 });
+  }
+  function hitPlayer() {
+    if (!pl.alive || respawnT > 0) return;
+    burst(pl.x, PY, "#22e4ff", 30, 240, .6); sfx("boom"); shake(8, .4);
+    if (dual) { dual = false; pop(pl.x, PY - 30, "LOST A SHIP!", "#ff4d6d"); return; }
+    pl.alive = false; respawnT = 1.8; if (!S.practice) lives--;
+  }
+  function killFoe(e) {
+    const diving = e.state !== "form" && e.state !== "enter";
+    const pts = (e.kind === "boss" ? 150 : e.kind === "red" ? 80 : 50) * (diving ? 2 : 1) * (e.kind === "boss" && diving ? 1.6 : 1);
+    S.score += Math.round(pts); pop(e.x, e.y - 16, "+" + Math.round(pts), COL[e.kind]); burst(e.x, e.y, COL[e.kind], 18, 200, .45); sfx("pop");
+    if (e.captive) { if (diving) { rescue = { x: e.x, y: e.y - 26 }; banner("RESCUE!", "#ffd66b"); } else pop(e.x, e.y - 34, "SHIP LOST", "#ff4d6d"); }
+    foes = foes.filter((q) => q !== e);
+  }
+  function startDive(e, beam) {
+    e.state = beam ? "beamGo" : "dive"; e.vx = (pl.x - e.x) * .6; e.vy = 160 + stage * 12; e.shotsLeft = 1 + Math.min(3, Math.floor(stage / 2)); e.shootT = .4 + Math.random() * .6;
+    if (beam) { e.beamX = Math.max(60, Math.min(W - 60, pl.x)); }
+  }
+  game({
+    title: "Star Swarm", w: W, h: H, color: "#22e4ff", bpm: 140, easy: "unlimited lives and slower dives",
+    help: ["Drag (or ← →) to fly, tap / hold / Space to shoot", "Aliens fly in, line up, then dive at you. Diving aliens are worth double", "Green flagships take 2 hits. Their tractor beam can CAPTURE your ship!", "Shoot that flagship while it dives to RESCUE your ship and get double guns"],
+    load(d) { if (d && d.stage) { lives = Math.max(lives, d.lives || 3); dual = !!d.dual; newStage(d.stage | 0); } },
+    init() { lives = S.practice ? 99 : 3; shots = []; dual = false; fireCd = 0; rescue = null; holding = false; targetX = null; respawn(); stars = Array.from({ length: 70 }, () => [Math.random() * W, Math.random() * H, .3 + Math.random()]); newStage(1); },
+    hud() { return "STAGE " + stage + "  ·  " + (S.practice ? "PRACTICE" : "SHIPS " + lives) + (dual ? "  ·  DOUBLE GUNS!" : ""); },
+    summary() { return ["REACHED STAGE " + stage]; },
+    down(px) { holding = true; targetX = px; fire(); },
+    move(px) { if (holding) targetX = px; },
+    up() { holding = false; targetX = null; },
+    key(k, rep) { if (k === " " && !rep) fire(); },
+    update(dt) {
+      fireCd -= dt; for (const s of stars) { s[1] += s[2] * 60 * dt; if (s[1] > H) { s[1] = 0; s[0] = Math.random() * W; } }
+      if (respawnT > 0) { respawnT -= dt; if (respawnT <= 0) { if (lives <= 0) return over("GAME OVER · STAGE " + stage); respawn(); respawnT = -1.5; } }
+      if (respawnT < 0) respawnT = Math.min(0, respawnT + dt);
+      if (pl.alive) {
+        const k = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
+        if (k) pl.x += k * 300 * dt; else if (targetX != null) pl.x += Math.max(-420 * dt, Math.min(420 * dt, targetX - pl.x));
+        pl.x = Math.max(24, Math.min(W - 24, pl.x));
+        if (holding || S.keys[" "]) fire();
+      }
+      for (const s of shots) s.y -= 620 * dt; shots = shots.filter((s) => s.y > -10);
+      spawnT -= dt;
+      for (const e of spawnQ.slice()) if ((e.delay -= dt) <= 0) {
+        spawnQ = spawnQ.filter((q) => q !== e); const sx = e.side < 0 ? -20 : W + 20;
+        e.path = [[sx, 180], [W / 2 - e.side * 160, 120 + Math.random() * 60], [W / 2 + e.side * 140, 380], [0, 0]]; e.t = 0; e.state = "enter"; foes.push(e);
+      }
+      if (!spawnQ.length) { diveT -= dt; const formed = foes.filter((e) => e.state === "form"); if (diveT <= 0 && formed.length && pl.alive) { diveT = Math.max(.7, (S.practice ? 3.4 : 2.6) - stage * .15); const e = formed[Math.random() * formed.length | 0]; const canBeam = e.kind === "boss" && !e.captive && !dual && !foes.some((q) => q.captive) && Math.random() < .45; startDive(e, canBeam); if (!canBeam && e.kind === "boss") for (const q of formed.filter((q) => q.kind === "red" && Math.abs(q.col / q.rowN - e.col / e.rowN) < .2).slice(0, 2)) startDive(q, false); sfx("blip"); } }
+      const spd = (S.practice ? .8 : 1) * (1 + stage * .05);
+      for (const e of foes) {
+        const [sx, sy] = slot(e);
+        if (e.state === "enter") { e.path[3] = [sx, sy]; e.t += dt * .55 * spd; const [nx, ny] = bez(e.path, Math.min(1, e.t)); e.ang = Math.atan2(ny - e.y, nx - e.x); e.x = nx; e.y = ny; if (e.t >= 1) e.state = "form"; }
+        else if (e.state === "form") { e.x += (sx - e.x) * Math.min(1, dt * 8); e.y += (sy - e.y) * Math.min(1, dt * 8); e.ang = -Math.PI / 2; }
+        else if (e.state === "dive") {
+          e.vx += Math.max(-300, Math.min(300, (pl.x - e.x) * 1.4)) * dt; e.vx = Math.max(-200, Math.min(200, e.vx)); e.x += e.vx * dt * spd; e.y += e.vy * dt * spd; e.ang = Math.atan2(e.vy, e.vx);
+          e.shootT -= dt; if (e.shootT <= 0 && e.shotsLeft > 0 && e.y < PY - 120) { e.shotsLeft--; e.shootT = .5; const a = Math.atan2(PY - e.y, pl.x - e.x); eshots.push({ x: e.x, y: e.y, vx: Math.cos(a) * 200, vy: Math.max(120, Math.sin(a) * 200) }); }
+          if (e.y > H + 30) { e.x = sx; e.y = -30; e.state = "return"; }
+        }
+        else if (e.state === "beamGo") { e.x += (e.beamX - e.x) * Math.min(1, dt * 2); e.y += 160 * dt * spd; e.ang = Math.PI / 2; if (e.y >= H - 280) { e.state = "beam"; e.beamT = 3; sfx("power"); } }
+        else if (e.state === "beam") {
+          e.beamT -= dt; const half = 20 + 50 * Math.min(1, (3 - e.beamT) / .8);
+          if (pl.alive && !dual && respawnT >= 0 && Math.abs(pl.x - e.x) < half && e.beamT < 2.4) { pl.alive = false; respawnT = 2.2; if (!S.practice) lives--; e.captive = true; banner("SHIP CAPTURED!", "#ff4d6d"); sfx("bad"); e.beamT = 0; }
+          if (e.beamT <= 0) e.state = "return";
+        }
+        else if (e.state === "return") { const d = Math.hypot(sx - e.x, sy - e.y); e.ang = Math.atan2(sy - e.y, sx - e.x); if (d < 6) e.state = "form"; else { const m = Math.min(d, 260 * dt); e.x += (sx - e.x) / d * m; e.y += (sy - e.y) / d * m; } }
+        for (const s of shots) if (Math.abs(s.x - e.x) < 15 && Math.abs(s.y - e.y) < 15) { s.y = -99; e.hp--; if (e.hp <= 0) { killFoe(e); break; } else { sfx("hit"); e.flash = .15; } }
+        if (e.flash) e.flash = Math.max(0, e.flash - dt);
+        if (pl.alive && respawnT >= 0 && Math.hypot(e.x - pl.x, e.y - PY) < 22) { killFoe(e); hitPlayer(); }
+      }
+      for (const b of eshots) { b.x += b.vx * dt; b.y += b.vy * dt; if (pl.alive && respawnT >= 0 && Math.abs(b.x - pl.x) < (dual ? 24 : 10) && Math.abs(b.y - PY) < 12) { b.y = H + 99; hitPlayer(); } }
+      eshots = eshots.filter((b) => b.y < H + 10);
+      if (rescue) { rescue.y += 180 * dt; rescue.x += ((pl.alive ? pl.x : W / 2) - rescue.x) * Math.min(1, dt * 2); if (rescue.y >= PY) { if (pl.alive) { dual = true; banner("DOUBLE GUNS!", "#ffd66b"); sfx("level"); S.score += 1000; } rescue = null; } }
+      if (!spawnQ.length && !foes.length) { S.score += 300 * stage; newStage(stage + 1); saveGame({ stage, lives, dual, label: "STAGE " + stage, stop: stage % 3 === 1, next: "The aliens dive faster every stage" }); }
+    },
+    draw() {
+      bg("#03020a"); for (const [sx, sy, sp] of stars) { x.fillStyle = "rgba(255,255,255," + (sp * .6) + ")"; x.fillRect(sx, sy, sp * 1.6, sp * 1.6); }
+      const ship = (X, Y, col, sc) => { x.save(); x.translate(X, Y); x.scale(sc || 1, sc || 1); glow(col, 12); x.fillStyle = col; x.beginPath(); x.moveTo(0, -16); x.lineTo(7, 2); x.lineTo(16, 12); x.lineTo(5, 9); x.lineTo(0, 14); x.lineTo(-5, 9); x.lineTo(-16, 12); x.lineTo(-7, 2); x.closePath(); x.fill(); glow(); x.fillStyle = "#ff2bd6"; x.fillRect(-2, -6, 4, 6); x.restore(); };
+      const alien = (e) => { x.save(); x.translate(e.x, e.y); x.rotate((e.ang || -Math.PI / 2) + Math.PI / 2); const c = e.flash ? "#ffffff" : e.kind === "boss" && e.hp < 2 ? "#a35bff" : COL[e.kind], f = Math.sin(S.clock * 10 + e.col) > 0 ? 1 : .7; glow(c, 10); x.fillStyle = c;
+        if (e.kind === "boss") { x.beginPath(); x.ellipse(0, 0, 13, 10, 0, 0, 7); x.fill(); x.fillRect(-16 * f, -2, 6, 10); x.fillRect(16 * f - 6, -2, 6, 10); }
+        else { x.beginPath(); x.moveTo(0, 10); x.lineTo(-12 * f, -6); x.lineTo(-5, -2); x.lineTo(0, -10); x.lineTo(5, -2); x.lineTo(12 * f, -6); x.closePath(); x.fill(); }
+        glow(); x.fillStyle = "#fff"; x.fillRect(-4, -2, 3, 3); x.fillRect(1, -2, 3, 3); x.restore(); if (e.captive) ship(e.x, e.y - 26, "#ff4d6d", .8); };
+      for (const e of foes) if (e.state === "beam") { const half = 20 + 50 * Math.min(1, (3 - e.beamT) / .8), g = x.createLinearGradient(0, e.y, 0, H); g.addColorStop(0, "rgba(61,255,168,.5)"); g.addColorStop(1, "rgba(61,255,168,.05)"); x.fillStyle = g; x.beginPath(); x.moveTo(e.x - 10, e.y + 10); x.lineTo(e.x + 10, e.y + 10); x.lineTo(e.x + half, H); x.lineTo(e.x - half, H); x.closePath(); x.fill(); for (let k = 0; k < 6; k++) { const yy = e.y + ((S.clock * 160 + k * 60) % (H - e.y)); x.strokeStyle = "rgba(61,255,168,.4)"; x.beginPath(); x.moveTo(e.x - (10 + (half - 10) * (yy - e.y) / (H - e.y)), yy); x.lineTo(e.x + (10 + (half - 10) * (yy - e.y) / (H - e.y)), yy); x.stroke(); } }
+      for (const e of foes) alien(e);
+      x.fillStyle = "#ffd66b"; for (const s of shots) { glow("#ffd66b", 8); x.fillRect(s.x - 1.5, s.y - 8, 3, 12); } glow();
+      x.fillStyle = "#ff4d6d"; for (const b of eshots) { glow("#ff4d6d", 8); x.beginPath(); x.arc(b.x, b.y, 3.5, 0, 7); x.fill(); } glow();
+      if (rescue) ship(rescue.x, rescue.y, "#ffd66b", .9);
+      if (pl.alive && (respawnT >= 0 || Math.floor(S.clock * 12) % 2)) { if (dual) { ship(pl.x - 14, PY, "#22e4ff"); ship(pl.x + 14, PY, "#22e4ff"); } else ship(pl.x, PY, "#22e4ff"); }
+      for (let i = 0; i < Math.min(5, lives - 1) && !S.practice; i++) ship(18 + i * 22, H - 16, "rgba(34,228,255,.6)", .5);
+      txt("STAGE " + stage, W - 12, H - 16, 11, "#8f86b5", "right", "d");
+    },
+  });
+}
+
+/* ---------- Crate Push ---------- */
+function cratesGame() {
+  const W = 420, H = 600, TOP = 40, BOT = 70;
+  let level, map, goals, crates, pl, hist, moves, cw, ch, T, OX, OY, swipe, winT, undos, anim;
+  const key = (c, r) => c + "," + r;
+  function rng(seed) { let s = seed >>> 0; return () => ((s = (s * 1664525 + 1013904223) >>> 0) / 4294967296); }
+  function gen(lv) {
+    let best = null;
+    for (let attempt = 0; attempt < 60; attempt++) {
+      const r = rng(lv * 7919 + attempt * 104729 + 17), w = Math.min(10, 6 + Math.floor(lv / 2)), h = Math.min(10, 6 + Math.floor(lv / 3)), n = Math.min(5, 1 + Math.floor((lv + 1) / 2));
+      const m = []; for (let y = 0; y < h + 2; y++) { const row = []; for (let xx = 0; xx < w + 2; xx++) row.push(y === 0 || xx === 0 || y === h + 1 || xx === w + 1 ? 1 : 0); m.push(row); }
+      for (let i = 0; i < Math.min(12, 2 + lv); i++) { const cx = 1 + (r() * w | 0), cy = 1 + (r() * h | 0); m[cy][cx] = 1; if (r() < .5 && cx + 1 <= w) m[cy][cx + 1] = 1; }
+      const free = []; for (let y = 1; y <= h; y++) for (let xx = 1; xx <= w; xx++) if (!m[y][xx]) free.push([xx, y]);
+      if (free.length < n + 6) continue;
+      // keep only the biggest connected area
+      const seen = new Set(), comps = [];
+      for (const [fx, fy] of free) { if (seen.has(key(fx, fy))) continue; const comp = [], q = [[fx, fy]]; seen.add(key(fx, fy)); while (q.length) { const [qx, qy] = q.pop(); comp.push([qx, qy]); for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nx = qx + dx, ny = qy + dy; if (!m[ny][nx] && !seen.has(key(nx, ny))) { seen.add(key(nx, ny)); q.push([nx, ny]); } } } comps.push(comp); }
+      comps.sort((a, b) => b.length - a.length); const area = comps[0]; if (area.length < n + 6) continue;
+      for (const comp of comps.slice(1)) for (const [cx, cy] of comp) m[cy][cx] = 1;
+      const pick = area.slice().sort(() => r() - .5), gl = pick.slice(0, n).map(([a, b]) => [a, b]);
+      let cr = gl.map(([a, b]) => [a, b]), p = pick[n].slice();
+      const isCrate = (a, b) => cr.findIndex(([c2, r2]) => c2 === a && r2 === b);
+      const D = [[1, 0], [-1, 0], [0, 1], [0, -1]];
+      for (let s = 0; s < 40 + lv * 25; s++) {
+        const [dx, dy] = D[r() * 4 | 0], nx = p[0] + dx, ny = p[1] + dy;
+        if (m[ny][nx] || isCrate(nx, ny) >= 0) continue;
+        const bi = isCrate(p[0] - dx, p[1] - dy);
+        if (bi >= 0 && r() < .75) cr[bi] = [p[0], p[1]];
+        p = [nx, ny];
+      }
+      const off = cr.filter(([a, b]) => !gl.some(([g1, g2]) => g1 === a && g2 === b)).length, spread = cr.reduce((s, [a, b], i) => s + Math.abs(a - gl[i][0]) + Math.abs(b - gl[i][1]), 0);
+      if (off >= Math.max(1, Math.ceil(n * .6)) && (!best || spread > best.spread)) best = { m, gl, cr, p, spread, w, h };
+      if (best && attempt > 12) break;
+    }
+    return best;
+  }
+  function loadLevel(lv) {
+    level = lv; const g = gen(lv) || gen(1); map = g.m; goals = g.gl; crates = g.cr.map((c) => c.slice()); pl = g.p.slice(); hist = []; moves = 0; winT = 0; undos = 0;
+    cw = map[0].length; ch = map.length; T = Math.floor(Math.min((W - 20) / cw, (H - TOP - BOT - 10) / ch)); OX = (W - cw * T) / 2; OY = TOP + (H - TOP - BOT - ch * T) / 2;
+    anim = null;
+  }
+  const crateAt = (a, b) => crates.findIndex(([c2, r2]) => c2 === a && r2 === b);
+  const onGoal = (a, b) => goals.some(([g1, g2]) => g1 === a && g2 === b);
+  function step(dx, dy) {
+    if (winT || S.state !== "play") return;
+    const nx = pl[0] + dx, ny = pl[1] + dy; if (map[ny][nx]) return;
+    const bi = crateAt(nx, ny);
+    if (bi >= 0) { const bx = nx + dx, by = ny + dy; if (map[by][bx] || crateAt(bx, by) >= 0) { sfx("tick"); return; } hist.push([pl.slice(), crates.map((c) => c.slice())]); crates[bi] = [bx, by]; sfx(onGoal(bx, by) ? "score" : "hit"); if (onGoal(bx, by)) burst(OX + bx * T + T / 2, OY + by * T + T / 2, "#3dffa8", 12, 140, .35); }
+    else hist.push([pl.slice(), crates.map((c) => c.slice())]);
+    anim = { from: pl.slice(), t: 0 }; pl = [nx, ny]; moves++;
+    if (crates.every(([a, b]) => onGoal(a, b))) { winT = 1.4; const pts = Math.max(100, 1200 - moves * 8) + level * 150; S.score += pts; banner("SOLVED IN " + moves + " MOVES! +" + pts, "#3dffa8"); sfx("level"); }
+  }
+  function undo() { if (!hist.length || winT) return; const [p, c] = hist.pop(); pl = p; crates = c; moves++; undos++; if (!S.practice && !S.quick) S.score = Math.max(0, S.score - 10); sfx("blip"); }
+  function restart() { if (winT) return; const lv = level; loadLevel(lv); sfx("bad"); }
+  const isDead = (a, b) => { if (onGoal(a, b)) return false; const wl = (dx, dy) => !!map[b + dy][a + dx]; return (wl(-1, 0) || wl(1, 0)) && (wl(0, -1) || wl(0, 1)); };
+  game({
+    title: "Crate Push", w: W, h: H, color: "#ffd66b", bpm: 88, easy: "warns you when a crate gets stuck in a corner",
+    help: ["Push every crate onto a glowing target", "Arrows / WASD, swipe, or tap next to your robot to move", "You can push but never pull. Don't trap a crate in a corner!", "↶ Undo (U) and ⟲ Restart (R) buttons at the bottom. Fewer moves = more points"],
+    load(d) { if (d && d.level) loadLevel(d.level | 0); },
+    init() { swipe = null; loadLevel(1); },
+    hud() { return "PUZZLE " + level + "  ·  MOVES " + moves + "  ·  CRATES " + crates.filter(([a, b]) => onGoal(a, b)).length + "/" + crates.length; },
+    summary() { return ["SOLVED " + (level - 1) + " PUZZLES"]; },
+    down(px, py) {
+      if (py > H - BOT + 10) { if (px < W / 2) undo(); else restart(); return; }
+      swipe = { x: px, y: py };
+    },
+    up(px, py) {
+      if (!swipe) return; const dx = px - swipe.x, dy = py - swipe.y; swipe = null;
+      if (Math.hypot(dx, dy) > 24) { if (Math.abs(dx) > Math.abs(dy)) step(Math.sign(dx), 0); else step(0, Math.sign(dy)); return; }
+      const cx = OX + pl[0] * T + T / 2, cy = OY + pl[1] * T + T / 2, ax = px - cx, ay = py - cy; if (Math.hypot(ax, ay) < T * .4) return;
+      if (Math.abs(ax) > Math.abs(ay)) step(Math.sign(ax), 0); else step(0, Math.sign(ay));
+    },
+    key(k) { const m = { ArrowLeft: [-1, 0], a: [-1, 0], ArrowRight: [1, 0], d: [1, 0], ArrowUp: [0, -1], w: [0, -1], ArrowDown: [0, 1], s: [0, 1] }[k]; if (m) step(m[0], m[1]); else if (k === "u" || k === "z" || k === "Backspace") undo(); else if (k === "r") restart(); },
+    update(dt) {
+      if (anim) { anim.t += dt / .09; if (anim.t >= 1) anim = null; }
+      if (winT) { winT -= dt; if (winT <= 0) { winT = 0; loadLevel(level + 1); saveGame({ level, label: "PUZZLE " + level, stop: level % 4 === 1, next: crates.length + " crates · " + (cw - 2) + "×" + (ch - 2) + " room" }); } }
+    },
+    draw() {
+      bg("#0b0716");
+      txt("PUZZLE " + level, 14, 22, 15, "#ffd66b", "left", "d"); txt("MOVES " + moves, W - 14, 22, 13, "#d8d0f5", "right", "d");
+      for (let r = 0; r < ch; r++) for (let c = 0; c < cw; c++) {
+        const X = OX + c * T, Y = OY + r * T;
+        if (map[r][c]) { const inner = r > 0 && c > 0 && r < ch - 1 && c < cw - 1; x.fillStyle = "#2a1f45"; x.fillRect(X, Y, T, T); x.fillStyle = "#3a2c60"; x.fillRect(X + 1, Y + 1, T - 2, T * .35); if (inner || true) { x.strokeStyle = "rgba(163,91,255,.35)"; x.lineWidth = 1; x.strokeRect(X + .5, Y + .5, T - 1, T - 1); } }
+        else { x.fillStyle = (r + c) % 2 ? "#141026" : "#18122d"; x.fillRect(X, Y, T, T); }
+      }
+      for (const [a, b] of goals) { const X = OX + a * T + T / 2, Y = OY + b * T + T / 2; glow("#3dffa8", 12); x.strokeStyle = "#3dffa8"; x.lineWidth = 2; x.beginPath(); x.arc(X, Y, T * .3, 0, 7); x.stroke(); x.beginPath(); x.arc(X, Y, T * .12, 0, 7); x.stroke(); glow(); }
+      crates.forEach(([a, b]) => { const X = OX + a * T, Y = OY + b * T, on = onGoal(a, b), dead = S.practice && isDead(a, b); glow(on ? "#3dffa8" : dead ? "#ff4d6d" : "#ffd66b", on ? 16 : 6); x.fillStyle = on ? "#1d6a45" : dead ? "#6a1d2e" : "#8a5a1e"; rr(X + T * .08, Y + T * .08, T * .84, T * .84, T * .14); x.fill(); glow(); x.strokeStyle = on ? "#3dffa8" : dead ? "#ff4d6d" : "#ffd66b"; x.lineWidth = 2; x.strokeRect(X + T * .2, Y + T * .2, T * .6, T * .6); x.beginPath(); x.moveTo(X + T * .2, Y + T * .2); x.lineTo(X + T * .8, Y + T * .8); x.moveTo(X + T * .8, Y + T * .2); x.lineTo(X + T * .2, Y + T * .8); x.stroke(); });
+      let px = pl[0], py = pl[1]; if (anim) { px = anim.from[0] + (pl[0] - anim.from[0]) * anim.t; py = anim.from[1] + (pl[1] - anim.from[1]) * anim.t; }
+      const X = OX + px * T + T / 2, Y = OY + py * T + T / 2, s = T / 34; glow("#22e4ff", 14); x.fillStyle = "#22e4ff"; rr(X - 11 * s, Y - 9 * s, 22 * s, 20 * s, 6 * s); x.fill(); glow(); x.fillStyle = "#0b0716"; x.fillRect(X - 7 * s, Y - 4 * s, 4 * s, 5 * s); x.fillRect(X + 3 * s, Y - 4 * s, 4 * s, 5 * s); x.fillStyle = "#ff2bd6"; x.fillRect(X - 1.5 * s, Y - 15 * s, 3 * s, 6 * s); x.beginPath(); x.arc(X, Y - 15 * s, 3 * s, 0, 7); x.fill();
+      const by = H - BOT + 18; for (const [bx, lab] of [[W / 4, "↶ UNDO"], [W * 3 / 4, "⟲ RESTART"]]) { x.fillStyle = "rgba(255,255,255,.08)"; rr(bx - 70, by, 140, 40, 20); x.fill(); x.strokeStyle = "rgba(255,214,107,.5)"; x.lineWidth = 1.5; x.stroke(); txt(lab, bx, by + 20, 13, "#ffd66b", "center", "d"); }
+    },
+  });
+}
+
+/* ---------- Claw Crane ---------- */
+function clawGame() {
+  const W = 420, H = 640, L = 30, R = 390, TOPY = 120, FLOOR = 548, CHUTE = 104, CHTOP = 260;
+  const KINDS = [["#ff7be6", 18, 60], ["#22e4ff", 20, 80], ["#b6ff3b", 22, 100], ["#a35bff", 25, 150], ["#ff8a1f", 28, 200], ["#ffd66b", 21, 500]];
+  let prizes, claw, level, tries, won, need, dragX, held, winsFx, slipFx;
+  function fill(n) {
+    prizes = [];
+    for (let i = 0; i < n; i++) { const gold = Math.random() < .08, k = gold ? KINDS[5] : KINDS[Math.random() * 5 | 0]; prizes.push({ x: CHUTE + 30 + Math.random() * (R - CHUTE - 60), y: 200 + Math.random() * 200, vx: 0, vy: 0, r: k[1], c: k[0], v: k[2], gold, face: Math.random() * 3 | 0 }); }
+    for (let i = 0; i < 400; i++) physics(1 / 60);
+  }
+  function newLevel(lv) {
+    level = lv; tries = S.practice || S.quick ? 99 : 8; won = 0; need = Math.min(6, 1 + Math.ceil(lv / 2));
+    claw = { x: W / 2, y: TOPY, open: 1, st: "aim", t: 0, grab: null }; fill(Math.min(26, 16 + lv));
+    banner(S.practice || S.quick ? "GRAB THE PRIZES!" : "LEVEL " + lv + " · WIN " + need + " PRIZES IN 8 TRIES", "#ff7be6");
+  }
+  function physics(dt) {
+    for (const p of prizes) { if (p === claw.grab) continue; p.vy += 900 * dt; p.x += p.vx * dt; p.y += p.vy * dt; p.vx *= .985;
+      if (p.x - p.r < L) { p.x = L + p.r; p.vx = Math.abs(p.vx) * .3; } if (p.x + p.r > R) { p.x = R - p.r; p.vx = -Math.abs(p.vx) * .3; }
+      const inChute = p.x < CHUTE;
+      if (!inChute && p.y > CHTOP && p.x - p.r < CHUTE) { p.x = CHUTE + p.r; p.vx = Math.abs(p.vx) * .3; }
+      if (!inChute && p.y + p.r > FLOOR) { p.y = FLOOR - p.r; p.vy = -Math.abs(p.vy) * .2; p.vx *= .9; }
+    }
+    for (let i = 0; i < prizes.length; i++) for (let j = i + 1; j < prizes.length; j++) {
+      const a = prizes[i], b = prizes[j]; if (a === claw.grab || b === claw.grab) continue; const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy), m = a.r + b.r;
+      if (d >= m || d === 0) continue; const nx = dx / d, ny = dy / d, o = (m - d) / 2; a.x -= nx * o; a.y -= ny * o; b.x += nx * o; b.y += ny * o;
+      const rel = (b.vx - a.vx) * nx + (b.vy - a.vy) * ny; if (rel < 0) { const imp = rel * .6; a.vx += imp * nx; a.vy += imp * ny; b.vx -= imp * nx; b.vy -= imp * ny; }
+    }
+  }
+  function drop() { if (claw.st !== "aim" || S.state !== "play" || tries <= 0) return; claw.st = "drop"; if (!S.practice && !S.quick) tries--; sfx("blip"); }
+  const slipChance = () => (S.practice ? 0 : Math.min(.55, .06 + level * .045));
+  game({
+    title: "Claw Crane", w: W, h: H, color: "#ff7be6", bpm: 108, easy: "the claw never slips and you get unlimited tries",
+    help: ["Drag (or ← →) to move the claw, then tap DROP (or Space)", "The claw grabs the prize closest to its middle", "Carry it to the chute on the left. Big prizes slip more easily!", "Gold stars are worth 500. Win enough prizes before your tries run out"],
+    load(d) { if (d && d.level) newLevel(d.level | 0); },
+    init() { held = false; dragX = null; winsFx = []; slipFx = 0; newLevel(1); },
+    hud() { return S.practice || S.quick ? "PRIZES WON " + won : "LEVEL " + level + "  ·  WON " + won + "/" + need + "  ·  TRIES LEFT " + tries; },
+    summary() { return ["REACHED LEVEL " + level]; },
+    down(px, py) { if (py > H - 80 && Math.abs(px - W / 2) < 90) { drop(); return; } held = true; dragX = px; },
+    move(px) { if (held) dragX = px; },
+    up() { held = false; dragX = null; },
+    key(k, rep) { if ((k === " " || k === "Enter" || k === "ArrowDown") && !rep) drop(); },
+    update(dt) {
+      slipFx = Math.max(0, slipFx - dt);
+      if (claw.st === "aim") { const k = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0); if (k) claw.x += k * 200 * dt; else if (dragX != null) claw.x += Math.max(-260 * dt, Math.min(260 * dt, dragX - claw.x)); claw.x = Math.max(CHUTE + 24, Math.min(R - 24, claw.x)); claw.open = Math.min(1, claw.open + dt * 3); }
+      else if (claw.st === "drop") {
+        claw.y += 230 * dt; const tip = claw.y + 30;
+        const hit = prizes.some((p) => Math.abs(p.x - claw.x) < p.r + 8 && tip > p.y - p.r + 6);
+        if (hit || tip > FLOOR - 4) { claw.st = "close"; claw.t = .45; sfx("tick"); }
+      } else if (claw.st === "close") {
+        claw.open = Math.max(0, claw.open - dt * 2.4); claw.t -= dt;
+        if (claw.t <= 0) {
+          const cand = prizes.filter((p) => Math.abs(p.x - claw.x) < 20 + p.r * .3 && p.y > claw.y && p.y - p.r < claw.y + 46).sort((a, b) => Math.abs(a.x - claw.x) - Math.abs(b.x - claw.x));
+          claw.grab = cand[0] || null; if (claw.grab) { claw.grab.vx = claw.grab.vy = 0; sfx("pop"); } claw.st = "lift";
+        }
+      } else if (claw.st === "lift" || claw.st === "carry") {
+        if (claw.st === "lift") { claw.y -= 170 * dt; if (claw.y <= TOPY) { claw.y = TOPY; claw.st = "carry"; } }
+        else { claw.x -= 150 * dt; if (claw.x <= CHUTE / 2 + 18) { claw.x = CHUTE / 2 + 18; claw.st = "release"; claw.t = .5; } }
+        const g = claw.grab; if (g) { g.x = claw.x; g.y = claw.y + 26 + g.r * .6; if (Math.random() < slipChance() * (g.r / 22) * dt) { claw.grab = null; g.vy = 40; g.vx = (Math.random() - .5) * 80; slipFx = 1; pop(g.x, g.y - 30, "IT SLIPPED!", "#ff4d6d"); sfx("bad"); } }
+        if (!g && claw.st === "lift" && claw.y <= TOPY + 1) claw.st = "carry";
+      } else if (claw.st === "release") {
+        claw.open = Math.min(1, claw.open + dt * 3); if (claw.grab) { claw.grab.vy = 60; claw.grab = null; sfx("tick"); } claw.t -= dt;
+        if (claw.t <= 0) { claw.st = "back"; }
+      } else if (claw.st === "back") { claw.x += 200 * dt; if (claw.x >= W / 2) { claw.x = W / 2; claw.st = "aim";
+        if (!S.practice && !S.quick) { if (won >= need) { const bonus = tries * 100 * level; S.score += bonus; banner("LEVEL CLEAR!" + (bonus ? " +" + bonus : ""), "#3dffa8"); sfx("level"); newLevel(level + 1); saveGame({ level, label: "LEVEL " + level, stop: level % 3 === 1, next: "Win " + need + " prizes · the grip gets weaker" }); } else if (tries <= 0) over("OUT OF TRIES · WON " + won + "/" + need); }
+        if (prizes.length < 6) fill(16); } }
+      physics(dt);
+      for (const p of prizes.slice()) if (p.x < CHUTE && p.y - p.r > H - 40) { prizes = prizes.filter((q) => q !== p); won++; const pts = p.v * (S.quick ? 1 : level); S.score += pts; winsFx.push({ c: p.c, t: 1.2 }); pop(CHUTE / 2, H - 120, "+" + pts, p.gold ? "#ffd66b" : "#3dffa8"); sfx(p.gold ? "level" : "score"); burst(CHUTE / 2, H - 70, p.c, 24, 220, .6); if (p.gold) flash("#ffd66b", .25); }
+      for (const f of winsFx) f.t -= dt; winsFx = winsFx.filter((f) => f.t > 0);
+    },
+    draw() {
+      bg("#12051c");
+      glow("#ff7be6", 20); x.strokeStyle = "#ff7be6"; x.lineWidth = 4; rr(14, 60, W - 28, H - 74, 22); x.stroke(); glow();
+      txt("✦ CLAW CRANE ✦", W / 2, 36, 18, "#ff7be6", "center", "d");
+      x.fillStyle = "rgba(34,228,255,.05)"; x.fillRect(L, 90, R - L, FLOOR - 90);
+      x.fillStyle = "#24103a"; x.fillRect(CHUTE, FLOOR, R - CHUTE, H - 80 - FLOOR + 6);
+      x.fillStyle = "#000"; x.fillRect(L, CHTOP, CHUTE - L, H - 80 - CHTOP); glow("#3dffa8", 12); x.strokeStyle = "#3dffa8"; x.lineWidth = 3; x.beginPath(); x.moveTo(CHUTE, CHTOP); x.lineTo(CHUTE, FLOOR); x.stroke(); glow(); txt("PRIZE", CHUTE / 2 + 15, CHTOP + 16, 10, "#3dffa8", "center", "d"); txt("▼", CHUTE / 2 + 15, CHTOP + 34, 14, "#3dffa8", "center");
+      x.strokeStyle = "#8f86b5"; x.lineWidth = 3; x.beginPath(); x.moveTo(L, 96); x.lineTo(R, 96); x.stroke();
+      for (const p of prizes) { glow(p.c, p.gold ? 16 : 6); x.fillStyle = p.c; x.beginPath(); x.arc(p.x, p.y, p.r, 0, 7); x.fill(); glow();
+        if (p.gold) { x.fillStyle = "#fff8c4"; x.beginPath(); for (let k = 0; k < 10; k++) { const a = -Math.PI / 2 + k * Math.PI / 5, rr2 = k % 2 ? p.r * .35 : p.r * .75; x.lineTo(p.x + Math.cos(a) * rr2, p.y + Math.sin(a) * rr2); } x.closePath(); x.fill(); }
+        else { x.fillStyle = "rgba(255,255,255,.35)"; x.beginPath(); x.arc(p.x - p.r * .35, p.y - p.r * .35, p.r * .25, 0, 7); x.fill(); x.fillStyle = "#111"; x.beginPath(); x.arc(p.x - p.r * .3, p.y - p.r * .05, p.r * .1, 0, 7); x.arc(p.x + p.r * .3, p.y - p.r * .05, p.r * .1, 0, 7); x.fill(); x.strokeStyle = "#111"; x.lineWidth = 1.5; x.beginPath(); x.arc(p.x, p.y + p.r * .12, p.r * .22, .2, Math.PI - .2); x.stroke(); if (p.face === 1) { x.fillStyle = p.c; x.beginPath(); x.arc(p.x - p.r * .7, p.y - p.r * .8, p.r * .3, 0, 7); x.arc(p.x + p.r * .7, p.y - p.r * .8, p.r * .3, 0, 7); x.fill(); } } }
+      x.strokeStyle = "#c8c2dc"; x.lineWidth = 2; x.beginPath(); x.moveTo(claw.x, 96); x.lineTo(claw.x, claw.y); x.stroke();
+      x.fillStyle = "#c8c2dc"; rr(claw.x - 12, 88, 24, 14, 4); x.fill(); rr(claw.x - 10, claw.y - 4, 20, 12, 4); x.fill();
+      const sp = 6 + claw.open * 16; glow("#ffd66b", 8); x.strokeStyle = "#ffd66b"; x.lineWidth = 4; x.lineCap = "round";
+      for (const s of [-1, 1]) { x.beginPath(); x.moveTo(claw.x + s * 6, claw.y + 8); x.lineTo(claw.x + s * (sp + 4), claw.y + 22); x.lineTo(claw.x + s * (sp - 6), claw.y + 34); x.stroke(); }
+      x.beginPath(); x.moveTo(claw.x, claw.y + 8); x.lineTo(claw.x, claw.y + 30); x.stroke(); x.lineCap = "butt"; glow();
+      if (claw.st === "aim" && S.state === "play") { x.strokeStyle = "rgba(255,214,107,.25)"; x.setLineDash([4, 6]); x.beginPath(); x.moveTo(claw.x, claw.y + 36); x.lineTo(claw.x, FLOOR); x.stroke(); x.setLineDash([]); }
+      const ready = claw.st === "aim" && tries > 0; x.fillStyle = ready ? "rgba(255,43,214,.35)" : "rgba(255,255,255,.06)"; rr(W / 2 - 80, H - 66, 160, 46, 23); x.fill(); glow(ready ? "#ff2bd6" : "#555", ready ? 14 : 0); x.strokeStyle = ready ? "#ff2bd6" : "#555"; x.lineWidth = 2; x.stroke(); glow(); txt("DROP ▼", W / 2, H - 43, 16, ready ? "#ffffff" : "#777", "center", "d");
+      if (!S.practice && !S.quick) { txt("TRIES " + tries, 30, H - 43, 13, tries <= 2 ? "#ff4d6d" : "#d8d0f5", "left", "d"); txt("WON " + won + "/" + need, W - 30, H - 43, 13, won >= need ? "#3dffa8" : "#ffd66b", "right", "d"); } else txt("WON " + won, W - 30, H - 43, 13, "#ffd66b", "right", "d");
+      if (slipFx) { x.globalAlpha = slipFx * .3; x.fillStyle = "#ff4d6d"; x.fillRect(L, 90, R - L, FLOOR - 90); x.globalAlpha = 1; }
+    },
+  });
+}
+
+/* ---------- Tank Battle ---------- */
+function tanksGame() {
+  const N = 13, T = 32, OY = 40, W = N * T, H = N * T + OY, TS = 24;
+  const DV = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
+  let map, me, foes, shells, level, lives, left, spawnT, base, joy, tapT, items, freezeT, boom;
+  const tile = (c, r) => (c < 0 || r < 0 || c >= N || r >= N ? 2 : map[r][c]);
+  function build(lv) { for (let i = 0; i < 40; i++) { build0(lv); if (open()) return; } }
+  /* the player must be able to reach the top row (bricks can be shot through, steel and water can't) */
+  function open() { const seen = new Set(["4,12"]), q = [[4, 12]]; while (q.length) { const [c, r] = q.pop(); if (r === 0) return true; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nc = c + dx, nr = r + dy, k = nc + "," + nr; if (nc < 0 || nr < 0 || nc >= N || nr >= N || seen.has(k)) continue; const t = map[nr][nc]; if (t === 2 || t === 3) continue; seen.add(k); q.push([nc, nr]); } } return false; }
+  function build0(lv) {
+    level = lv; map = Array.from({ length: N }, () => Array(N).fill(0));
+    for (let r = 1; r < N - 2; r++) for (let c = 0; c < 7; c++) {
+      if (r < 2 && (c === 0 || c === 6)) continue; const v = Math.random();
+      const t = v < .32 ? 1 : v < .32 + Math.min(.12, .03 + lv * .01) ? 2 : v < .44 + lv * .01 ? 3 : 0;
+      map[r][c] = t; map[r][N - 1 - c] = t;
+    }
+    for (let r = N - 3; r < N; r++) for (let c = 4; c <= 8; c++) map[r][c] = 0;
+    base = { c: 6, r: 12, alive: true };
+    for (const [c, r] of [[5, 12], [5, 11], [6, 11], [7, 11], [7, 12]]) map[r][c] = 1;
+    map[0][0] = map[0][6] = map[0][12] = 0; map[1][0] = map[1][6] = map[1][12] = 0;
+    foes = []; shells = []; items = []; left = 6 + lv * 2; spawnT = 1; freezeT = 0;
+  }
+  const solidAt = (px, py) => { const t = tile(Math.floor(px / T), Math.floor((py - OY) / T)); return t === 1 || t === 2 || t === 3; };
+  function blocked(t, nx, ny) {
+    const h = TS / 2 - 1; if (nx - h < 0 || ny - h < OY || nx + h > W || ny + h > H) return true;
+    for (const [ox, oy] of [[-h, -h], [h, -h], [-h, h], [h, h]]) if (solidAt(nx + ox, ny + oy)) return true;
+    if (base.alive && Math.abs(nx - (base.c * T + T / 2)) < h + 14 && Math.abs(ny - (OY + base.r * T + T / 2)) < h + 14) return true;
+    for (const o of [me, ...foes]) if (o && o !== t && o.alive && Math.abs(o.x - nx) < TS - 2 && Math.abs(o.y - ny) < TS - 2 && Math.hypot(o.x - nx, o.y - ny) < Math.hypot(o.x - t.x, o.y - t.y)) return true;
+    return false;
+  }
+  function moveTank(t, dir, dt) {
+    if (!dir) return false; if (t.dir !== dir) { if ((dir === "u" || dir === "d") !== (t.dir === "u" || t.dir === "d")) { const snap = (v, off) => Math.round((v - off - T / 2) / (T / 2)) * (T / 2) + off + T / 2; if (dir === "u" || dir === "d") t.x = snap(t.x, 0); else t.y = snap(t.y, OY); } t.dir = dir; }
+    const [dx, dy] = DV[dir], nx = t.x + dx * t.sp * dt, ny = t.y + dy * t.sp * dt;
+    if (!blocked(t, nx, ny)) { t.x = nx; t.y = ny; return true; } return false;
+  }
+  function fire(t) {
+    if (!t.alive || t.cd > 0 || shells.filter((s) => s.own === t).length >= (t.power ? 2 : 1)) return;
+    const [dx, dy] = DV[t.dir]; shells.push({ x: t.x + dx * 14, y: t.y + dy * 14, vx: dx * (t.power ? 380 : 260), vy: dy * (t.power ? 380 : 260), own: t, mine: t === me, bounce: 1 }); t.cd = t === me ? .25 : .9; sfx(t === me ? "laser" : "tick");
+  }
+  function spawnMe() { me = { x: 4 * T + T / 2, y: OY + 12 * T + T / 2, dir: "u", sp: 92, alive: true, cd: 0, shield: 3, power: me && me.power }; }
+  function blast(X, Y, big) { burst(X, Y, "#ff8a1f", big ? 34 : 10, big ? 260 : 140, big ? .7 : .3); if (big) { sfx("boom"); shake(6, .3); } }
+  function joyDir() { const k = S.keys; if (k.ArrowUp || k.w) return "u"; if (k.ArrowDown || k.s) return "d"; if (k.ArrowLeft || k.a) return "l"; if (k.ArrowRight || k.d) return "r"; if (joy && Math.hypot(joy.dx, joy.dy) > 14) return Math.abs(joy.dx) > Math.abs(joy.dy) ? (joy.dx > 0 ? "r" : "l") : (joy.dy > 0 ? "d" : "u"); return null; }
+  game({
+    title: "Tank Battle", w: W, h: H, color: "#b6ff3b", bpm: 120, easy: "unlimited lives, and the base can't be destroyed",
+    help: ["Arrows / WASD to drive, Space to fire", "Touch: drag anywhere to drive, tap (or 🔥) to fire", "Shells bounce off steel once and smash brick. Water blocks tanks, not shells", "Destroy every enemy tank and protect your ★ base! Flashing tanks drop power-ups"],
+    load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); build(d.level | 0); spawnMe(); if (d.power) me.power = true; } },
+    init() { lives = S.practice ? 99 : 3; me = null; build(1); spawnMe(); joy = null; boom = 0; },
+    hud() { return "LEVEL " + level + "  ·  ENEMIES LEFT " + (left + foes.length) + "  ·  " + (S.practice ? "PRACTICE" : "LIVES " + lives); },
+    summary() { return ["REACHED LEVEL " + level]; },
+    down(px, py) { if (px > W - 64 && py > H - 64) { fire(me); return; } joy = { sx: px, sy: py, dx: 0, dy: 0, moved: false }; tapT = S.clock; },
+    move(px, py) { if (!joy) return; joy.dx = px - joy.sx; joy.dy = py - joy.sy; if (Math.hypot(joy.dx, joy.dy) > 14) joy.moved = true; },
+    up() { if (joy && !joy.moved && S.clock - tapT < .35) fire(me); joy = null; },
+    key(k, rep) { if ((k === " " || k === "x" || k === "Enter") && !rep) fire(me); },
+    update(dt) {
+      if (boom > 0) { boom -= dt; if (boom <= 0) return over("YOUR BASE WAS DESTROYED · LEVEL " + level); return; }
+      freezeT = Math.max(0, freezeT - dt);
+      if (me.alive) { me.cd -= dt; me.shield = Math.max(0, me.shield - dt); moveTank(me, joyDir(), dt); if (S.keys[" "]) fire(me); }
+      else { me.respawn -= dt; if (me.respawn <= 0) { if (lives <= 0) return over("OUT OF TANKS · LEVEL " + level); spawnMe(); } }
+      spawnT -= dt; const maxOn = Math.min(5, 3 + Math.floor(level / 3));
+      if (spawnT <= 0 && left > 0 && foes.length < maxOn) { const sp = [[0, 0], [6, 0], [12, 0]][Math.random() * 3 | 0], fx = sp[0] * T + T / 2, fy = OY + sp[1] * T + T / 2; if (!foes.some((f) => Math.hypot(f.x - fx, f.y - fy) < T)) { left--; const heavy = level >= 3 && Math.random() < .25 + level * .02, fast = !heavy && level >= 2 && Math.random() < .3; foes.push({ x: fx, y: fy, dir: "d", sp: (fast ? 100 : heavy ? 48 : 66) * (S.practice ? .8 : 1), alive: true, cd: 1, hp: heavy ? 3 : 1, heavy, fast, flash: (left % 4 === 0), think: 0 }); spawnT = Math.max(1, 2.8 - level * .12); } }
+      for (const f of foes) {
+        f.cd -= dt; if (freezeT) continue; f.think -= dt;
+        const moved = moveTank(f, f.dir, dt);
+        if (!moved || f.think <= 0) { f.think = .6 + Math.random() * 1.6; const goal = Math.random() < .5 ? { x: base.c * T + T / 2, y: OY + base.r * T } : me; const opts = ["u", "d", "l", "r"]; f.dir = Math.random() < .55 && goal ? (Math.abs(goal.x - f.x) > Math.abs(goal.y - f.y) ? (goal.x > f.x ? "r" : "l") : (goal.y > f.y ? "d" : "u")) : opts[Math.random() * 4 | 0]; }
+        const aligned = me.alive && ((Math.abs(me.x - f.x) < 10 && Math.sign(me.y - f.y) === (f.dir === "d" ? 1 : f.dir === "u" ? -1 : 0)) || (Math.abs(me.y - f.y) < 10 && Math.sign(me.x - f.x) === (f.dir === "r" ? 1 : f.dir === "l" ? -1 : 0)));
+        if (aligned || Math.random() < (.4 + level * .05) * dt) fire(f);
+      }
+      for (const s of shells) {
+        s.x += s.vx * dt; s.y += s.vy * dt;
+        if (s.x < 0 || s.x > W || s.y < OY || s.y > H) { if (s.bounce-- > 0) { if (s.x < 0 || s.x > W) s.vx = -s.vx; else s.vy = -s.vy; s.x = Math.max(1, Math.min(W - 1, s.x)); s.y = Math.max(OY + 1, Math.min(H - 1, s.y)); sfx("tick"); } else s.dead = true; continue; }
+        const c = Math.floor(s.x / T), r = Math.floor((s.y - OY) / T), t = tile(c, r);
+        if (t === 1) { map[r][c] = 0; s.dead = true; blast(s.x, s.y, false); sfx("hit"); continue; }
+        if (t === 2) { if (s.bounce-- > 0) { s.x -= s.vx * dt; s.y -= s.vy * dt; if (s.vx) s.vx = -s.vx; else s.vy = -s.vy; sfx("tick"); } else { s.dead = true; blast(s.x, s.y, false); } continue; }
+        if (base.alive && Math.abs(s.x - (base.c * T + T / 2)) < 13 && Math.abs(s.y - (OY + base.r * T + T / 2)) < 13) { s.dead = true; if (!S.practice) { base.alive = false; blast(base.c * T + T / 2, OY + base.r * T + T / 2, true); flash("#ff4d6d", .4); boom = 1.5; } else { blast(s.x, s.y, false); pop(s.x, s.y - 20, "BASE HIT!", "#ff4d6d"); } continue; }
+        if (s.mine) { for (const f of foes) if (f.alive && Math.abs(s.x - f.x) < 13 && Math.abs(s.y - f.y) < 13) { s.dead = true; f.hp--; if (f.hp <= 0) { f.alive = false; const pts = (f.heavy ? 400 : f.fast ? 200 : 100) * level; S.score += pts; pop(f.x, f.y - 18, "+" + pts, "#ffd66b"); blast(f.x, f.y, true); if (f.flash) items.push({ x: f.x, y: f.y, k: ["star", "freeze", "life", "wall"][Math.random() * 4 | 0], t: 10 }); } else { sfx("hit"); f.hurt = .15; } break; } }
+        else if (me.alive && Math.abs(s.x - me.x) < 12 && Math.abs(s.y - me.y) < 12) { s.dead = true; if (!me.shield) { me.alive = false; me.respawn = 1.5; me.power = false; if (!S.practice) lives--; blast(me.x, me.y, true); flash("#ff4d6d", .25); } }
+      }
+      for (let i = 0; i < shells.length; i++) for (let j = i + 1; j < shells.length; j++) { const a = shells[i], b = shells[j]; if (!a.dead && !b.dead && a.mine !== b.mine && Math.abs(a.x - b.x) < 8 && Math.abs(a.y - b.y) < 8) { a.dead = b.dead = true; burst(a.x, a.y, "#fff", 6, 100, .2); } }
+      shells = shells.filter((s) => !s.dead); foes = foes.filter((f) => f.alive); for (const f of foes) if (f.hurt) f.hurt = Math.max(0, f.hurt - dt);
+      for (const it of items) { it.t -= dt; if (me.alive && Math.hypot(it.x - me.x, it.y - me.y) < 22) { it.t = 0; sfx("power"); if (it.k === "star") { me.power = true; pop(me.x, me.y - 24, "POWER SHELLS!", "#ffd66b"); } else if (it.k === "freeze") { freezeT = 6; pop(me.x, me.y - 24, "FREEZE!", "#9ff3ff"); } else if (it.k === "life") { lives++; pop(me.x, me.y - 24, "+1 TANK", "#3dffa8"); } else { for (let r = 10; r < 13; r++) for (let c = 4; c <= 8; c++) if (!(r === 12 && c === 6) && (r === 11 || c === 5 || c === 7) && Math.abs(c - 6) <= 1) map[r][c] = 2; pop(me.x, me.y - 24, "STEEL BASE!", "#c8c2dc"); } } }
+      items = items.filter((it) => it.t > 0);
+      if (!left && !foes.length) { S.score += 1000 * level; banner("LEVEL " + level + " CLEAR!", "#3dffa8"); sfx("level"); build(level + 1); spawnMe(); saveGame({ level, lives, power: me.power, label: "LEVEL " + level, stop: level % 3 === 1, next: (6 + level * 2) + " enemy tanks" + (level >= 3 ? " · heavy tanks take 3 hits" : "") }); }
+    },
+    draw() {
+      bg("#07090a"); x.fillStyle = "#0b120d"; x.fillRect(0, OY, W, H - OY);
+      txt("LV " + level, 12, 22, 15, "#b6ff3b", "left", "d"); for (let i = 0; i < Math.min(20, left); i++) { x.fillStyle = "rgba(255,77,109,.7)"; x.fillRect(W / 2 - 100 + i * 10, 16, 7, 9); } txt(S.practice ? "∞" : "♥ " + lives, W - 12, 22, 14, "#ff4d6d", "right", "d");
+      const tankDraw = (t, col) => { x.save(); x.translate(t.x, t.y); x.rotate({ u: 0, r: Math.PI / 2, d: Math.PI, l: -Math.PI / 2 }[t.dir]); glow(col, 10); x.fillStyle = "#1a1a24"; x.fillRect(-12, -12, 6, 24); x.fillRect(6, -12, 6, 24); x.fillStyle = col; rr(-8, -9, 16, 18, 4); x.fill(); x.fillRect(-2, -16, 4, 10); glow(); x.fillStyle = "rgba(255,255,255,.4)"; for (let k = -10; k < 12; k += 5) { x.fillRect(-12, k + (S.clock * 40 % 5), 6, 1.5); x.fillRect(6, k + (S.clock * 40 % 5), 6, 1.5); } x.restore(); };
+      for (let r = 0; r < N; r++) for (let c = 0; c < N; c++) { const t = map[r][c], X = c * T, Y = OY + r * T;
+        if (t === 1) { x.fillStyle = "#a8502a"; x.fillRect(X, Y, T, T); x.fillStyle = "#6a2e14"; for (let k = 0; k < 4; k++) { x.fillRect(X, Y + k * 8 + 7, T, 1.5); x.fillRect(X + (k % 2 ? 8 : 20), Y + k * 8, 1.5, 8); } }
+        else if (t === 2) { x.fillStyle = "#8f9ab0"; x.fillRect(X + 1, Y + 1, T - 2, T - 2); x.fillStyle = "#c8d0e0"; x.fillRect(X + 5, Y + 5, T - 10, T - 10); }
+        else if (t === 3) { x.fillStyle = "#123a6a"; x.fillRect(X, Y, T, T); x.strokeStyle = "rgba(140,210,255,.5)"; x.beginPath(); x.moveTo(X + 4, Y + 12 + Math.sin(S.clock * 3 + c) * 2); x.lineTo(X + T - 4, Y + 12 + Math.sin(S.clock * 3 + c + 1) * 2); x.stroke(); } }
+      if (base.alive) { const X = base.c * T + T / 2, Y = OY + base.r * T + T / 2; glow("#ffd66b", 16); txt("★", X, Y + 1, 26, "#ffd66b", "center"); glow(); } else txt("✖", base.c * T + T / 2, OY + base.r * T + T / 2, 24, "#ff4d6d", "center");
+      for (const it of items) { if (it.t < 3 && Math.floor(S.clock * 8) % 2) continue; glow("#3dffa8", 12); x.fillStyle = "rgba(61,255,168,.3)"; rr(it.x - 12, it.y - 12, 24, 24, 6); x.fill(); glow(); txt({ star: "⭐", freeze: "❄️", life: "❤️", wall: "🛡" }[it.k], it.x, it.y + 1, 15, "#fff", "center"); }
+      for (const f of foes) tankDraw(f, f.hurt ? "#ffffff" : f.flash && Math.floor(S.clock * 6) % 2 ? "#ffd66b" : f.heavy ? "#a35bff" : f.fast ? "#ff2bd6" : "#ff4d6d");
+      if (me.alive) { tankDraw(me, me.power ? "#ffd66b" : "#b6ff3b"); if (me.shield) { x.strokeStyle = "rgba(34,228,255," + (.4 + .4 * Math.sin(S.clock * 20)) + ")"; x.lineWidth = 2; x.beginPath(); x.arc(me.x, me.y, 18, 0, 7); x.stroke(); } }
+      x.fillStyle = "#fff"; for (const s of shells) { glow(s.mine ? "#b6ff3b" : "#ff4d6d", 8); x.beginPath(); x.arc(s.x, s.y, 3, 0, 7); x.fill(); } glow();
+      if (freezeT) { x.fillStyle = "rgba(159,243,255,.08)"; x.fillRect(0, OY, W, H - OY); }
+      x.fillStyle = "rgba(182,255,59,.18)"; x.beginPath(); x.arc(W - 32, H - 32, 24, 0, 7); x.fill(); txt("🔥", W - 32, H - 31, 18, "#fff", "center");
+      if (joy && joy.moved) { x.strokeStyle = "rgba(255,255,255,.25)"; x.lineWidth = 2; x.beginPath(); x.arc(joy.sx, joy.sy, 30, 0, 7); x.stroke(); }
+    },
+  });
+}
+
 function platGame() {
   const T = 24, CW = 20, CH = 15, W = CW * T, H = CH * T + 56, BAR = CH * T;
   const LV = [
@@ -10437,6 +10950,11 @@ function fighterGame() {
     { key: "words", title: "Word Hunt", genre: "Puzzle", fn: wordGame },
     { key: "platformer", title: "Neon Platformer", genre: "Platformer", fn: platGame },
     { key: "pool", title: "Neon Pool", genre: "Sports", fn: poolGame },
+    { key: "bomber", title: "Bomb Maze", genre: "Arcade", fn: bomberGame },
+    { key: "swarm", title: "Star Swarm", genre: "Action", fn: swarmGame },
+    { key: "crates", title: "Crate Push", genre: "Puzzle", fn: cratesGame },
+    { key: "claw", title: "Claw Crane", genre: "Other", fn: clawGame },
+    { key: "tanks", title: "Tank Battle", genre: "Action", fn: tanksGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -11870,7 +12388,7 @@ function fighterGame() {
   // The song games play: a shop song you equipped, otherwise the style picked in Settings.
   window.gblMusicPick = () => { try { const m = prog.equip && prog.equip.music; if (m === "mu-shuffle") { const own = (prog.owned || []).filter((id) => id.startsWith("mu-")); own.push("mu-synth"); return own[Math.random() * own.length | 0].slice(3); } if (m) return m.slice(3); if (settings.music === "off") return "off"; return settings.music || "synth"; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
-  const STARS = { snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
+  const STARS = { tanks: [1500, 8000, 25000], claw: [400, 2000, 6000], crates: [1500, 6000, 15000], swarm: [3000, 15000, 40000], bomber: [1000, 5000, 15000], snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
   const starsOf = (k) => { const t = STARS[k]; if (!t) return 0; const b = starBest(k); return t.filter((v) => b >= v).length; };
   const totalStars = () => Object.keys(STARS).reduce((a, k) => a + starsOf(k), 0);
