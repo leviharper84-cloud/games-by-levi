@@ -10976,6 +10976,273 @@ function roadagentGame() {
   function dropOil() { if (S.state !== "play" || oil <= 0 || oilCd > 0) return; oil--; oilCd = .5; slick.push({ x: car.x, y: car.y + 50 }); sfx("pop"); }
 }
 
+/* ---------- Paper Route ---------- */
+function paperGame() {
+  const W = 440, H = 600, ROAD0 = 150, ROAD1 = 300;
+  let bike, papers, houses, things, scroll, papersLeft, day, delivered, subs, missed, speed, touchX, throwCd, dayLen, dayDist;
+  function newDay(d) {
+    day = d; scroll = 0; dayDist = 0; dayLen = 5200 + d * 400; papersLeft = 12 + d; delivered = 0; missed = 0; houses = []; things = []; papers = []; speed = (S.practice ? 140 : 160) + d * 12;
+    bike = { x: (ROAD0 + ROAD1) / 2, y: H - 120, vx: 0, inv: 1, wob: 0 };
+    let y = -420; for (let i = 0; i < 26; i++) { const sub = Math.random() < (i < 2 ? 1 : .62); houses.push({ y: y, side: i % 2 ? 1 : -1, sub, hit: false, broke: false }); y -= 210 + Math.random() * 40; }
+    banner("DAY " + d, "#ffd66b");
+  }
+  function throwP(dir) { if (S.state !== "play" || throwCd > 0) return; if (papersLeft <= 0) { pop(bike.x, bike.y - 40, "OUT OF PAPERS!", "#ff4d6d"); sfx("tick"); return; } throwCd = .25; papersLeft--; papers.push({ x: bike.x, y: bike.y - 10, vx: dir * 300, vy: -speed * .25, t: 0 }); sfx("blip"); }
+  function crash(why) { if (bike.inv > 0) return; bike.inv = 1.5; bike.wob = .6; sfx("bad"); shake(6, .3); pop(bike.x, bike.y - 40, why, "#ff4d6d"); if (!S.practice) { subs--; if (subs <= 0) over("LOST ALL YOUR CUSTOMERS · DAY " + day); } }
+  game({
+    title: "Paper Route", w: W, h: H, color: "#ffd66b", bpm: 118, easy: "a slow bike and crashes don't cost customers",
+    help: ["Steer your bike with ← → or by dragging", "Throw papers LEFT (Z / tap left half) or RIGHT (X / tap right half) as you ride", "Land papers on the doormat of GLOWING subscriber houses. Dark houses don't get papers — breaking their windows costs points!", "Dodge dogs, cones and skaters. Grab paper bundles to restock. Customers you miss cancel!"],
+    load(d) { if (d && d.day) { subs = Math.max(subs, d.subs || 10); newDay(d.day | 0); } },
+    init() { subs = 10; throwCd = 0; touchX = null; newDay(1); },
+    hud() { return "DAY " + day + "  ·  PAPERS " + papersLeft + "  ·  CUSTOMERS " + subs; },
+    summary() { return ["REACHED DAY " + day]; },
+    down(px, py) { if (py < H * .62) throwP(px < W / 2 ? -1 : 1); else touchX = px; },
+    move(px, py) { if (touchX != null) touchX = px; },
+    up() { touchX = null; },
+    key(k, rep) { if (rep) return; if (k === "z" || k === "q") throwP(-1); if (k === "x" || k === "e") throwP(1); },
+    update(dt) {
+      throwCd -= dt; bike.inv = Math.max(0, bike.inv - dt); bike.wob = Math.max(0, bike.wob - dt);
+      const v = speed * (bike.wob > 0 ? .4 : 1) * (S.keys.ArrowUp || S.keys.w ? 1.4 : S.keys.ArrowDown || S.keys.s ? .6 : 1); scroll += v * dt; dayDist += v * dt;
+      let mv = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0); if (!mv && touchX != null) mv = Math.abs(touchX - bike.x) < 8 ? 0 : Math.sign(touchX - bike.x);
+      bike.vx += (mv * 700 - bike.vx * 7) * dt; bike.x = Math.max(ROAD0 + 14, Math.min(ROAD1 - 14, bike.x + bike.vx * dt));
+      if (Math.random() < dt * (.5 + day * .12) && dayDist < dayLen - 600) { const r = Math.random(); things.push(r < .35 ? { k: "cone", x: ROAD0 + 20 + Math.random() * (ROAD1 - ROAD0 - 40), y: -scroll - 40, vx: 0 } : r < .65 ? { k: "dog", x: Math.random() < .5 ? ROAD0 - 30 : ROAD1 + 30, y: -scroll - 40, vx: 0 } : r < .85 ? { k: "skate", x: ROAD0 + 20 + Math.random() * (ROAD1 - ROAD0 - 40), y: -scroll - 40, vx: 70 } : { k: "bundle", x: ROAD0 + 20 + Math.random() * (ROAD1 - ROAD0 - 40), y: -scroll - 40, vx: 0 }); }
+      for (const t of things) {
+        const sy = t.y + scroll; if (t.k === "dog" && sy > bike.y - 260) t.x += Math.sign(bike.x - t.x) * 120 * dt; if (t.k === "skate") { t.x += t.vx * dt; if (t.x < ROAD0 + 14 || t.x > ROAD1 - 14) t.vx = -t.vx; }
+        if (Math.abs(t.x - bike.x) < 20 && Math.abs(sy - bike.y) < 22) { if (t.k === "bundle") { t.gone = true; papersLeft += 6; pop(bike.x, bike.y - 30, "+6 PAPERS", "#3dffa8"); sfx("power"); } else { t.gone = true; crash(t.k === "dog" ? "WOOF!" : "CRASH!"); } }
+        if (sy > H + 40) t.gone = true;
+      }
+      things = things.filter((t) => !t.gone);
+      for (const p of papers) { p.t += dt; p.x += p.vx * dt; p.y += p.vy * dt;
+        const matX = p.vx < 0 ? ROAD0 - 34 : ROAD1 + 34; if ((p.vx < 0 && p.x > matX) || (p.vx > 0 && p.x < matX)) continue;
+        /* the paper lands on the sidewalk row: score it against the nearest house on that side */
+        p.done = true; const side = p.vx < 0 ? -1 : 1; let best = null, bd = 1e9; for (const h of houses) if (h.side === side) { const d = Math.abs(p.y - (h.y + scroll + 20)); if (d < bd) { bd = d; best = h; } }
+        if (!best || bd > 46) { pop(matX, p.y, "MISS", "#8f86b5"); sfx("tick"); continue; }
+        const hy = best.y + scroll, hx = side < 0 ? 40 : W - 40;
+        if (best.sub && !best.hit) { best.hit = true; delivered++; const perf = bd < 12, pts = 100 * day * (perf ? 2 : 1); S.score += pts; pop(matX, hy, (perf ? "PERFECT +" : "+") + pts, "#ffd66b"); sfx("score"); burst(matX, hy + 20, "#ffd66b", 10, 120, .3); }
+        else if (!best.sub && !best.broke) { best.broke = true; S.score += 50; pop(hx, hy - 30, "SMASH +50", "#a35bff"); sfx("hit"); }
+        else { pop(matX, p.y, "ALREADY DONE", "#8f86b5"); }
+      }
+      papers = papers.filter((p) => !p.done);
+      for (const h of houses) if (!h.checked && h.y + scroll > H + 40) { h.checked = true; if (h.sub && !h.hit) { missed++; if (!S.practice) { subs--; pop(W / 2, H - 40, "A CUSTOMER CANCELLED", "#ff4d6d"); sfx("bad"); if (subs <= 0) return over("LOST ALL YOUR CUSTOMERS · DAY " + day); } } }
+      if (dayDist >= dayLen) { const bonus = delivered * 50 * day + (missed === 0 ? 1000 * day : 0); S.score += bonus; if (missed === 0) { subs = Math.min(15, subs + 2); banner("PERFECT DAY! +" + bonus, "#3dffa8"); } else banner("DAY DONE +" + bonus, "#ffd66b"); sfx("level"); newDay(day + 1); saveGame({ day, subs, label: "DAY " + day, stop: day % 2 === 1, next: "Faster bike · more dogs and skaters" }); }
+    },
+    draw() {
+      x.fillStyle = "#123a22"; x.fillRect(0, 0, W, H); x.fillStyle = "#3a3a4a"; x.fillRect(ROAD0 - 50, 0, 22, H); x.fillRect(ROAD1 + 28, 0, 22, H); x.fillStyle = "#1c1c28"; x.fillRect(ROAD0, 0, ROAD1 - ROAD0, H);
+      x.fillStyle = "rgba(255,214,107,.5)"; for (let y = (scroll % 50) - 50; y < H; y += 50) x.fillRect((ROAD0 + ROAD1) / 2 - 2, y, 4, 24);
+      if (dayLen - dayDist < H) { const fy = bike.y - (dayLen - dayDist); x.fillStyle = "#fff"; for (let i = 0; i < 10; i++) x.fillRect(ROAD0 + i * 15, fy, 15, 8 * ((i % 2) + .2)); }
+      for (const h of houses) { const hy = h.y + scroll; if (hy < -90 || hy > H + 60) continue; const hx = h.side < 0 ? 40 : W - 40; const c = h.sub ? (h.hit ? "#3dffa8" : "#ffd66b") : "#4a4560";
+        x.fillStyle = h.sub ? "#3a2a50" : "#24202e"; x.fillRect(hx - 38, hy - 30, 76, 56); x.fillStyle = h.sub ? "#ff4d6d" : "#3a3048"; x.beginPath(); x.moveTo(hx - 44, hy - 30); x.lineTo(hx, hy - 60); x.lineTo(hx + 44, hy - 30); x.fill();
+        glow(c, h.sub && !h.hit ? 12 : 0); x.fillStyle = h.broke ? "#111" : c; x.fillRect(hx - 26, hy - 18, 16, 14); x.fillRect(hx + 10, hy - 18, 16, 14); glow(); if (h.broke) { x.strokeStyle = "#8f86b5"; x.lineWidth = 1; x.beginPath(); x.moveTo(hx - 26, hy - 18); x.lineTo(hx - 10, hy - 4); x.moveTo(hx - 10, hy - 18); x.lineTo(hx - 26, hy - 4); x.stroke(); }
+        const matX = h.side < 0 ? ROAD0 - 34 : ROAD1 + 34; x.fillStyle = h.sub ? (h.hit ? "#3dffa8" : "#ff8a1f") : "#3a3a4a"; x.fillRect(matX - 12, hy + 14, 24, 12); if (h.sub && !h.hit) { x.strokeStyle = "rgba(255,214,107," + (.4 + .4 * Math.sin(S.clock * 6)) + ")"; x.lineWidth = 2; x.strokeRect(matX - 16, hy + 10, 32, 20); } }
+      for (const t of things) { const sy = t.y + scroll; if (t.k === "cone") { x.fillStyle = "#ff8a1f"; x.beginPath(); x.moveTo(t.x, sy - 14); x.lineTo(t.x + 10, sy + 10); x.lineTo(t.x - 10, sy + 10); x.fill(); }
+        else if (t.k === "dog") { x.fillStyle = "#c08a50"; x.beginPath(); x.ellipse(t.x, sy, 14, 9, 0, 0, 7); x.fill(); x.beginPath(); x.arc(t.x + Math.sign(bike.x - t.x) * 14, sy - 6, 7, 0, 7); x.fill(); }
+        else if (t.k === "skate") { x.fillStyle = "#a35bff"; x.beginPath(); x.arc(t.x, sy - 12, 8, 0, 7); x.fill(); x.fillRect(t.x - 5, sy - 4, 10, 14); x.fillStyle = "#ffd66b"; x.fillRect(t.x - 12, sy + 10, 24, 4); }
+        else { glow("#3dffa8", 10); x.fillStyle = "#e8e0ff"; x.fillRect(t.x - 12, sy - 8, 24, 16); glow(); x.fillStyle = "#3dffa8"; x.fillRect(t.x - 2, sy - 8, 4, 16); } }
+      for (const p of papers) { x.save(); x.translate(p.x, p.y); x.rotate(p.t * 14); x.fillStyle = "#e8e0ff"; x.fillRect(-7, -3, 14, 6); x.restore(); }
+      x.save(); x.translate(bike.x, bike.y); if (bike.wob > 0) x.rotate(Math.sin(S.clock * 40) * .3); x.globalAlpha = bike.inv > 0 && Math.floor(S.clock * 12) % 2 ? .5 : 1; x.fillStyle = "#222"; x.fillRect(-3, -22, 6, 14); x.fillRect(-3, 10, 6, 14); glow("#22e4ff", 10); x.fillStyle = skinCol("paper", "#22e4ff"); x.fillRect(-9, -10, 18, 22); x.beginPath(); x.arc(0, -10, 8, 0, 7); x.fill(); glow(); x.fillStyle = "#e8e0ff"; x.fillRect(-12, 0, 6, 10); x.restore(); x.globalAlpha = 1;
+      x.fillStyle = "rgba(0,0,0,.5)"; x.fillRect(0, 0, W, 30); txt("DAY " + day, 10, 21, 14, "#ffd66b", "left", "d"); txt("PAPERS " + papersLeft, W / 2, 21, 14, "#fff", "center"); txt("HOMES " + subs, W - 10, 21, 14, "#3dffa8", "right");
+      const prog = Math.min(1, dayDist / dayLen); x.fillStyle = "#3dffa8"; x.fillRect(0, 30, W * prog, 3);
+      txt("◀ THROW", 60, H * .62 - 8, 11, "rgba(255,255,255,.25)", "center", "d"); txt("THROW ▶", W - 60, H * .62 - 8, 11, "rgba(255,255,255,.25)", "center", "d");
+    },
+  });
+}
+
+/* ---------- Sky Guardian ---------- */
+function guardianGame() {
+  const W = 640, H = 380, WORLD = 2400, GROUND = H - 34;
+  let ship, camX, foes, people, shots, wave, lives, spawnQ, spawnT, fireCd, touch, smart;
+  const wrap = (v) => ((v % WORLD) + WORLD) % WORLD, dx = (a, b) => { let d = wrap(a - b); return d > WORLD / 2 ? d - WORLD : d; };
+  function newWave(n) { wave = n; spawnQ = 5 + n * 2; spawnT = 1; foes = []; shots = []; if (n === 1 || n % 4 === 1) { people = []; for (let i = 0; i < 8; i++) people.push({ x: i * WORLD / 8 + 100, y: GROUND - 8, carried: null, fall: 0, vy: 0 }); } banner("WAVE " + n, "#3dffa8"); }
+  function spawn() { const alive = people.filter((p) => !p.gone && !p.carried); const tgt = alive.length && Math.random() < .75 ? alive[Math.random() * alive.length | 0] : null; const sx = tgt ? wrap(tgt.x + (Math.random() < .5 ? -300 : 300)) : wrap(ship.x + W + Math.random() * 600); foes.push({ x: sx, y: 30 + Math.random() * 60, k: tgt ? "grab" : Math.random() < .5 ? "drone" : "bomber", tgt, vx: 0, vy: 0, cd: 1 + Math.random() * 2, hold: null }); }
+  function die() { if (ship.inv > 0) return; ship.inv = 2; sfx("bad"); shake(8, .4); flash("#ff4d6d", .25); burst(W / 2, ship.y, "#22e4ff", 30, 260, .6); if (!S.practice) lives--; if (lives <= 0) over("SHOT DOWN · WAVE " + wave); }
+  function fire() { if (fireCd > 0 || S.state !== "play") return; fireCd = .14; shots.push({ x: ship.x + ship.dir * 24, y: ship.y, vx: ship.dir * 900 + ship.vx, t: 0, mine: true }); sfx("tick"); }
+  function useSmart() { if (smart <= 0 || S.state !== "play") return; smart--; flash("#ffffff", .3); shake(6, .3); sfx("power"); for (const f of foes) if (Math.abs(dx(f.x, camX + W / 2)) < W / 2) { f.dead = true; S.score += 100; burst(dx(f.x, camX), f.y, "#ffd66b", 14, 200, .4); if (f.hold) { f.hold.carried = null; f.hold.fall = 1; } } }
+  game({
+    title: "Sky Guardian", w: W, h: H, color: "#3dffa8", bpm: 146, easy: "unlimited lives and slow abductors",
+    help: ["Fly with arrows / WASD (or drag). Your ship turns to face where it's flying", "Hold Space or tap the FIRE side to shoot. B or the BLAST button is a screen-clearing blast (3 per game)", "Green grabbers try to carry people off the top of the screen — shoot them, then CATCH the falling person!", "The radar at the top shows the whole looping city. Lose all your people and the city falls"],
+    load(d) { if (d && d.wave) { lives = Math.max(lives, d.lives || 3); smart = Math.max(smart, 2); newWave(d.wave | 0); } },
+    init() { lives = S.practice ? 99 : 3; smart = 3; ship = { x: 200, y: H / 2, vx: 0, vy: 0, dir: 1, inv: 1.5, carry: null }; camX = ship.x - W / 3; fireCd = 0; touch = null; people = []; newWave(1); },
+    hud() { return "WAVE " + wave + "  ·  PEOPLE " + people.filter((p) => !p.gone).length + "  ·  ⚡" + smart + "  ·  " + (S.practice ? "PRACTICE" : "LIVES " + lives); },
+    summary() { return ["REACHED WAVE " + wave, people.filter((p) => !p.gone).length + " PEOPLE SAVED"]; },
+    down(px, py) { if (px > W - 70 && py > H - 70) { useSmart(); return; } touch = { x: px, y: py }; },
+    move(px, py) { if (touch) touch = { x: px, y: py }; },
+    up() { touch = null; },
+    key(k, rep) { if (!rep && (k === "b" || k === "Shift")) useSmart(); },
+    update(dt) {
+      fireCd -= dt; ship.inv = Math.max(0, ship.inv - dt);
+      let ax = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), ay = (S.keys.ArrowDown || S.keys.s ? 1 : 0) - (S.keys.ArrowUp || S.keys.w ? 1 : 0);
+      if (touch) { const sx = dx(ship.x, camX); ax = Math.abs(touch.x - sx) > 20 ? Math.sign(touch.x - sx) : 0; ay = Math.abs(touch.y - ship.y) > 10 ? Math.sign(touch.y - ship.y) : 0; fire(); }
+      if (S.keys[" "]) fire(); if (ax) ship.dir = ax;
+      ship.vx += (ax * 900 - ship.vx * 1.6) * dt; ship.vx = Math.max(-420, Math.min(420, ship.vx)); ship.vy += (ay * 700 - ship.vy * 5) * dt; ship.x = wrap(ship.x + ship.vx * dt); ship.y = Math.max(40, Math.min(GROUND - 12, ship.y + ship.vy * dt));
+      const want = ship.x - (ship.dir > 0 ? W / 3 : W * 2 / 3); camX = wrap(camX + dx(want, camX) * Math.min(1, dt * 3));
+      spawnT -= dt; if (spawnQ > 0 && spawnT <= 0) { spawnQ--; spawnT = Math.max(.6, 2.2 - wave * .15); spawn(); }
+      const sp = S.practice ? .6 : 1;
+      for (const f of foes) {
+        if (f.k === "grab") {
+          if (!f.hold) { if (!f.tgt || f.tgt.gone || f.tgt.carried) { const alive = people.filter((p) => !p.gone && !p.carried); f.tgt = alive[Math.random() * alive.length | 0] || null; if (!f.tgt) f.k = "drone"; continue; } const d = dx(f.tgt.x, f.x); f.x = wrap(f.x + Math.sign(d) * Math.min(Math.abs(d), 90 * sp * dt)); if (Math.abs(d) < 30) f.y += 70 * sp * dt; else f.y += (60 - f.y) * dt; if (Math.abs(d) < 8 && f.y > f.tgt.y - 26) { f.hold = f.tgt; f.tgt.carried = f; sfx("blip"); pop(dx(f.x, camX), f.y - 20, "HELP!", "#ff4d6d"); } }
+          else { f.y -= 38 * sp * dt; f.hold.x = f.x; f.hold.y = f.y + 22; if (f.y < -10) { f.hold.gone = true; f.dead = true; pop(dx(f.x, camX), 30, "PERSON LOST!", "#ff4d6d"); sfx("bad"); foes.push({ x: f.x, y: 20, k: "mutant", vx: 0, vy: 0, cd: 1 }); } }
+        } else if (f.k === "mutant") { const d = dx(ship.x, f.x); f.x = wrap(f.x + Math.sign(d) * 170 * sp * dt); f.y += (ship.y - f.y) * dt * 1.4 + Math.sin(S.clock * 9 + f.x) * 60 * dt; }
+        else { f.x = wrap(f.x + Math.sin(S.clock + f.y) * 60 * dt - (f.k === "bomber" ? 50 : 0) * dt); f.y = Math.max(30, Math.min(GROUND - 60, f.y + Math.cos(S.clock * 1.3 + f.x) * 40 * dt)); }
+        f.cd -= dt; if (f.cd <= 0 && Math.abs(dx(f.x, ship.x)) < W * .6 && f.k !== "grab") { f.cd = (f.k === "bomber" ? 1.2 : 2.4) / Math.min(2, 1 + wave * .08) / sp; const ang = Math.atan2(ship.y - f.y, dx(ship.x, f.x)); shots.push({ x: f.x, y: f.y, vx: Math.cos(ang) * 200 * sp, vy: Math.sin(ang) * 200 * sp, t: 0, mine: false }); }
+        if (ship.inv <= 0 && Math.abs(dx(f.x, ship.x)) < 22 && Math.abs(f.y - ship.y) < 16) { f.dead = true; die(); }
+      }
+      for (const s of shots) { s.t += dt; s.x = wrap(s.x + s.vx * dt); s.y += (s.vy || 0) * dt; if (s.mine) { for (const f of foes) if (!f.dead && Math.abs(dx(f.x, s.x)) < 18 && Math.abs(f.y - s.y) < 14) { f.dead = true; s.gone = true; const pts = { grab: 150, drone: 100, bomber: 150, mutant: 200 }[f.k] * Math.max(1, wave / 2) | 0; S.score += pts; pop(dx(f.x, camX), f.y - 16, "+" + pts, "#ffd66b"); burst(dx(f.x, camX), f.y, "#3dffa8", 16, 220, .4); sfx("hit"); if (f.hold) { f.hold.carried = null; f.hold.fall = 1; f.hold.vy = 0; } break; } if (s.t > .7) s.gone = true; }
+        else { if (Math.abs(dx(s.x, ship.x)) < 14 && Math.abs(s.y - ship.y) < 10) { s.gone = true; die(); } if (s.t > 3) s.gone = true; } }
+      for (const p of people) { if (p.gone || p.carried) continue; if (p.fall) { p.vy += 300 * dt; p.y += p.vy * dt;
+          if (!ship.carry && Math.abs(dx(p.x, ship.x)) < 24 && Math.abs(p.y - ship.y) < 22) { ship.carry = p; p.fall = 0; S.score += 500; pop(dx(p.x, camX), p.y - 20, "CAUGHT! +500", "#3dffa8"); sfx("power"); }
+          else if (p.y >= GROUND - 8) { if (p.vy > 230) { p.gone = true; pop(dx(p.x, camX), GROUND - 30, "TOO FAR TO FALL", "#ff4d6d"); sfx("bad"); } else { p.y = GROUND - 8; p.fall = 0; S.score += 250; } } }
+        if (ship.carry === p) { p.x = ship.x; p.y = ship.y + 18; if (ship.y > GROUND - 40) { ship.carry = null; p.y = GROUND - 8; S.score += 500; pop(dx(p.x, camX), GROUND - 30, "SAFE! +500", "#3dffa8"); sfx("score"); } } }
+      foes = foes.filter((f) => !f.dead); shots = shots.filter((s) => !s.gone);
+      if (!people.some((p) => !p.gone)) { if (S.practice) { newWave(wave); people = []; for (let i = 0; i < 8; i++) people.push({ x: i * WORLD / 8 + 100, y: GROUND - 8, fall: 0, vy: 0 }); } else return over("THE CITY FELL · WAVE " + wave); }
+      if (!spawnQ && !foes.length) { const left = people.filter((p) => !p.gone).length; S.score += left * 100 * wave; pop(W / 2, H / 2, left + " PEOPLE × " + 100 * wave, "#3dffa8"); sfx("level"); if (ship.carry) { ship.carry.y = GROUND - 8; ship.carry = null; } newWave(wave + 1); if (wave % 4 === 1) smart = Math.min(5, smart + 1); saveGame({ wave, lives, label: "WAVE " + wave, stop: wave % 3 === 1, next: (wave % 4 === 1 ? "A fresh city of people · " : "") + "faster grabbers" }); }
+    },
+    draw() {
+      bg("#04060f"); for (let i = 0; i < 60; i++) { const X = ((i * 157 - camX * .3) % W + W) % W; x.fillStyle = "rgba(255,255,255," + (.2 + (i % 5) * .1) + ")"; x.fillRect(X, (i * 61) % (GROUND - 80), 1.5, 1.5); }
+      for (let i = 0; i < 40; i++) { const bx = i * 60, X = dx(bx, camX); if (X < -70 || X > W + 10) continue; const bh = 30 + (i * 37) % 60; x.fillStyle = "#121a2e"; x.fillRect(X, GROUND - bh, 50, bh); x.fillStyle = "rgba(255,214,107,.3)"; for (let r = 0; r < bh - 10; r += 12) x.fillRect(X + 8 + (r % 24), GROUND - bh + 6 + r, 6, 5); }
+      x.fillStyle = "#1a2a1a"; x.fillRect(0, GROUND, W, H - GROUND); glow("#3dffa8", 8); x.fillStyle = "#3dffa8"; x.fillRect(0, GROUND, W, 2); glow();
+      for (const p of people) { if (p.gone) continue; const X = dx(p.x, camX); x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(X, p.y - 8, 4, 0, 7); x.fill(); x.fillRect(X - 3, p.y - 4, 6, 10); if (p.fall) txt("!", X, p.y - 16, 12, "#ff4d6d", "center", "d"); }
+      for (const f of foes) { const X = dx(f.x, camX); if (X < -30 || X > W + 30) continue; const c = { grab: "#3dffa8", drone: "#22e4ff", bomber: "#ff8a1f", mutant: "#ff2bd6" }[f.k]; glow(c, 10); x.fillStyle = c; if (f.k === "grab") { x.beginPath(); x.ellipse(X, f.y, 14, 7, 0, 0, 7); x.fill(); x.fillRect(X - 2, f.y, 4, 14); } else if (f.k === "mutant") { x.beginPath(); for (let a = 0; a < 6; a++) x.lineTo(X + Math.cos(a + S.clock * 6) * 12, f.y + Math.sin(a + S.clock * 6) * 12); x.fill(); } else { rr(X - 12, f.y - 8, 24, 16, 6); x.fill(); } glow(); }
+      for (const s of shots) { const X = dx(s.x, camX); x.fillStyle = s.mine ? "#ffffff" : "#ff4d6d"; if (s.mine) x.fillRect(X - 12, s.y - 1, 24, 2); else { x.beginPath(); x.arc(X, s.y, 3, 0, 7); x.fill(); } }
+      const SX = dx(ship.x, camX); x.save(); x.translate(SX, ship.y); x.scale(ship.dir, 1); x.globalAlpha = ship.inv > 0 && Math.floor(S.clock * 12) % 2 ? .4 : 1; glow("#22e4ff", 12); x.fillStyle = skinCol("guardian", "#22e4ff"); x.beginPath(); x.moveTo(22, 0); x.lineTo(-14, -9); x.lineTo(-10, 0); x.lineTo(-14, 9); x.fill(); glow(); x.fillStyle = "#ff8a1f"; x.fillRect(-18, -3, 6 + Math.random() * 6, 6); x.restore(); x.globalAlpha = 1;
+      /* radar */ const RW = 260, RX = W / 2 - RW / 2; x.fillStyle = "rgba(0,0,0,.6)"; x.fillRect(RX, 4, RW, 26); x.strokeStyle = "#3dffa8"; x.lineWidth = 1; x.strokeRect(RX, 4, RW, 26); x.strokeStyle = "rgba(255,255,255,.4)"; x.strokeRect(RX + wrap(camX) / WORLD * RW, 5, W / WORLD * RW, 24);
+      const rp = (wx, wy, c, s) => { x.fillStyle = c; x.fillRect(RX + wrap(wx) / WORLD * RW - s / 2, 5 + wy / H * 24, s, s); }; for (const p of people) if (!p.gone) rp(p.x, p.y, "#ffd66b", 2); for (const f of foes) rp(f.x, f.y, f.k === "grab" && f.hold ? "#ff4d6d" : "#3dffa8", 3); rp(ship.x, ship.y, "#fff", 4);
+      x.fillStyle = "rgba(255,255,255,.12)"; x.beginPath(); x.arc(W - 36, H - 36, 26, 0, 7); x.fill(); txt("BLAST " + smart, W - 36, H - 32, 10, "#ffd66b", "center", "d");
+      if (!S.practice) txt("♥".repeat(Math.max(0, lives)), 12, 22, 14, "#ff4d6d", "left"); txt("WAVE " + wave, W - 12, 22, 13, "#3dffa8", "right", "d");
+    },
+  });
+}
+
+/* ---------- Shield Arena ---------- */
+function shieldGame() {
+  const W = 480, H = 480, CX = W / 2, CY = H / 2, R = 200, PR = 16, SR = 34;
+  let ang, angV, arc, bolts, turrets, arena, hp, perfect, parryT, aimP;
+  function newArena(n) {
+    arena = n; bolts = []; turrets = []; const k = Math.min(8, 2 + Math.floor(n / 1.5)); const off = Math.random() * 6;
+    for (let i = 0; i < k; i++) { const a = off + i * Math.PI * 2 / k, tough = n >= 3 && i % 3 === 0; turrets.push({ a, hp: tough ? 3 : 2, max: tough ? 3 : 2, cd: 1.2 + i * .5 + Math.random(), kind: n >= 4 && i % 4 === 1 ? "triple" : n >= 2 && i % 2 === 1 ? "fast" : "basic", spin: n >= 5 ? (i % 2 ? .12 : -.12) : 0, hurt: 0 }); }
+    arc = Math.max(.75, (S.practice ? 1.6 : 1.25) - n * .03); banner("ARENA " + n, "#22e4ff");
+  }
+  const tpos = (t) => [CX + Math.cos(t.a) * R, CY + Math.sin(t.a) * R];
+  function angDiff(a, b) { let d = (a - b) % (Math.PI * 2); if (d > Math.PI) d -= Math.PI * 2; if (d < -Math.PI) d += Math.PI * 2; return d; }
+  function shoot(t) { const [tx, ty] = tpos(t), base = Math.atan2(CY - ty, CX - tx), sp = (t.kind === "fast" ? 210 : 150) * (S.practice ? .7 : 1) * (1 + arena * .04); const list = t.kind === "triple" ? [-.18, 0, .18] : [0]; for (const o of list) bolts.push({ x: tx, y: ty, vx: Math.cos(base + o) * sp, vy: Math.sin(base + o) * sp, back: false, life: 6 }); sfx("blip"); }
+  function parry() { if (S.state !== "play" || parryT > -.3) return; parryT = .18; sfx("tick"); }
+  game({
+    title: "Shield Arena", w: W, h: H, color: "#22e4ff", bpm: 132, easy: "a giant shield and slow bolts",
+    help: ["Turrets around the ring fire bolts at you. Turn your SHIELD to block them (← → / A D, or drag around you)", "Blocked bolts bounce straight back — aim the bounce to hit the turret that fired!", "Tap Space or click/tap right when a bolt hits for a PARRY: double-speed, double-damage return", "Destroy every turret to clear the arena. Later arenas have spinning turrets and triple shots"],
+    load(d) { if (d && d.arena) { hp = Math.max(hp, d.hp || 5); newArena(d.arena | 0); } },
+    init() { hp = S.practice ? 99 : 5; ang = -Math.PI / 2; angV = 0; perfect = 0; parryT = -1; aimP = null; newArena(1); },
+    hud() { return "ARENA " + arena + "  ·  TURRETS " + turrets.length + "  ·  " + (S.practice ? "PRACTICE" : "HP " + hp); },
+    summary() { return ["CLEARED " + (arena - 1) + " ARENAS"]; },
+    down(px, py) { aimP = [px, py]; parry(); },
+    move(px, py) { aimP = [px, py]; },
+    key(k, rep) { if (!rep && (k === " " || k === "Enter")) parry(); },
+    update(dt) {
+      parryT -= dt;
+      const mv = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0);
+      if (mv) { angV = mv * 5.2; ang += angV * dt; aimP = null; } else if (aimP && Math.hypot(aimP[0] - CX, aimP[1] - CY) > 20) { const want = Math.atan2(aimP[1] - CY, aimP[0] - CX); ang += angDiff(want, ang) * Math.min(1, dt * 16); }
+      for (const t of turrets) { t.a += t.spin * dt; t.hurt = Math.max(0, t.hurt - dt); t.cd -= dt; if (t.cd <= 0) { t.cd = Math.max(1.1, (t.kind === "fast" ? 2.2 : 3) - arena * .12) * (S.practice ? 1.5 : 1) * (.8 + Math.random() * .4); shoot(t); } }
+      for (const b of bolts) {
+        b.x += b.vx * dt; b.y += b.vy * dt; b.life -= dt; const d = Math.hypot(b.x - CX, b.y - CY);
+        if (!b.back && d < SR + 4 && d > PR) { const ba = Math.atan2(b.y - CY, b.x - CX); if (Math.abs(angDiff(ba, ang)) < arc / 2) {
+          const nx = Math.cos(ang), ny = Math.sin(ang), dot = b.vx * nx + b.vy * ny; b.vx -= 2 * dot * nx; b.vy -= 2 * dot * ny;
+          /* nudge the bounce toward the shield's facing so aiming is possible */ const sp = Math.hypot(b.vx, b.vy), ra = Math.atan2(b.vy, b.vx) + angDiff(ang, Math.atan2(b.vy, b.vx)) * .7; const pr = parryT > 0; b.vx = Math.cos(ra) * sp * (pr ? 2 : 1.2); b.vy = Math.sin(ra) * sp * (pr ? 2 : 1.2); b.back = true; b.power = pr ? 2 : 1; b.life = 4;
+          if (pr) { perfect++; S.score += 50 * arena; pop(CX, CY - 60, "PARRY!", "#ffd66b"); sfx("power"); burst(b.x, b.y, "#ffd66b", 14, 200, .3); parryT = -1; } else { sfx("hit"); burst(b.x, b.y, "#22e4ff", 8, 140, .25); } } }
+        if (!b.back && d < PR + 3) { b.gone = true; if (!S.practice) hp--; sfx("bad"); shake(6, .3); flash("#ff4d6d", .2); if (hp <= 0) return over("SHIELD BROKEN · ARENA " + arena); }
+        if (b.back) for (const t of turrets) { const [tx, ty] = tpos(t); if (Math.hypot(b.x - tx, b.y - ty) < 22) { b.gone = true; t.hp -= b.power; t.hurt = .2; sfx("hit"); shake(3, .1); burst(tx, ty, "#ff8a1f", 12, 180, .35); if (t.hp <= 0) { t.dead = true; const pts = 200 * arena * (b.power > 1 ? 2 : 1); S.score += pts; pop(tx, ty - 24, "+" + pts, "#ffd66b"); burst(tx, ty, "#ff4d6d", 30, 260, .6); sfx("score"); } break; } }
+        if (d > R + 40 || b.life <= 0) b.gone = true;
+      }
+      bolts = bolts.filter((b) => !b.gone); turrets = turrets.filter((t) => !t.dead);
+      if (!turrets.length) { S.score += 1000 * arena; if (!S.practice) hp = Math.min(5, hp + 1); sfx("level"); newArena(arena + 1); saveGame({ arena, hp, label: "ARENA " + arena, stop: arena % 3 === 1, next: "More turrets" + (arena >= 4 ? " · triple shots" : "") + (arena >= 5 ? " · spinning ring" : "") }); }
+    },
+    draw() {
+      bg("#060814"); x.strokeStyle = "rgba(34,228,255,.12)"; x.lineWidth = 1; for (let r = 40; r < R + 30; r += 40) { x.beginPath(); x.arc(CX, CY, r, 0, 7); x.stroke(); }
+      glow("#a35bff", 12); x.strokeStyle = "#a35bff"; x.lineWidth = 3; x.beginPath(); x.arc(CX, CY, R, 0, 7); x.stroke(); glow();
+      for (const t of turrets) { const [tx, ty] = tpos(t), c = t.hurt > 0 ? "#ffffff" : t.kind === "fast" ? "#ff8a1f" : t.kind === "triple" ? "#ff2bd6" : "#ff4d6d"; x.save(); x.translate(tx, ty); x.rotate(t.a + Math.PI); glow(c, 12); x.fillStyle = c; rr(-14, -14, 28, 28, 6); x.fill(); x.fillRect(8, -4, 14, 8); glow(); x.restore(); for (let i = 0; i < t.max; i++) { x.fillStyle = i < t.hp ? "#3dffa8" : "#333"; x.fillRect(tx - t.max * 5 + i * 10, ty + 18, 8, 3); } if (t.cd < .4) { x.strokeStyle = "rgba(255,255,255,.6)"; x.beginPath(); x.arc(tx, ty, 18 + t.cd * 20, 0, 7); x.stroke(); } }
+      for (const b of bolts) { const c = b.back ? (b.power > 1 ? "#ffd66b" : "#22e4ff") : "#ff4d6d"; glow(c, 10); x.fillStyle = c; x.beginPath(); x.arc(b.x, b.y, b.power > 1 ? 7 : 5, 0, 7); x.fill(); glow(); }
+      glow("#ffffff", 10); x.fillStyle = "#ffffff"; x.beginPath(); x.arc(CX, CY, PR, 0, 7); x.fill(); glow();
+      const sc = parryT > 0 ? "#ffd66b" : skinCol("shield", "#22e4ff"); glow(sc, 16); x.strokeStyle = sc; x.lineWidth = parryT > 0 ? 9 : 6; x.lineCap = "round"; x.beginPath(); x.arc(CX, CY, SR, ang - arc / 2, ang + arc / 2); x.stroke(); x.lineCap = "butt"; glow();
+      if (!S.practice) for (let i = 0; i < hp; i++) { x.fillStyle = "#3dffa8"; x.fillRect(14 + i * 16, 14, 12, 12); } txt("ARENA " + arena, W - 14, 24, 14, "#22e4ff", "right", "d");
+    },
+  });
+}
+
+/* ---------- Lucky Lure ---------- */
+function lureGame() {
+  const W = 480, H = 560, SEA = 130, BOATX = 90;
+  const KINDS = [
+    { n: "Minnow", c: "#9ff3ff", pts: 50, pull: .5, w: 18, d0: 0, d1: .45, sp: 70 },
+    { n: "Sunfish", c: "#ffd66b", pts: 120, pull: .8, w: 24, d0: .1, d1: .6, sp: 60 },
+    { n: "Neon Tetra", c: "#22e4ff", pts: 200, pull: 1, w: 20, d0: .3, d1: .8, sp: 110 },
+    { n: "Pufferfish", c: "#ff8a1f", pts: 300, pull: 1.3, w: 28, d0: .4, d1: .9, sp: 40 },
+    { n: "Angler", c: "#a35bff", pts: 600, pull: 1.8, w: 34, d0: .7, d1: 1, sp: 50 },
+    { n: "Golden Koi", c: "#fff3a0", pts: 1500, pull: 2.4, w: 30, d0: .5, d1: 1, sp: 130, rare: true },
+  ];
+  let kbHold = false, fish, hook, state, power, tension, reel, holding, timeLeft, goal, caught, day, msgT, bubbles, junkT, lineHp;
+  function newDay(d) {
+    day = d; goal = 250 + d * 250; caught = 0; timeLeft = S.practice ? 999 : 90; fish = []; for (let i = 0; i < 9; i++) addFish(); hook = null; state = "aim"; power = 0; tension = 0; lineHp = 1;
+    banner("DAY " + d + " · CATCH " + goal, "#22e4ff");
+  }
+  function addFish() {
+    const pool = KINDS.filter((k) => !k.rare || (day >= 2 && Math.random() < .25)); const weights = pool.map((k, i) => Math.max(.4, 4 - i * .7 + (day * .15 * i))); let r = Math.random() * weights.reduce((a, b) => a + b), k = pool[0]; for (let i = 0; i < pool.length; i++) { r -= weights[i]; if (r <= 0) { k = pool[i]; break; } }
+    const depth = SEA + 30 + (k.d0 + Math.random() * (k.d1 - k.d0)) * (H - SEA - 70); fish.push({ k, x: Math.random() * W, y: depth, dir: Math.random() < .5 ? -1 : 1, wig: Math.random() * 6, interest: 0 });
+  }
+  function press() {
+    if (S.state !== "play") return; holding = true;
+    if (state === "aim") { state = "charge"; power = 0; }
+    else if (state === "wait" && hook && hook.bite) { state = "fight"; tension = .35; reel = 0; sfx("power"); pop(hook.x, hook.y - 30, "HOOKED!", "#ffd66b"); }
+    else if (state === "wait" && hook && !hook.bite && hook.y > SEA + 10) { state = "reelin"; }
+  }
+  function release() { holding = false; if (state === "charge") { state = "cast"; const dist = 80 + power * (W - BOATX - 110); hook = { x: BOATX + 20, y: SEA - 40, tx: BOATX + 20 + dist, vx: dist / .7, vy: -200, bite: null, fish: null, wob: 0 }; sfx("jump"); } if (state === "reelin") state = "wait"; }
+  game({
+    title: "Lucky Lure", w: W, h: H, color: "#22e4ff", bpm: 96, easy: "no clock, and the line almost never snaps",
+    help: ["HOLD to power up your cast, LET GO to throw (tap / click / Space)", "Hold to slowly reel the lure up through deeper fish. When the bobber dips — TAP fast to hook!", "Fighting a fish: HOLD to reel, LET GO when the line tension goes red or it SNAPS", "Reach the day's catch goal before sundown. Bigger, deeper fish pull harder but are worth way more"],
+    load(d) { if (d && d.day) newDay(d.day | 0); },
+    init() { holding = false; bubbles = []; junkT = 0; newDay(1); },
+    hud() { return "DAY " + day + "  ·  " + caught + "/" + goal + "  ·  " + (S.practice ? "PRACTICE" : Math.ceil(timeLeft) + "s"); },
+    summary() { return ["REACHED DAY " + day]; },
+    down() { press(); }, up() { release(); },
+    key(k, rep) { if (k === " " && !rep) { kbHold = true; press(); } },
+    update(dt) {
+      if (kbHold && !S.keys[" "]) { kbHold = false; release(); }
+      if (!S.practice) { timeLeft -= dt; if (timeLeft <= 0) { timeLeft = 0; return over("SUNDOWN · DAY " + day + " · " + caught + "/" + goal); } }
+      for (const f of fish) { if (hook && hook.fish === f) continue; f.wig += dt * 6; f.x += f.dir * f.k.sp * (S.practice ? .7 : 1) * dt * (f.interest > 0 ? .3 : 1); if (f.x < -40) f.dir = 1; if (f.x > W + 40) f.dir = -1; f.interest = Math.max(0, f.interest - dt); }
+      if (Math.random() < dt * 2) bubbles.push({ x: Math.random() * W, y: H, r: 1 + Math.random() * 3 }); for (const b of bubbles) b.y -= 40 * dt; bubbles = bubbles.filter((b) => b.y > SEA);
+      if (state === "charge") power = Math.min(1, power + dt * .9);
+      if (state === "cast" && hook) { hook.x += hook.vx * dt; hook.vy += 600 * dt; hook.y += hook.vy * dt; if (hook.x >= hook.tx) { hook.x = hook.tx; hook.vx = 0; } if (hook.y >= SEA) { hook.y = SEA + 1; state = "wait"; sfx("pop"); burst(hook.x, SEA, "#9ff3ff", 10, 120, .3); } }
+      if ((state === "wait" || state === "reelin") && hook) {
+        if (state === "reelin" || holding) { const dx = BOATX + 20 - hook.x, dy = SEA - 6 - hook.y; const d = Math.hypot(dx, dy); if (d < 14) { hook = null; state = "aim"; return; } hook.x += dx / d * 70 * dt; hook.y += dy / d * 70 * dt; }
+        else if (!hook.bite) hook.y = Math.min(H - 30, hook.y + 55 * dt);
+        if (!hook.bite) { for (const f of fish) { const dd = Math.hypot(f.x - hook.x, f.y - hook.y); if (dd < 100) { f.interest = 1; f.x += (hook.x - f.x) * dt * 2; f.y += (hook.y - f.y) * dt * 2; if (dd < 20 && Math.random() < dt * 3) { hook.bite = f; hook.biteT = S.practice ? 1.6 : Math.max(.5, 1 - f.k.pull * .12); state = "wait"; holding = false; kbHold = false; sfx("blip"); break; } } } }
+        else { hook.biteT -= dt; hook.wob = Math.sin(S.clock * 40) * 4; if (hook.biteT <= 0) { pop(hook.x, hook.y - 20, "IT GOT AWAY", "#8f86b5"); hook.bite.dir *= -1; hook.bite = null; } }
+      }
+      if (state === "fight" && hook) {
+        const f = hook.bite; hook.fish = f; const pull = f.k.pull * (S.practice ? .5 : 1) * (.7 + .6 * Math.abs(Math.sin(S.clock * 1.7 + f.wig)));
+        if (holding) { tension += (pull * .4 + .08) * dt; const dx = BOATX + 20 - hook.x, dy = SEA - hook.y, d = Math.hypot(dx, dy) || 1; hook.x += dx / d * (110 + 60 / f.k.pull) * dt; hook.y += dy / d * (110 + 60 / f.k.pull) * dt; }
+        else { tension -= .8 * dt; hook.x += Math.sin(S.clock * 2 + f.wig) * pull * 50 * dt + f.dir * pull * 20 * dt; hook.y = Math.min(H - 30, hook.y + pull * 15 * dt); }
+        hook.x = Math.max(BOATX + 20, Math.min(W - 10, hook.x)); f.x = hook.x; f.y = hook.y; tension = Math.max(0, tension);
+        if (tension > 1) { sfx("bad"); shake(5, .3); pop(hook.x, hook.y - 30, "SNAP!", "#ff4d6d"); f.dir *= -1; hook = null; state = "aim"; tension = 0; holding = false; return; }
+        if (hook.y <= SEA + 4) { const pts = f.k.pts * (1 + (day - 1) * .1) | 0; caught += pts; S.score += pts; fish = fish.filter((o) => o !== f); addFish(); pop(BOATX + 40, SEA - 60, f.k.n + "! +" + pts, f.k.c); burst(BOATX + 20, SEA - 20, f.k.c, 24, 220, .5); sfx(f.k.rare ? "level" : "score"); hook = null; state = "aim"; tension = 0; holding = false;
+          if (caught >= goal) { S.score += Math.ceil(timeLeft) * 20 * day; sfx("level"); newDay(day + 1); saveGame({ day, label: "DAY " + day, stop: day % 2 === 1, next: "Bigger goal · more rare fish" }); } }
+      }
+    },
+    draw() {
+      const sun = Math.max(0, Math.min(1, S.practice ? 1 : timeLeft / 90)); const sky = x.createLinearGradient(0, 0, 0, SEA); sky.addColorStop(0, sun > .3 ? "#1a2a6a" : "#2a0a3a"); sky.addColorStop(1, sun > .3 ? "#ff8aa8" : "#ff4d1f"); x.fillStyle = sky; x.fillRect(0, 0, W, SEA);
+      glow("#ffd66b", 20); x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(W / 2 + 30, SEA - 10 - sun * 70, 22, 0, 7); x.fill(); glow();
+      const sea = x.createLinearGradient(0, SEA, 0, H); sea.addColorStop(0, "#0a4a6a"); sea.addColorStop(1, "#020a1a"); x.fillStyle = sea; x.fillRect(0, SEA, W, H - SEA);
+      x.strokeStyle = "rgba(159,243,255,.5)"; x.lineWidth = 2; x.beginPath(); for (let i = 0; i <= W; i += 8) x.lineTo(i, SEA + Math.sin(i / 20 + S.clock * 2) * 2); x.stroke();
+      for (const b of bubbles) { x.strokeStyle = "rgba(159,243,255,.3)"; x.lineWidth = 1; x.beginPath(); x.arc(b.x, b.y, b.r, 0, 7); x.stroke(); }
+      for (const f of fish) { x.save(); x.translate(f.x, f.y); x.scale(f.dir, 1); glow(f.k.c, f.k.rare ? 18 : 6); x.fillStyle = f.k.c; x.beginPath(); x.ellipse(0, 0, f.k.w / 2, f.k.w / 4 + 2, 0, 0, 7); x.fill(); const tw = Math.sin(f.wig) * 3; x.beginPath(); x.moveTo(-f.k.w / 2 + 2, 0); x.lineTo(-f.k.w / 2 - 8, -6 + tw); x.lineTo(-f.k.w / 2 - 8, 6 + tw); x.fill(); glow(); x.fillStyle = "#111"; x.beginPath(); x.arc(f.k.w / 4, -2, 1.8, 0, 7); x.fill(); x.restore(); }
+      /* boat + angler */ x.fillStyle = "#5a3a2a"; x.beginPath(); x.moveTo(BOATX - 60, SEA - 16); x.lineTo(BOATX + 40, SEA - 16); x.lineTo(BOATX + 26, SEA + 6); x.lineTo(BOATX - 48, SEA + 6); x.fill(); glow("#22e4ff", 8); x.fillStyle = skinCol("lure", "#22e4ff"); x.fillRect(BOATX - 12, SEA - 42, 14, 26); x.beginPath(); x.arc(BOATX - 5, SEA - 48, 8, 0, 7); x.fill(); glow();
+      const tipX = BOATX + 20, tipY = SEA - 70 - (state === "charge" ? power * 20 : 0); x.strokeStyle = "#e8e0ff"; x.lineWidth = 2; x.beginPath(); x.moveTo(BOATX, SEA - 30); x.lineTo(tipX, tipY); x.stroke();
+      if (hook) { x.strokeStyle = state === "fight" && tension > .75 ? "#ff4d6d" : "rgba(255,255,255,.7)"; x.lineWidth = 1; x.beginPath(); x.moveTo(tipX, tipY); x.quadraticCurveTo((tipX + hook.x) / 2, Math.max(SEA, hook.y) - 20, hook.x, hook.y); x.stroke();
+        if (hook.y >= SEA && state !== "fight") { x.fillStyle = "#ff4d6d"; x.beginPath(); x.arc(hook.x, SEA + (hook.bite ? 6 + hook.wob : 0) - 4, 5, 0, 7); x.fill(); x.fillStyle = "#fff"; x.fillRect(hook.x - 5, SEA - 5 + (hook.bite ? 6 + hook.wob : 0), 10, 2); }
+        x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(hook.x, hook.y, 3, 0, 7); x.fill(); if (hook.bite && state === "wait") txt("TAP!", hook.x, hook.y - 22, 16, "#ffd66b", "center", "d"); }
+      if (state === "charge") { x.fillStyle = "rgba(0,0,0,.5)"; rr(20, 20, 160, 14, 7); x.fill(); x.fillStyle = "#3dffa8"; rr(20, 20, 160 * power, 14, 7); x.fill(); txt("POWER", 186, 32, 11, "#fff", "left", "d"); }
+      if (state === "fight") { x.fillStyle = "rgba(0,0,0,.5)"; rr(W / 2 - 110, H - 40, 220, 18, 9); x.fill(); const tc = tension > .75 ? "#ff4d6d" : tension > .5 ? "#ffd66b" : "#3dffa8"; x.fillStyle = tc; rr(W / 2 - 110, H - 40, 220 * Math.min(1, tension), 18, 9); x.fill(); txt(holding ? "REELING…" : "HOLD TO REEL", W / 2, H - 48, 12, tc, "center", "d"); }
+      if (state === "aim") txt("HOLD TO CAST", W / 2, SEA + 40, 14, "rgba(255,255,255,.6)", "center", "d");
+      x.fillStyle = "rgba(0,0,0,.4)"; rr(W - 180, 12, 168, 12, 6); x.fill(); x.fillStyle = "#3dffa8"; rr(W - 180, 12, 168 * Math.min(1, caught / goal), 12, 6); x.fill(); txt(caught + "/" + goal, W - 96, 40, 12, "#fff", "center", "d"); if (!S.practice) txt(Math.ceil(timeLeft) + "s", 14, H - 14, 14, timeLeft < 15 ? "#ff4d6d" : "#fff", "left", "d"); txt("DAY " + day, W - 14, H - 14, 13, "#22e4ff", "right", "d");
+    },
+  });
+}
+
 function platGame() {
   const T = 24, CW = 20, CH = 15, W = CW * T, H = CH * T + 56, BAR = CH * T;
   const LV = [
@@ -12308,6 +12575,10 @@ function fighterGame() {
     { key: "dojo", title: "Two-Button Dojo", genre: "Action", fn: dojoGame },
     { key: "digger", title: "Gem Digger", genre: "Puzzle", fn: diggerGame },
     { key: "roadagent", title: "Road Agent", genre: "Racing", fn: roadagentGame },
+    { key: "paper", title: "Paper Route", genre: "Arcade", fn: paperGame },
+    { key: "guardian", title: "Sky Guardian", genre: "Arcade", fn: guardianGame },
+    { key: "shield", title: "Shield Arena", genre: "Action", fn: shieldGame },
+    { key: "lure", title: "Lucky Lure", genre: "Other", fn: lureGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -13742,7 +14013,7 @@ function fighterGame() {
   // The song games play: a shop song you equipped, otherwise the style picked in Settings.
   window.gblMusicPick = () => { try { const m = prog.equip && prog.equip.music; if (m === "mu-shuffle") { const own = (prog.owned || []).filter((id) => id.startsWith("mu-")); own.push("mu-synth"); return own[Math.random() * own.length | 0].slice(3); } if (m) return m.slice(3); if (settings.music === "off") return "off"; return settings.music || "synth"; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
-  const STARS = { roadagent: [2000, 8000, 25000], digger: [800, 3000, 8000], dojo: [1000, 6000, 20000], poptrap: [3000, 15000, 50000], lance: [2000, 10000, 30000], sonar: [1000, 5000, 15000], grapple: [150, 500, 1500], ramp: [2000, 8000, 25000], soda: [1500, 6000, 20000], cab: [1500, 6000, 20000], lockpick: [300, 1500, 5000], blobs: [2000, 10000, 40000], artillery: [2000, 10000, 30000], well: [2000, 10000, 30000], copter: [500, 2000, 6000], tiles: [500, 2500, 8000], derby: [1500, 8000, 25000], archery: [800, 4000, 12000], plinko: [3000, 15000, 50000], skee: [800, 3000, 8000], claim: [3000, 15000, 50000], draw: [2000, 8000, 20000], bugs: [3000, 15000, 40000], pipes: [1500, 8000, 25000], horde: [3000, 15000, 50000], tanks: [1500, 8000, 25000], claw: [400, 2000, 6000], crates: [1500, 6000, 15000], swarm: [3000, 15000, 40000], bomber: [1000, 5000, 15000], snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
+  const STARS = { lure: [500, 1500, 4000], shield: [3000, 15000, 50000], guardian: [3000, 12000, 40000], paper: [1500, 6000, 20000], roadagent: [2000, 8000, 25000], digger: [800, 3000, 8000], dojo: [1000, 6000, 20000], poptrap: [3000, 15000, 50000], lance: [2000, 10000, 30000], sonar: [1000, 5000, 15000], grapple: [150, 500, 1500], ramp: [2000, 8000, 25000], soda: [1500, 6000, 20000], cab: [1500, 6000, 20000], lockpick: [300, 1500, 5000], blobs: [2000, 10000, 40000], artillery: [2000, 10000, 30000], well: [2000, 10000, 30000], copter: [500, 2000, 6000], tiles: [500, 2500, 8000], derby: [1500, 8000, 25000], archery: [800, 4000, 12000], plinko: [3000, 15000, 50000], skee: [800, 3000, 8000], claim: [3000, 15000, 50000], draw: [2000, 8000, 20000], bugs: [3000, 15000, 40000], pipes: [1500, 8000, 25000], horde: [3000, 15000, 50000], tanks: [1500, 8000, 25000], claw: [400, 2000, 6000], crates: [1500, 6000, 15000], swarm: [3000, 15000, 40000], bomber: [1000, 5000, 15000], snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
   const starsOf = (k) => { const t = STARS[k]; if (!t) return 0; const b = starBest(k); return t.filter((v) => b >= v).length; };
   const totalStars = () => Object.keys(STARS).reduce((a, k) => a + starsOf(k), 0);
