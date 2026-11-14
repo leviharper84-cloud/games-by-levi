@@ -9073,7 +9073,7 @@ function poolGame() {
   });
 }
 
-/* ---------- Bomb Maze ---------- */
+/* ---------- Fuse Box ---------- */
 function bomberGame() {
   const C = 13, R = 11, T = 34, W = C * T, H = R * T + 46, OY = 46;
   const DIRS = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
@@ -9127,7 +9127,7 @@ function bomberGame() {
     return null;
   }
   game({
-    title: "Bomb Maze", w: W, h: H, color: "#ff8a1f", bpm: 132, easy: "unlimited lives and slower enemies",
+    title: "Fuse Box", w: W, h: H, color: "#ff8a1f", bpm: 132, easy: "unlimited lives and slower enemies",
     help: ["Arrows / WASD to walk, Space to drop a bomb", "Touch: drag anywhere to walk, tap (or the 💣 button) to drop a bomb", "Blasts break crates and can uncover power-ups: 💣 more bombs, 🔥 bigger blast, 👟 speed", "Beat every enemy, then find the hidden exit door. Don't stand in your own blast!"],
     load(d) { if (d && d.level) { newPlayer(); pl.maxB = d.maxB || 1; pl.fire = d.fire || 2; pl.sp = d.sp || 4.2; lives = Math.max(lives, d.lives || 3); build(d.level | 0); } },
     init() { lives = S.practice ? 99 : 3; newPlayer(); build(1); joy = null; },
@@ -9187,7 +9187,7 @@ function bomberGame() {
   });
 }
 
-/* ---------- Star Swarm ---------- */
+/* ---------- Nova Swarm ---------- */
 function swarmGame() {
   const W = 420, H = 640, PY = H - 64;
   let pl, shots, eshots, foes, stage, lives, spawnQ, spawnT, diveT, stars, fireCd, dual, capT, respawnT, rescue, holding, targetX;
@@ -9224,7 +9224,7 @@ function swarmGame() {
     if (beam) { e.beamX = Math.max(60, Math.min(W - 60, pl.x)); }
   }
   game({
-    title: "Star Swarm", w: W, h: H, color: "#22e4ff", bpm: 140, easy: "unlimited lives and slower dives",
+    title: "Nova Swarm", w: W, h: H, color: "#22e4ff", bpm: 140, easy: "unlimited lives and slower dives",
     help: ["Drag (or ← →) to fly, tap / hold / Space to shoot", "Aliens fly in, line up, then dive at you. Diving aliens are worth double", "Green flagships take 2 hits. Their tractor beam can CAPTURE your ship!", "Shoot that flagship while it dives to RESCUE your ship and get double guns"],
     load(d) { if (d && d.stage) { lives = Math.max(lives, d.lives || 3); dual = !!d.dual; newStage(d.stage | 0); } },
     init() { lives = S.practice ? 99 : 3; shots = []; dual = false; fireCd = 0; rescue = null; holding = false; targetX = null; respawn(); stars = Array.from({ length: 70 }, () => [Math.random() * W, Math.random() * H, .3 + Math.random()]); newStage(1); },
@@ -9296,7 +9296,7 @@ function swarmGame() {
   });
 }
 
-/* ---------- Crate Push ---------- */
+/* ---------- Crate Bot ---------- */
 function cratesGame() {
   const W = 420, H = 600, TOP = 40, BOT = 70;
   let level, map, goals, crates, pl, hist, moves, cw, ch, T, OX, OY, swipe, winT, undos, anim;
@@ -9352,7 +9352,7 @@ function cratesGame() {
   function restart() { if (winT) return; const lv = level; loadLevel(lv); sfx("bad"); }
   const isDead = (a, b) => { if (onGoal(a, b)) return false; const wl = (dx, dy) => !!map[b + dy][a + dx]; return (wl(-1, 0) || wl(1, 0)) && (wl(0, -1) || wl(0, 1)); };
   game({
-    title: "Crate Push", w: W, h: H, color: "#ffd66b", bpm: 88, easy: "warns you when a crate gets stuck in a corner",
+    title: "Crate Bot", w: W, h: H, color: "#ffd66b", bpm: 88, easy: "warns you when a crate gets stuck in a corner",
     help: ["Push every crate onto a glowing target", "Arrows / WASD, swipe, or tap next to your robot to move", "You can push but never pull. Don't trap a crate in a corner!", "↶ Undo (U) and ⟲ Restart (R) buttons at the bottom. Fewer moves = more points"],
     load(d) { if (d && d.level) loadLevel(d.level | 0); },
     init() { swipe = null; loadLevel(1); },
@@ -9390,7 +9390,7 @@ function cratesGame() {
   });
 }
 
-/* ---------- Claw Crane ---------- */
+/* ---------- Prize Claw ---------- */
 function clawGame() {
   const W = 420, H = 640, L = 30, R = 390, TOPY = 120, FLOOR = 548, CHUTE = 104, CHTOP = 260;
   const KINDS = [["#ff7be6", 18, 60], ["#22e4ff", 20, 80], ["#b6ff3b", 22, 100], ["#a35bff", 25, 150], ["#ff8a1f", 28, 200], ["#ffd66b", 21, 500]];
@@ -9421,7 +9421,7 @@ function clawGame() {
   function drop() { if (claw.st !== "aim" || S.state !== "play" || tries <= 0) return; claw.st = "drop"; if (!S.practice && !S.quick) tries--; sfx("blip"); }
   const slipChance = () => (S.practice ? 0 : Math.min(.55, .06 + level * .045));
   game({
-    title: "Claw Crane", w: W, h: H, color: "#ff7be6", bpm: 108, easy: "the claw never slips and you get unlimited tries",
+    title: "Prize Claw", w: W, h: H, color: "#ff7be6", bpm: 108, easy: "the claw never slips and you get unlimited tries",
     help: ["Drag (or ← →) to move the claw, then tap DROP (or Space)", "The claw grabs the prize closest to its middle", "Carry it to the chute on the left. Big prizes slip more easily!", "Gold stars are worth 500. Win enough prizes before your tries run out"],
     load(d) { if (d && d.level) newLevel(d.level | 0); },
     init() { held = false; dragX = null; winsFx = []; slipFx = 0; newLevel(1); },
@@ -9462,7 +9462,7 @@ function clawGame() {
     draw() {
       bg("#12051c");
       glow("#ff7be6", 20); x.strokeStyle = "#ff7be6"; x.lineWidth = 4; rr(14, 60, W - 28, H - 74, 22); x.stroke(); glow();
-      txt("✦ CLAW CRANE ✦", W / 2, 36, 18, "#ff7be6", "center", "d");
+      txt("✦ PRIZE CLAW ✦", W / 2, 36, 18, "#ff7be6", "center", "d");
       x.fillStyle = "rgba(34,228,255,.05)"; x.fillRect(L, 90, R - L, FLOOR - 90);
       x.fillStyle = "#24103a"; x.fillRect(CHUTE, FLOOR, R - CHUTE, H - 80 - FLOOR + 6);
       x.fillStyle = "#000"; x.fillRect(L, CHTOP, CHUTE - L, H - 80 - CHTOP); glow("#3dffa8", 12); x.strokeStyle = "#3dffa8"; x.lineWidth = 3; x.beginPath(); x.moveTo(CHUTE, CHTOP); x.lineTo(CHUTE, FLOOR); x.stroke(); glow(); txt("PRIZE", CHUTE / 2 + 15, CHTOP + 16, 10, "#3dffa8", "center", "d"); txt("▼", CHUTE / 2 + 15, CHTOP + 34, 14, "#3dffa8", "center");
@@ -9483,7 +9483,7 @@ function clawGame() {
   });
 }
 
-/* ---------- Tank Battle ---------- */
+/* ---------- Bounce Tanks ---------- */
 function tanksGame() {
   const N = 13, T = 32, OY = 40, W = N * T, H = N * T + OY, TS = 24;
   const DV = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
@@ -9526,7 +9526,7 @@ function tanksGame() {
   function blast(X, Y, big) { burst(X, Y, "#ff8a1f", big ? 34 : 10, big ? 260 : 140, big ? .7 : .3); if (big) { sfx("boom"); shake(6, .3); } }
   function joyDir() { const k = S.keys; if (k.ArrowUp || k.w) return "u"; if (k.ArrowDown || k.s) return "d"; if (k.ArrowLeft || k.a) return "l"; if (k.ArrowRight || k.d) return "r"; if (joy && Math.hypot(joy.dx, joy.dy) > 14) return Math.abs(joy.dx) > Math.abs(joy.dy) ? (joy.dx > 0 ? "r" : "l") : (joy.dy > 0 ? "d" : "u"); return null; }
   game({
-    title: "Tank Battle", w: W, h: H, color: "#b6ff3b", bpm: 120, easy: "unlimited lives, and the base can't be destroyed",
+    title: "Bounce Tanks", w: W, h: H, color: "#b6ff3b", bpm: 120, easy: "unlimited lives, and the base can't be destroyed",
     help: ["Arrows / WASD to drive, Space to fire", "Touch: drag anywhere to drive, tap (or 🔥) to fire", "Shells bounce off steel once and smash brick. Water blocks tanks, not shells", "Destroy every enemy tank and protect your ★ base! Flashing tanks drop power-ups"],
     load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); build(d.level | 0); spawnMe(); if (d.power) me.power = true; } },
     init() { lives = S.practice ? 99 : 3; me = null; build(1); spawnMe(); joy = null; boom = 0; },
@@ -9586,7 +9586,7 @@ function tanksGame() {
   });
 }
 
-/* ---------- Horde Survivor ---------- */
+/* ---------- Last Light ---------- */
 function hordeGame() {
   const W = 440, H = 640;
   let p, foes, gems, bolts, fx, t, kills, lvl, xp, need, pick, joy, spawnT, wp, cam, bossT, novaT, auraT, wandT;
@@ -9615,7 +9615,7 @@ function hordeGame() {
   function choose(i) { const u = pick && pick[i]; if (!u) return; const k = u[0]; if (k in wp) wp[k]++; else if (k === "speed") p.sp *= 1.12; else if (k === "hp") { p.max += 25; p.hp = p.max; } else if (k === "magnet") p.mag += 40; else if (k === "power") p.dmg *= 1.2; pick = null; sfx("power"); }
   const nearest = (n) => foes.filter((e) => !e.dead).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, n);
   game({
-    title: "Horde Survivor", w: W, h: H, color: "#a35bff", bpm: 136, easy: "enemies hit softer and you heal over time",
+    title: "Last Light", w: W, h: H, color: "#a35bff", bpm: 136, easy: "enemies hit softer and you heal over time",
     help: ["Drag anywhere (or WASD / arrows) to move. Your weapons attack by themselves!", "Grab the blue gems to level up, then pick an upgrade (tap a card or press 1 2 3)", "Get new weapons: Orbit Blades, Fire Aura, Star Nova, or power up the ones you have", "Survive as long as you can. A giant boss shows up every 2½ minutes"],
     init() { reset(); joy = null; },
     hud() { return "LV " + lvl + "  ·  KILLS " + kills + "  ·  " + Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0"); },
@@ -9674,7 +9674,7 @@ function hordeGame() {
   });
 }
 
-/* ---------- Pipe Flow ---------- */
+/* ---------- Splash Pipes ---------- */
 function pipesGame() {
   const W = 420, H = 640, GC = 7, GR = 8, CS = 54, OX = (W - GC * CS) / 2, OY = 96;
   // openings: n e s w
@@ -9712,7 +9712,7 @@ function pipesGame() {
     else { banner("SPILL! ONLY " + filled + "/" + need, "#ff4d6d"); sfx("bad"); }
   }
   game({
-    title: "Pipe Flow", w: W, h: H, color: "#22e4ff", bpm: 112, easy: "more time before the water starts, slower flow",
+    title: "Splash Pipes", w: W, h: H, color: "#22e4ff", bpm: 112, easy: "more time before the water starts, slower flow",
     help: ["Tap a square to place the NEXT pipe (shown on the left)", "Build a path from the green tap before the water starts flowing!", "Connect enough pipes to clear the level. Rocks block the way", "Water crossing a + twice = +500. Tap ▶▶ FLOW to speed the water up when you're done"],
     load(d) { if (d && d.level) newLevel(d.level | 0); },
     init() { newLevel(1); },
@@ -9757,7 +9757,7 @@ function pipesGame() {
   });
 }
 
-/* ---------- Bug Blaster ---------- */
+/* ---------- Bug Garden ---------- */
 function bugsGame() {
   const CW = 20, COLS = 21, ROWS = 31, W = COLS * CW, H = ROWS * CW + 20, ZONE = ROWS - 7;
   let shrooms, chains, shots, pl, wave, lives, stepT, spider, flea, fireCd, holding, target, deadT, inv;
@@ -9787,7 +9787,7 @@ function bugsGame() {
   function fire() { if (deadT > 0 || fireCd > 0 || shots.length >= 1 || S.state !== "play") return; shots.push({ x: pl.x, y: pl.y - 10 }); fireCd = .08; sfx("laser"); }
   function die() { if (inv > 0) return; deadT = 1.6; burst(pl.x, pl.y, "#22e4ff", 30, 240, .6); sfx("boom"); shake(6, .3); if (!S.practice) lives--; }
   game({
-    title: "Bug Blaster", w: W, h: H, color: "#b6ff3b", bpm: 138, easy: "unlimited lives and a slower bug",
+    title: "Bug Garden", w: W, h: H, color: "#b6ff3b", bpm: 138, easy: "unlimited lives and a slower bug",
     help: ["Drag (or arrows) to move in your zone at the bottom. Hold to shoot, or press Space", "Shoot the giant bug! Hit its middle and it SPLITS into two bugs", "Every segment you hit turns into a mushroom the bug has to go around", "Watch out for the jumping spider and falling fleas. Clear the bug for the next wave"],
     load(d) { if (d && d.wave) { lives = Math.max(lives, d.lives || 3); newWave(d.wave | 0); } },
     init() {
@@ -9844,7 +9844,7 @@ function bugsGame() {
   });
 }
 
-/* ---------- Quick Draw ---------- */
+/* ---------- High Noon ---------- */
 function drawGame() {
   const W = 480, H = 600;
   const FAKES = ["FIRM!", "FIVE!", "FIRE?", "FISH!", "TIRE!", "WAIT…"];
@@ -9864,7 +9864,7 @@ function drawGame() {
     else { msg = "TOO SLOW! THE BANDIT WAS " + Math.round(rt * 1000) + " ms"; if (!S.practice) lives--; }
   }
   game({
-    title: "Quick Draw", w: W, h: H, color: "#ff8a1f", bpm: 92, easy: "a slow bandit and no lives lost",
+    title: "High Noon", w: W, h: H, color: "#ff8a1f", bpm: 92, easy: "a slow bandit and no lives lost",
     duo: "P1 taps the left half (or A), P2 the right half (or L). Fastest draw after FIRE! wins. Early shots lose. First to 5.",
     help: ["Wait for the sign to say FIRE! — then tap as fast as you can (or press Space)", "Shoot too early and you lose a life!", "Watch out for tricks: FIRM, FIVE, FISH… only FIRE! counts", "Beat the bandit to face a faster one. 3 lives"],
     load(d) { if (d && d.round) { round = d.round | 0; lives = Math.max(lives, d.lives || 3); newRound(); } },
@@ -9907,7 +9907,7 @@ function drawGame() {
   });
 }
 
-/* ---------- Claim Zone ---------- */
+/* ---------- Fence In ---------- */
 function claimGame() {
   const GW = 100, GH = 120, CS = 4, OX = 10, OY = 50, W = GW * CS + 20, H = GH * CS + 110;
   const DV = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
@@ -9946,7 +9946,7 @@ function claimGame() {
     if (v === 0) { g[idx(nc, nr)] = 2; trail.push([nc, nr, pl.c, pl.r]); pl.c = nc; pl.r = nr; }
   }
   game({
-    title: "Claim Zone", w: W, h: H, color: "#ff2bd6", bpm: 118, easy: "unlimited lives and slower bouncers",
+    title: "Fence In", w: W, h: H, color: "#ff2bd6", bpm: 118, easy: "unlimited lives and slower bouncers",
     help: ["Move along the glowing edge with arrows / WASD, or drag anywhere", "Step into the dark area to draw a line. Get back to the edge to CLAIM that area", "If a bouncer touches your line (or a spark catches you) you lose a life", "Claim enough of the board to clear the level. Big claims score big!"],
     load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); newLevel(d.level | 0); } },
     init() { lives = S.practice ? 99 : 3; joy = null; moveAcc = 0; newLevel(1); },
@@ -9989,7 +9989,7 @@ function claimGame() {
   });
 }
 
-/* ---------- Skee Roll ---------- */
+/* ---------- Ring Roll ---------- */
 function skeeGame() {
   const W = 420, H = 640, CX = W / 2, TY = 150, JUMP = 300, LANE_L = 90, LANE_R = 330;
   const RINGS = [[18, 50], [38, 40], [58, 30], [78, 20], [98, 10]];
@@ -10006,7 +10006,7 @@ function skeeGame() {
     if (pts) burst(b.x, b.y, pts >= 50 ? "#ffd66b" : "#22e4ff", pts >= 50 ? 30 : 12, 200, .5); if (pts === 100) flash("#ffd66b", .25);
   }
   game({
-    title: "Skee Roll", w: W, h: H, color: "#ffd66b", bpm: 104, easy: "no target score, just roll",
+    title: "Ring Roll", w: W, h: H, color: "#ffd66b", bpm: 104, easy: "no target score, just roll",
     help: ["Swipe UP to roll the ball. A faster swipe rolls harder (keyboard: hold Space, let go in the green, ← → aim)", "The ball jumps off the ramp and drops into a ring", "Middle = 50, then 40, 30, 20, 10. The two tiny corner cups are worth 100!", "Score the target with 9 balls to win the next game"],
     load(d) { if (d && d.level) newGame(d.level | 0); },
     init() { total = 0; msgT = 0; swipe = null; newGame(1); },
@@ -10049,7 +10049,7 @@ function skeeGame() {
   });
 }
 
-/* ---------- Peg Drop ---------- */
+/* ---------- Peg Party ---------- */
 function plinkoGame() {
   const W = 420, H = 640, BR = 7, PR = 7, GUN = [W / 2, 40];
   let pegs, ball, balls, aim, level, bucket, lit, stuckT, shotPts, combo, freeT, aimDrag, trail;
@@ -10075,7 +10075,7 @@ function plinkoGame() {
     if (balls <= 0) over(orangeLeft() + " ORANGE PEGS LEFT");
   }
   game({
-    title: "Peg Drop", w: W, h: H, color: "#ff8a1f", bpm: 116, easy: "unlimited balls",
+    title: "Peg Party", w: W, h: H, color: "#ff8a1f", bpm: 116, easy: "unlimited balls",
     help: ["Aim the cannon with your finger, mouse or ← →, then tap / Space to shoot", "Every peg you hit lights up and disappears after the shot", "Light ALL the orange pegs to clear the level. Green pegs give a big bonus", "Land in the moving bucket for a FREE BALL. 10 balls per level"],
     load(d) { if (d && d.level) newLevel(d.level | 0); },
     init() { aim = Math.PI / 2; aimDrag = false; trail = []; newLevel(1); },
@@ -10176,7 +10176,7 @@ function archeryGame() {
   });
 }
 
-/* ---------- Home Run Derby ---------- */
+/* ---------- Big Swing ---------- */
 function derbyGame() {
   const W = 420, H = 640, PX = W / 2, PY = 230, HY = 560;
   const TYPES = [["FASTBALL", .62, 0, "#ffffff"], ["CHANGEUP", .95, 0, "#9ff3ff"], ["CURVEBALL", .8, 1, "#ffd66b"], ["SLIDER", .7, -1, "#ff7be6"]];
@@ -10203,7 +10203,7 @@ function derbyGame() {
     msgT = 1.6;
   }
   game({
-    title: "Home Run Derby", w: W, h: H, color: "#ff8a1f", bpm: 120, easy: "slower pitches and no outs",
+    title: "Big Swing", w: W, h: H, color: "#ff8a1f", bpm: 120, easy: "slower pitches and no outs",
     help: ["Tap where the ball will cross the plate, right when it gets there, to swing", "Keyboard: ← → move the bat, Space swings", "Early = pulled foul, late = sliced foul. Perfect timing = a moonshot!", "Watch for curveballs and changeups. Don't swing at balls outside the box"],
     load(d) { if (d && d.level) newRound(d.level | 0); },
     init() { batX = PX; best = 0; msgT = 0; crowd = Array.from({ length: 60 }, (_, i) => [i * 7 + Math.random() * 4, Math.random()]); newRound(1); },
@@ -10363,7 +10363,7 @@ function copterGame() {
   });
 }
 
-/* ---------- Well Drop ---------- */
+/* ---------- Down Deep ---------- */
 function wellGame() {
   const W = 400, H = 640, L = 36, R = W - 36, PW = 16, PH = 22;
   let pl, plats, foes, gems, bullets, camY, genY, level, depthEnd, hp, ammo, maxAmmo, inv, touch, combo, gemsN, fxT;
@@ -10388,7 +10388,7 @@ function wellGame() {
   function hurt() { if (inv > 0) return; if (!S.practice) hp--; inv = 1.2; combo = 0; sfx("bad"); shake(5, .25); flash("#ff4d6d", .25); pl.vy = -300; if (hp <= 0) over("DOWN AT " + Math.floor(pl.y / 10) + " m IN WELL " + level); }
   function kill(f, how) { f.dead = true; combo++; const pts = (f.kind === "spike" ? 150 : f.kind === "bat" ? 100 : 60) * level * Math.min(8, combo); S.score += pts; pop(f.x, f.y - camY - 16, (combo > 1 ? combo + "× " : "") + "+" + pts, combo > 2 ? "#ffd66b" : "#ffffff"); burst(f.x, f.y - camY, f.kind === "spike" ? "#ff4d6d" : f.kind === "bat" ? "#a35bff" : "#3dffa8", 14, 160, .35); sfx("pop"); if (how === "stomp") { ammo = maxAmmo; pl.vy = -380; } }
   game({
-    title: "Well Drop", w: W, h: H, color: "#22e4ff", bpm: 134, easy: "you can't lose health",
+    title: "Down Deep", w: W, h: H, color: "#22e4ff", bpm: 134, easy: "you can't lose health",
     help: ["Drag left/right (or ← →) to move. Tap / Space / ↑ to jump", "In the air, tap again to fire your GUN BOOTS down. Each shot slows your fall", "Stomp green blobs to refill ammo. Red spikes and purple bats must be shot!", "Chain kills without landing for big combos. Reach the bottom of the well!"],
     load(d) { if (d && d.level) { hp = d.hp || 4; newWell(d.level | 0); } },
     init() { hp = 4; gemsN = 0; touch = null; newWell(1); },
@@ -10520,7 +10520,7 @@ function artilleryGame() {
   });
 }
 
-/* ---------- Blob Pop ---------- */
+/* ---------- Goo Chain ---------- */
 function blobsGame() {
   const C = 6, R = 12, CS = 44, OX = 20, OY = 50, W = OX * 2 + C * CS + 110, H = OY + R * CS + 30;
   const COLS = ["#ff2bd6", "#22e4ff", "#3dffa8", "#ffd66b", "#a35bff"];
@@ -10542,7 +10542,7 @@ function blobsGame() {
   function newLevel(lv, keep) { level = lv; if (!keep) { g = Array.from({ length: R }, () => Array(C).fill(-1)); popped = 0; } fallT = 0; phase = "fall"; nxt = null; spawn(); }
   const fallSpeed = () => (S.practice ? .9 : Math.max(.12, .75 - level * .055));
   game({
-    title: "Blob Pop", w: W, h: H, color: "#ff2bd6", bpm: 128, easy: "slow falling and only 3 colours",
+    title: "Goo Chain", w: W, h: H, color: "#ff2bd6", bpm: 128, easy: "slow falling and only 3 colours",
     help: ["Blobs fall in pairs. Connect 4 or more of the same colour to POP them", "Pops make blobs fall and can start CHAINS for huge points", "Arrows / swipe to move, ↑ / X / tap to spin, ↓ / swipe down to drop fast", "Pop 40 blobs to level up. Don't let them stack to the top!"],
     load(d) { if (d && d.level) newLevel(d.level | 0); },
     init() { popFx = []; fast = false; newLevel(1); },
@@ -10576,7 +10576,7 @@ function blobsGame() {
   });
 }
 
-/* ---------- Lock Pop ---------- */
+/* ---------- Safe Cracker ---------- */
 function lockpickGame() {
   const W = 420, H = 600, CX = W / 2, CY = 300, RAD = 130;
   let ang, dir, tgt, tw, left, level, lives, speed, passed, popT, failT, shakeT, perfect;
@@ -10593,7 +10593,7 @@ function lockpickGame() {
   }
   function fail() { failT = .8; shakeT = .4; sfx("bad"); if (!S.practice) lives--; }
   game({
-    title: "Lock Pop", w: W, h: H, color: "#ffd66b", bpm: 110, easy: "a bigger target and no lives lost",
+    title: "Safe Cracker", w: W, h: H, color: "#ffd66b", bpm: 110, easy: "a bigger target and no lives lost",
     help: ["The needle spins around the lock. Tap (or Space) when it's on the glowing spot!", "Every hit flips the needle's direction and moves the spot", "Miss, or let the needle sweep past the spot, and you lose a life", "Pop every pin to open the lock. Each lock is faster with more pins"],
     load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); newLock(d.level | 0); } },
     init() { lives = S.practice ? 99 : 3; shakeT = 0; newLock(1); },
@@ -11989,26 +11989,26 @@ function fighterGame() {
     { key: "words", title: "Word Hunt", genre: "Puzzle", fn: wordGame },
     { key: "platformer", title: "Neon Platformer", genre: "Platformer", fn: platGame },
     { key: "pool", title: "Neon Pool", genre: "Sports", fn: poolGame },
-    { key: "bomber", title: "Bomb Maze", genre: "Arcade", fn: bomberGame },
-    { key: "swarm", title: "Star Swarm", genre: "Action", fn: swarmGame },
-    { key: "crates", title: "Crate Push", genre: "Puzzle", fn: cratesGame },
-    { key: "claw", title: "Claw Crane", genre: "Other", fn: clawGame },
-    { key: "tanks", title: "Tank Battle", genre: "Action", fn: tanksGame },
-    { key: "horde", title: "Horde Survivor", genre: "Action", fn: hordeGame },
-    { key: "pipes", title: "Pipe Flow", genre: "Puzzle", fn: pipesGame },
-    { key: "bugs", title: "Bug Blaster", genre: "Arcade", fn: bugsGame },
-    { key: "draw", title: "Quick Draw", genre: "Action", fn: drawGame },
-    { key: "claim", title: "Claim Zone", genre: "Arcade", fn: claimGame },
-    { key: "skee", title: "Skee Roll", genre: "Sports", fn: skeeGame },
-    { key: "plinko", title: "Peg Drop", genre: "Arcade", fn: plinkoGame },
+    { key: "bomber", title: "Fuse Box", genre: "Arcade", fn: bomberGame },
+    { key: "swarm", title: "Nova Swarm", genre: "Action", fn: swarmGame },
+    { key: "crates", title: "Crate Bot", genre: "Puzzle", fn: cratesGame },
+    { key: "claw", title: "Prize Claw", genre: "Other", fn: clawGame },
+    { key: "tanks", title: "Bounce Tanks", genre: "Action", fn: tanksGame },
+    { key: "horde", title: "Last Light", genre: "Action", fn: hordeGame },
+    { key: "pipes", title: "Splash Pipes", genre: "Puzzle", fn: pipesGame },
+    { key: "bugs", title: "Bug Garden", genre: "Arcade", fn: bugsGame },
+    { key: "draw", title: "High Noon", genre: "Action", fn: drawGame },
+    { key: "claim", title: "Fence In", genre: "Arcade", fn: claimGame },
+    { key: "skee", title: "Ring Roll", genre: "Sports", fn: skeeGame },
+    { key: "plinko", title: "Peg Party", genre: "Arcade", fn: plinkoGame },
     { key: "archery", title: "Wind Archer", genre: "Sports", fn: archeryGame },
-    { key: "derby", title: "Home Run Derby", genre: "Sports", fn: derbyGame },
+    { key: "derby", title: "Big Swing", genre: "Sports", fn: derbyGame },
     { key: "tiles", title: "Neon Keys", genre: "Other", fn: tilesGame },
     { key: "copter", title: "Cave Copter", genre: "Arcade", fn: copterGame },
-    { key: "well", title: "Well Drop", genre: "Platformer", fn: wellGame },
+    { key: "well", title: "Down Deep", genre: "Platformer", fn: wellGame },
     { key: "artillery", title: "Hill Cannons", genre: "Strategy", fn: artilleryGame },
-    { key: "blobs", title: "Blob Pop", genre: "Puzzle", fn: blobsGame },
-    { key: "lockpick", title: "Lock Pop", genre: "Other", fn: lockpickGame },
+    { key: "blobs", title: "Goo Chain", genre: "Puzzle", fn: blobsGame },
+    { key: "lockpick", title: "Safe Cracker", genre: "Other", fn: lockpickGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
