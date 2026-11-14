@@ -9586,6 +9586,409 @@ function tanksGame() {
   });
 }
 
+/* ---------- Horde Survivor ---------- */
+function hordeGame() {
+  const W = 440, H = 640;
+  let p, foes, gems, bolts, fx, t, kills, lvl, xp, need, pick, joy, spawnT, wp, cam, bossT, novaT, auraT, wandT;
+  const UPS = [
+    ["wand", "✨ Magic Wand", "Shoots the nearest enemy. Level up: more bolts"],
+    ["orbit", "🌀 Orbit Blades", "Blades spin around you. Level up: more blades"],
+    ["aura", "🔥 Fire Aura", "Burns everything close to you. Level up: bigger"],
+    ["nova", "💥 Star Nova", "Blasts stars in every direction. Level up: more stars"],
+    ["speed", "👟 Swift Boots", "Move 12% faster"],
+    ["hp", "❤️ Big Heart", "+25 max health and heal fully"],
+    ["magnet", "🧲 Magnet", "Pick up gems from farther away"],
+    ["power", "💪 Might", "+20% damage for every weapon"],
+  ];
+  function reset() { p = { x: 0, y: 0, hp: 120, max: 120, sp: 130, mag: 60, dmg: 1, inv: 0 }; foes = []; gems = []; bolts = []; fx = []; t = 0; kills = 0; lvl = 1; xp = 0; need = 6; pick = null; spawnT = 0; bossT = 150; wp = { wand: 1, orbit: 0, aura: 0, nova: 0 }; cam = { x: 0, y: 0 }; novaT = 0; auraT = 0; wandT = 0; }
+  function spawn(kind) {
+    const a = Math.random() * Math.PI * 2, d = 380 + Math.random() * 80, m = 1 + t / 70;
+    const K = { bat: [26, 10, 7, "#a35bff"], zom: [70, 18, 9, "#3dffa8"], brute: [42, 60, 15, "#ff8a1f"], boss: [55, 900, 34, "#ff2e4d"] }[kind];
+    foes.push({ x: p.x + Math.cos(a) * d, y: p.y + Math.sin(a) * d, sp: K[0] * (kind === "bat" ? 2.2 : 1) * (S.practice ? .8 : 1), hp: K[1] * m, max: K[1] * m, r: K[2], c: K[3], kind, hit: 0 });
+  }
+  function hurt(e, dmg) { e.hp -= dmg * p.dmg; e.hit = .1; if (e.hp <= 0 && !e.dead) { e.dead = true; kills++; S.score += e.kind === "boss" ? 2000 : e.kind === "brute" ? 60 : 15; gems.push({ x: e.x, y: e.y, v: e.kind === "boss" ? 30 : e.kind === "brute" ? 4 : 1 }); burst(e.x - cam.x, e.y - cam.y, e.c, e.kind === "boss" ? 40 : 6, 160, .35); if (e.kind === "boss") { banner("BOSS DOWN!", "#ffd66b"); sfx("level"); } } }
+  function levelUp() {
+    lvl++; xp -= need; need = Math.floor(need * 1.28 + 3);
+    const pool = UPS.filter(([k]) => !(k in wp) || wp[k] < 6).sort(() => Math.random() - .5).slice(0, 3);
+    pick = pool; sfx("level"); banner("LEVEL UP! PICK ONE", "#ffd66b");
+  }
+  function choose(i) { const u = pick && pick[i]; if (!u) return; const k = u[0]; if (k in wp) wp[k]++; else if (k === "speed") p.sp *= 1.12; else if (k === "hp") { p.max += 25; p.hp = p.max; } else if (k === "magnet") p.mag += 40; else if (k === "power") p.dmg *= 1.2; pick = null; sfx("power"); }
+  const nearest = (n) => foes.filter((e) => !e.dead).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, n);
+  game({
+    title: "Horde Survivor", w: W, h: H, color: "#a35bff", bpm: 136, easy: "enemies hit softer and you heal over time",
+    help: ["Drag anywhere (or WASD / arrows) to move. Your weapons attack by themselves!", "Grab the blue gems to level up, then pick an upgrade (tap a card or press 1 2 3)", "Get new weapons: Orbit Blades, Fire Aura, Star Nova, or power up the ones you have", "Survive as long as you can. A giant boss shows up every 2½ minutes"],
+    init() { reset(); joy = null; },
+    hud() { return "LV " + lvl + "  ·  KILLS " + kills + "  ·  " + Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0"); },
+    summary() { return ["SURVIVED " + Math.floor(t / 60) + "m " + Math.floor(t % 60) + "s · " + kills + " KILLS · LV " + lvl]; },
+    down(px, py) { if (pick) { const i = Math.floor((py - 220) / 110); if (px > 40 && px < W - 40 && i >= 0 && i < 3) choose(i); return; } joy = { sx: px, sy: py, dx: 0, dy: 0 }; },
+    move(px, py) { if (joy) { joy.dx = px - joy.sx; joy.dy = py - joy.sy; } },
+    up() { joy = null; },
+    key(k) { if (pick && "123".includes(k)) choose(+k - 1); },
+    update(dt) {
+      if (pick) return;
+      t += dt; S.score += dt * 2;
+      let mx = (S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), my = (S.keys.ArrowDown || S.keys.s ? 1 : 0) - (S.keys.ArrowUp || S.keys.w ? 1 : 0);
+      if (!mx && !my && joy) { const L = Math.hypot(joy.dx, joy.dy); if (L > 8) { mx = joy.dx / Math.max(L, 40); my = joy.dy / Math.max(L, 40); } }
+      const ml = Math.hypot(mx, my); if (ml > 1) { mx /= ml; my /= ml; }
+      p.x += mx * p.sp * dt; p.y += my * p.sp * dt; cam.x = p.x - W / 2; cam.y = p.y - H / 2;
+      p.inv = Math.max(0, p.inv - dt); if (S.practice) p.hp = Math.min(p.max, p.hp + 3 * dt);
+      spawnT -= dt; const rate = Math.max(.12, 1.1 - t / 140);
+      if (spawnT <= 0 && foes.length < 160) { spawnT = rate; const n = 1 + Math.floor(t / 45); for (let i = 0; i < n; i++) spawn(t > 60 && Math.random() < .12 ? "brute" : Math.random() < .45 ? "bat" : "zom"); }
+      bossT -= dt; if (bossT <= 0) { bossT = 150; spawn("boss"); banner("A BOSS APPROACHES!", "#ff2e4d"); sfx("boom"); }
+      wandT -= dt; if (wandT <= 0 && wp.wand) { wandT = Math.max(.25, .9 - wp.wand * .08); for (const e of nearest(wp.wand)) { const a = Math.atan2(e.y - p.y, e.x - p.x); bolts.push({ x: p.x, y: p.y, vx: Math.cos(a) * 420, vy: Math.sin(a) * 420, d: 12, l: 1.2, c: "#ffd66b", r: 5 }); } if (foes.length) sfx("laser"); }
+      novaT -= dt; if (novaT <= 0 && wp.nova) { novaT = Math.max(1.4, 3.2 - wp.nova * .25); const n = 6 + wp.nova * 3; for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; bolts.push({ x: p.x, y: p.y, vx: Math.cos(a) * 300, vy: Math.sin(a) * 300, d: 10, l: .9, c: "#ff2bd6", r: 6, pierce: 2 }); } sfx("pop"); }
+      for (const b of bolts) { b.x += b.vx * dt; b.y += b.vy * dt; b.l -= dt; for (const e of foes) if (!e.dead && Math.hypot(e.x - b.x, e.y - b.y) < e.r + b.r) { hurt(e, b.d); if (b.pierce) b.pierce--; else { b.l = 0; } break; } }
+      bolts = bolts.filter((b) => b.l > 0);
+      const orbN = wp.orbit ? 1 + wp.orbit : 0, orbR = 54 + wp.orbit * 4;
+      for (let i = 0; i < orbN; i++) { const a = t * 3.4 + i / orbN * Math.PI * 2, ox = p.x + Math.cos(a) * orbR, oy = p.y + Math.sin(a) * orbR; for (const e of foes) if (!e.dead && !e.hit && Math.hypot(e.x - ox, e.y - oy) < e.r + 10) hurt(e, 14); }
+      auraT -= dt; const auraR = wp.aura ? 50 + wp.aura * 12 : 0; if (wp.aura && auraT <= 0) { auraT = .35; for (const e of foes) if (!e.dead && Math.hypot(e.x - p.x, e.y - p.y) < auraR + e.r) hurt(e, 4 + wp.aura * 2); }
+      for (const e of foes) {
+        e.hit = Math.max(0, e.hit - dt); const dx = p.x - e.x, dy = p.y - e.y, d = Math.hypot(dx, dy) || 1;
+        e.x += dx / d * e.sp * dt; e.y += dy / d * e.sp * dt;
+        if (d < e.r + 12 && !p.inv) { p.hp -= (e.kind === "boss" ? 30 : e.kind === "brute" ? 12 : 6) * (S.practice ? .5 : 1); p.inv = .7; sfx("bad"); shake(4, .2); flash("#ff4d6d", .15); if (p.hp <= 0) return over("OVERWHELMED AFTER " + Math.floor(t / 60) + "m " + Math.floor(t % 60) + "s"); }
+        if (d > 900 && e.kind !== "boss") e.dead = true;
+      }
+      for (let i = 0; i < foes.length; i += 2) { const a = foes[i], b = foes[i + 1]; if (!b) break; const dx = b.x - a.x, dy = b.y - a.y, d = Math.hypot(dx, dy); if (d > 0 && d < a.r + b.r) { const o = (a.r + b.r - d) / 2; a.x -= dx / d * o; a.y -= dy / d * o; b.x += dx / d * o; b.y += dy / d * o; } }
+      foes = foes.filter((e) => !e.dead);
+      for (const g of gems) { const d = Math.hypot(g.x - p.x, g.y - p.y); if (d < p.mag) { g.x += (p.x - g.x) * Math.min(1, dt * 8); g.y += (p.y - g.y) * Math.min(1, dt * 8); } if (d < 16) { g.got = true; xp += g.v; S.score += g.v * 5; sfx("tick"); } }
+      gems = gems.filter((g) => !g.got); if (gems.length > 300) gems.splice(0, gems.length - 300);
+      if (xp >= need) levelUp();
+    },
+    draw() {
+      bg("#0a0614");
+      const gx = -((cam.x % 48) + 48) % 48, gy = -((cam.y % 48) + 48) % 48; x.strokeStyle = "rgba(163,91,255,.08)"; x.lineWidth = 1; x.beginPath(); for (let xx = gx; xx < W; xx += 48) { x.moveTo(xx, 0); x.lineTo(xx, H); } for (let yy = gy; yy < H; yy += 48) { x.moveTo(0, yy); x.lineTo(W, yy); } x.stroke();
+      const sx = (v) => v - cam.x, sy = (v) => v - cam.y;
+      if (wp.aura) { const R = 50 + wp.aura * 12; const g = x.createRadialGradient(W / 2, H / 2, 10, W / 2, H / 2, R); g.addColorStop(0, "rgba(255,138,31,.05)"); g.addColorStop(1, "rgba(255,138,31,.28)"); x.fillStyle = g; x.beginPath(); x.arc(W / 2, H / 2, R, 0, 7); x.fill(); }
+      for (const g of gems) { x.fillStyle = g.v > 1 ? "#ffd66b" : "#22e4ff"; x.save(); x.translate(sx(g.x), sy(g.y)); x.rotate(Math.PI / 4); x.fillRect(-4, -4, 8, 8); x.restore(); }
+      for (const e of foes) { const X = sx(e.x), Y = sy(e.y); if (X < -40 || Y < -40 || X > W + 40 || Y > H + 40) continue; x.fillStyle = e.hit ? "#ffffff" : e.c; x.beginPath(); if (e.kind === "bat") { const f = Math.sin(t * 20 + e.x) * 4; x.moveTo(X - 10, Y - 2 + f); x.lineTo(X, Y + 4); x.lineTo(X + 10, Y - 2 + f); x.lineTo(X, Y - 4); } else x.arc(X, Y, e.r, 0, 7); x.fill(); x.fillStyle = "#111"; x.fillRect(X - e.r * .4, Y - e.r * .25, e.r * .25, e.r * .25); x.fillRect(X + e.r * .15, Y - e.r * .25, e.r * .25, e.r * .25); if (e.kind === "boss") { x.fillStyle = "rgba(0,0,0,.5)"; x.fillRect(X - 30, Y - 48, 60, 6); x.fillStyle = "#ff2e4d"; x.fillRect(X - 30, Y - 48, 60 * Math.max(0, e.hp / e.max), 6); } }
+      for (const b of bolts) { glow(b.c, 8); x.fillStyle = b.c; x.beginPath(); x.arc(sx(b.x), sy(b.y), b.r * .7, 0, 7); x.fill(); } glow();
+      const orbN = wp.orbit ? 1 + wp.orbit : 0, orbR = 54 + wp.orbit * 4; for (let i = 0; i < orbN; i++) { const a = t * 3.4 + i / orbN * Math.PI * 2; glow("#22e4ff", 12); x.fillStyle = "#bff6ff"; x.save(); x.translate(W / 2 + Math.cos(a) * orbR, H / 2 + Math.sin(a) * orbR); x.rotate(t * 10); x.fillRect(-9, -3, 18, 6); x.restore(); } glow();
+      x.globalAlpha = p.inv && Math.floor(t * 20) % 2 ? .5 : 1; glow("#ffd66b", 14); x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(W / 2, H / 2, 11, 0, 7); x.fill(); glow(); x.fillStyle = "#a35bff"; x.beginPath(); x.moveTo(W / 2 - 12, H / 2 - 6); x.lineTo(W / 2, H / 2 - 22); x.lineTo(W / 2 + 12, H / 2 - 6); x.fill(); x.globalAlpha = 1;
+      x.fillStyle = "rgba(0,0,0,.5)"; x.fillRect(12, 12, W - 24, 8); x.fillStyle = "#22e4ff"; x.fillRect(12, 12, (W - 24) * Math.min(1, xp / need), 8);
+      x.fillStyle = "rgba(0,0,0,.5)"; x.fillRect(W / 2 - 24, H / 2 + 18, 48, 5); x.fillStyle = p.hp / p.max < .3 ? "#ff4d6d" : "#3dffa8"; x.fillRect(W / 2 - 24, H / 2 + 18, 48 * Math.max(0, p.hp / p.max), 5);
+      txt("LV " + lvl, 14, 34, 12, "#22e4ff", "left", "d"); txt(Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0"), W / 2, 34, 14, "#ffffff", "center", "d"); txt("☠ " + kills, W - 14, 34, 12, "#ff4d6d", "right", "d");
+      const ws = Object.entries(wp).filter(([, v]) => v).map(([k, v]) => ({ wand: "✨", orbit: "🌀", aura: "🔥", nova: "💥" }[k] + v)).join("  "); txt(ws, 14, H - 18, 13, "#fff", "left");
+      if (joy) { x.strokeStyle = "rgba(255,255,255,.2)"; x.lineWidth = 2; x.beginPath(); x.arc(joy.sx, joy.sy, 40, 0, 7); x.stroke(); }
+      if (pick) { x.fillStyle = "rgba(5,2,12,.82)"; x.fillRect(0, 0, W, H); txt("LEVEL UP!", W / 2, 170, 30, "#ffd66b", "center", "d"); pick.forEach((u, i) => { const Y = 220 + i * 110; x.fillStyle = "rgba(163,91,255,.2)"; rr(40, Y, W - 80, 96, 16); x.fill(); x.strokeStyle = "#a35bff"; x.lineWidth = 2; x.stroke(); txt((i + 1) + "  " + u[1] + (u[0] in wp ? "  LV " + (wp[u[0]] + 1) : ""), W / 2, Y + 34, 17, "#ffffff", "center", "d"); txt(u[2], W / 2, Y + 66, 11, "#d8d0f5", "center"); }); }
+    },
+  });
+}
+
+/* ---------- Pipe Flow ---------- */
+function pipesGame() {
+  const W = 420, H = 640, GC = 7, GR = 8, CS = 54, OX = (W - GC * CS) / 2, OY = 96;
+  // openings: n e s w
+  const P = { h: "ew", v: "ns", ne: "ne", nw: "nw", se: "se", sw: "sw", x: "nesw" };
+  const KEYS = ["h", "v", "ne", "nw", "se", "sw", "h", "v", "x"];
+  const OPP = { n: "s", s: "n", e: "w", w: "e" }, DV = { n: [0, -1], s: [0, 1], e: [1, 0], w: [-1, 0] };
+  let grid, queue, level, need, wait, flow, filled, src, done, endT, swapCd, fast;
+  const rnd = () => KEYS[Math.random() * KEYS.length | 0];
+  function newLevel(lv) {
+    level = lv; grid = Array.from({ length: GR }, () => Array(GC).fill(null)); queue = Array.from({ length: 5 }, rnd);
+    need = Math.min(28, 6 + lv * 2); wait = Math.max(8, (S.practice ? 30 : 22) - lv * 1.2); filled = 0; done = false; endT = 0; swapCd = 0; fast = false;
+    src = { c: 0, r: 1 + (Math.random() * (GR - 2) | 0), dir: "e" }; grid[src.r][src.c] = { k: "src", fill: 0 };
+    for (let i = 0; i < Math.min(8, lv - 1); i++) { const c = 1 + (Math.random() * (GC - 1) | 0), r = Math.random() * GR | 0; if (!grid[r][c] && !(r === src.r && c === 1)) grid[r][c] = { k: "rock" }; }
+    flow = { c: src.c, r: src.r, from: "w", t: 0, tile: grid[src.r][src.c] };
+    banner("LEVEL " + lv + " · CONNECT " + need + " PIPES", "#22e4ff");
+  }
+  const speed = () => (fast ? 9 : Math.max(.55, (S.practice ? 2.6 : 2.1) - level * .1));
+  function place(c, r) {
+    if (done || S.state !== "play" || c < 0 || r < 0 || c >= GC || r >= GR) return; const cur = grid[r][c];
+    if (cur && (cur.k === "src" || cur.k === "rock" || cur.fill > 0 || cur.k2)) { sfx("bad"); return; }
+    if (cur) { if (swapCd > 0) return; S.score = Math.max(0, S.score - 25); burst(OX + c * CS + CS / 2, OY + r * CS + CS / 2, "#ff8a1f", 10, 120, .3); swapCd = .35; }
+    grid[r][c] = { k: queue.shift(), fill: 0 }; queue.push(rnd()); sfx("tick");
+  }
+  function advance() {
+    const tl = flow.tile, open = tl.k === "src" ? "e" : P[tl.k]; let out;
+    if (tl.k === "src") out = "e"; else if (tl.k === "x") out = OPP[flow.from]; else out = open.replace(flow.from, "");
+    const nc = flow.c + DV[out][0], nr = flow.r + DV[out][1], nt = nr >= 0 && nr < GR && nc >= 0 && nc < GC ? grid[nr][nc] : null, from = OPP[out];
+    if (!nt || nt.k === "rock" || nt.k === "src" || !P[nt.k].includes(from) || (nt.k !== "x" && nt.fill > 0) || (nt.k === "x" && nt.cross && nt.cross.includes(from))) return finish();
+    if (nt.k === "x") { nt.cross = (nt.cross || "") + from + OPP[from]; if (nt.fill > 0) { S.score += 500; pop(OX + nc * CS + CS / 2, OY + nr * CS, "CROSSOVER +500", "#ffd66b"); } }
+    flow = { c: nc, r: nr, from, t: 0, tile: nt }; nt.k2 = true; if (nt.k !== "x" || !nt.fill) nt.fill = 0.001;
+  }
+  function finish() {
+    done = true; endT = 1.6;
+    if (filled >= need) { const bonus = (filled - need) * 100 * level + 500 * level; S.score += bonus; banner("CONNECTED " + filled + "! +" + bonus, "#3dffa8"); sfx("level"); }
+    else { banner("SPILL! ONLY " + filled + "/" + need, "#ff4d6d"); sfx("bad"); }
+  }
+  game({
+    title: "Pipe Flow", w: W, h: H, color: "#22e4ff", bpm: 112, easy: "more time before the water starts, slower flow",
+    help: ["Tap a square to place the NEXT pipe (shown on the left)", "Build a path from the green tap before the water starts flowing!", "Connect enough pipes to clear the level. Rocks block the way", "Water crossing a + twice = +500. Tap ▶▶ FLOW to speed the water up when you're done"],
+    load(d) { if (d && d.level) newLevel(d.level | 0); },
+    init() { newLevel(1); },
+    hud() { return "LEVEL " + level + "  ·  PIPES " + filled + "/" + need + (wait > 0 ? "  ·  WATER IN " + Math.ceil(wait) + "s" : "  ·  FLOWING!"); },
+    summary() { return ["REACHED LEVEL " + level]; },
+    down(px, py) { if (py > H - 64 && px > W - 130) { fast = true; wait = Math.min(wait, 0); return; } place(Math.floor((px - OX) / CS), Math.floor((py - OY) / CS)); },
+    key(k) { if (k === "f" || k === "Enter") { fast = true; wait = Math.min(wait, 0); } },
+    update(dt) {
+      swapCd -= dt;
+      if (endT > 0) { endT -= dt; if (endT <= 0) { if (filled >= need) { newLevel(level + 1); saveGame({ level, label: "LEVEL " + level, stop: level % 3 === 1, next: "Connect " + need + " pipes · " + Math.round(wait) + "s head start" }); } else over("THE WATER SPILLED · " + filled + "/" + need + " PIPES"); } return; }
+      if (done) return;
+      if (wait > 0) { wait -= dt; if (wait <= 0) { sfx("power"); banner("HERE COMES THE WATER!", "#22e4ff"); } return; }
+      flow.t += dt * speed(); const tl = flow.tile; if (tl.k !== "src") tl.fill = Math.min(1, flow.t);
+      if (flow.t >= 1) { if (tl.k !== "src") { filled++; S.score += 50 * level; sfx("tick"); } advance(); }
+    },
+    draw() {
+      bg("#04101a");
+      txt("LEVEL " + level, 16, 26, 16, "#22e4ff", "left", "d"); txt(filled + " / " + need, W - 16, 26, 16, filled >= need ? "#3dffa8" : "#ffd66b", "right", "d");
+      const wc = wait > 0 ? Math.ceil(wait) : 0; txt(wait > 0 ? "WATER IN " + wc : "FLOWING", W / 2, 26, 14, wait > 0 && wait < 4 ? "#ff4d6d" : "#9ff3ff", "center", "d");
+      x.fillStyle = "rgba(255,255,255,.1)"; x.fillRect(16, 50, W - 32, 8); x.fillStyle = "#22e4ff"; x.fillRect(16, 50, (W - 32) * Math.max(0, wait / Math.max(8, (S.practice ? 30 : 22) - level * 1.2)), 8);
+      const pipe = (k, X, Y, s, fill, from, col, cross, crossFill) => {
+        const m = s / 2, w = s * .28, ends = { n: [m, 0], s: [m, s], e: [s, m], w: [0, m] };
+        const seg = (a, b, colr) => { x.strokeStyle = colr; x.lineWidth = w; x.lineCap = "butt"; x.beginPath(); x.moveTo(X + ends[a][0], Y + ends[a][1]); if (a + b === "ns" || a + b === "sn" || a + b === "ew" || a + b === "we") x.lineTo(X + ends[b][0], Y + ends[b][1]); else x.quadraticCurveTo(X + m, Y + m, X + ends[b][0], Y + ends[b][1]); x.stroke(); };
+        const o = P[k]; const pairs = k === "x" ? ["ns", "ew"] : [o];
+        for (const pr of pairs) seg(pr[0], pr[1], "#3a4a6a");
+        for (const pr of pairs) { x.strokeStyle = col || "#8fb0d8"; x.lineWidth = w * .55; seg(pr[0], pr[1], col || "#5a7aa8"); }
+        if (fill > 0 && from) { const fl = k === "x" ? from + OPP[from] : (o.indexOf(from) === 0 ? o : o[1] + o[0]); const pts = 12; x.strokeStyle = "#22e4ff"; x.lineWidth = w * .55; glow("#22e4ff", 10); x.beginPath(); for (let i = 0; i <= pts * fill; i++) { const tt = i / pts, a = ends[fl[0]], b = ends[fl[1]], straight = fl === "ns" || fl === "sn" || fl === "ew" || fl === "we"; const px = straight ? a[0] + (b[0] - a[0]) * tt : (1 - tt) * (1 - tt) * a[0] + 2 * (1 - tt) * tt * m + tt * tt * b[0], py = straight ? a[1] + (b[1] - a[1]) * tt : (1 - tt) * (1 - tt) * a[1] + 2 * (1 - tt) * tt * m + tt * tt * b[1]; i ? x.lineTo(X + px, Y + py) : x.moveTo(X + px, Y + py); } x.stroke(); glow(); }
+        if (cross && cross.length >= 2 && k === "x") { x.strokeStyle = "#22e4ff"; x.lineWidth = w * .55; glow("#22e4ff", 10); for (let i = 0; i + 1 < cross.length; i += 2) { if (crossFill >= 1 || i + 2 < cross.length) { x.beginPath(); x.moveTo(X + ends[cross[i]][0], Y + ends[cross[i]][1]); x.lineTo(X + ends[cross[i + 1]][0], Y + ends[cross[i + 1]][1]); x.stroke(); } } glow(); }
+      };
+      for (let r = 0; r < GR; r++) for (let c = 0; c < GC; c++) {
+        const X = OX + c * CS, Y = OY + r * CS, t = grid[r][c]; x.fillStyle = (r + c) % 2 ? "#0b1a2a" : "#0d1f32"; x.fillRect(X, Y, CS, CS); x.strokeStyle = "rgba(34,228,255,.08)"; x.lineWidth = 1; x.strokeRect(X + .5, Y + .5, CS - 1, CS - 1);
+        if (!t) continue;
+        if (t.k === "rock") { x.fillStyle = "#3a3450"; rr(X + 6, Y + 6, CS - 12, CS - 12, 12); x.fill(); x.fillStyle = "#4a4466"; x.beginPath(); x.arc(X + CS * .4, Y + CS * .4, 8, 0, 7); x.fill(); continue; }
+        if (t.k === "src") { glow("#3dffa8", 14); x.fillStyle = "#1d6a45"; rr(X + 6, Y + 8, CS - 12, CS - 16, 8); x.fill(); glow(); x.fillStyle = "#3dffa8"; x.fillRect(X + CS / 2, Y + CS / 2 - CS * .14, CS / 2, CS * .28); txt("💧", X + CS * .32, Y + CS / 2, 16, "#fff", "center"); continue; }
+        const isFlow = flow && flow.tile === t, fromD = isFlow ? flow.from : t.fromD || null; if (isFlow) t.fromD = flow.from;
+        pipe(t.k, X, Y, CS, t.k === "x" ? (isFlow ? t.fill : 0) : t.fill, t.fromD, null, t.cross, isFlow ? 0 : t.fill);
+      }
+      txt("NEXT", 20, H - 92, 11, "#9ff3ff", "left", "d");
+      queue.forEach((k, i) => { const s = i ? 40 : 52, X = 20 + (i ? 60 + (i - 1) * 48 : 0), Y = H - 80 + (i ? 6 : 0); x.fillStyle = i ? "rgba(255,255,255,.05)" : "rgba(34,228,255,.15)"; rr(X - 2, Y - 2, s + 4, s + 4, 8); x.fill(); if (!i) { x.strokeStyle = "#22e4ff"; x.lineWidth = 2; x.stroke(); } pipe(k, X, Y, s, 0, null, i ? "#4a5a7a" : "#8fb0d8"); });
+      x.fillStyle = fast ? "rgba(61,255,168,.35)" : "rgba(255,255,255,.08)"; rr(W - 124, H - 60, 108, 40, 20); x.fill(); txt("▶▶ FLOW", W - 70, H - 40, 13, "#3dffa8", "center", "d");
+    },
+  });
+}
+
+/* ---------- Bug Blaster ---------- */
+function bugsGame() {
+  const CW = 20, COLS = 21, ROWS = 31, W = COLS * CW, H = ROWS * CW + 20, ZONE = ROWS - 7;
+  let shrooms, chains, shots, pl, wave, lives, stepT, spider, flea, fireCd, holding, target, deadT, inv;
+  const key = (c, r) => c + "," + r;
+  function addShroom(c, r) { if (r >= 1 && r < ROWS - 1 && c >= 0 && c < COLS) shrooms.set(key(c, r), 4); }
+  function newWave(n) {
+    wave = n; chains = []; const len = Math.min(16, 10 + n), heads = Math.min(5, Math.floor(n / 3));
+    const mk = (c0, dir, len2) => { const path = []; for (let i = len2 - 1; i >= 0; i--) path.push([c0 - dir * i, 0, dir]); return { path, len: len2, dir, p: 0, poison: false }; };
+    chains.push(mk(dir1(), 1, len - heads)); for (let i = 0; i < heads; i++) chains.push(mk(2 + (Math.random() * (COLS - 4) | 0), Math.random() < .5 ? 1 : -1, 1));
+    stepT = 0; banner("WAVE " + n, "#b6ff3b");
+  }
+  const dir1 = () => Math.floor(COLS / 2);
+  function stepChain(ch) {
+    const [c, r, d] = ch.path[ch.path.length - 1];
+    let nc = c + d, nr = r, nd = d;
+    const blocked = nc < 0 || nc >= COLS || shrooms.has(key(nc, r));
+    if (blocked || ch.poison) { nr = r + (ch.up ? -1 : 1); nd = -d; nc = c; if (nr >= ROWS - 1) { ch.up = true; nr = ROWS - 2; } if (ch.up && nr < ZONE) { ch.up = false; nr = ZONE + 1; } if (ch.poison && nr >= ZONE) ch.poison = false; }
+    ch.path.push([nc, nr, nd]); if (ch.path.length > ch.len + 2) ch.path.splice(0, ch.path.length - ch.len - 2);
+  }
+  const segPos = (ch, i, k) => { const a = ch.path[ch.path.length - 1 - i], b = ch.path[ch.path.length - 2 - i] || a; return [(b[0] + (a[0] - b[0]) * k) * CW + CW / 2, (b[1] + (a[1] - b[1]) * k) * CW + CW / 2 + 20]; };
+  function hitSeg(ch, i) {
+    const [c, r] = ch.path[ch.path.length - 1 - i]; addShroom(c, r); S.score += i === 0 ? 100 : 10; burst(c * CW + CW / 2, r * CW + 30, "#b6ff3b", 10, 140, .3); sfx("pop");
+    const tail = ch.len - i - 1;
+    if (tail > 0) { const np = ch.path.slice(0, ch.path.length - 1 - i); chains.push({ path: np, len: tail, p: ch.p, poison: false, up: ch.up }); }
+    ch.len = i; if (ch.len === 0) ch.dead = true;
+  }
+  function fire() { if (deadT > 0 || fireCd > 0 || shots.length >= 1 || S.state !== "play") return; shots.push({ x: pl.x, y: pl.y - 10 }); fireCd = .08; sfx("laser"); }
+  function die() { if (inv > 0) return; deadT = 1.6; burst(pl.x, pl.y, "#22e4ff", 30, 240, .6); sfx("boom"); shake(6, .3); if (!S.practice) lives--; }
+  game({
+    title: "Bug Blaster", w: W, h: H, color: "#b6ff3b", bpm: 138, easy: "unlimited lives and a slower bug",
+    help: ["Drag (or arrows) to move in your zone at the bottom. Hold to shoot, or press Space", "Shoot the giant bug! Hit its middle and it SPLITS into two bugs", "Every segment you hit turns into a mushroom the bug has to go around", "Watch out for the jumping spider and falling fleas. Clear the bug for the next wave"],
+    load(d) { if (d && d.wave) { lives = Math.max(lives, d.lives || 3); newWave(d.wave | 0); } },
+    init() {
+      lives = S.practice ? 99 : 3; shrooms = new Map(); shots = []; pl = { x: W / 2, y: H - 30 }; spider = null; flea = null; fireCd = 0; holding = false; target = null; deadT = 0; inv = 0;
+      for (let i = 0; i < 34; i++) addShroom(Math.random() * COLS | 0, 2 + (Math.random() * (ROWS - 9) | 0)); newWave(1);
+    },
+    hud() { return "WAVE " + wave + "  ·  " + (S.practice ? "PRACTICE" : "LIVES " + lives) + "  ·  BUGS " + chains.reduce((a, c) => a + c.len, 0); },
+    summary() { return ["REACHED WAVE " + wave]; },
+    down(px, py) { holding = true; target = [px, py - 40]; fire(); },
+    move(px, py) { if (holding) target = [px, py - 40]; },
+    up() { holding = false; target = null; },
+    key(k, rep) { if (k === " " && !rep) fire(); },
+    update(dt) {
+      fireCd -= dt; inv = Math.max(0, inv - dt);
+      if (deadT > 0) { deadT -= dt; if (deadT <= 0) { if (lives <= 0) return over("GAME OVER · WAVE " + wave); pl = { x: W / 2, y: H - 30 }; inv = 2; spider = null; for (const [k, v] of shrooms) if (v < 4) shrooms.set(k, 4); } }
+      else {
+        const k = [(S.keys.ArrowRight || S.keys.d ? 1 : 0) - (S.keys.ArrowLeft || S.keys.a ? 1 : 0), (S.keys.ArrowDown || S.keys.s ? 1 : 0) - (S.keys.ArrowUp || S.keys.w ? 1 : 0)];
+        let nx = pl.x, ny = pl.y; if (k[0] || k[1]) { nx += k[0] * 220 * dt; ny += k[1] * 220 * dt; } else if (target) { nx += Math.max(-360 * dt, Math.min(360 * dt, target[0] - pl.x)); ny += Math.max(-360 * dt, Math.min(360 * dt, target[1] - pl.y)); }
+        nx = Math.max(8, Math.min(W - 8, nx)); ny = Math.max(ZONE * CW + 30, Math.min(H - 10, ny));
+        if (!shrooms.has(key(Math.floor(nx / CW), Math.floor((ny - 20) / CW)))) { pl.x = nx; pl.y = ny; }
+        if (holding || S.keys[" "]) fire();
+      }
+      for (const s of shots) { s.y -= 900 * dt; const c = Math.floor(s.x / CW), r = Math.floor((s.y - 20) / CW); const k2 = key(c, r);
+        if (shrooms.has(k2)) { const v = shrooms.get(k2) - 1; if (v <= 0) { shrooms.delete(k2); S.score += 1; } else shrooms.set(k2, v); s.dead = true; sfx("tick"); continue; }
+        for (const ch of chains) { if (ch.dead) continue; for (let i = 0; i < ch.len; i++) { const [sx, sy] = segPos(ch, i, ch.p); if (Math.abs(sx - s.x) < 10 && Math.abs(sy - s.y) < 10) { s.dead = true; hitSeg(ch, i); break; } } if (s.dead) break; }
+        if (!s.dead && spider && Math.abs(spider.x - s.x) < 14 && Math.abs(spider.y - s.y) < 10) { s.dead = true; const d = Math.abs(spider.y - pl.y), pts = d < 50 ? 900 : d < 100 ? 600 : 300; S.score += pts; pop(spider.x, spider.y - 14, "+" + pts, "#ff2bd6"); burst(spider.x, spider.y, "#ff2bd6", 20, 200, .4); spider = null; sfx("score"); }
+        if (!s.dead && flea && Math.abs(flea.x - s.x) < 10 && Math.abs(flea.y - s.y) < 12) { s.dead = true; S.score += 200; burst(flea.x, flea.y, "#ffd66b", 14, 160, .4); flea = null; sfx("score"); }
+        if (s.y < 20) s.dead = true;
+      }
+      shots = shots.filter((s) => !s.dead);
+      stepT += dt * (S.practice ? 9 : 11 + wave * .8);
+      while (stepT >= 1) { stepT -= 1; for (const ch of chains) if (!ch.dead) stepChain(ch); }
+      for (const ch of chains) ch.p = stepT;
+      chains = chains.filter((c) => !c.dead && c.len > 0);
+      if (deadT <= 0 && !inv) for (const ch of chains) for (let i = 0; i < ch.len; i++) { const [sx, sy] = segPos(ch, i, ch.p); if (Math.hypot(sx - pl.x, sy - pl.y) < 14) { die(); break; } }
+      if (!spider && Math.random() < dt * .18) spider = { x: Math.random() < .5 ? -10 : W + 10, y: ZONE * CW + 40, vx: 0, vy: 0, t: 0 };
+      if (spider) { spider.t -= dt; if (spider.t <= 0) { spider.t = .4 + Math.random() * .5; spider.vx = (spider.x < W / 2 ? 1 : -1) * (60 + Math.random() * 60) * (Math.random() < .2 ? -1 : 1); spider.vy = (Math.random() - .5) * 260; } spider.x += spider.vx * dt; spider.y += spider.vy * dt; if (spider.y < ZONE * CW + 30 || spider.y > H - 10) spider.vy = -spider.vy; spider.y = Math.max(ZONE * CW + 30, Math.min(H - 10, spider.y)); shrooms.delete(key(Math.floor(spider.x / CW), Math.floor((spider.y - 20) / CW))); if (spider.x < -30 || spider.x > W + 30) spider = null; else if (deadT <= 0 && !inv && Math.hypot(spider.x - pl.x, spider.y - pl.y) < 16) die(); }
+      let zoneShrooms = 0; for (const k3 of shrooms.keys()) if (+k3.split(",")[1] >= ZONE) zoneShrooms++;
+      if (!flea && wave >= 2 && zoneShrooms < 5 && Math.random() < dt * .4) flea = { x: (Math.random() * COLS | 0) * CW + CW / 2, y: 20 };
+      if (flea) { flea.y += 300 * dt; if (Math.random() < dt * 3) addShroom(Math.floor(flea.x / CW), Math.floor((flea.y - 20) / CW)); if (deadT <= 0 && !inv && Math.abs(flea.x - pl.x) < 12 && Math.abs(flea.y - pl.y) < 14) die(); if (flea.y > H) flea = null; }
+      if (!chains.length) { S.score += 500 * wave; sfx("level"); newWave(wave + 1); saveGame({ wave, lives, label: "WAVE " + wave, stop: wave % 3 === 1, next: "The bug gets longer and faster" + (wave >= 3 ? " · extra bug heads" : "") }); }
+    },
+    draw() {
+      bg("#060a04"); x.fillStyle = "rgba(182,255,59,.04)"; x.fillRect(0, ZONE * CW + 20, W, H - ZONE * CW - 20);
+      x.strokeStyle = "rgba(182,255,59,.2)"; x.setLineDash([4, 6]); x.beginPath(); x.moveTo(0, ZONE * CW + 20); x.lineTo(W, ZONE * CW + 20); x.stroke(); x.setLineDash([]);
+      txt("WAVE " + wave, 8, 10, 11, "#b6ff3b", "left", "d"); txt(S.practice ? "∞" : "♥".repeat(Math.max(0, lives)), W - 8, 10, 11, "#ff4d6d", "right", "d");
+      for (const [k, v] of shrooms) { const [c, r] = k.split(",").map(Number), X = c * CW + CW / 2, Y = r * CW + 20 + CW / 2, s = .5 + v * .125; glow("#ff2bd6", 6); x.fillStyle = r >= ZONE ? "#ff7be6" : "#ff2bd6"; x.beginPath(); x.arc(X, Y - 1, 8 * s, Math.PI, 0); x.fill(); glow(); x.fillStyle = "#ffd0f6"; x.fillRect(X - 3 * s, Y - 1, 6 * s, 7 * s); x.fillStyle = "#fff"; x.beginPath(); x.arc(X - 3 * s, Y - 4 * s, 1.5, 0, 7); x.arc(X + 3 * s, Y - 5 * s, 1.2, 0, 7); x.fill(); }
+      for (const ch of chains) for (let i = ch.len - 1; i >= 0; i--) { const [X, Y] = segPos(ch, i, ch.p); const head = i === 0; glow(head ? "#ffd66b" : "#b6ff3b", 8); x.fillStyle = head ? "#ffd66b" : "#b6ff3b"; x.beginPath(); x.arc(X, Y, head ? 9 : 8, 0, 7); x.fill(); glow(); x.strokeStyle = "#2a5a10"; x.lineWidth = 1.5; const lg = Math.sin(S.clock * 20 + i) * 3; x.beginPath(); x.moveTo(X - 4, Y + 6); x.lineTo(X - 6, Y + 10 + lg); x.moveTo(X + 4, Y + 6); x.lineTo(X + 6, Y + 10 - lg); x.stroke(); if (head) { x.fillStyle = "#111"; x.beginPath(); x.arc(X - 3, Y - 2, 2, 0, 7); x.arc(X + 3, Y - 2, 2, 0, 7); x.fill(); } }
+      if (spider) { glow("#ff2bd6", 10); x.fillStyle = "#ff2bd6"; x.beginPath(); x.ellipse(spider.x, spider.y, 10, 7, 0, 0, 7); x.fill(); glow(); x.strokeStyle = "#ff2bd6"; x.lineWidth = 1.5; for (let k = 0; k < 4; k++) { const lg = Math.sin(S.clock * 25 + k) * 3; x.beginPath(); x.moveTo(spider.x - 6, spider.y); x.lineTo(spider.x - 14 - k, spider.y - 6 + k * 4 + lg); x.moveTo(spider.x + 6, spider.y); x.lineTo(spider.x + 14 + k, spider.y - 6 + k * 4 - lg); x.stroke(); } }
+      if (flea) { x.fillStyle = "#ffd66b"; x.beginPath(); x.ellipse(flea.x, flea.y, 6, 9, 0, 0, 7); x.fill(); }
+      x.fillStyle = "#fff"; for (const s of shots) { glow("#ffffff", 8); x.fillRect(s.x - 1.5, s.y - 10, 3, 12); } glow();
+      if (deadT <= 0 && (!inv || Math.floor(S.clock * 12) % 2)) { glow("#22e4ff", 12); x.fillStyle = "#22e4ff"; x.beginPath(); x.moveTo(pl.x, pl.y - 12); x.lineTo(pl.x + 9, pl.y + 8); x.lineTo(pl.x - 9, pl.y + 8); x.closePath(); x.fill(); glow(); x.fillStyle = "#fff"; x.fillRect(pl.x - 1.5, pl.y - 16, 3, 8); }
+    },
+  });
+}
+
+/* ---------- Quick Draw ---------- */
+function drawGame() {
+  const W = 480, H = 600;
+  const FAKES = ["FIRM!", "FIVE!", "FIRE?", "FISH!", "TIRE!", "WAIT…"];
+  let phase, t, sig, sigT, round, lives, best, wins, aiT, shot, msg, fakeT, fakeTxt, duoPts, rounds, dust, sunT;
+  function newRound() {
+    phase = "ready"; t = 0; shot = null; msg = ""; fakeTxt = ""; sigT = 1.6 + Math.random() * 2.6;
+    const lvl = S.duo ? 3 : round; fakeT = lvl >= 3 && Math.random() < Math.min(.7, .2 + lvl * .06) ? 0.8 + Math.random() * (sigT - 1) : -1;
+    aiT = S.duo ? 9 : Math.max(.18, (S.practice ? .9 : .62) - round * .035 + Math.random() * .08);
+  }
+  function shoot(who) {
+    if (S.state !== "play") return;
+    if (phase === "ready") { phase = "result"; t = 0; shot = { who, early: true }; sfx("bad"); msg = S.duo ? "P" + (who + 1) + " FIRED TOO EARLY!" : "TOO EARLY!"; if (S.duo) duoPts[1 - who]++; else if (!S.practice) lives--; return; }
+    if (phase !== "draw") return;
+    const rt = t; phase = "result"; t = 0; shot = { who, rt }; sfx("boom"); shake(5, .25); flash("#fff3c4", .3);
+    if (S.duo) { duoPts[who]++; msg = "P" + (who + 1) + " WINS · " + Math.round(rt * 1000) + " ms"; }
+    else if (who === 0) { wins++; const pts = Math.max(50, Math.round((1 - Math.min(rt, 1)) * 1000)) * (1 + Math.floor(round / 3)); S.score += pts; best = Math.min(best, rt); msg = Math.round(rt * 1000) + " ms · +" + pts; pop(W / 2, 250, "+" + pts, "#ffd66b"); }
+    else { msg = "TOO SLOW! THE BANDIT WAS " + Math.round(rt * 1000) + " ms"; if (!S.practice) lives--; }
+  }
+  game({
+    title: "Quick Draw", w: W, h: H, color: "#ff8a1f", bpm: 92, easy: "a slow bandit and no lives lost",
+    duo: "P1 taps the left half (or A), P2 the right half (or L). Fastest draw after FIRE! wins. Early shots lose. First to 5.",
+    help: ["Wait for the sign to say FIRE! — then tap as fast as you can (or press Space)", "Shoot too early and you lose a life!", "Watch out for tricks: FIRM, FIVE, FISH… only FIRE! counts", "Beat the bandit to face a faster one. 3 lives"],
+    load(d) { if (d && d.round) { round = d.round | 0; lives = Math.max(lives, d.lives || 3); newRound(); } },
+    init() { round = 1; lives = S.practice ? 99 : 3; best = 9; wins = 0; duoPts = [0, 0]; rounds = 0; dust = Array.from({ length: 30 }, () => [Math.random() * W, 420 + Math.random() * 180, Math.random()]); sunT = 0; newRound(); },
+    hud() { return S.duo ? "P1 " + duoPts[0] + "  ·  P2 " + duoPts[1] + "  ·  FIRST TO 5" : "DUEL " + round + "  ·  " + (S.practice ? "PRACTICE" : "LIVES " + lives) + (best < 9 ? "  ·  BEST " + Math.round(best * 1000) + " ms" : ""); },
+    summary() { return S.duo ? ["P1 " + duoPts[0] + " : " + duoPts[1] + " P2"] : ["WON " + wins + " DUELS" + (best < 9 ? " · BEST " + Math.round(best * 1000) + " ms" : "")]; },
+    down(px) { if (S.duo) shoot(px < W / 2 ? 0 : 1); else shoot(0); },
+    key(k, rep) { if (rep) return; if (S.duo) { if (k === "a" || k === "z") shoot(0); if (k === "l" || k === "m") shoot(1); } else if (k === " " || k === "Enter") shoot(0); },
+    update(dt) {
+      t += dt; sunT += dt; for (const d of dust) { d[0] += (20 + d[2] * 30) * dt; if (d[0] > W) d[0] = 0; }
+      if (phase === "ready") { if (fakeT > 0 && t >= fakeT && !fakeTxt) { fakeTxt = FAKES[Math.random() * FAKES.length | 0]; sfx("tick"); } if (fakeTxt && t >= fakeT + .7) fakeTxt = ""; if (t >= sigT) { phase = "draw"; t = 0; fakeTxt = ""; sfx("level"); } }
+      else if (phase === "draw") { if (!S.duo && t >= aiT) shoot(1); if (S.duo && t > 3) { phase = "result"; t = 0; msg = "NOBODY SHOT!"; shot = null; } }
+      else if (phase === "result" && t > 1.8) {
+        if (S.duo) { if (Math.max(...duoPts) >= 5) return over("PLAYER " + (duoPts[0] > duoPts[1] ? 1 : 2) + " WINS"); newRound(); return; }
+        if (lives <= 0) return over("THE BANDIT WINS · " + wins + " DUELS WON");
+        if (shot && shot.who === 0 && !shot.early) { round++; if (round % 3 === 1) saveGame({ round, lives, label: "DUEL " + round, stop: round % 6 === 1, next: "The bandits draw faster now" }); }
+        newRound();
+      }
+    },
+    draw() {
+      const sky = x.createLinearGradient(0, 0, 0, 420); sky.addColorStop(0, "#2a0a3a"); sky.addColorStop(.6, "#ff2bd6"); sky.addColorStop(1, "#ff8a1f"); x.fillStyle = sky; x.fillRect(0, 0, W, 420);
+      glow("#ffd66b", 30); x.fillStyle = "#ffd66b"; x.beginPath(); x.arc(W / 2, 400, 90, Math.PI, 0); x.fill(); glow();
+      x.fillStyle = "rgba(42,10,58,.5)"; for (let i = 0; i < 5; i++) x.fillRect(W / 2 - 95, 330 + i * 16, 190, 4);
+      x.fillStyle = "#3a1440"; x.beginPath(); x.moveTo(0, 420); for (let i = 0; i <= 10; i++) x.lineTo(i * W / 10, 380 + Math.sin(i * 1.7) * 20); x.lineTo(W, 420); x.fill();
+      const g = x.createLinearGradient(0, 420, 0, H); g.addColorStop(0, "#5a2410"); g.addColorStop(1, "#1a0806"); x.fillStyle = g; x.fillRect(0, 420, W, H - 420);
+      x.fillStyle = "rgba(255,214,107,.35)"; for (const d of dust) x.fillRect(d[0], d[1], 2, 2);
+      const cowboy = (X, flip, col, drawn, hit) => { x.save(); x.translate(X, 470); x.scale(flip, 1); if (hit) x.rotate(-.5 * flip * 0 - .35); glow(col, 12); x.fillStyle = "#0a0410"; x.fillRect(-10, -60, 20, 50); x.fillRect(-10, -12, 8, 40); x.fillRect(2, -12, 8, 40); x.beginPath(); x.arc(0, -70, 11, 0, 7); x.fill(); x.fillRect(-20, -82, 40, 5); x.fillRect(-9, -94, 18, 14); glow(); x.strokeStyle = col; x.lineWidth = 2; x.strokeRect(-10, -60, 20, 50); x.fillStyle = "#0a0410"; if (drawn) { x.fillRect(8, -52, 22, 7); x.fillRect(26, -55, 10, 4); } else x.fillRect(8, -46, 6, 26); x.restore(); };
+      const lHit = shot && !shot.early && shot.who === 1, rHit = shot && !shot.early && shot.who === 0;
+      cowboy(90, 1, "#22e4ff", phase === "result" && shot && shot.who === 0, lHit && phase === "result");
+      cowboy(W - 90, -1, S.duo ? "#ffd66b" : "#ff4d6d", phase === "result" && shot && shot.who === 1, rHit && phase === "result");
+      txt(S.duo ? "P1" : "YOU", 90, 540, 14, "#22e4ff", "center", "d"); txt(S.duo ? "P2" : "BANDIT " + round, W - 90, 540, 14, S.duo ? "#ffd66b" : "#ff4d6d", "center", "d");
+      x.fillStyle = "#3a1a0a"; x.fillRect(W / 2 - 3, 120, 6, 60); x.fillStyle = "#1a0806"; rr(W / 2 - 110, 70, 220, 70, 12); x.fill(); x.strokeStyle = "#c88a4a"; x.lineWidth = 4; x.stroke();
+      if (phase === "draw") { glow("#ff2e4d", 30); txt("FIRE!", W / 2, 106, 44, "#ff2e4d", "center", "d"); glow(); }
+      else if (phase === "ready") { txt(fakeTxt || "WAIT…", W / 2, 106, fakeTxt ? 40 : 30, fakeTxt ? "#ffd66b" : "#c8b8a0", "center", "d"); }
+      else txt(shot && shot.early ? "EARLY!" : "BANG!", W / 2, 106, 36, "#ffffff", "center", "d");
+      if (msg && phase === "result") txt(msg, W / 2, 210, 18, "#ffffff", "center", "d");
+      if (!S.duo && !S.practice) txt("♥".repeat(Math.max(0, lives)), W / 2, 580, 18, "#ff4d6d", "center");
+      if (S.duo) { txt(String(duoPts[0]), 40, 30, 26, "#22e4ff", "left", "d"); txt(String(duoPts[1]), W - 40, 30, 26, "#ffd66b", "right", "d"); x.strokeStyle = "rgba(255,255,255,.1)"; x.beginPath(); x.moveTo(W / 2, 200); x.lineTo(W / 2, H); x.stroke(); }
+    },
+  });
+}
+
+/* ---------- Claim Zone ---------- */
+function claimGame() {
+  const GW = 100, GH = 120, CS = 4, OX = 10, OY = 50, W = GW * CS + 20, H = GH * CS + 110;
+  const DV = { u: [0, -1], d: [0, 1], l: [-1, 0], r: [1, 0] };
+  let g, pl, trail, foes, sparks, level, lives, pct, runs, edges, joy, moveAcc, deadT, goal;
+  const idx = (c, r) => r * GW + c;
+  const at = (c, r) => (c < 0 || r < 0 || c >= GW || r >= GH ? 1 : g[idx(c, r)]);
+  const isEdge = (c, r) => at(c, r) === 1 && (at(c - 1, r) === 0 || at(c + 1, r) === 0 || at(c, r - 1) === 0 || at(c, r + 1) === 0 || at(c - 1, r - 1) === 0 || at(c + 1, r + 1) === 0 || at(c - 1, r + 1) === 0 || at(c + 1, r - 1) === 0);
+  function newLevel(lv) {
+    level = lv; g = new Uint8Array(GW * GH); for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) if (r === 0 || c === 0 || r === GH - 1 || c === GW - 1) g[idx(c, r)] = 1;
+    pl = { c: GW >> 1, r: GH - 1 }; trail = []; deadT = 0; goal = Math.min(78, 58 + lv * 2);
+    foes = []; for (let i = 0; i < Math.min(4, 1 + Math.floor(lv / 2)); i++) foes.push({ x: 20 + Math.random() * 60, y: 20 + Math.random() * 40, vx: (Math.random() < .5 ? -1 : 1) * (14 + lv * 2), vy: (Math.random() < .5 ? -1 : 1) * (11 + lv * 2), r: 3 });
+    sparks = []; for (let i = 0; i < Math.min(3, Math.floor((lv + 1) / 2)); i++) sparks.push({ c: i % 2 ? 0 : GW - 1, r: 0, last: null, t: 0 });
+    calc(); banner("LEVEL " + lv + " · CLAIM " + goal + "%", "#ff2bd6");
+  }
+  function calc() {
+    let n = 0; for (let i = 0; i < g.length; i++) if (g[i] === 1) n++; pct = Math.round(n / g.length * 100);
+    edges = []; for (let r = 0; r < GH; r++) for (let c = 0; c < GW; c++) if (g[idx(c, r)] === 1 && isEdge(c, r)) edges.push(c, r);
+    runs = []; for (let r = 0; r < GH; r++) { let s = -1; for (let c = 0; c <= GW; c++) { const v = c < GW ? g[idx(c, r)] === 1 : false; if (v && s < 0) s = c; if (!v && s >= 0) { runs.push([s, r, c - s]); s = -1; } } }
+  }
+  function close() {
+    for (const [c, r] of trail) g[idx(c, r)] = 1; trail = [];
+    const seen = new Uint8Array(g.length), before = pct;
+    for (const f of foes) { const sc = Math.floor(f.x), sr = Math.floor(f.y); if (at(sc, sr) !== 0 || seen[idx(sc, sr)]) continue; const q = [idx(sc, sr)]; seen[q[0]] = 1; while (q.length) { const i = q.pop(), c = i % GW, r = (i / GW) | 0; for (const [dx, dy] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const nc = c + dx, nr = r + dy; if (nc < 0 || nr < 0 || nc >= GW || nr >= GH) continue; const j = idx(nc, nr); if (!seen[j] && g[j] === 0) { seen[j] = 1; q.push(j); } } } }
+    let got = 0; for (let i = 0; i < g.length; i++) if (g[i] === 0 && !seen[i]) { g[i] = 1; got++; }
+    calc(); const pts = got * level; S.score += pts; if (got) { pop(OX + pl.c * CS, OY + pl.r * CS - 14, "+" + pts, "#ffd66b"); sfx(got > 800 ? "level" : "score"); if (got > 1200) flash("#ff2bd6", .2); }
+    if (pct >= goal) { const bonus = (pct - goal + 1) * 500 * level; S.score += bonus; banner(pct + "% CLAIMED! +" + bonus, "#3dffa8"); sfx("level"); newLevel(level + 1); saveGame({ level, lives, label: "LEVEL " + level, stop: level % 3 === 1, next: "Claim " + goal + "% · more bouncers" + (level >= 3 ? " and edge sparks" : "") }); }
+    else if (before >= 0 && pct - before >= 20) banner("HUGE CLAIM!", "#ffd66b");
+  }
+  function die() { if (deadT > 0) return; deadT = 1.4; sfx("boom"); shake(6, .3); burst(OX + pl.c * CS, OY + pl.r * CS, "#22e4ff", 28, 200, .6); if (trail.length) { pl.c = trail[0][2]; pl.r = trail[0][3]; } for (const [c, r] of trail) g[idx(c, r)] = 0; trail = []; if (!S.practice) lives--; }
+  function wantDir() { const k = S.keys; if (k.ArrowUp || k.w) return "u"; if (k.ArrowDown || k.s) return "d"; if (k.ArrowLeft || k.a) return "l"; if (k.ArrowRight || k.d) return "r"; if (joy && Math.hypot(joy.dx, joy.dy) > 12) return Math.abs(joy.dx) > Math.abs(joy.dy) ? (joy.dx > 0 ? "r" : "l") : (joy.dy > 0 ? "d" : "u"); return null; }
+  function stepPlayer(dir) {
+    const [dx, dy] = DV[dir], nc = pl.c + dx, nr = pl.r + dy; if (nc < 0 || nr < 0 || nc >= GW || nr >= GH) return;
+    const v = at(nc, nr);
+    if (trail.length) { if (v === 2) return; if (v === 1) { pl.c = nc; pl.r = nr; close(); return; } g[idx(nc, nr)] = 2; trail.push([nc, nr, pl.c, pl.r]); pl.c = nc; pl.r = nr; return; }
+    if (v === 1) { if (isEdge(nc, nr)) { pl.c = nc; pl.r = nr; } return; }
+    if (v === 0) { g[idx(nc, nr)] = 2; trail.push([nc, nr, pl.c, pl.r]); pl.c = nc; pl.r = nr; }
+  }
+  game({
+    title: "Claim Zone", w: W, h: H, color: "#ff2bd6", bpm: 118, easy: "unlimited lives and slower bouncers",
+    help: ["Move along the glowing edge with arrows / WASD, or drag anywhere", "Step into the dark area to draw a line. Get back to the edge to CLAIM that area", "If a bouncer touches your line (or a spark catches you) you lose a life", "Claim enough of the board to clear the level. Big claims score big!"],
+    load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); newLevel(d.level | 0); } },
+    init() { lives = S.practice ? 99 : 3; joy = null; moveAcc = 0; newLevel(1); },
+    hud() { return "LEVEL " + level + "  ·  " + pct + "% / " + goal + "%  ·  " + (S.practice ? "PRACTICE" : "LIVES " + lives); },
+    summary() { return ["REACHED LEVEL " + level]; },
+    down(px, py) { joy = { sx: px, sy: py, dx: 0, dy: 0 }; },
+    move(px, py) { if (joy) { joy.dx = px - joy.sx; joy.dy = py - joy.sy; } },
+    up() { joy = null; },
+    update(dt) {
+      if (deadT > 0) { deadT -= dt; if (deadT <= 0 && lives <= 0) return over("OUT OF LIVES · " + pct + "% CLAIMED"); return; }
+      const dir = wantDir(); moveAcc += dt * (trail.length ? 52 : 70);
+      while (moveAcc >= 1) { moveAcc -= 1; if (dir) stepPlayer(dir); if (deadT > 0) break; }
+      const sp = S.practice ? .7 : 1;
+      for (const f of foes) {
+        for (const ax of ["x", "y"]) { const v = ax === "x" ? "vx" : "vy"; const n = f[ax] + f[v] * dt * sp; const c = ax === "x" ? Math.floor(n) : Math.floor(f.x), r = ax === "y" ? Math.floor(n) : Math.floor(f.y); const t2 = at(c, r); if (t2 === 1) { f[v] = -f[v]; if (Math.random() < .3) { f.vx += (Math.random() - .5) * 6; f.vy += (Math.random() - .5) * 6; } } else { f[ax] = n; if (t2 === 2) die(); } }
+        const sp2 = Math.hypot(f.vx, f.vy), want = 16 + level * 2.5; f.vx *= want / sp2; f.vy *= want / sp2;
+        for (const [c, r] of trail) if (Math.abs(c + .5 - f.x) < f.r && Math.abs(r + .5 - f.y) < f.r) { die(); break; }
+      }
+      for (const s of sparks) {
+        s.t += dt * (20 + level * 2) * sp;
+        while (s.t >= 1) { s.t -= 1; const opts = [[1, 0], [-1, 0], [0, 1], [0, -1]].map(([dx, dy]) => [s.c + dx, s.r + dy]).filter(([c, r]) => c >= 0 && r >= 0 && c < GW && r < GH && isEdge(c, r) && !(s.last && s.last[0] === c && s.last[1] === r)); if (!opts.length) { s.last = null; continue; } let pick = opts[Math.random() * opts.length | 0]; if (Math.random() < .5) pick = opts.sort((a, b) => Math.hypot(a[0] - pl.c, a[1] - pl.r) - Math.hypot(b[0] - pl.c, b[1] - pl.r))[0]; s.last = [s.c, s.r]; s.c = pick[0]; s.r = pick[1]; }
+        if (Math.abs(s.c - pl.c) + Math.abs(s.r - pl.r) <= 1) die();
+      }
+    },
+    draw() {
+      bg("#08030f");
+      txt("LEVEL " + level, OX, 20, 14, "#ff2bd6", "left", "d"); txt(S.practice ? "∞" : "♥ ".repeat(Math.max(0, lives)).trim(), W - OX, 20, 14, "#ff4d6d", "right", "d");
+      x.fillStyle = "rgba(255,255,255,.1)"; x.fillRect(OX, 34, W - 2 * OX, 8); x.fillStyle = pct >= goal ? "#3dffa8" : "#ff2bd6"; x.fillRect(OX, 34, (W - 2 * OX) * Math.min(1, pct / 100), 8); x.fillStyle = "#ffd66b"; x.fillRect(OX + (W - 2 * OX) * goal / 100 - 1, 32, 2, 12); txt(pct + "%", W / 2, 20, 13, "#ffffff", "center", "d");
+      x.fillStyle = "#120624"; x.fillRect(OX, OY, GW * CS, GH * CS);
+      const gr = x.createLinearGradient(0, OY, 0, OY + GH * CS); gr.addColorStop(0, "#5a1a6a"); gr.addColorStop(1, "#1a3a6a"); x.fillStyle = gr;
+      for (const [c, r, n] of runs) x.fillRect(OX + c * CS, OY + r * CS, n * CS, CS);
+      x.fillStyle = "rgba(255,43,214,.85)"; for (let i = 0; i < edges.length; i += 2) x.fillRect(OX + edges[i] * CS, OY + edges[i + 1] * CS, CS, CS);
+      glow("#ffd66b", 8); x.fillStyle = "#ffd66b"; for (const [c, r] of trail) x.fillRect(OX + c * CS, OY + r * CS, CS, CS); glow();
+      for (const f of foes) { const X = OX + f.x * CS, Y = OY + f.y * CS; glow("#22e4ff", 16); x.strokeStyle = "#22e4ff"; x.lineWidth = 2; x.beginPath(); for (let k = 0; k < 5; k++) { const a = S.clock * 4 + k * 1.26; x.moveTo(X + Math.cos(a) * 14, Y + Math.sin(a) * 14); x.lineTo(X - Math.cos(a) * 14, Y - Math.sin(a) * 14); } x.stroke(); glow(); }
+      for (const s of sparks) { glow("#ff8a1f", 12); x.fillStyle = "#ff8a1f"; x.beginPath(); x.arc(OX + s.c * CS + 2, OY + s.r * CS + 2, 5 + Math.random() * 2, 0, 7); x.fill(); glow(); }
+      if (deadT <= 0 || Math.floor(S.clock * 10) % 2) { const X = OX + pl.c * CS + 2, Y = OY + pl.r * CS + 2; glow("#ffffff", 12); x.fillStyle = trail.length ? "#ffd66b" : "#ffffff"; x.beginPath(); x.moveTo(X, Y - 7); x.lineTo(X + 7, Y); x.lineTo(X, Y + 7); x.lineTo(X - 7, Y); x.closePath(); x.fill(); glow(); }
+      txt(trail.length ? "DRAWING… GET BACK TO THE EDGE!" : "MOVE INTO THE DARK TO DRAW", W / 2, OY + GH * CS + 26, 11, trail.length ? "#ffd66b" : "rgba(255,255,255,.5)", "center", "d");
+      if (joy) { x.strokeStyle = "rgba(255,255,255,.2)"; x.lineWidth = 2; x.beginPath(); x.arc(joy.sx, joy.sy, 30, 0, 7); x.stroke(); }
+    },
+  });
+}
+
 function platGame() {
   const T = 24, CW = 20, CH = 15, W = CW * T, H = CH * T + 56, BAR = CH * T;
   const LV = [
@@ -10955,6 +11358,11 @@ function fighterGame() {
     { key: "crates", title: "Crate Push", genre: "Puzzle", fn: cratesGame },
     { key: "claw", title: "Claw Crane", genre: "Other", fn: clawGame },
     { key: "tanks", title: "Tank Battle", genre: "Action", fn: tanksGame },
+    { key: "horde", title: "Horde Survivor", genre: "Action", fn: hordeGame },
+    { key: "pipes", title: "Pipe Flow", genre: "Puzzle", fn: pipesGame },
+    { key: "bugs", title: "Bug Blaster", genre: "Arcade", fn: bugsGame },
+    { key: "draw", title: "Quick Draw", genre: "Action", fn: drawGame },
+    { key: "claim", title: "Claim Zone", genre: "Arcade", fn: claimGame },
   ].map((g) => ({ ...g, creator: "Levi", builtin: true }));
 
   const DUO = [
@@ -10968,6 +11376,7 @@ function fighterGame() {
     { key: "chess", how: "Full chess with castling, en passant and promotion. Checkmate the other king.", keys: "Arrows move, Space picks and moves", touch: "Tap a piece, tap a dot, then pass the iPad" },
     { key: "connect4", how: "Classic Connect Four. Drop discs and get 4 in a row first.", keys: "← → pick a column, Space drops", touch: "Tap a column, then pass the iPad" },
     { key: "reversi", how: "Flip your rival's discs by trapping them. Most discs at the end wins.", keys: "Arrows move, Space places", touch: "Tap a glowing dot, then pass the iPad" },
+    { key: "draw", how: "A western duel! Wait for FIRE!, then tap your side first. Shooting early loses the round. First to 5.", keys: "P1 presses A, P2 presses L", touch: "P1 taps the left half, P2 taps the right half" },
     { key: "pool", how: "Take turns. Pot a ball to shoot again. Each ball scores its number. Most points when the table is clear wins.", keys: "Drag back to shoot, ← → aim, ↑ ↓ power, Space shoots", touch: "Drag back and let go, then pass the iPad" },
     { key: "bowling", how: "Same obstacle lanes for both players, 10 frames each. Highest score wins.", keys: "Drag back to aim and set power, Space bowls, ← → hook while rolling", touch: "Drag back and let go, swipe to hook, then pass the iPad" },
     { key: "hoops", how: "Same shooting spots for both players, 5 shots each. Most points wins.", keys: "Arrows aim, Space shoots", touch: "Drag back and let go, then pass the iPad" },
@@ -12388,7 +12797,7 @@ function fighterGame() {
   // The song games play: a shop song you equipped, otherwise the style picked in Settings.
   window.gblMusicPick = () => { try { const m = prog.equip && prog.equip.music; if (m === "mu-shuffle") { const own = (prog.owned || []).filter((id) => id.startsWith("mu-")); own.push("mu-synth"); return own[Math.random() * own.length | 0].slice(3); } if (m) return m.slice(3); if (settings.music === "off") return "off"; return settings.music || "synth"; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
-  const STARS = { tanks: [1500, 8000, 25000], claw: [400, 2000, 6000], crates: [1500, 6000, 15000], swarm: [3000, 15000, 40000], bomber: [1000, 5000, 15000], snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
+  const STARS = { claim: [3000, 15000, 50000], draw: [2000, 8000, 20000], bugs: [3000, 15000, 40000], pipes: [1500, 8000, 25000], horde: [3000, 15000, 50000], tanks: [1500, 8000, 25000], claw: [400, 2000, 6000], crates: [1500, 6000, 15000], swarm: [3000, 15000, 40000], bomber: [1000, 5000, 15000], snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
   const starsOf = (k) => { const t = STARS[k]; if (!t) return 0; const b = starBest(k); return t.filter((v) => b >= v).length; };
   const totalStars = () => Object.keys(STARS).reduce((a, k) => a + starsOf(k), 0);
