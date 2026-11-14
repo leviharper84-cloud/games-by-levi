@@ -2483,11 +2483,23 @@ function SHELL() {
       [["▲", "up", 2, 1], ["◀", "left", 1, 2], ["▶", "right", 3, 2], ["▼", "down", 2, 3]].forEach(([l, k, cx, cy]) => { const b = padButton(l, k, 66); b.style.gridColumn = cx; b.style.gridRow = cy; g.appendChild(b); });
       PAD.appendChild(g); return;
     }
+    /* Sideways, middle buttons join the right-hand group so nothing sits over the game. */
+    const tall = innerHeight > innerWidth, split = !!(spec.left || spec.right);
+    const groups = { left: spec.left || [], center: tall || !split ? spec.center || [] : [], right: (spec.right || []).concat(tall || !split ? [] : spec.center || []) };
+    const units = (list) => list.reduce((n, b) => n + (b[2] ? 2 : 1), 0), gapsIn = (list) => Math.max(0, list.length - 1) * 10 + list.filter((b) => b[2]).length * 8;
+    const used = ["left", "center", "right"].filter((k) => groups[k].length);
+    let size = 80;
+    if (tall) { const all = used.flatMap((k) => groups[k]); const room = innerWidth - 24 - Math.max(0, used.length - 1) * 14 - used.reduce((n, k) => n + gapsIn(groups[k]), 0); size = Math.floor(room / Math.max(1, units(all))); }
+    else { const big = used.reduce((m, k) => Math.max(m, units(groups[k])), 1); size = Math.floor((Math.min(260, innerWidth * .24)) / big) - 6; }
+    size = Math.max(46, Math.min(80, size));
+    let widest = 0;
     ["left", "center", "right"].forEach((side) => {
       const g = document.createElement("div"); g.dataset.side = side; g.style.cssText = "display:flex;gap:10px;align-items:center";
-      (spec[side] || []).forEach(([l, k, wide]) => g.appendChild(padButton(l, k, 80, wide)));
+      groups[side].forEach(([l, k, wide]) => g.appendChild(padButton(l, k, size, wide)));
+      widest = Math.max(widest, units(groups[side]) * size + gapsIn(groups[side]));
       PAD.appendChild(g);
     });
+    PAD.dataset.gw = widest; PAD.dataset.built = innerWidth + "x" + innerHeight;
   }
   // Tip: turn the phone when the game would be much bigger the other way.
   const TIP = document.createElement("div"); TIP.hidden = true;
@@ -2503,7 +2515,7 @@ function SHELL() {
   setInterval(() => {
     const spec = padSpec(), uses = !!spec;
     window.HPAD0 = uses;
-    if (spec !== padFor) { padFor = spec; if (spec) buildPad(spec); }
+    if (spec !== padFor || (spec && spec !== "arrows" && PAD.dataset.built !== innerWidth + "x" + innerHeight)) { padFor = spec; if (spec) buildPad(spec); }
     if (PAD.hidden === uses) PAD.hidden = !uses;
     const show = uses && (S.state === "play" || S.state === "count") && !S.paused;
     PAD.style.visibility = show ? "visible" : "hidden";
@@ -2512,7 +2524,8 @@ function SHELL() {
     // Space kept for the buttons: under the game when upright, at the sides when sideways.
     let room = 0, side = 0;
     const both = !arrows && spec && spec.left;
-    if (uses) { if (tall) room = arrows ? 226 : 116; else side = arrows ? 226 : both ? 2 * 186 : 196; }
+    const gw = +PAD.dataset.gw || 170;
+    if (uses) { if (tall) room = arrows ? 226 : Math.max(116, gw > 0 ? 116 : 116); else side = arrows ? 226 : both ? 2 * Math.max(186, gw + 20) : Math.max(196, gw + 30); }
     if (room !== (S.padRoom || 0) || side !== (S.padW || 0)) {
       S.padRoom = room; S.padW = side; const wr = document.getElementById("wrap");
       if (wr) { wr.style.bottom = room + "px"; if (!both) { wr.style.left = "0px"; wr.style.right = side + "px"; } else { wr.style.left = side / 2 + "px"; wr.style.right = side / 2 + "px"; } }
@@ -2728,6 +2741,7 @@ function bricksGame() {
   }
   game({
     title: "Brick Breaker", easy: "unlimited lives, slower ball, extra-wide paddle", w: W, h: H, color: "#ff2bd6", bpm: 124,
+    pad: { left: [["◀", "ArrowLeft"]], right: [["▶", "ArrowRight"]] },
     help: ["Mouse, finger or arrows move the paddle", "Space or tap launches the ball", "Catch capsules: Wide, Multi-ball, Slow, Laser", "Each level: faster ball, smaller paddle, tougher bricks"],
     pups: [{ id: "pu-bk-wide", name: "Wide Paddle", icon: "↔️" }, { id: "pu-bk-life", name: "Extra Life", icon: "❤️" }],
     start() { if (pupOn("pu-bk-wide")) fx.wide = 25; if (pupOn("pu-bk-life")) lives++; },
@@ -2840,6 +2854,7 @@ function blasterGame() {
   }
   game({
     title: "Star Blaster", easy: "you can't be destroyed, fewer enemies, no bosses", w: W, h: H, color: "#b6ff3b", bpm: 132,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Mouse, finger or arrows to fly", "Your ship fires on its own", "P = more guns  ·  S = shield  ·  + = extra hull", "A boss arrives every 45 seconds"],
     pups: [{ id: "pu-bl-life", name: "Extra Life", icon: "❤️" }, { id: "pu-bl-power", name: "Double Guns", icon: "🔫" }],
     start() { if (pupOn("pu-bl-life")) lives++; if (pupOn("pu-bl-power")) pw = 2; },
@@ -3392,6 +3407,7 @@ function blocksGame() {
   }
   game({
     title: "Block Drop", easy: "slow falling, no junk rows, a full stack just clears", w: W, h: H, color: "#6b7dff", repeat: true, bpm: 112,
+    pad: "arrows",
     help: ["Arrows move  ·  Up / X rotate  ·  Z rotates back", "Space hard drops  ·  C holds a piece", "Touch: tap rotates, swipe moves, swipe down drops, swipe up holds", "Level up every 8 lines. Level 4+: garbage rows push up"],
     init() { A = Array.from({ length: 20 }, () => Array(10).fill(0)); bag = []; queue = [nextPiece(), nextPiece(), nextPiece()]; hold = null; canHold = true; lines = 0; level = 1; clearing = null; combo = 0; drops = []; gT = 0; spawn(); },
     hud() { return "LEVEL " + level + "  ·  LINES " + lines; },
@@ -4236,6 +4252,7 @@ function voidGame() {
   }
   game({
     title: "Void Drift", easy: "you can't be destroyed, slower rocks", w: W, h: H, color: "#a35bff", bpm: 126,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["▲", "ArrowUp"], ["FIRE", " ", true]] },
     help: ["← → turn, ↑ thrust, Space fires", "Mouse or finger: hold to fly toward it and fire", "Big rocks split in two. The screen wraps around", "Every wave brings more, faster rocks"],
     init() { sh = { x: W / 2, y: H / 2, a: -Math.PI / 2, vx: 0, vy: 0, th: false }; bul = []; rocks = []; wave = 1; lives = 3; inv = 2; cool = 0; spawnWave(); },
     hud() { return "WAVE " + wave + "  ·  SHIPS " + (S.practice ? "∞" : "▲".repeat(Math.max(0, lives))); },
@@ -4554,6 +4571,7 @@ function stormGame() {
   }
   game({
     title: "Bullet Storm", easy: "hits don't count, slower bullets", w: W, h: H, color: "#ff2bd6", bpm: 140,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Mouse, finger or arrows to move", "Only the white dot in your ship can be hit", "Skim close to bullets to GRAZE for points", "Grab gold orbs. A new phase every 15 seconds"],
     init() { pl = { x: W / 2, y: H - 90 }; tx = pl.x; ty = pl.y; bl = []; orbs = []; lives = 3; inv = 1.5; phase = 1; graze = 0; orbT = 2; ems = [{ x: W / 2, y: 80, t: 0, cd: 1, ang: 0, off: 0 }]; },
     hud() { return "PHASE " + phase + "  ·  LIVES " + (S.practice ? "∞" : "♥".repeat(Math.max(0, lives))) + "  ·  GRAZE " + graze; },
@@ -5116,6 +5134,7 @@ function tunnelGame() {
   }
   game({
     title: "Tunnel Rush", easy: "slower, and crashes don't end the run", w: W, h: H, color: "#22e4ff", bpm: 150,
+    pad: { left: [["◀", "ArrowLeft", true]], right: [["▶", "ArrowRight", true]] },
     help: ["← → or A D to spin around the tunnel", "Touch: hold the left or right side of the screen", "Slip through the gaps in the walls", "The faster you go, the more you score"],
     init() { a = 0; va = 0; obs = []; speed = S.practice ? 7 : 9; dist = 0; spawnZ = 10; level = 1; travel = 0; crashT = 0; },
     hud() { return "SPEED " + speed.toFixed(1) + "  ·  ZONE " + level + "  ·  DIST " + Math.floor(dist) + "m"; },
@@ -5290,7 +5309,8 @@ function hopGame() {
   }
   game({
     title: "Sky Hop", easy: "falling bounces you back up", w: W, h: H, color: "#b6ff3b", bpm: 128,
-    help: ["You bounce automatically. Steer with ← → or A D", "Touch: hold your finger where you want to go", "Pink springs launch you. Orange platforms crumble", "Stomp drones from above. The sky gets trickier"],
+    pad: { left: [["◀", "ArrowLeft", true]], right: [["▶", "ArrowRight", true]] },
+    help: ["You bounce automatically. Steer with ← → or A D", "Touch: hold the ◀ ▶ arrows, or hold your finger where you want to go", "Pink springs launch you. Orange platforms crumble", "Stomp drones from above. The sky gets trickier"],
     init() {
       pl = { x: W / 2, y: -40, vx: 0, vy: JUMP, face: 1 }; plats = [{ x: W / 2 - 50, y: 0, w: 100, t: "n", vx: 0, gone: 0 }]; drones = []; stars = [];
       camY = -H + 120; topY = 0; maxH = 0; rescue = 0; fill();
@@ -5392,6 +5412,7 @@ function flipGame() {
   const colAt = (wx) => cols[Math.floor(wx / CW)] || { f: "s", c: "s" };
   game({
     title: "Gravity Flip", easy: "slower, and a crash just bumps you back", w: W, h: H, color: "#a35bff", bpm: 144,
+    pad: { center: [["FLIP", " ", true]] },
     help: ["Tap, Space or ↑ to flip gravity", "You can only flip while you're touching floor or ceiling", "Don't fall into gaps or touch red spikes", "It keeps getting faster"],
     init() { lv = 0; cols = []; orbs = []; scroll = 0; speed = S.practice ? 230 : 290; dist = 0; flips = 0; coyote = 0; safeSide = "f"; runLeft = 8; pl = { y: BOT - PR, vy: 0, g: 1, ground: true, rot: 0 }; for (let i = 0; i < 24; i++) cols.push({ f: "s", c: "s" }); },
     hud() { return "DISTANCE " + Math.floor(dist / 10) + "m  ·  SPEED " + (speed / 290).toFixed(1) + "x  ·  FLIPS " + flips; },
@@ -7180,6 +7201,7 @@ function slitherGame() {
   }
   game({
     title: NET ? "Slither Arena" : "Neon Slither", easy: "calmer bots, and if you crash you just respawn", w: W, h: H, color: "#3dffa8", bpm: 132,
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["BOOST", " ", true]] },
     help: [EVENT ? "🎃 HISS-O-WEEN: spooky pumpkins are worth 5!" : NET ? "LIVE ONLINE: real players from everywhere, plus bots" : "Touch: press and drag anywhere on the left to steer with the joystick", "Eat glowing pellets to grow. Big ones are worth more!", "Hold the ⚡ BOOST button (bottom right) or press Space to speed up — it costs length", "Grab power-ups: M = magnet, » = speed, x2 = double food. Crash into a body and you're out!"],
     init() {
       snakes = []; pellets = []; grid = new Map(); kills = 0; deadT = 0; bestRank = 21; pill = null; pillT = 15; boostIds = new Set(); aim = null; keyTurn = 0; joystick = null; boostTouchId = null; joyAngle = null;
@@ -7369,6 +7391,7 @@ function orbitGame() {
   }
   game({
     title: "Neon Orbit", w: W, h: H, color: "#22e4ff", bpm: 104, easy: "unlimited fuel and lives",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Gravity pulls your rocket toward the planet!", "Hold a finger (or arrow keys) to thrust that way", "Space thrusts straight away from the planet", "Land GENTLY on the glowing rock for points"],
     init() {
       lvl = 1; lands = 0; lives = 3; fuel = 100; rocks = []; target = null; spawn();
@@ -7468,6 +7491,7 @@ function vortexGame() {
   }
   game({
     title: "Vector Vortex", w: W, h: H, color: "#ffd66b", bpm: 138, easy: "unlimited lives, slow enemies",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["ZAP", "z"]] },
     help: ["Slide around the rim with ← → (or drag your finger around)", "You fire automatically down your lane", "Blast shapes before they reach the edge", "Z or tap ZAP once per wave to clear the screen"],
     repeat: true,
     init() { pl = 0; plF = 0; shots = []; foes = []; wave = 1; lives = 3; fireT = 0; inv = 0; newWave(); },
@@ -7544,6 +7568,7 @@ function evaderGame() {
   function moveTo(c, r) { c = Math.max(0, Math.min(N - 1, c)); r = Math.max(0, Math.min(N - 1, r)); if (c === px && r === py) return; px = c; py = r; sfx("blip", .4); if (coin && coin.c === px && coin.r === py) { S.score += 25; pop(M + px * Z + Z / 2, M + py * Z, "+25", "#ffd66b"); burst(M + px * Z + Z / 2, M + py * Z + Z / 2, "#ffd66b", 16, 160, .4, 2); sfx("score"); coin = null; } }
   game({
     title: "Grid Evader", w: W, h: H, color: "#ff2bd6", bpm: 140, easy: "longer warnings, unlimited lives", repeat: true,
+    pad: "arrows",
     help: ["Move your pixel with arrows, swipes or taps", "Flashing lines turn into LASERS a moment later", "Get to a safe square in time!", "Grab gold bits for bonus points"],
     init() { px = 4; py = 4; dx0 = px; dy0 = py; wave = 1; lives = 3; inv = 0; coin = null; danger = new Set(); beams = []; phase = "rest"; t = 1; },
     hud() { return "WAVE " + wave + "  ·  LIVES " + (S.practice ? "∞" : "◆".repeat(Math.max(0, lives))); },
@@ -7785,6 +7810,7 @@ function overdriveGame() {
   }
   game({
     title: "Horizon Overdrive", w: W, h: H, color: "#ff2bd6", bpm: 150, easy: "slower and unlimited lives", repeat: false,
+    pad: "arrows",
     help: ["Classic arcade racing into the sunset!", "← → (or tap left/right side) to switch lanes", "Dodge the neon grid walls", "Grab gold orbs for a speed boost and bonus points"],
     init() { pos = 0; sp = 300; lane = 0; lx = 0; obs = []; nextAt = 900; curve = 0; curveT = 0; curveGoal = 0; lives = 3; inv = 0; bgX = 0; lvl = 1; },
     hud() { return "SPEED " + Math.round(sp / 3) + " KM/H  ·  LIVES " + (S.practice ? "∞" : "◆".repeat(Math.max(0, lives))) + "  ·  STAGE " + lvl; },
@@ -8237,6 +8263,7 @@ function crossGame() {
   }
   game({
     title: "Neon Crossing", w: W, h: H, color: "#3dffa8", bpm: 132, easy: "slow traffic and no chaser",
+    pad: "arrows",
     help: ["Tap (or ↑) to hop forward, swipe to hop any way", "Dodge cars. Ride the logs across rivers", "A train is coming when the lights flash!", "Don't wait too long: the laser wall chases you"],
     init() { lanes = []; laneAt(0); px = 4; py = 0; hop = 0; best = 0; cam = 0; dead = 0; chaser = -3; coins = 0; },
     hud() { return "STEPS " + best + "  ·  COINS " + coins; },
@@ -8448,6 +8475,7 @@ function pinballGame() {
   }
   game({
     title: "Neon Pinball", w: W, h: H, color: "#ff2bd6", bpm: 128, easy: "the ball never drains for good",
+    pad: { left: [["FLIP", "ArrowLeft", true]], center: [["PULL", "ArrowDown"]], right: [["FLIP", "ArrowRight", true]] },
     help: ["Left / Right (or tap left / right half) to flip", "Hold Space or Down (or tap the plunger lane) to launch", "Hit all 3 targets to raise the multiplier", "Bumpers and slingshots score big. 3 balls"],
     init() { balls = 3; flips = [0, 0]; bumpFx = []; tgt = [0, 0, 0]; mult = 1; combo = 0; FL.forEach((f) => { f.a = f.rest; f.w = 0; }); newBall(); },
     hud() { return "BALL " + (4 - balls) + "/3  ·  ×" + mult + (saveT > 0 && ball.live ? "  ·  BALL SAVE" : ""); },
@@ -8538,6 +8566,7 @@ function bubbleGame() {
   game({
     load(d) { if (d && d.level) newLevel(d.level | 0); },
     title: "Bubble Shooter", w: W, h: H, color: "#22e4ff", bpm: 118, easy: "the bubbles never reach you",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["FIRE", " ", true]] },
     help: ["Aim with your finger or mouse, release to shoot", "Bounce off the walls to reach tricky spots", "Match 3+ of the same colour to pop them. Hanging bubbles drop", "Miss too often and the ceiling comes down. Clear the board to level up"],
     init() { falling = []; pops = []; aim = -Math.PI / 2; newLevel(1); },
     hud() { return "LEVEL " + level + "  ·  CEILING IN " + (drop - (shots % drop)); },
@@ -8965,6 +8994,7 @@ function swarmGame() {
   }
   game({
     title: "Nova Swarm", w: W, h: H, color: "#22e4ff", bpm: 140, easy: "unlimited lives and slower dives",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["FIRE", " ", true]] },
     help: ["Drag (or ← →) to fly, tap / hold / Space to shoot", "Aliens fly in, line up, then dive at you. Diving aliens are worth double", "Green flagships take 2 hits. Their tractor beam can CAPTURE your ship!", "Shoot that flagship while it dives to RESCUE your ship and get double guns"],
     load(d) { if (d && d.stage) { lives = Math.max(lives, d.lives || 3); dual = !!d.dual; newStage(d.stage | 0); } },
     init() { lives = S.practice ? 99 : 3; shots = []; dual = false; fireCd = 0; rescue = null; holding = false; targetX = null; respawn(); stars = Array.from({ length: 70 }, () => [Math.random() * W, Math.random() * H, .3 + Math.random()]); newStage(1); },
@@ -9162,6 +9192,7 @@ function clawGame() {
   const slipChance = () => (S.practice ? 0 : Math.min(.55, .06 + level * .045));
   game({
     title: "Prize Claw", w: W, h: H, color: "#ff7be6", bpm: 108, easy: "the claw never slips and you get unlimited tries",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["DROP", " ", true]] },
     help: ["Drag (or ← →) to move the claw, then tap DROP (or Space)", "The claw grabs the prize closest to its middle", "Carry it to the chute on the left. Big prizes slip more easily!", "Gold stars are worth 500. Win enough prizes before your tries run out"],
     load(d) { if (d && d.level) newLevel(d.level | 0); },
     init() { held = false; dragX = null; winsFx = []; slipFx = 0; newLevel(1); },
@@ -9356,6 +9387,7 @@ function hordeGame() {
   const nearest = (n) => foes.filter((e) => !e.dead).sort((a, b) => Math.hypot(a.x - p.x, a.y - p.y) - Math.hypot(b.x - p.x, b.y - p.y)).slice(0, n);
   game({
     title: "Last Light", w: W, h: H, color: "#a35bff", bpm: 136, easy: "enemies hit softer and you heal over time",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Drag anywhere (or WASD / arrows) to move. Your weapons attack by themselves!", "Grab the blue gems to level up, then pick an upgrade (tap a card or press 1 2 3)", "Get new weapons: Orbit Blades, Fire Aura, Star Nova, or power up the ones you have", "Survive as long as you can. A giant boss shows up every 2½ minutes"],
     init() { reset(); joy = null; },
     hud() { return "LV " + lvl + "  ·  KILLS " + kills + "  ·  " + Math.floor(t / 60) + ":" + String(Math.floor(t % 60)).padStart(2, "0"); },
@@ -9528,6 +9560,7 @@ function bugsGame() {
   function die() { if (inv > 0) return; deadT = 1.6; burst(pl.x, pl.y, "#22e4ff", 30, 240, .6); sfx("boom"); shake(6, .3); if (!S.practice) lives--; }
   game({
     title: "Bug Garden", w: W, h: H, color: "#b6ff3b", bpm: 138, easy: "unlimited lives and a slower bug",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["FIRE", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Drag (or arrows) to move in your zone at the bottom. Hold to shoot, or press Space", "Shoot the giant bug! Hit its middle and it SPLITS into two bugs", "Every segment you hit turns into a mushroom the bug has to go around", "Watch out for the jumping spider and falling fleas. Clear the bug for the next wave"],
     load(d) { if (d && d.wave) { lives = Math.max(lives, d.lives || 3); newWave(d.wave | 0); } },
     init() {
@@ -10068,6 +10101,7 @@ function copterGame() {
   function crash() { if (crashT > 0 || shield > 0) return; if (S.practice) { pl.vy = 0; pl.y = (cols[Math.floor(PX / STEP)].top + cols[Math.floor(PX / STEP)].bot) / 2; shield = 1; sfx("bad"); return; } crashT = 1.2; sfx("boom"); shake(8, .4); burst(PX, pl.y, "#ff8a1f", 40, 260, .7); }
   game({
     title: "Cave Copter", w: W, h: H, color: "#3dffa8", bpm: 126, easy: "a wide cave, and crashes just bounce you back",
+    pad: { center: [["THRUST", " ", true]] },
     help: ["HOLD to fly up, let go to drop (tap, mouse, Space or ↑)", "Don't touch the cave walls or the floating blocks", "The cave gets narrower and faster the deeper you go", "Every 1,000 m is a checkpoint. Grab green orbs for +100"],
     load(d) { if (d && d.dist) reset(d.dist); },
     init() { holding = false; reset(0); },
@@ -10129,6 +10163,7 @@ function wellGame() {
   function kill(f, how) { f.dead = true; combo++; const pts = (f.kind === "spike" ? 150 : f.kind === "bat" ? 100 : 60) * level * Math.min(8, combo); S.score += pts; pop(f.x, f.y - camY - 16, (combo > 1 ? combo + "× " : "") + "+" + pts, combo > 2 ? "#ffd66b" : "#ffffff"); burst(f.x, f.y - camY, f.kind === "spike" ? "#ff4d6d" : f.kind === "bat" ? "#a35bff" : "#3dffa8", 14, 160, .35); sfx("pop"); if (how === "stomp") { ammo = maxAmmo; pl.vy = -380; } }
   game({
     title: "Down Deep", w: W, h: H, color: "#22e4ff", bpm: 134, easy: "you can't lose health",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["JUMP", "ArrowUp", true]] },
     help: ["Drag left/right (or ← →) to move. Tap / Space / ↑ to jump", "In the air, tap again to fire your GUN BOOTS down. Each shot slows your fall", "Stomp green blobs to refill ammo. Red spikes and purple bats must be shot!", "Chain kills without landing for big combos. Reach the bottom of the well!"],
     load(d) { if (d && d.level) { hp = d.hp || 4; newWell(d.level | 0); } },
     init() { hp = 4; gemsN = 0; touch = null; newWell(1); },
@@ -10283,6 +10318,7 @@ function blobsGame() {
   const fallSpeed = () => (S.practice ? .9 : Math.max(.12, .75 - level * .055));
   game({
     title: "Goo Chain", w: W, h: H, color: "#ff2bd6", bpm: 128, easy: "slow falling and only 3 colours",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["↻", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Blobs fall in pairs. Connect 4 or more of the same colour to POP them", "Pops make blobs fall and can start CHAINS for huge points", "Arrows / swipe to move, ↑ / X / tap to spin, ↓ / swipe down to drop fast", "Pop 40 blobs to level up. Don't let them stack to the top!"],
     load(d) { if (d && d.level) newLevel(d.level | 0); },
     init() { popFx = []; fast = false; newLevel(1); },
@@ -10375,6 +10411,7 @@ function cabGame() {
   function newShift(lv) { level = lv; delivered = 0; traffic = []; for (let i = 0; i < Math.min(26, 8 + lv * 3); i++) { const p = roadPoint(), h = p.y % BLK < RD; traffic.push({ x: p.x, y: p.y, horiz: h, sp: (60 + Math.random() * 50) * (Math.random() < .5 ? -1 : 1), c: ["#ff2bd6", "#22e4ff", "#b6ff3b", "#ff8a1f"][i % 4] }); } newFare(); banner("SHIFT " + lv + " · " + (4 + lv) + " FARES", "#ffd66b"); }
   game({
     title: "Neon Cab", w: W, h: H, color: "#ffd66b", bpm: 124, easy: "a slower clock and no traffic bumps",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Drag (or arrows / WASD) to drive. Stay on the glowing roads", "Drive up to a waiting passenger and slow down to pick them up", "Follow the arrow to their stop. Faster trips = bigger tips and extra time", "Don't run out of time! Bumping cars slows you down"],
     load(d) { if (d && d.level) { timeLeft = Math.max(timeLeft, 45); newShift(d.level | 0); } },
     init() { car = { x: BLK * 3 + RD / 2, y: BLK * 3 + RD / 2, a: -Math.PI / 2, v: 0 }; timeLeft = S.practice ? 999 : 60; joy = null; cam = { x: 0, y: 0 }; msgT = 0; skid = []; newShift(1); },
@@ -10546,6 +10583,7 @@ function grappleGame() {
   function letGo() { rope = null; sfx("jump"); if (p.vx > 0) { p.vx = Math.max(p.vx, 240); p.vy = Math.min(p.vy, -120); } }
   game({
     title: "Grapple Gap", w: W, h: H, color: "#a35bff", bpm: 128, easy: "a longer rope and a safety bounce",
+    pad: { center: [["GRAB", " ", true]] },
     help: ["HOLD (tap, click or Space) to shoot your rope at the nearest glowing hook", "Swing forward, then LET GO at the right moment to fly to the next hook", "Don't fall into the chasm! Grab coins in the air for +50", "Every 500 m is a checkpoint. Later hooks bob up and down"],
     load(d) { if (d && d.dist) reset(d.dist); },
     init() { holding = false; stars = Array.from({ length: 50 }, () => [Math.random() * W * 3, Math.random() * H * .7, Math.random()]); reset(0); },
@@ -10602,6 +10640,7 @@ function sonarGame() {
   function hit() { if (inv > 0) return; if (!S.practice) hull--; inv = 1.2; sfx("bad"); shake(5, .3); flash("#ff4d6d", .2); if (hull <= 0) over("THE SUB SANK · DIVE " + level); }
   game({
     title: "Sonar Sub", w: W, h: H, color: "#22e4ff", bpm: 84, easy: "your sonar recharges fast, walls glow longer and you can't sink",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["PING", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["It's pitch dark! Tap (or Space) to send a SONAR PING that lights up the cave for a moment", "Drag (or arrows / WASD) to steer the sub to the glowing exit on the right", "Don't bump the walls and stay away from mines. 4 hull points. Gentle scrapes are OK, hard bumps hurt", "Grab pearls for points. Each dive is longer, tighter and has more mines"],
     load(d) { if (d && d.level) { hull = Math.max(hull, d.hull || 4); build(d.level | 0); } },
     init() { hull = 4; t = 0; joy = null; lastPing = -9; build(1); },
@@ -10656,6 +10695,7 @@ function lanceGame() {
   function hurtPlayer() { if (invT > 0) return; if (!S.practice) lives--; invT = 2; sfx("bad"); shake(6, .3); burst(pl.x, pl.y, "#22e4ff", 24, 220, .5); pl.x = W / 2; pl.y = 260; pl.vx = pl.vy = 0; if (lives <= 0) over("UNSEATED · WAVE " + wave); }
   game({
     title: "Lance Riders", w: W, h: H, color: "#ff8a1f", bpm: 130, easy: "unlimited lives and lazy enemy riders",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["FLAP", " ", true]] },
     help: ["Tap (or Space / ↑) to FLAP your wings. Steer with ← → or by tapping left / right of your rider", "Crash into enemy riders from ABOVE to knock them off. Lower lance loses!", "Beaten riders drop eggs. Grab them before they hatch into tougher riders", "Don't fall into the lava. The screen wraps left and right"],
     load(d) { if (d && d.wave) { lives = Math.max(lives, d.lives || 3); newWave(d.wave | 0); } },
     init() { lives = S.practice ? 99 : 3; pl = mkRider(W / 2, 260, 0); eggs = []; flapCd = 0; invT = 2; msgT = 0; newWave(1); },
@@ -10729,6 +10769,7 @@ function poptrapGame() {
   function hurt() { if (inv > 0) return; if (!S.practice) lives--; inv = 2; sfx("bad"); shake(5, .3); pl.x = 60; pl.y = FLOOR - PH; pl.vx = pl.vy = 0; if (lives <= 0) over("CAUGHT ON LEVEL " + level); }
   game({
     title: "Pop Trap", w: W, h: H, color: "#3dffa8", bpm: 136, easy: "unlimited lives and slow enemies",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["JUMP", "ArrowUp"], ["POP", "x"]] },
     help: ["◀ ▶ to walk, JUMP to jump, BUBBLE to blow a bubble (keys: ← → , ↑ / Space, X)", "Bubbles trap enemies inside! Touch a trapped enemy to POP it into fruit", "Pop several close together for a combo. Trapped enemies escape after a while — angrier!", "Clear every enemy to finish the level. Fall off the bottom and you drop in from the top"],
     load(d) { if (d && d.level) { lives = Math.max(lives, d.lives || 3); newLevel(d.level | 0); } },
     init() { lives = S.practice ? 99 : 3; btn = {}; newLevel(1); },
@@ -10790,6 +10831,7 @@ function dojoGame() {
   function hurt(f) { f.dead = true; combo = 0; if (!S.practice) hp--; flashSide = f.side; sfx("bad"); shake(6, .3); flash("#ff4d6d", .2); if (hp <= 0) over("DEFEATED · " + kills + " KNOCKOUTS"); }
   game({
     title: "Two-Button Dojo", w: W, h: H, color: "#ffd66b", bpm: 150, easy: "enemies are slow and misses barely slow you down",
+    pad: { left: [["◀", "ArrowLeft", true]], right: [["▶", "ArrowRight", true]] },
     help: ["Enemies rush in from both sides. Tap the LEFT or RIGHT half (or ← →) to strike that way", "Only strike when an enemy is inside your reach circle — a whiff leaves you open!", "Purple ninjas may flip over you. Orange brutes take 3 hits", "Chain hits for combo multipliers. 25 knockouts clears a level"],
     load(d) { if (d && d.level) { hp = Math.max(hp, d.hp || 5); level = d.level | 0; foes = []; waveKills = 0; } },
     init() { foes = []; hp = S.practice ? 99 : 5; kills = 0; level = 1; spawnT = 1; stun = 0; combo = 0; waveKills = 0; swing = null; pose = 1; },
@@ -10863,6 +10905,7 @@ function diggerGame() {
   let depthBase = 0;
   game({
     title: "Gem Digger", w: W, h: H, color: "#ff2bd6", bpm: 140, easy: "air lasts much longer and blocks fall slowly",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["▼", "ArrowDown"]] },
     help: ["Drill ◀ ▶ ▼ (arrows / WASD, or tap left, right or below your digger)", "Drilling a block clears every touching block of the SAME color", "Blocks with nothing under them shake, then FALL — don't get squished!", "Your AIR drains as you go. Drill blue air tanks to refill. Pink gems are big points. Grey rock takes two hits and costs air"],
     load(d) { if (d && d.depth) { lives = Math.max(lives, d.lives || 3); setup(d.depth); } },
     init() { lives = S.practice ? 99 : 3; btn = null; drillCd = 0; setup(0); },
@@ -10915,6 +10958,7 @@ function roadagentGame() {
   function setup(d) { car = { x: W / 2, y: H - 120, vx: 0, inv: 1 }; cars = []; shots = []; scroll = 0; dist = d || 0; zone = Math.floor(dist / 3000); speed = 300; ammo = 0; oil = 2; oilCd = 0; edgeL = RL0; edgeR = RL1; edgeT = 0; slick = []; fireCd = 0; }
   game({
     title: "Road Agent", w: W, h: H, color: "#22e4ff", bpm: 150, easy: "your car can take a lot more damage",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["OIL", "x", true]] },
     help: ["Steer with ← → or drag. Your car fires automatically straight ahead", "RED cars ram you, PURPLE cars shoot back. Blast them for points", "Don't shoot the WHITE civilian cars — that costs points!", "Tap the OIL button (or X) to drop an oil slick that spins out anyone behind you. Stay on the road!"],
     load(d) { if (d && d.dist) { hp = Math.max(hp, d.hp || 5); setup(d.dist); } },
     init() { hp = S.practice ? 99 : 5; msg = 0; setup(0); },
@@ -10990,6 +11034,7 @@ function paperGame() {
   function crash(why) { if (bike.inv > 0) return; bike.inv = 1.5; bike.wob = .6; sfx("bad"); shake(6, .3); pop(bike.x, bike.y - 40, why, "#ff4d6d"); if (!S.practice) { subs--; if (subs <= 0) over("LOST ALL YOUR CUSTOMERS · DAY " + day); } }
   game({
     title: "Paper Route", w: W, h: H, color: "#ffd66b", bpm: 118, easy: "a slow bike and crashes don't cost customers",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["◀ TOSS", "z", true], ["TOSS ▶", "x", true]] },
     help: ["Steer your bike with ← → or by dragging", "Throw papers LEFT (Z / tap left half) or RIGHT (X / tap right half) as you ride", "Land papers on the doormat of GLOWING subscriber houses. Dark houses don't get papers — breaking their windows costs points!", "Dodge dogs, cones and skaters. Grab paper bundles to restock. Customers you miss cancel!"],
     load(d) { if (d && d.day) { subs = Math.max(subs, d.subs || 10); newDay(d.day | 0); } },
     init() { subs = 10; throwCd = 0; touchX = null; newDay(1); },
@@ -11058,6 +11103,7 @@ function guardianGame() {
   function useSmart() { if (smart <= 0 || S.state !== "play") return; smart--; flash("#ffffff", .3); shake(6, .3); sfx("power"); for (const f of foes) if (Math.abs(dx(f.x, camX + W / 2)) < W / 2) { f.dead = true; S.score += 100; burst(dx(f.x, camX), f.y, "#ffd66b", 14, 200, .4); if (f.hold) { f.hold.carried = null; f.hold.fall = 1; } } }
   game({
     title: "Sky Guardian", w: W, h: H, color: "#3dffa8", bpm: 146, easy: "unlimited lives and slow abductors",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], center: [["FIRE", " "]], right: [["▲", "ArrowUp"], ["▼", "ArrowDown"]] },
     help: ["Fly with arrows / WASD (or drag). Your ship turns to face where it's flying", "Hold Space or tap the FIRE side to shoot. B or the BLAST button is a screen-clearing blast (3 per game)", "Green grabbers try to carry people off the top of the screen — shoot them, then CATCH the falling person!", "The radar at the top shows the whole looping city. Lose all your people and the city falls"],
     load(d) { if (d && d.wave) { lives = Math.max(lives, d.lives || 3); smart = Math.max(smart, 2); newWave(d.wave | 0); } },
     init() { lives = S.practice ? 99 : 3; smart = 3; ship = { x: 200, y: H / 2, vx: 0, vy: 0, dir: 1, inv: 1.5, carry: null }; camX = ship.x - W / 3; fireCd = 0; touch = null; people = []; newWave(1); },
@@ -11126,6 +11172,7 @@ function shieldGame() {
   function parry() { if (S.state !== "play" || parryT > -.3) return; parryT = .18; sfx("tick"); }
   game({
     title: "Shield Arena", w: W, h: H, color: "#22e4ff", bpm: 132, easy: "a giant shield and slow bolts",
+    pad: { left: [["↺", "ArrowLeft"]], center: [["PARRY", " ", true]], right: [["↻", "ArrowRight"]] },
     help: ["Turrets around the ring fire bolts at you. Turn your SHIELD to block them (← → / A D, or drag around you)", "Blocked bolts bounce straight back — aim the bounce to hit the turret that fired!", "Tap Space or click/tap right when a bolt hits for a PARRY: double-speed, double-damage return", "Destroy every turret to clear the arena. Later arenas have spinning turrets and triple shots"],
     load(d) { if (d && d.arena) { hp = Math.max(hp, d.hp || 5); newArena(d.arena | 0); } },
     init() { hp = S.practice ? 99 : 5; ang = -Math.PI / 2; angV = 0; perfect = 0; parryT = -1; aimP = null; newArena(1); },
@@ -11193,6 +11240,7 @@ function lureGame() {
   function release() { holding = false; if (state === "charge") { state = "cast"; const dist = 80 + power * (W - BOATX - 110); hook = { x: BOATX + 20, y: SEA - 40, tx: BOATX + 20 + dist, vx: dist / .7, vy: -200, bite: null, fish: null, wob: 0 }; sfx("jump"); } if (state === "reelin") state = "wait"; }
   game({
     title: "Lucky Lure", w: W, h: H, color: "#22e4ff", bpm: 96, easy: "no clock, and the line almost never snaps",
+    pad: { center: [["HOLD", " ", true]] },
     help: ["HOLD to power up your cast, LET GO to throw (tap / click / Space)", "Hold to slowly reel the lure up through deeper fish. When the bobber dips — TAP fast to hook!", "Fighting a fish: HOLD to reel, LET GO when the line tension goes red or it SNAPS", "Reach the day's catch goal before sundown. Bigger, deeper fish pull harder but are worth way more"],
     load(d) { if (d && d.day) newDay(d.day | 0); },
     init() { holding = false; bubbles = []; junkT = 0; newDay(1); },
@@ -11282,6 +11330,7 @@ function platGame() {
     remote(m) { if (m && m.code) { const lv = dec(m.code); if (!lv) { banner("THAT CODE DOESN'T WORK", "#ff4d6d"); return true; } lvI = -1; startLevel(lv, true); banner("FRIEND'S LEVEL!", "#ffd66b"); } return true; },
     load(d) { if (d && d.unlocked != null) unlocked = Math.max(unlocked, d.unlocked | 0); },
     title: "Neon Platformer", w: W, h: H, color: "#22e4ff", bpm: 132, easy: "unlimited lives",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["JUMP", " ", true]] },
     help: ["← → (or A D) to run, ↑ / Space to jump. Touch: ◀ ▶ and ⤒ buttons", "Grab coins, dodge spikes, reach the flag", "Make your own levels: paint tiles, test, then share the code with friends", "Load a friend's code from the menu to play their level"],
     init() { unlocked = unlocked || 0; menu(); },
     hud() { return mode === "play" ? (custom ? "CUSTOM LEVEL" : "LEVEL " + (lvI + 1) + "/" + LV.length) + "  ·  COINS " + got + "/" + (got + coins.length) + "  ·  " + (S.practice ? "∞" : "♥".repeat(Math.max(0, lives))) : mode === "edit" ? "LEVEL EDITOR · " + PALN[edTile] : "PICK A LEVEL"; },
@@ -11702,6 +11751,7 @@ function mergeGame() {
   }
   game({
     title: "Neon Merge", w: W, h: H, color: "#ff2bd6", bpm: 100, easy: "the jar never overflows",
+    pad: { left: [["◀", "ArrowLeft"], ["▶", "ArrowRight"]], right: [["DROP", " ", true]] },
     help: ["Drag to aim, let go (or tap) to drop a ball", "Two balls of the same color MERGE into a bigger one", "Keep merging to make the giant golden ball!", "Don't let the balls stack over the red line"],
     init() { balls = []; best = 0; curT = pick(); nextT = pick(); aimX = W / 2; cool = 0; danger = 0; },
     hud() { return "BIGGEST " + (best + 1) + "/11  ·  NEXT"; },
@@ -13677,6 +13727,21 @@ function fighterGame() {
     ["rc-lime", "cab", "Lime Cab", 300, "#b6ff3b", "A lime taxi for Neon Cab", "", "r"],
     ["rc-gold", "cab", "Gold Cab", 75, "#ffd66b", "A golden taxi for Neon Cab", "$", "e"],
     ["rc-rainbow", "cab", "Rainbow Cab", 8, "linear-gradient(90deg,#ff2e4d,#ffd66b,#3dffa8,#22e4ff,#a35bff)", "A color-changing car", "d", "e"],
+    ["ra-gold", "roadagent", "Gold Agent Car", 300, "#ffd66b", "A golden spy car for Road Agent", "", "r"],
+    ["ra-pink", "roadagent", "Pink Interceptor", 300, "#ff2bd6", "A pink spy car for Road Agent", "", "r"],
+    ["ra-lime", "roadagent", "Lime Interceptor", 6, "#b6ff3b", "A lime spy car for Road Agent", "d", "e"],
+    ["pr-gold", "paper", "Gold Rider", 300, "#ffd66b", "A golden paper kid for Paper Route", "", "r"],
+    ["pr-pink", "paper", "Pink Rider", 300, "#ff2bd6", "A pink paper kid for Paper Route", "", "r"],
+    ["pr-lime", "paper", "Lime Rider", 6, "#b6ff3b", "A lime paper kid for Paper Route", "d", "e"],
+    ["sg-gold", "guardian", "Gold Guardian", 300, "#ffd66b", "A golden ship for Sky Guardian", "", "r"],
+    ["sg-pink", "guardian", "Pink Guardian", 300, "#ff2bd6", "A pink ship for Sky Guardian", "", "r"],
+    ["sg-white", "guardian", "Star Guardian", 6, "#ffffff", "A shining white ship for Sky Guardian", "d", "e"],
+    ["sa-gold", "shield", "Gold Shield", 300, "#ffd66b", "A golden shield for Shield Arena", "", "r"],
+    ["sa-pink", "shield", "Pink Shield", 300, "#ff2bd6", "A pink shield for Shield Arena", "", "r"],
+    ["sa-lime", "shield", "Lime Shield", 6, "#b6ff3b", "A lime shield for Shield Arena", "d", "e"],
+    ["ll-gold", "lure", "Gold Angler", 300, "#ffd66b", "A golden angler for Lucky Lure", "", "r"],
+    ["ll-pink", "lure", "Pink Angler", 300, "#ff2bd6", "A pink angler for Lucky Lure", "", "r"],
+    ["ll-lime", "lure", "Lime Angler", 6, "#b6ff3b", "A lime angler for Lucky Lure", "d", "e"],
     ["dr-pink", "darts", "Pink Darts", 250, "#ff2bd6", "Pink darts for Neon Darts", "", "r"],
     ["dr-lime", "darts", "Lime Darts", 250, "#b6ff3b", "Lime darts for Neon Darts", "", "r"],
     ["dr-gold", "darts", "Gold Darts", 60, "#ffd66b", "Golden darts for Neon Darts", "$", "e"],
@@ -14013,7 +14078,7 @@ function fighterGame() {
   // The song games play: a shop song you equipped, otherwise the style picked in Settings.
   window.gblMusicPick = () => { try { const m = prog.equip && prog.equip.music; if (m === "mu-shuffle") { const own = (prog.owned || []).filter((id) => id.startsWith("mu-")); own.push("mu-synth"); return own[Math.random() * own.length | 0].slice(3); } if (m) return m.slice(3); if (settings.music === "off") return "off"; return settings.music || "synth"; } catch (e) { return "synth"; } };
   /* ---------- Stars: three score goals for every game ---------- */
-  const STARS = { lure: [500, 1500, 4000], shield: [3000, 15000, 50000], guardian: [3000, 12000, 40000], paper: [1500, 6000, 20000], roadagent: [2000, 8000, 25000], digger: [800, 3000, 8000], dojo: [1000, 6000, 20000], poptrap: [3000, 15000, 50000], lance: [2000, 10000, 30000], sonar: [1000, 5000, 15000], grapple: [150, 500, 1500], ramp: [2000, 8000, 25000], soda: [1500, 6000, 20000], cab: [1500, 6000, 20000], lockpick: [300, 1500, 5000], blobs: [2000, 10000, 40000], artillery: [2000, 10000, 30000], well: [2000, 10000, 30000], copter: [500, 2000, 6000], tiles: [500, 2500, 8000], derby: [1500, 8000, 25000], archery: [800, 4000, 12000], plinko: [3000, 15000, 50000], skee: [800, 3000, 8000], claim: [3000, 15000, 50000], draw: [2000, 8000, 20000], bugs: [3000, 15000, 40000], pipes: [1500, 8000, 25000], horde: [3000, 15000, 50000], tanks: [1500, 8000, 25000], claw: [400, 2000, 6000], crates: [1500, 6000, 15000], swarm: [3000, 15000, 40000], bomber: [1000, 5000, 15000], snake: [10, 30, 60], bricks: [500, 2000, 6000], pong: [10, 30, 70], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], racer: [500, 2000, 5000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], squash: [15, 40, 80], curling: [100, 250, 450], tug: [300, 1000, 2500], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], colordash: [5, 15, 30], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
+  const STARS = { math: [500, 2000, 6000], pinball: [5000, 25000, 80000], bubbles: [1000, 5000, 15000], words: [1000, 4000, 12000], platformer: [1000, 4000, 10000], pool: [1500, 6000, 15000], lure: [500, 1500, 4000], shield: [3000, 15000, 50000], guardian: [3000, 12000, 40000], paper: [1500, 6000, 20000], roadagent: [2000, 8000, 25000], digger: [800, 3000, 8000], dojo: [1000, 6000, 20000], poptrap: [3000, 15000, 50000], lance: [2000, 10000, 30000], sonar: [1000, 5000, 15000], grapple: [150, 500, 1500], ramp: [2000, 8000, 25000], soda: [1500, 6000, 20000], cab: [1500, 6000, 20000], lockpick: [300, 1500, 5000], blobs: [2000, 10000, 40000], artillery: [2000, 10000, 30000], well: [2000, 10000, 30000], copter: [500, 2000, 6000], tiles: [500, 2500, 8000], derby: [1500, 8000, 25000], archery: [800, 4000, 12000], plinko: [3000, 15000, 50000], skee: [800, 3000, 8000], claim: [3000, 15000, 50000], draw: [2000, 8000, 20000], bugs: [3000, 15000, 40000], pipes: [1500, 8000, 25000], horde: [3000, 15000, 50000], tanks: [1500, 8000, 25000], claw: [400, 2000, 6000], crates: [1500, 6000, 15000], swarm: [3000, 15000, 40000], bomber: [1000, 5000, 15000], snake: [10, 30, 60], bricks: [500, 2000, 6000], blaster: [500, 3000, 10000], flap: [5, 20, 50], "2048": [1000, 5000, 20000], memory: [800, 3000, 8000], runner: [300, 1200, 3000], blocks: [300, 2000, 8000], targets: [300, 1000, 2500], golf: [300, 800, 1500], pingpong: [500, 1500, 4000], void: [5000, 15000, 40000], muncher: [1000, 3000, 8000], missile: [500, 2000, 6000], storm: [1000, 3000, 8000], slice: [100, 400, 1000], mines: [500, 1500, 4000], slide: [400, 1500, 4000], gems: [1500, 5000, 12000], tunnel: [300, 1000, 2500], darts: [200, 800, 2000], hop: [200, 800, 2000], flip: [500, 1500, 4000], quest: [700, 2000, 5000], hoops: [500, 1500, 4000], penalty: [500, 2000, 6000], tower: [2000, 8000, 20000], connect4: [300, 1200, 3000], reversi: [400, 1500, 4000], beat: [1000, 4000, 12000], simon: [50, 150, 300], chess: [300, 1500, 4000], guesswho: [400, 1500, 4000], slither: [500, 2000, 6000], orbit: [200, 800, 2000], vortex: [1000, 4000, 10000], evader: [150, 500, 1200], laser: [200, 800, 2000], bitshift: [300, 1500, 5000], core: [500, 2000, 6000], overdrive: [400, 1500, 4000], curling: [100, 250, 450], clash: [200, 600, 1500], thief: [300, 1000, 2500], stack: [10, 30, 60], crossing: [30, 100, 200], airhockey: [300, 1500, 4000], whack: [300, 800, 1500], bowling: [100, 160, 220], merge: [500, 2000, 6000], blades: [30, 80, 150], ttt: [200, 500, 1000], dots: [300, 1000, 2500], solitaire: [300, 900, 1800], fighters: [2000, 6000, 15000] };
   const starBest = (k) => Math.max(stat("sb_" + k), typeof myBest === "function" ? myBest(k) || 0 : 0);
   const starsOf = (k) => { const t = STARS[k]; if (!t) return 0; const b = starBest(k); return t.filter((v) => b >= v).length; };
   const totalStars = () => Object.keys(STARS).reduce((a, k) => a + starsOf(k), 0);
@@ -14482,7 +14547,7 @@ function fighterGame() {
   window.gblPetChar = petCharEl; window.gblPetInfo = (id) => ({ mood: petMood(id), hunger: hungerPct(id), happy: happyPct(id), ...petXpInfo(id) });
   const cost = (n) => n === 0 ? 0 : Math.max(1, Math.round(n * ((window.GCFG || {}).priceMult || 1)));
   const gname = (k) => { const g = BUILTINS.find((b) => b.key === k); return g ? g.title : k; };
-  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["powerup", "⚡ Power-ups (used from a game's start screen)", ""], ["petfood", "🍽 Pet food", ""], ["decor", "🪴 Backyard decor", ""], ["pethouse", "🏡 Pet houses", "#ff8a1f"], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["cab", "🚕 " + gname("cab"), "#ffd66b"], ["darts", "🎯 " + gname("darts"), "#ff2bd6"], ["void", "🛸 " + gname("void"), "#22e4ff"], ["ramp", "🏍 " + gname("ramp"), "#ff8a1f"], ["muncher", "🟡 " + gname("muncher"), "#ffc23d"], ["stack", "🧱 " + gname("stack"), "linear-gradient(90deg,#22e4ff,#a35bff,#ff2bd6)"], ["crossing", "🐸 " + gname("crossing"), "#22e4ff"], ["bowling", "🎳 " + gname("bowling"), "#22e4ff"], ["pool", "🎱 " + gname("pool"), "#3dffa8"], ["airhockey", "🏒 " + gname("airhockey"), "#22e4ff"], ["connect4", "🔴 " + gname("connect4"), "#ff2bd6"], ["chess", "♟ " + gname("chess"), "#22e4ff"], ["tunnel", "🌀 " + gname("tunnel"), "#ffffff"], ["orbit", "🪐 " + gname("orbit"), "#22e4ff"]];
+  const SHOP_GROUPS_BASE = [["boost", "🚀 Boosts", ""], ["powerup", "⚡ Power-ups (used from a game's start screen)", ""], ["petfood", "🍽 Pet food", ""], ["decor", "🪴 Backyard decor", ""], ["pethouse", "🏡 Pet houses", "#ff8a1f"], ["music", "🎵 Music (all games)", "linear-gradient(135deg,#ff2bd6,#22e4ff)"], ["pet", "🐾 Pets", "#888888"], ["title", "🏷 Titles", "#888888"], ["fx", "✨ Sparks (all games)", "#ffffff"], ["frame", "🖼 Game frames (all games)", "#888888"], ["filter", "🎞 Screen filters (all games)", "#888888"], ["slither", "🐍 Neon Slither", "#22e4ff"], ["snake", "🟣 Neon Snake", "#ff2bd6"], ["flap", "🐦 Neon Flap", "#ff8a1f"], ["blaster", "🚀 Star Blaster", "#22e4ff"], ["hop", "🟢 Sky Hop", "#b6ff3b"], ["golf", "⛳ Mini Golf", "#ffffff"], ["hoops", "🏀 Hoop Shot", "#ff8a1f"], ["bricks", "🧱 " + gname("bricks"), "linear-gradient(90deg,#a35bff,#22e4ff)"], ["runner", "🟦 " + gname("runner"), "#22e4ff"], ["cab", "🚕 " + gname("cab"), "#ffd66b"], ["darts", "🎯 " + gname("darts"), "#ff2bd6"], ["void", "🛸 " + gname("void"), "#22e4ff"], ["ramp", "🏍 " + gname("ramp"), "#ff8a1f"], ["muncher", "🟡 " + gname("muncher"), "#ffc23d"], ["stack", "🧱 " + gname("stack"), "linear-gradient(90deg,#22e4ff,#a35bff,#ff2bd6)"], ["crossing", "🐸 " + gname("crossing"), "#22e4ff"], ["bowling", "🎳 " + gname("bowling"), "#22e4ff"], ["pool", "🎱 " + gname("pool"), "#3dffa8"], ["airhockey", "🏒 " + gname("airhockey"), "#22e4ff"], ["connect4", "🔴 " + gname("connect4"), "#ff2bd6"], ["chess", "♟ " + gname("chess"), "#22e4ff"], ["tunnel", "🌀 " + gname("tunnel"), "#ffffff"], ["orbit", "🪐 " + gname("orbit"), "#22e4ff"], ["roadagent", "🚓 " + gname("roadagent"), "#22e4ff"], ["paper", "📰 " + gname("paper"), "#ffd66b"], ["guardian", "🛩 " + gname("guardian"), "#3dffa8"], ["shield", "🛡 " + gname("shield"), "#22e4ff"], ["lure", "🎣 " + gname("lure"), "#22e4ff"]];
   const getShopGroups = () => { const ae = activeEvent(); return ae && EVENTS[ae] ? [["ev-" + ae, EVENTS[ae].name + " Event Shop ✨", EVENTS[ae].color], ...SHOP_GROUPS_BASE] : SHOP_GROUPS_BASE; };
   const SHOP_GROUPS = SHOP_GROUPS_BASE; // legacy alias
   const SPIN_MS = 24 * 3600 * 1000;
