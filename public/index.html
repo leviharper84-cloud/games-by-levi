@@ -2129,7 +2129,7 @@ function SHELL() {
     }
   }
   let runId = 0;
-  function saveGame(d) { if (S.practice || S.duo || S.tt || S.quick) return; SAVED = d ? { ...d, score: Math.floor(S.score), run: runId } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); if (SAVED && SAVED.score > 0) parent.postMessage({ type: "gbl:ckpt", score: SAVED.score }, "*"); } catch (e) {}
+  function saveGame(d) { if (S.practice || S.duo || S.tt || S.quick) return; if (d && !d.auto) ckT = 0; SAVED = d ? { ...d, score: Math.floor(S.score), run: runId } : null; try { parent.postMessage({ type: "gbl:save", data: SAVED }, "*"); if (SAVED && SAVED.score > 0) parent.postMessage({ type: "gbl:ckpt", score: SAVED.score }, "*"); } catch (e) {}
     if (d && !d.auto && d.stop !== false && S.state === "play" && !S.paused) {
       const tips = (G.help || []).slice(); S.ck = { label: d.label || "CHECKPOINT", score: Math.floor(S.score), t: S.t, best: Math.max(S.best || 0, Math.floor(S.score)), resp: S.respawns, tip: tips.length ? tips[Math.random() * tips.length | 0] : "", next: d.next || "" };
       S.paused = true; S.keys = {}; pzBtn.textContent = "▶"; sfx("level");
@@ -2137,7 +2137,7 @@ function SHELL() {
   }
   function start(practice, duo, cont, quick) {
     if (window.TOUR0) { duo = true; practice = false; }
-    S.quick = !!quick && !duo && !practice && !window.TOUR0 && !window.ONLINE0; S.qpT = 90; ckT = 0;
+    S.quick = !!quick && !duo && !practice && !window.TOUR0 && !window.ONLINE0; S.qpT = 90; ckT = 52;
     S.pupOn = new Set(); S.respawns = 3; runId = cont && SAVED && SAVED.run ? SAVED.run : Date.now();
     if (!S.quick && !practice && !duo && pupAllowed()) for (const id of pupSel) if ((PUPS[id] | 0) > 0) { PUPS[id]--; S.pupOn.add(id); try { parent.postMessage({ type: "gbl:pup", id }, "*"); } catch (e) {} }
     pupSel.clear(); renderPups();
@@ -2304,7 +2304,10 @@ function SHELL() {
     } else if (S.state === "play" && dt > 0) {
       S.t += dt; if (RQ.length && G.remote && G.remote(RQ[0])) RQ.shift(); G.update(dt);
       if (S.state === "play" && S.quick) { S.qpT -= dt; if (S.qpT <= 0) { S.qpT = 0; over("TIME'S UP!"); } }
-      else if (S.state === "play" && G.autoCk && !S.practice && !S.duo && !S.tt) { ckT += dt; if (ckT >= 60) { ckT = 0; if (S.score > 0) { saveGame({ auto: 1, label: "SCORE " + fmt(Math.floor(S.score)) }); pop(G.w / 2, 70, "✓ CHECKPOINT", "#3dffa8"); } } }
+      else if (S.state === "play" && !S.practice && !S.duo && !S.tt && !S.quick && !window.TOUR0 && !window.ONLINE0) { ckT += dt; if (ckT >= 60) { ckT = 0; if (S.score > 0 || !G.autoCk) {
+        /* Every game gets a safety checkpoint: games with levels keep their last saved level (or the start), others keep the score. */
+        const base = {}; if (!G.autoCk && SAVED && SAVED.run === runId) for (const k in SAVED) if (!["auto", "score", "run", "label", "stop", "next"].includes(k)) base[k] = SAVED[k];
+        saveGame({ ...base, auto: 1, label: (SAVED && SAVED.run === runId && SAVED.label && !G.autoCk ? SAVED.label : S.score > 0 ? "SCORE " + fmt(Math.floor(S.score)) : "START") }); pop(G.w / 2, 70, "✓ CHECKPOINT", "#3dffa8"); } } }
     }
     stepFx(dt);
     x.setTransform(dpr, 0, 0, dpr, 0, 0); x.globalAlpha = 1; x.globalCompositeOperation = "source-over"; x.shadowBlur = 0;
